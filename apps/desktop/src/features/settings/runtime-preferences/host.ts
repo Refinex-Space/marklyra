@@ -196,7 +196,10 @@ export class RuntimePreferencesHost {
               throw new Error('Markdown缩进应用能力尚未就绪。');
             if (isExportPreferenceKey(change.key) && this.initial.marklyraExportActions !== true)
               throw new Error('导出设置应用能力尚未就绪。');
-            if (change.key === 'disabledFileTypes' && this.initial.marklyraFileTypeActions !== true)
+            if (
+              (change.key === 'disabledFileTypes' || change.key === 'removeCustomFileType') &&
+              this.initial.marklyraFileTypeActions !== true
+            )
               throw Error('文件类型设置尚未就绪。');
             const updated = await this.options.onPut(change.key, change.value);
             if (updated !== undefined) {

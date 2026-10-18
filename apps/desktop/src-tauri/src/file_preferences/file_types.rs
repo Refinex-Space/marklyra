@@ -123,6 +123,32 @@ impl Stored {
         }
         Ok(())
     }
+    pub(super) fn remove_custom_file_type(&mut self, extension: &str) -> Result<(), String> {
+        if extension.is_empty()
+            || file_index::TEXT_EXTENSIONS.contains(&extension)
+            || !self
+                .document_types()
+                .catalog()
+                .iter()
+                .any(|id| id == extension)
+        {
+            return Err("只能删除已添加的自定义文件类型".into());
+        }
+        if self.default_extension.eq_ignore_ascii_case(extension) {
+            self.default_extension = self
+                .document_types()
+                .enabled_extensions()
+                .into_iter()
+                .find(|id| id != extension)
+                .unwrap_or_else(|| "md".into());
+            let fallback = self.default_extension.to_ascii_lowercase();
+            self.disabled_file_types.retain(|id| id != &fallback);
+        }
+        self.custom_file_extensions.retain(|id| id != extension);
+        self.disabled_file_types.retain(|id| id != extension);
+        Ok(())
+    }
+
     pub(super) fn set_disabled_file_types(&mut self, disabled: Vec<String>) -> Result<(), String> {
         self.remember_custom_type()?;
         let catalog = self.document_types().catalog();
@@ -229,6 +255,87 @@ mod tests {
         assert!(policy.allows(Path::new("note.md")));
         change(&mut state, 2, PreferenceChange::DisabledFileTypes(vec![])).unwrap();
         assert!(state.document_types().allows(Path::new("note.foo.md")));
+    }
+
+    #[test]
+    fn removing_custom_types_persists_and_rejects_builtins_or_unknown_types() {
+        let root = tempfile::tempdir().unwrap();
+        let store = Store::open(root.path()).unwrap();
+        store
+            .transaction(|state| {
+                change(
+                    state,
+                    0,
+                    PreferenceChange::DefaultExtension("own.md".into()),
+                )?;
+                change(
+                    state,
+                    1,
+                    PreferenceChange::DisabledFileTypes(vec!["own.md".into()]),
+                )?;
+                change(
+                    state,
+                    2,
+                    PreferenceChange::RemoveCustomFileType("own.md".into()),
+                )?;
+                Ok(((), true))
+            })
+            .unwrap();
+        let reopened = Store::open(root.path()).unwrap();
+        reopened
+            .transaction(|state| {
+                assert!(!state.document_types().catalog().contains(&"own.md".into()));
+                assert!(!state.custom_file_extensions.contains(&"own.md".into()));
+                assert!(!state.disabled_file_types.contains(&"own.md".into()));
+                assert_eq!(state.default_extension, "md");
+                Ok(((), false))
+            })
+            .unwrap();
+        let before = std::fs::read(root.path().join("preferences.json")).unwrap();
+        for id in ["md", "txt", "", "unknown"] {
+            assert!(reopened
+                .transaction(|state| {
+                    change(state, 3, PreferenceChange::RemoveCustomFileType(id.into()))?;
+                    Ok(((), true))
+                })
+                .is_err());
+        }
+        assert_eq!(
+            std::fs::read(root.path().join("preferences.json")).unwrap(),
+            before
+        );
+    }
+
+    #[test]
+    fn deleting_the_active_or_last_custom_type_selects_a_usable_default() {
+        let mut state = Stored::default();
+        change(
+            &mut state,
+            0,
+            PreferenceChange::DefaultExtension("own".into()),
+        )
+        .unwrap();
+        change(
+            &mut state,
+            1,
+            PreferenceChange::DisabledFileTypes(
+                file_index::TEXT_EXTENSIONS
+                    .iter()
+                    .map(|s| (*s).into())
+                    .collect(),
+            ),
+        )
+        .unwrap();
+        change(
+            &mut state,
+            2,
+            PreferenceChange::RemoveCustomFileType("own".into()),
+        )
+        .unwrap();
+        assert_eq!(state.default_extension, "md");
+        assert!(!state.disabled_file_types.contains(&"md".into()));
+        assert!(!state.document_types().catalog().contains(&"own".into()));
+        state.validate().unwrap();
     }
 
     #[test]

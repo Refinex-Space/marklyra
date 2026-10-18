@@ -222,3 +222,12 @@ describe('file type preference contract', () => {
       expect(() => filePreferenceChange('disabledFileTypes', value)).toThrow();
   });
 });
+
+it('accepts only a bounded custom extension token for removal', () => {
+  expect(preferenceChange('removeCustomFileType', 'own.md')).toEqual({
+    key: 'removeCustomFileType',
+    value: 'own.md',
+  });
+  for (const value of ['', 'md', 'txt', '../own', '/own', 'Own', ['own'], false, null])
+    expect(() => filePreferenceChange('removeCustomFileType', value)).toThrow();
+});

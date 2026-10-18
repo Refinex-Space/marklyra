@@ -158,6 +158,7 @@ function request(operation: string, payload: Record<string, unknown> = {}): Prom
 }
 
 function fieldKey(element: Element): string | undefined {
+  if (element.hasAttribute('data-marklyra-file-remove')) return 'removeCustomFileType';
   if (element.hasAttribute('data-marklyra-file-default')) return 'defaultExtension';
   if (element.hasAttribute('data-marklyra-file-type')) return 'disabledFileTypes';
   if (element instanceof HTMLInputElement && element.name === 'useCustomFontSize')
@@ -575,8 +576,16 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
   invalidDraft = null;
   const managedFileTypes =
     runtime._options.marklyraFileTypeActions === true &&
-    (change.key === 'disabledFileTypes' || change.key === 'defaultExtension');
+    (change.key === 'disabledFileTypes' ||
+      change.key === 'defaultExtension' ||
+      change.key === 'removeCustomFileType');
   const focus = managedFileTypes ? document.activeElement : null;
+  const row =
+    change.key === 'removeCustomFileType' ? focus?.closest('.settings-file-type-row') : null;
+  const nextFocus =
+    row?.nextElementSibling?.querySelector('input') ||
+    row?.previousElementSibling?.querySelector('input') ||
+    document.querySelector('.settings-default-type select');
   const epoch = generation;
   pending++;
   if (!component) controlActionPending = true;
@@ -608,15 +617,16 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
       pending--;
       if (!component) controlActionPending = false;
       protectControls();
+      const restoreFocus = focus?.isConnected ? focus : nextFocus;
       if (
         managedFileTypes &&
         !failed &&
-        focus instanceof HTMLElement &&
-        focus.isConnected &&
-        focus.getClientRects().length > 0 &&
+        restoreFocus instanceof HTMLElement &&
+        restoreFocus.isConnected &&
+        restoreFocus.getClientRects().length > 0 &&
         document.activeElement === document.body
       )
-        focus.focus({ preventScroll: true });
+        restoreFocus.focus({ preventScroll: true });
       progress();
     });
 }
@@ -682,6 +692,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     state: () => runtime._options,
     change: (disabled) => changePreference(undefined, 'disabledFileTypes', disabled),
     defaultExtension: (extension) => changePreference(undefined, 'defaultExtension', extension),
+    remove: (extension) => changePreference(undefined, 'removeCustomFileType', extension),
   });
   updateSettingsPage = updatePage;
   presentSettingsPage(presentation);

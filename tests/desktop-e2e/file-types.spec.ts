@@ -40,6 +40,19 @@ function installTypesMock(catalog: string[]) {
         state.defaultExtension = String(change.value);
         if (!state.supportedFileTypes.includes(state.defaultExtension))
           state.supportedFileTypes.push(state.defaultExtension);
+      } else if (change.key === 'removeCustomFileType') {
+        const id = String(change.value);
+        state.supportedFileTypes = state.supportedFileTypes.filter((type) => type !== id);
+        state.disabledFileTypes = state.disabledFileTypes.filter((type) => type !== id);
+        if (state.defaultExtension === id) {
+          state.defaultExtension =
+            state.supportedFileTypes.find(
+              (type) => type && !state.disabledFileTypes.includes(type),
+            ) || 'md';
+          state.disabledFileTypes = state.disabledFileTypes.filter(
+            (type) => type !== state.defaultExtension,
+          );
+        }
       } else throw Error('Unexpected preference');
       state.revision++;
       host.__desktopMock.emitEvent('file-preferences-changed', structuredClone(state));
@@ -104,7 +117,32 @@ for (const theme of ['github', 'night']) {
       ui.getByRole('switch', { name: '.notes.md 文件类型', exact: true }),
     ).not.toBeChecked();
     await expect(ui.getByRole('combobox', { name: '默认新建文件类型' })).toHaveValue('md');
+    const remove = ui.getByRole('button', { name: '删除 .notes.md 自定义文件类型', exact: true });
+    await remove.hover();
     await page.screenshot({ path: info.outputPath('file-types.png') });
+    await remove.click();
+    await expect(ui.getByRole('switch', { name: '.notes.md 文件类型', exact: true })).toHaveCount(
+      0,
+    );
+    await expect(ui.locator('.settings-default-type option[value="notes.md"]')).toHaveCount(0);
+    await ui.getByRole('combobox', { name: '默认新建文件类型' }).selectOption(':custom');
+    await custom.fill('active');
+    await ui.locator('.settings-page-heading').click();
+    await expect(ui.getByRole('combobox', { name: '默认新建文件类型' })).toHaveValue('active');
+    const removeActive = ui.getByRole('button', {
+      name: '删除 .active 自定义文件类型',
+      exact: true,
+    });
+    await removeActive.focus();
+    await removeActive.press('Enter');
+    await expect(ui.getByRole('switch', { name: '.active 文件类型', exact: true })).toHaveCount(0);
+    await expect(ui.getByRole('combobox', { name: '默认新建文件类型' })).toHaveValue('md');
+    await expect(ui.locator('.settings-file-types input:focus')).toHaveCount(1);
+    await ui.getByRole('button', { name: '返回应用', exact: true }).click();
+    await expect(page.locator('.preferences-page')).toHaveCount(0);
+    await emitLayoutMenu(page, 'preferences');
+    await expect(ui.locator('.settings-file-types-count')).toHaveText('15 / 16 已启用');
+    await expect(ui.getByRole('button', { name: /删除 .* 自定义文件类型/ })).toHaveCount(0);
     await page.setViewportSize({ width: 700, height: 700 });
     expect(await ui.locator('.pane').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
   });
@@ -128,4 +166,31 @@ test('a failed file type save restores its switch and preserves the confirmed co
   expect(
     await page.evaluate(() => Reflect.get(window, '__fileTypesState').disabledFileTypes),
   ).toEqual([]);
+});
+
+test('a failed custom type deletion keeps the row and its persisted configuration', async ({
+  page,
+}) => {
+  await installLayout(page);
+  await page.addInitScript(installTypesMock, [...baseFileTypes, 'own']);
+  await readyLayout(page, 'github');
+  await emitLayoutMenu(page, 'preferences');
+  const ui = page.frameLocator('.runtime-preferences-frame');
+  await expect(
+    ui.getByRole('button', { name: '删除 .own 自定义文件类型', exact: true }),
+  ).toBeVisible();
+  await expect(
+    ui.getByRole('button', { name: '删除 .md 自定义文件类型', exact: true }),
+  ).toHaveCount(0);
+  await page.evaluate(() => {
+    Reflect.get(window, '__fileTypesState').fail = true;
+  });
+  await ui.getByRole('button', { name: '删除 .own 自定义文件类型', exact: true }).click();
+  await expect(page.locator('.preferences-window-error')).toBeVisible();
+  await expect(ui.getByRole('switch', { name: '.own 文件类型', exact: true })).toBeChecked();
+  expect(
+    await page.evaluate(() =>
+      Reflect.get(window, '__fileTypesState').supportedFileTypes.includes('own'),
+    ),
+  ).toBe(true);
 });

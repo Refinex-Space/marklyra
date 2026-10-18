@@ -175,6 +175,8 @@ pub enum PreferenceChange {
     DefaultExtension(String),
     #[serde(rename = "disabledFileTypes")]
     DisabledFileTypes(Vec<String>),
+    #[serde(rename = "removeCustomFileType")]
+    RemoveCustomFileType(String),
     #[serde(rename = "save_file_on_switch")]
     SaveFileOnSwitch(bool),
     #[serde(rename = "noRecentFiles")]
@@ -205,6 +207,9 @@ fn change(state: &mut Stored, expected: u64, change: PreferenceChange) -> Result
             )))?;
         }
         PreferenceChange::DisabledFileTypes(disabled) => state.set_disabled_file_types(disabled)?,
+        PreferenceChange::RemoveCustomFileType(extension) => {
+            state.remove_custom_file_type(&extension)?
+        }
         PreferenceChange::DefaultExtension(_) => return Err("默认扩展名无效".into()),
         PreferenceChange::SaveFileOnSwitch(enabled) => state.save_file_on_switch = enabled,
         PreferenceChange::NoRecentFiles(disabled) => {

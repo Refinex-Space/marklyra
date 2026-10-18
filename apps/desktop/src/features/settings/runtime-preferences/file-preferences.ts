@@ -7,6 +7,7 @@ import {
 export const filePreferenceKeys = [
   'defaultExtension',
   'disabledFileTypes',
+  'removeCustomFileType',
   'save_file_on_switch',
   'noRecentFiles',
   'actionWhenDropFile',
@@ -17,6 +18,7 @@ export type FilePreferenceKey = (typeof filePreferenceKeys)[number];
 export type FilePreferenceChange =
   | { key: 'defaultExtension'; value: string }
   | { key: 'disabledFileTypes'; value: string[] }
+  | { key: 'removeCustomFileType'; value: string }
   | {
       key: 'actionWhenDropFile' | 'actionWhenDropFolder' | 'actionWhenDropImport';
       value: '' | 'link';
@@ -50,6 +52,17 @@ export function filePreferenceChange(key: unknown, value: unknown): FilePreferen
     throw new Error('拖入文件设置无效。');
   }
   if (key === 'disabledFileTypes') return { key, value: checkedFileTypeList(value) };
+  if (key === 'removeCustomFileType') {
+    if (
+      typeof value === 'string' &&
+      value.length > 0 &&
+      value.length <= 128 &&
+      /^[a-z0-9_-]+(?:\.[a-z0-9_-]+)*$/.test(value) &&
+      !baseFileTypes.includes(value)
+    )
+      return { key, value };
+    throw Error('只能删除自定义文件类型。');
+  }
   if (key === 'defaultExtension') {
     if (
       typeof value === 'string' &&

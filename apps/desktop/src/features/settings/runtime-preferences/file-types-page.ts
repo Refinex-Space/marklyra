@@ -1,9 +1,15 @@
-import { checkedFileTypeList, type FileTypeSettings, fileTypeEnabled } from './file-types.js';
+import {
+  baseFileTypes,
+  checkedFileTypeList,
+  type FileTypeSettings,
+  fileTypeEnabled,
+} from './file-types.js';
 
 export interface FileTypePageControls {
   state: () => Record<string, unknown>;
   change: (disabled: string[]) => void;
   defaultExtension: (extension: string) => void;
+  remove: (extension: string) => void;
 }
 let expanded = true;
 let custom = false;
@@ -127,16 +133,20 @@ export function renderFileTypes(pane: Element, controls: FileTypePageControls) {
   if (count && count.textContent !== summaryText) count.textContent = summaryText;
   const grid = details.querySelector('.settings-file-type-grid');
   if (!grid) return;
+  for (const row of Array.from(grid.children)) {
+    if (!supported.includes((row as HTMLElement).dataset.typeId ?? '')) row.remove();
+  }
   const enabledSuffixes = supported.filter((id) => id && !disabled.includes(id));
   for (const id of supported) {
     let row = Array.from(grid.children).find((row) => (row as HTMLElement).dataset.typeId === id) as
-      | HTMLLabelElement
+      | HTMLDivElement
       | undefined;
     if (!row) {
-      row = document.createElement('label');
+      row = document.createElement('div');
       row.className = 'checkbox settings-file-type-row';
       row.dataset.typeId = id;
-      const label = document.createElement('span');
+      const label = document.createElement('label');
+      label.title = id ? `.${id}` : '无扩展名';
       const extension = document.createElement('strong');
       extension.textContent = id ? `.${id}` : '无扩展名';
       const name = document.createElement('small');
@@ -144,6 +154,8 @@ export function renderFileTypes(pane: Element, controls: FileTypePageControls) {
       label.append(extension, name);
       const toggle = document.createElement('input');
       toggle.type = 'checkbox';
+      toggle.id = `file-type-${crypto.randomUUID()}`;
+      label.htmlFor = toggle.id;
       toggle.setAttribute('role', 'switch');
       toggle.setAttribute('aria-label', `${id ? `.${id}` : '无扩展名'} 文件类型`);
       toggle.dataset.marklyraFileType = id;
@@ -151,7 +163,25 @@ export function renderFileTypes(pane: Element, controls: FileTypePageControls) {
         const current = checkedFileTypeList(controls.state().disabledFileTypes);
         controls.change(toggle.checked ? current.filter((type) => type !== id) : [...current, id]);
       });
-      row.append(label, toggle);
+      row.append(label);
+      if (!baseFileTypes.includes(id)) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'settings-file-type-remove';
+        remove.dataset.marklyraFileRemove = id;
+        remove.title = `删除 .${id} 自定义文件类型`;
+        remove.setAttribute('aria-label', remove.title);
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('viewBox', '0 0 20 20');
+        icon.setAttribute('aria-hidden', 'true');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M3 5h14M8 5V3h4v2M5 5l1 12h8l1-12M8 8v6M12 8v6');
+        icon.append(path);
+        remove.append(icon);
+        remove.addEventListener('click', () => controls.remove(id));
+        row.append(remove);
+      }
+      row.append(toggle);
       grid.append(row);
     }
     const toggle = row.querySelector('input');
