@@ -174,6 +174,7 @@ export interface MarkLyraEditorOptions {
   onOutlinePopoverChange?: (open: boolean) => void;
   onViewModeChange?: (mode: MarkLyraViewMode) => void;
   onScrollAwayFromTopChange?: (awayFromTop: boolean) => void;
+  onLinkHintPreferenceChange?: (suppressed: boolean) => void;
   onMenuStateChange?: (state: MarkLyraMenuState) => void;
   onOutlinePin?: () => void;
   onCurrentHeadingChange?: (id: string | null) => void;
@@ -2001,6 +2002,10 @@ export class MarkLyraEditor {
     }
     if (message.kind === 'scroll-away-from-top' && typeof message.payload === 'boolean') {
       this.options.onScrollAwayFromTopChange?.(message.payload);
+      return;
+    }
+    if (message.kind === 'link-hint-preference' && typeof message.payload === 'boolean') {
+      this.options.onLinkHintPreferenceChange?.(message.payload);
       return;
     }
     if (message.kind === 'outline-pin') {

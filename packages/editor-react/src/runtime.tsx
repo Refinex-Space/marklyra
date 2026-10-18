@@ -30,6 +30,9 @@ export function MarkLyraMarkdownEditor(props: MarkLyraMarkdownEditorProps) {
       onScrollAwayFromTopChange: (away) => {
         if (alive) latest.current.onScrollAwayFromTopChange?.(away);
       },
+      onLinkHintPreferenceChange: (suppressed) => {
+        if (alive) latest.current.onLinkHintPreferenceChange?.(suppressed);
+      },
       onMenuStateChange: (state) => {
         if (alive) return latest.current.onMenuStateChange?.(state);
       },

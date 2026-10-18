@@ -24,6 +24,7 @@ export const editorPreferenceFields = {
   mathFormatOnCopy: 'mathFormatOnCopy',
   defaultCodeLang: 'defaultCodeLang',
   defaultCodeLangOption: 'defaultCodeLangOption',
+  noHintForOpenLink: 'noHintForOpenLink',
 } as const satisfies Record<string, keyof MarkLyraEditorPreferences>;
 
 export type EditorPreferenceKey = keyof typeof editorPreferenceFields;

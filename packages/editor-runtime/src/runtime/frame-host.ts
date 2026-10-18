@@ -395,6 +395,8 @@ function respond(name: string, data: unknown): unknown {
   if (name === 'setting.put' && data && typeof data === 'object') {
     const setting = data as { key?: unknown; value?: unknown };
     if (typeof setting.key === 'string') runtime._options[setting.key] = setting.value;
+    if (setting.key === 'noHintForOpenLink' && typeof setting.value === 'boolean')
+      send('link-hint-preference', setting.value);
     return null;
   }
   if (name === 'clipboard.write' && data && typeof data === 'object') {
@@ -1304,6 +1306,19 @@ async function ready() {
     '#typora-source{right:0!important}' +
     '#typora-source .CodeMirror-scroll{overflow-y:auto!important;padding-right:max(0px,calc(var(--marklyra-content-trailing,0px) - var(--marklyra-source-scrollbar-space,0px)))!important}';
   document.head.append(style);
+  const noticeStyle = document.createElement('style');
+  noticeStyle.textContent = `
+    .md-notification-container{top:var(--marklyra-notification-top,var(--marklyra-content-top,0px))!important;left:0!important;right:0!important;padding:0!important;transition:none!important;background:var(--bg-color);color:var(--text-color)}
+    #md-notification{width:100%!important;max-width:none!important;left:0!important;right:0!important;top:0!important;margin:0!important;padding:10px 16px!important;color:var(--text-color)}
+    #md-notification:before{top:12px!important;left:20px!important;padding-top:0!important}
+    #md-notification .ty-enter-mode-warning-header{margin:0 0 8px!important;padding:0 0 0 28px!important;white-space:normal;overflow-wrap:anywhere}
+    #md-notification > div:has(#ty-suppress-mode-warning-input){padding-left:28px!important;align-items:center!important;margin-bottom:0!important}
+    #md-notification div:has(> label #ty-suppress-mode-warning-input){display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0}
+    #md-notification label:has(#ty-suppress-mode-warning-input){display:inline-flex;align-items:center;white-space:nowrap;margin:0!important;gap:6px}
+    #ty-suppress-mode-warning-input{margin:0!important}
+    #ty-suppress-mode-warning-close-btn{float:none!important;margin-top:0!important}
+  `;
+  document.head.append(noticeStyle);
   // Install query guards outside tracking's Source replace-all proof wrapper.
   // Unsupported/no-result queries retain their own diagnostics before proof.
   const initialState = state(false);

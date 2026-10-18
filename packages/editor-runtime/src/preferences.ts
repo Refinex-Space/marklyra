@@ -18,6 +18,7 @@ export interface MarkLyraEditorPreferences {
   mathFormatOnCopy?: 'svg' | 'latex';
   defaultCodeLang?: string;
   defaultCodeLangOption?: 0 | 1 | 2 | 3;
+  noHintForOpenLink?: boolean;
 }
 
 export type ResolvedMarkLyraEditorPreferences = Required<MarkLyraEditorPreferences>;
@@ -43,6 +44,7 @@ export const defaultMarkLyraEditorPreferences: Readonly<ResolvedMarkLyraEditorPr
     mathFormatOnCopy: 'svg',
     defaultCodeLang: '',
     defaultCodeLangOption: 1,
+    noHintForOpenLink: false,
   });
 
 /** Shared browser contract. No desktop settings, filesystem or React authority. */

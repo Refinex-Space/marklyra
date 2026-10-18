@@ -1,6 +1,43 @@
 use super::*;
 
 #[test]
+fn link_hint_suppression_survives_store_reopen_and_rejects_non_boolean_values() {
+    let root = tempfile::tempdir().unwrap();
+    let store = Store::<Snapshot>::open(root.path()).unwrap();
+    store
+        .transaction(|state| {
+            state.apply(0, change(Key::NoHintForOpenLink, Value::Boolean(true)))?;
+            Ok(((), true))
+        })
+        .unwrap();
+    let loaded = Store::<Snapshot>::open(root.path()).unwrap().get().unwrap();
+    assert_eq!(
+        loaded.values.get(&Key::NoHintForOpenLink),
+        Some(&Value::Boolean(true))
+    );
+    assert!(serde_json::to_string(&loaded)
+        .unwrap()
+        .contains("noHintForOpenLink"));
+    assert!(change(Key::NoHintForOpenLink, Value::Text("true".into()))
+        .validate()
+        .is_err());
+    for _ in 0..2 {
+        store
+            .transaction(|state| {
+                let changed = state.reset_link_hint()?;
+                Ok(((), changed))
+            })
+            .unwrap();
+    }
+    let reset = Store::<Snapshot>::open(root.path()).unwrap().get().unwrap();
+    assert_eq!(
+        reset.values.get(&Key::NoHintForOpenLink),
+        Some(&Value::Boolean(false))
+    );
+    assert_eq!(reset.revision, 2);
+}
+
+#[test]
 fn debug_mode_is_an_opt_in_boolean_and_persists_without_touching_other_preferences() {
     let root = tempfile::tempdir().unwrap();
     let store = Store::<Snapshot>::open(root.path()).unwrap();
@@ -134,6 +171,7 @@ fn all_supported_keys_validate_before_advancing_revision() {
         Key::NoMidCaret,
         Key::CopyMarkdownByDefault,
         Key::EnableAutoSave,
+        Key::NoHintForOpenLink,
     ] {
         s.apply(s.revision, change(key, Value::Boolean(true)))
             .unwrap();
@@ -142,7 +180,7 @@ fn all_supported_keys_validate_before_advancing_revision() {
         .unwrap();
     s.apply(s.revision, change(Key::CodeIndentSize, Value::Number(3.0)))
         .unwrap();
-    assert_eq!(s.values.len(), 14);
+    assert_eq!(s.values.len(), 15);
     assert!(s.validate().is_ok());
 }
 
@@ -268,6 +306,7 @@ fn zoom_steps_follow_original_levels_and_keep_a_bounded_end() {
 fn editor_entry_cannot_write_parser_lifecycle_or_arbitrary_application_fields() {
     assert!(editor_change_allowed(&Key::DarkTheme));
     assert!(editor_change_allowed(&Key::CanCollapseOutlinePanel));
+    assert!(editor_change_allowed(&Key::NoHintForOpenLink));
     for key in [
         Key::ZoomFactor,
         Key::EnableAutoSave,

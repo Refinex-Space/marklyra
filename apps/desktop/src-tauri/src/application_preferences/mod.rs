@@ -43,6 +43,8 @@ pub enum Key {
     UseSeparateDarkTheme,
     #[serde(rename = "can_collapse_outline_panel")]
     CanCollapseOutlinePanel,
+    #[serde(rename = "noHintForOpenLink")]
+    NoHintForOpenLink,
 
     #[serde(rename = "wordsPerMinute")]
     WordsPerMinute,
@@ -191,6 +193,20 @@ impl PreferenceRecord for Snapshot {
     }
 }
 impl Snapshot {
+    fn reset_link_hint(&mut self) -> Result<bool, String> {
+        if self.values.get(&Key::NoHintForOpenLink) != Some(&Value::Boolean(true)) {
+            return Ok(false);
+        }
+        self.apply(
+            self.revision,
+            Change {
+                key: Key::NoHintForOpenLink,
+                value: Value::Boolean(false),
+            },
+        )?;
+        Ok(true)
+    }
+
     fn apply(&mut self, expected: u64, change: Change) -> Result<(), String> {
         self.validate()?;
         change.validate()?;
@@ -335,7 +351,10 @@ fn require_registered_editor(window: &WebviewWindow) -> Result<(), String> {
     }
 }
 fn editor_change_allowed(key: &Key) -> bool {
-    matches!(key, Key::DarkTheme | Key::CanCollapseOutlinePanel)
+    matches!(
+        key,
+        Key::DarkTheme | Key::CanCollapseOutlinePanel | Key::NoHintForOpenLink
+    )
 }
 #[tauri::command]
 pub async fn put_editor_appearance_preference(
@@ -482,7 +501,19 @@ pub async fn reset_dialog_warnings(app: AppHandle, window: WebviewWindow) -> Res
         app.state::<crate::platform::ui_chrome::PreferencesHost>()
             .with_generation(generation, || {
                 app.state::<crate::file_preferences::FilePreferencesHost>()
-                    .reset_trash_warning(&app)
+                    .reset_trash_warning(&app)?;
+                let snapshot = app
+                    .state::<ApplicationPreferencesHost>()
+                    .with(&app, |store| {
+                        store.transaction(|state| {
+                            let changed = state.reset_link_hint()?;
+                            Ok((state.clone(), changed))
+                        })
+                    })?;
+                if let Err(error) = app.emit("application-preferences-changed", &snapshot) {
+                    eprintln!("Warning preferences reset, notification failed: {error}");
+                }
+                Ok(())
             })
     })
     .await

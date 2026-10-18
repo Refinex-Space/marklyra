@@ -8,6 +8,19 @@ import {
 import { preferenceChange } from '../src/features/settings/runtime-preferences/policy.js';
 
 describe('native preference overrides', () => {
+  it('validates durable link-hint suppression and passes it to the runtime', () => {
+    for (const enabled of [true, false]) {
+      const snapshot = applicationPreferencesSnapshot({
+        schemaVersion: 1,
+        revision: 2,
+        values: { noHintForOpenLink: enabled },
+      });
+      expect(
+        applicationEditorPreferences(snapshot, defaultMarkLyraEditorPreferences).noHintForOpenLink,
+      ).toBe(enabled);
+    }
+    expect(() => applicationPreferenceChange('noHintForOpenLink', 'true')).toThrow();
+  });
   it('accepts only boolean debug mode without passing it to the editor SDK', () => {
     expect(preferenceChange('debugMode', true)).toEqual({ key: 'debugMode', value: true });
     expect(() => applicationPreferenceChange('debugMode', 'true')).toThrow();

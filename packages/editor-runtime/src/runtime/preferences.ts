@@ -25,6 +25,7 @@ const keys = [
   'mathFormatOnCopy',
   'defaultCodeLang',
   'defaultCodeLangOption',
+  'noHintForOpenLink',
 ] as const;
 const storedKeys = [
   'useCustomFontSize',
@@ -46,6 +47,7 @@ const storedKeys = [
   'mathFormatOnCopy',
   'defaultCodeLang',
   'defaultCodeLangOption',
+  'noHintForOpenLink',
 ] as const;
 
 /** Non-serializing settings only. Never rebuild the document or restore focus. */

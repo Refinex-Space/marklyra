@@ -11,7 +11,7 @@ export const applicationPreferences = {
   stepZoom: (direction: 'in' | 'out') =>
     invoke<unknown>('step_application_zoom', { direction }).then(applicationPreferencesSnapshot),
   async putFromEditor(
-    key: 'darkTheme' | 'can_collapse_outline_panel',
+    key: 'darkTheme' | 'can_collapse_outline_panel' | 'noHintForOpenLink',
     value: string | boolean,
     expected?: import('../features/settings/runtime-preferences/application-preferences.js').ApplicationPreferencesSnapshot,
   ) {

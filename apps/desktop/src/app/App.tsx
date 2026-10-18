@@ -151,6 +151,7 @@ export function App() {
   const nativePreferencesOrigin = useRef(false);
   const editor = useRef<MarkLyraEditor | null>(null);
   const editorCommandWork = useRef<Promise<void>>(Promise.resolve());
+  const linkHintPreferenceWork = useRef<Promise<void>>(Promise.resolve());
   const nativeCommandBridge = useRef<NativeEditorCommands | null>(null);
   const sessionWork = useRef<Promise<void>>(Promise.resolve());
   const workspaceIdentity = useRef<WorkspaceFolder | null>(null);
@@ -2071,6 +2072,16 @@ export function App() {
                 onStatisticsInvalidated={statistics.invalidate}
                 onViewModeChange={setViewMode}
                 onScrollAwayFromTopChange={setScrolledDown}
+                onLinkHintPreferenceChange={(suppressed) => {
+                  linkHintPreferenceWork.current = linkHintPreferenceWork.current.then(async () => {
+                    try {
+                      await applicationPreferences.putFromEditor('noHintForOpenLink', suppressed);
+                    } catch (error) {
+                      doc.setMessage(`链接提示偏好保存结果未确认：${String(error)}`);
+                      applicationSystem.retry();
+                    }
+                  });
+                }}
                 onOutlineChange={setOutline}
                 onCurrentHeadingChange={setCurrentHeading}
                 onThemeAppearanceChange={themeSystem.receiveAppearance}

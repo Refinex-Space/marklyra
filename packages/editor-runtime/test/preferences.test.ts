@@ -5,7 +5,12 @@ import {
   marklyraEditorPreferences,
 } from '../src/preferences.js';
 
-const codeBooleanKeys = ['showLineNumbersForFence', 'noLineWrapping', 'lineWiseCopyCut'] as const;
+const codeBooleanKeys = [
+  'showLineNumbersForFence',
+  'noLineWrapping',
+  'lineWiseCopyCut',
+  'noHintForOpenLink',
+] as const;
 
 describe('browser editor preference contract', () => {
   it('validates partial updates and preserves supported fractional font sizes', () => {
