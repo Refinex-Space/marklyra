@@ -27,6 +27,9 @@ export function MarkLyraMarkdownEditor(props: MarkLyraMarkdownEditorProps) {
       onViewModeChange: (mode) => {
         if (alive) return latest.current.onViewModeChange?.(mode);
       },
+      onScrollAwayFromTopChange: (away) => {
+        if (alive) latest.current.onScrollAwayFromTopChange?.(away);
+      },
       onMenuStateChange: (state) => {
         if (alive) return latest.current.onMenuStateChange?.(state);
       },

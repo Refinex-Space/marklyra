@@ -365,8 +365,29 @@ button[aria-pressed="true"] {
   margin-top: 25px;
 }
 .document-area {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+.document-scroll-top {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  background: var(--bg);
+  box-shadow: 0 2px 6px #00000014;
+}
+.document-scroll-top:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--hover);
 }
 .runtime-area {
   display: flex;

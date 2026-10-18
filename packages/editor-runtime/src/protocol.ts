@@ -81,6 +81,7 @@ export type MarkLyraCommand =
         | 'toggleSource'
         | 'toggleFocus'
         | 'toggleTypewriter'
+        | 'scrollToTop'
         | 'insertTable'
         | 'codeBlock'
         | 'mathBlock'

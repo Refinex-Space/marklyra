@@ -19,6 +19,7 @@ const paths = {
   source: 'M8 6l-6 6 6 6 M16 6l6 6-6 6',
   more: 'M5 12h.01 M12 12h.01 M19 12h.01',
   format: 'M4 4h16 M12 4v16 M8 20h8',
+  scrollTop: 'M5 4h14 M7 13l5-5 5 5 M12 8v13',
 } as const;
 export type IconName = keyof typeof paths;
 export function Icon({ name }: { name: IconName }) {

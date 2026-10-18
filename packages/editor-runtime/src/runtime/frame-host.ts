@@ -42,6 +42,7 @@ import { RuntimeOutlinePopover } from './outline-popover.js';
 import { RuntimePreferences } from './preferences.js';
 import { type RuntimeDocumentSnapshot, RuntimeReload } from './reload.js';
 import { RuntimeRenderTickets } from './render-tickets.js';
+import { RuntimeScrollNavigation } from './scroll-navigation.js';
 import { readSelectionText } from './selection-text.js';
 import { parserSource } from './source-prefix.js';
 import { RuntimeSourceTracking } from './source-tracking.js';
@@ -298,6 +299,11 @@ const outlineNavigation = new RuntimeOutlineNavigation({
   available: () => !disposed && !loading && !composing() && !runtime.File?._onInitParse,
   onCurrent: (id) => send('current-heading', id),
 });
+const scrollNavigation = new RuntimeScrollNavigation({
+  runtime,
+  available: () => !disposed && !loading && !runtime.File?._onInitParse,
+  onChange: (away) => send('scroll-away-from-top', away),
+});
 const outlinePopover = new RuntimeOutlinePopover({
   runtime,
   composing,
@@ -326,6 +332,7 @@ function state(sync = true, resetTracking = false): RuntimeState {
     file = runtime.File;
   if (!editor || !file || file._onInitParse || loading) throw new Error('编辑器尚未完成加载');
   if (sync && composing()) throw new Error('请先完成输入法候选');
+  scrollNavigation.schedule();
   const captured = tracking.read(
     () => (sync ? file.sync(false, false, true) : editor.getMarkdown()) ?? editor.getMarkdown(),
     resetTracking,
@@ -544,6 +551,17 @@ function command(value: MarkLyraCommand) {
   imageLayout?.interaction();
   const element = editor.writingArea;
   switch (value.type) {
+    case 'scrollToTop': {
+      if (loading || file._onInitParse) throw new Error('请等待文档加载完成');
+      if (editor.sourceView.inSourceMode) {
+        const port = document.querySelector<HTMLElement>('#typora-source .CodeMirror-scroll');
+        editor.sourceView.cm?.scrollTo?.(port?.scrollLeft ?? 0, 0);
+      } else {
+        const port = document.querySelector<HTMLElement>('content');
+        port?.scrollTo({ top: 0, behavior: 'instant' });
+      }
+      return;
+    }
     case 'undo':
       editor.undo.undo();
       break;
@@ -819,6 +837,7 @@ window.addEventListener(
             const file = runtime.File;
             if (!file) throw new Error('Runtime not initialized');
             documentGeneration++;
+            scrollNavigation.reset();
             contextMenu.invalidate();
             loading = true;
             try {
@@ -862,7 +881,9 @@ window.addEventListener(
               )
                 throw new Error('定位期间正文已变化，请重新搜索');
             }
-            focus.command(() => command(message.payload as MarkLyraCommand));
+            // Reading navigation retains the current caret and keyboard owner.
+            if (value.type === 'scrollToTop') command(value);
+            else focus.command(() => command(value));
             result = state();
             outlineNavigation.schedule();
             break;
@@ -1037,6 +1058,7 @@ window.addEventListener(
             scrollbarLayout.disconnect();
             cancelAnimationFrame(scrollbarMeasureFrame);
             outlineNavigation.destroy();
+            scrollNavigation.destroy();
             nodeLookup?.dispose();
             images.destroy();
             exporter.destroy();
@@ -1262,6 +1284,7 @@ async function ready() {
   themes.install();
   outlinePopover.install();
   outlineNavigation.install();
+  scrollNavigation.install();
   contextMenu.install();
   reloads.install();
   imageLayout = new RuntimeImageLayout(runtime.editor, {

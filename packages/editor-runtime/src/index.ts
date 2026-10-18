@@ -173,6 +173,7 @@ export interface MarkLyraEditorOptions {
   onThemeAppearanceChange?: (appearance: ThemeAppearance) => void;
   onOutlinePopoverChange?: (open: boolean) => void;
   onViewModeChange?: (mode: MarkLyraViewMode) => void;
+  onScrollAwayFromTopChange?: (awayFromTop: boolean) => void;
   onMenuStateChange?: (state: MarkLyraMenuState) => void;
   onOutlinePin?: () => void;
   onCurrentHeadingChange?: (id: string | null) => void;
@@ -1996,6 +1997,10 @@ export class MarkLyraEditor {
     if (message.kind === 'outline-popover' && typeof message.payload === 'boolean') {
       this.outlinePopoverOpen = message.payload;
       this.options.onOutlinePopoverChange?.(message.payload);
+      return;
+    }
+    if (message.kind === 'scroll-away-from-top' && typeof message.payload === 'boolean') {
+      this.options.onScrollAwayFromTopChange?.(message.payload);
       return;
     }
     if (message.kind === 'outline-pin') {

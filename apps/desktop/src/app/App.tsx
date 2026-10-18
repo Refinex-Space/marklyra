@@ -127,6 +127,7 @@ export function App() {
   );
   const [chrome, setChrome] = useState<EditorChrome>({ native: false, preferencesWindow: false });
   const [viewMode, setViewMode] = useState<'wysiwyg' | 'source'>();
+  const [scrolledDown, setScrolledDown] = useState(false);
   const [osOpenReady, setOsOpenReady] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [nativeOverlay, setNativeOverlay] = useState(true);
@@ -2069,6 +2070,7 @@ export function App() {
                 onChange={doc.change}
                 onStatisticsInvalidated={statistics.invalidate}
                 onViewModeChange={setViewMode}
+                onScrollAwayFromTopChange={setScrolledDown}
                 onOutlineChange={setOutline}
                 onCurrentHeadingChange={setCurrentHeading}
                 onThemeAppearanceChange={themeSystem.receiveAppearance}
@@ -2103,6 +2105,19 @@ export function App() {
               </div>
             )}
           </div>
+          {ready && scrolledDown && (
+            <button
+              type="button"
+              className="document-scroll-top"
+              aria-label="回到顶部"
+              title="回到顶部"
+              disabled={doc.working}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => void command({ type: 'scrollToTop' })}
+            >
+              <Icon name="scrollTop" />
+            </button>
+          )}
         </main>
         <DocumentDetailsPanel
           open={outlinePanelOpen}
