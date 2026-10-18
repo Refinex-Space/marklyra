@@ -207,6 +207,49 @@ async function save(page: Page) {
     .toBe('\uFEFFKeep **Bravo**\r\n\r\nTail  \r\n');
 }
 
+for (const theme of ['github', 'night']) {
+  test(`${theme}: directory popup and footer avoid focus rings while retaining keyboard navigation`, async ({
+    page,
+  }, info) => {
+    await start(page, { mounted: false });
+    await page.evaluate(
+      (theme) => (window as TestWindow).__desktopMock.emitMenu(`theme:${theme}`),
+      theme,
+    );
+    await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', theme);
+    await open(page);
+    const trigger = page.getByRole('button', { name: '目录菜单', exact: true });
+    await expect(menu(page)).toBeFocused();
+    await expect(menu(page)).toHaveCSS('outline-style', 'none');
+    await expect(menu(page)).not.toHaveCSS('box-shadow', 'none');
+    const footerBounds = await page.locator('.workspace-footer').boundingBox();
+    const popupBounds = await menu(page).boundingBox();
+    if (!footerBounds || !popupBounds) throw Error('Missing directory menu geometry');
+    await page.screenshot({
+      path: info.outputPath('directory-focus-and-dots.png'),
+      clip: {
+        x: footerBounds.x,
+        y: popupBounds.y - 2,
+        width: footerBounds.width,
+        height: footerBounds.y + footerBounds.height - popupBounds.y + 2,
+      },
+    });
+    await page.keyboard.press('Escape');
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveCSS('outline-style', 'none');
+    await trigger.press('ArrowDown');
+    await expect(menu(page)).toBeFocused();
+    await expect(menu(page)).toHaveCSS('outline-style', 'none');
+    await page.keyboard.press('ArrowDown');
+    await expect(
+      menu(page).locator('button:not(:disabled):not([data-menu-skip-roving])').first(),
+    ).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(menu(page)).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+}
+
 test('original one Recent Locations group, pinned order, six plus current, geometry and real dismiss', async ({
   page,
 }, info) => {

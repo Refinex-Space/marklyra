@@ -710,6 +710,10 @@
   left: 4px;
   right: 4px;
 }
+.workspace-footer .workspace-location-menu:focus,
+.workspace-location-popup:focus {
+  outline: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .marklyra-sidebar-header .sidebar-header-action,
   .workspace-footer {
@@ -894,7 +898,8 @@
   }
 }
 
-.workspace-footer > button:hover:not(:disabled) {
+.workspace-footer > button:hover:not(:disabled),
+.workspace-footer .workspace-location-menu:focus-visible {
   background: var(
     --marklyra-sidebar-footer-hover-bg,
     var(--marklyra-sidebar-item-hover-bg, var(--hover))
@@ -955,6 +960,7 @@
 }
 .workspace-menu-dots .shell-glyph {
   width: auto;
+  font-size: 13px;
 }
 .directory-footer-popup {
   display: block;
