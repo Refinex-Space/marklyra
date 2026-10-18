@@ -74,6 +74,7 @@ export function transformPreferencesSource(source) {
     outlineGroups = [],
     exitModeRows = [],
     diagramRows = [],
+    whitespaceTables = [],
     codeLanguageHints = [],
     codeLanguageControls = [];
   const mathEnableRows = [];
@@ -89,6 +90,17 @@ export function transformPreferencesSource(source) {
       )
     )
       windowStyleGroups.push(node);
+    if (
+      node.type === 'CallExpression' &&
+      member(node.callee) === 'p.a.createElement' &&
+      member(node.arguments[0]) === 'b.v' &&
+      node.arguments[1]?.type === 'ObjectExpression' &&
+      node.arguments[1].properties.some(
+        (property) =>
+          property.key?.name === 'className' && property.value?.value === 'whitespace-table-input',
+      )
+    )
+      whitespaceTables.push(node);
     if (
       node.type === 'CallExpression' &&
       member(node.callee) === 'p.a.createElement' &&
@@ -234,6 +246,7 @@ export function transformPreferencesSource(source) {
     outlineGroups.length !== 1 ||
     exitModeRows.length !== 1 ||
     diagramRows.length !== 1 ||
+    whitespaceTables.length !== 1 ||
     codeLanguageHints.length !== 1 ||
     codeLanguageControls.length !== 1 ||
     mathEnableRows.length !== 1 ||
@@ -266,6 +279,39 @@ export function transformPreferencesSource(source) {
     text: source.slice(diagramRow.checkbox.start, diagramRow.checkbox.end),
   });
   edits.push(...preferenceHelpLinkEdits(source, ast));
+  // Keep the original controls and their handlers, but give the visibility toggle
+  // its own standard row instead of stacking it inside the writing select's cell.
+  const whitespaceTable = whitespaceTables[0];
+  const whitespaceRows = whitespaceTable.arguments[1].properties.find(
+    (property) => property.key?.name === 'rows',
+  )?.value;
+  const writingControls = whitespaceRows?.elements?.[0]?.elements?.[1];
+  const visibleBreak = writingControls?.arguments?.[2];
+  const writingSelect = writingControls?.arguments?.[3];
+  const isCell = visibleBreak?.arguments?.[1]?.properties?.find(
+    (property) => property.key?.name === 'isCell',
+  )?.value;
+  if (
+    whitespaceRows?.elements?.length !== 2 ||
+    member(writingControls?.arguments?.[0]) !== 'p.a.Fragment' ||
+    !isCell ||
+    source.slice(isCell.start, isCell.end) !== '!0' ||
+    member(writingSelect?.arguments?.[0]) !== 'b.r'
+  )
+    throw new Error('Unexpected original Preferences whitespace controls');
+  const toggle =
+    source.slice(visibleBreak.start, isCell.start) +
+    'false' +
+    source.slice(isCell.end, visibleBreak.end);
+  const table =
+    source.slice(whitespaceTable.start, writingControls.start) +
+    source.slice(writingSelect.start, writingSelect.end) +
+    source.slice(writingControls.end, whitespaceTable.end);
+  edits.push({
+    start: whitespaceTable.start,
+    end: whitespaceTable.end,
+    text: `p.a.createElement(p.a.Fragment,null,${toggle},${table})`,
+  });
   const codeLanguageHint = codeLanguageHints[0];
   edits.push({ start: codeLanguageHint.start, end: codeLanguageHint.end, text: 'null' });
   // Use the same select component as code indentation. Keep the verified language

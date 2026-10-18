@@ -384,6 +384,9 @@ html[data-settings-dark="true"] {
 [data-settings-page] .label-input-group tr + tr {
   border-top: 1px solid var(--settings-line);
 }
+[data-settings-page] .whitespace-table-input {
+  border-top: 1px solid var(--settings-line);
+}
 [data-settings-page] .label-input-group td {
   padding: 10px 0;
 }
