@@ -479,6 +479,7 @@ html[data-settings-dark="true"] {
 }
 [data-settings-page] .settings-inline-hint a {
   color: inherit;
+  cursor: help;
 }
 [data-settings-page] .settings-inline-hint:hover,
 [data-settings-page] .settings-inline-hint:focus-visible {

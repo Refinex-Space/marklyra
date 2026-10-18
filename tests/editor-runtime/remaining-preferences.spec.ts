@@ -35,6 +35,29 @@ async function mount(
 const flush = (page: Page) =>
   page.evaluate(() => (window as unknown as Host).marklyraEditor.flush());
 
+test('inline math and math code blocks render by default without rewriting source', async ({
+  page,
+}) => {
+  const source = '\uFEFFInline $x+1$.\r\n\r\n```math\ny=2\n```\r\n\r\nTail  \n';
+  const frame = await mount(page, source);
+  await expect(frame.locator('#write mjx-container > svg')).toHaveCount(2);
+  expect(await flush(page)).toBe(source);
+});
+
+test('AMS and all-equation numbering differ for plain block formulas and preserve source', async ({
+  page,
+}) => {
+  const source = '$$\nx=1\n$$\n\n$$\n\\begin{equation}y=2\\end{equation}\n$$\n';
+  for (const mode of [false, 'ams', 'all'] as const) {
+    const frame = await mount(page, source, { autoNumberingForMath: mode });
+    await expect(frame.locator('#write mjx-container > svg')).toHaveCount(2);
+    await expect(frame.locator('#write [data-mml-node="mlabeledtr"]')).toHaveCount(
+      mode === false ? 0 : mode === 'ams' ? 1 : 2,
+    );
+    expect(await flush(page)).toBe(source);
+  }
+});
+
 test('legacy delimiters and math fences reverse only in fresh runtimes and preserve exact source', async ({
   page,
 }) => {
@@ -72,7 +95,7 @@ test('MathJax numbering and physics configuration reach actual SVG consumers', a
 });
 test('displayLines changes actual multiline SVG without rewriting source', async ({ page }) => {
   const counts: number[] = [];
-  const source = '$$\na\\\\b\n$$\n';
+  const source = '$$\na\\\\b\\newline c\n$$\n';
   for (const disabled of [false, true, false]) {
     const frame = await mount(page, source, { noDisplayLinesInMath: disabled });
     await expect(frame.locator('#write mjx-container > svg')).toHaveCount(1);

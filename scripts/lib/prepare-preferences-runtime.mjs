@@ -76,7 +76,22 @@ export function transformPreferencesSource(source) {
     diagramRows = [],
     codeLanguageHints = [],
     codeLanguageControls = [];
+  const mathEnableRows = [];
   walk(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      member(node.callee) === 'p.a.createElement' &&
+      member(node.arguments[0]) === 'b.q' &&
+      node.arguments[2]?.type === 'CallExpression' &&
+      member(node.arguments[2].arguments[0]) === 'b.b' &&
+      node.arguments[2].arguments[1]?.type === 'ObjectExpression' &&
+      node.arguments[2].arguments[1].properties.some(
+        (property) =>
+          property.key?.name === 'label' &&
+          property.value?.value === 'Enable inline math or code block math',
+      )
+    )
+      mathEnableRows.push(node);
     if (
       node.type === 'CallExpression' &&
       member(node.callee) === 'p.a.createElement' &&
@@ -210,6 +225,7 @@ export function transformPreferencesSource(source) {
     diagramRows.length !== 1 ||
     codeLanguageHints.length !== 1 ||
     codeLanguageControls.length !== 1 ||
+    mathEnableRows.length !== 1 ||
     edits.length !== 4
   )
     throw new Error('Unexpected original Preferences bridge/layout structure');
@@ -221,6 +237,10 @@ export function transformPreferencesSource(source) {
   // preference above it while omitting this disabled row and its search keywords.
   const exitModeRow = exitModeRows[0];
   edits.push({ start: exitModeRow.start, end: exitModeRow.end, text: 'null' });
+  // Math already has enabled defaults and independent toggles. This legacy
+  // shortcut only scrolls/highlights those controls and exposes no capability.
+  const mathEnableRow = mathEnableRows[0];
+  edits.push({ start: mathEnableRow.start, end: mathEnableRow.end, text: 'null' });
   // Keep the original diagram checkbox and hint without the unsupported button
   // or its two-column table, matching the surrounding syntax toggles.
   const diagramRow = diagramRows[0];

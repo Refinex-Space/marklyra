@@ -424,6 +424,15 @@ function protectControls() {
   for (const element of document.querySelectorAll<HTMLElement>(
     '.pane button,.pane .btn,.pane .icon-button,.pane a,.pane .select-pin-input-group .dir-path,.pane .btn-split-left,.pane .btn-split-right,.pane li',
   )) {
+    // Question marks display local help. Their legacy documentation anchors
+    // are informational, while the capture-phase link guard still blocks clicks.
+    if (element.matches('.label-hint > a')) {
+      element.removeAttribute('href');
+      element.removeAttribute('target');
+      element.removeAttribute('aria-disabled');
+      availabilityHint(element, null);
+      continue;
+    }
     // Export format rows only navigate the original page. Their nested command,
     // rename and add controls are still guarded separately below.
     if (element.matches('.export-items-list > li') && element.querySelector('.export-item')) {

@@ -270,6 +270,19 @@ function arrangeIndentControls(pane: Element) {
 }
 
 function settingsHelpText(hint: HTMLElement) {
+  if (hint.closest('.checkbox')?.querySelector('[data-marklyra-preference="noDisplayLinesInMath"]'))
+    return (
+      '开启后，可在普通公式中用 \\\\ 或 \\newline 分行显示；使用 align、matrix 等环境的公式仍按自身规则排版。\n' +
+      '关闭后不再自动处理普通公式的换行。\n' +
+      '修改后在新建窗口或重启应用后生效。'
+    );
+  if (hint.closest('tr')?.querySelector('[data-marklyra-preference="auto_numbering_for_math"]'))
+    return (
+      '可选择不自动编号、使用 AMS 编号规则，或为所有块级公式自动编号。\n' +
+      'AMS 规则只为 equation、align 等支持编号的公式环境添加序号。\n' +
+      '自动编号只影响公式显示，不会向 Markdown 原文写入序号。\n' +
+      '修改后在新建窗口或重启应用后生效。'
+    );
   if (hint.closest('.checkbox')?.querySelector('[data-marklyra-preference="noRecentFiles"]'))
     return (
       '开启后记录最近使用的文件和文件夹，便于再次打开。\n' +
