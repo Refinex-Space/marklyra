@@ -1,4 +1,6 @@
-use super::{native_images::TitlebarImages, DocumentChrome, StatisticsSnapshot, StatisticsUnit};
+use super::{
+    native_hover, native_images::TitlebarImages, DocumentChrome, StatisticsSnapshot, StatisticsUnit,
+};
 use objc2::{
     define_class, msg_send,
     rc::Retained,
@@ -221,12 +223,17 @@ impl EditorChrome {
         self.view
             .setFrameSize(NSSize::new(width + 44.0 + leading, 22.0));
         if self.fullscreen_constraints.is_none() {
-            self.statistics
-                .setFrame(rect(leading - 8.0, 9.0, width, 13.0));
+            native_hover::set_frame(
+                &self.statistics,
+                titlebar_statistics_rect(leading - 8.0, width),
+            );
         }
         if let Some(actions) = self.view.ivars().actions.get() {
-            actions[0].setFrame(rect(leading + width - 4.0, 5.0, 16.0, 10.0));
-            actions[1].setFrame(rect(leading + width + 20.0, 2.8, 16.0, 13.0));
+            native_hover::set_frame(&actions[0], titlebar_icon_rect(leading + width - 4.0, 10.0));
+            native_hover::set_frame(
+                &actions[1],
+                titlebar_icon_rect(leading + width + 20.0, 13.0),
+            );
         }
         if let Some(source) = self.view.ivars().source_button.get() {
             source.setFrame(rect(leading + width - 55.0, 4.0, 96.0, 18.0));
@@ -243,19 +250,39 @@ fn rect(x: f64, y: f64, width: f64, height: f64) -> NSRect {
     NSRect::new(NSPoint::new(x, y), NSSize::new(width, height))
 }
 
+fn titlebar_icon_rect(x: f64, height: f64) -> NSRect {
+    // Keep the two differently sized images on the same visual center.
+    rect(x, 15.0 - height / 2.0, 16.0, height)
+}
+
+fn titlebar_statistics_rect(x: f64, width: f64) -> NSRect {
+    rect(x, 8.0, width, 13.0)
+}
+
 fn button(
     view: &MarkLyraTitlebarView,
     title: &str,
     selector: Sel,
     frame: NSRect,
+    hover: bool,
 ) -> Retained<NSButton> {
     let title = NSString::from_str(title);
     // SAFETY: target is the retained view; each selector is declared on this subclass above.
-    let button = unsafe {
-        NSButton::buttonWithTitle_target_action(&title, Some(view), Some(selector), view.mtm())
+    let button = if hover {
+        native_hover::button(&title, view, selector, view.mtm())
+    } else {
+        unsafe {
+            NSButton::buttonWithTitle_target_action(&title, Some(view), Some(selector), view.mtm())
+        }
     };
-    button.setBordered(false);
-    button.setFrame(frame);
+    if !hover {
+        button.setBordered(false);
+    }
+    if hover {
+        native_hover::set_frame(&button, frame);
+    } else {
+        button.setFrame(frame);
+    }
     button.setFont(Some(&NSFont::systemFontOfSize(12.0)));
     button.setToolTip(Some(&title));
     button.setAccessibilityLabel(Some(&title));
@@ -280,18 +307,17 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             &view,
             "0 词",
             sel!(showStatistics:),
-            rect(0.0, 0.0, 80.0, 16.0),
+            titlebar_statistics_rect(0.0, 80.0),
+            true,
         );
-        statistics.setBordered(true);
-        statistics.setBezelStyle(NSBezelStyle::AccessoryBar);
-        statistics.setShowsBorderOnlyWhileMouseInside(true);
         statistics.setFont(Some(&NSFont::systemFontOfSize(12.0)));
         let _ = view.ivars().statistics_button.set(statistics.clone());
         let outline = button(
             &view,
             "大纲",
             sel!(toggleOutline:),
-            rect(0.0, 5.0, 16.0, 10.0),
+            titlebar_icon_rect(0.0, 10.0),
+            true,
         );
         outline.setImage(Some(&images.outline));
         outline.setTitle(&NSString::from_str(""));
@@ -301,7 +327,8 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             &view,
             "侧边栏",
             sel!(toggleSidebar:),
-            rect(0.0, 2.8, 16.0, 13.0),
+            titlebar_icon_rect(0.0, 13.0),
+            true,
         );
         sidebar.setImage(Some(&images.sidebar));
         sidebar.setTitle(&NSString::from_str(""));
@@ -310,6 +337,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             "Source Mode ×",
             sel!(toggleSource:),
             rect(0.0, 4.0, 96.0, 18.0),
+            false,
         );
         source.setAccessibilityLabel(Some(&NSString::from_str("退出源代码模式")));
         source.setBordered(true);
@@ -467,4 +495,31 @@ pub(super) fn window_changed(label: &str) {
             chrome.layout_controls();
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{titlebar_icon_rect, titlebar_statistics_rect};
+
+    #[test]
+    fn titlebar_statistics_offset_preserves_icon_layout() {
+        for label_width in [24.0, 80.0, 140.0] {
+            let statistics = titlebar_statistics_rect(0.0, label_width);
+            let outline = titlebar_icon_rect(label_width + 4.0, 10.0);
+            let sidebar = titlebar_icon_rect(label_width + 28.0, 13.0);
+            assert_eq!(statistics.origin.y, 8.0);
+            assert_eq!(statistics.size.width, label_width);
+            assert_eq!(statistics.size.height, 13.0);
+            for frame in [statistics, outline, sidebar] {
+                assert!(frame.origin.y >= 0.0);
+                assert!(frame.origin.y + frame.size.height <= 22.0);
+            }
+            for frame in [outline, sidebar] {
+                assert_eq!(frame.origin.y + frame.size.height / 2.0, 15.0);
+                assert_eq!(frame.size.width, 16.0);
+            }
+            assert_eq!(outline.origin.x, label_width + 4.0);
+            assert_eq!(sidebar.origin.x, label_width + 28.0);
+        }
+    }
 }

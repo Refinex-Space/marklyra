@@ -3,6 +3,8 @@
 mod macos;
 pub mod markdown_selection;
 #[cfg(target_os = "macos")]
+mod native_hover;
+#[cfg(target_os = "macos")]
 mod native_images;
 pub mod theme_selection;
 
