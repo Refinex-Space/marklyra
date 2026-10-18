@@ -7,6 +7,7 @@ export interface NativeMenuPresentation {
   editor: MarkLyraMenuState | null;
   sidebar: boolean;
   sidebarTab: 'files' | 'outline' | 'search';
+  outlinePanelOpen?: boolean;
   fileView: 'tree' | 'articles';
   fullscreen: boolean;
   statisticsOpen: boolean;

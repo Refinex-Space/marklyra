@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { ShellGlyph } from '../../components/ShellGlyph.js';
 import './workspace-sidebar.css';
 
-export type SidebarMode = 'files' | 'outline' | 'search';
+export type SidebarMode = 'files' | 'search';
 export const DEFAULT_SIDEBAR_SEARCH_TARGET = 'marklyra-sidebar-search-controls';
 interface SidebarHeaderProps {
   mode: SidebarMode;
@@ -12,7 +12,7 @@ interface SidebarHeaderProps {
   fileView?: 'tree' | 'articles';
 }
 
-/** The shipped top-left control directly switches between files and outline. */
+/** Files and workspace search share the left sidebar. Document outline lives on the right. */
 export function SidebarHeader({
   mode,
   change,
@@ -31,24 +31,22 @@ export function SidebarHeader({
   }, [mode, disabled]);
   return (
     <nav className="marklyra-sidebar-header" data-mode={mode} aria-label="侧栏导航" ref={root}>
-      <button
-        type="button"
-        className="sidebar-header-action"
-        aria-label={mode === 'search' ? '返回文件' : '切换侧栏视图'}
-        disabled={disabled}
-        title={mode === 'search' ? '返回文件' : '切换侧栏视图'}
-        onClick={() => change(mode === 'files' ? 'outline' : 'files')}
-      >
-        {mode === 'search' ? (
+      {mode === 'search' ? (
+        <button
+          type="button"
+          className="sidebar-header-action"
+          aria-label="返回文件"
+          disabled={disabled}
+          title="返回文件"
+          onClick={() => change('files')}
+        >
           <ShellGlyph className="ui-icon" name="back" />
-        ) : mode === 'outline' ? (
-          <ShellGlyph className="ui-icon" name={fileView === 'tree' ? 'tree' : 'articles'} />
-        ) : (
-          <ShellGlyph className="ui-icon" name="outline" />
-        )}
-      </button>
+        </button>
+      ) : (
+        <span className="sidebar-header-spacer" aria-hidden="true" />
+      )}
       <span className="sidebar-current-title" hidden={mode === 'search'}>
-        {mode === 'files' ? (fileView === 'tree' ? '文件' : '文档') : '大纲'}
+        {fileView === 'tree' ? '文件' : '文档'}
       </span>
       <div id={searchTargetId} className="sidebar-search-target" hidden={mode !== 'search'} />
       <button

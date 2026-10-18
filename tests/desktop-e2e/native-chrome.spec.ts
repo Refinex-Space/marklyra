@@ -49,7 +49,7 @@ test.beforeEach(async ({ page }, testInfo) => {
     .toBe(true);
   if (
     testInfo.title ===
-    'native outline action opens original page UI, dismisses from Shell and pins the existing sidebar'
+    'native outline action toggles an independent right panel without the legacy popover'
   )
     await page.evaluate((text) => {
       const mock = (window as TestWindow).__desktopMock;
@@ -90,7 +90,7 @@ test('native chrome uses one sidebar header and full viewport theme geometry wit
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:sidebar'));
   await expect(page.locator('aside.sidebar')).toBeHidden();
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));
-  await expect(page.locator('.marklyra-sidebar-header')).toHaveText('大纲', { useInnerText: true });
+  await expect(page.getByRole('complementary', { name: '文档目录' })).toBeVisible();
   expect(await iframe?.evaluate((el) => el.isConnected)).toBe(true);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('save'));
   await expect
@@ -161,6 +161,7 @@ test('native titlebar follows accepted view mode when statistics fail and preser
   expect(await history()).toBe(beforeHistory);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('redo'));
   await expect(paragraph).toHaveText('AlphaX');
+  await waitForNativeUndo(page);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('undo'));
   await expect(paragraph).toHaveText('Alpha');
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
@@ -177,7 +178,7 @@ test('native titlebar follows accepted view mode when statistics fail and preser
     .toBe('Alpha');
 });
 
-test('native outline action opens original page UI, dismisses from Shell and pins the existing sidebar', async ({
+test('native outline action toggles an independent right panel without the legacy popover', async ({
   page,
 }) => {
   const raw = outlineRaw;
@@ -193,17 +194,12 @@ test('native outline action opens original page UI, dismisses from Shell and pin
     });
   const originalHistory = await history();
   const toggle = () =>
-    page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline-popover'));
+    page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));
+  const panel = page.getByRole('complementary', { name: '文档目录' });
   await toggle();
-  const popup = frame.locator('#toc-dropmenu');
-  await expect(popup).toBeVisible();
-  await expect(popup.locator('.outline-label')).toContainText(['One', 'Two']);
-  expect(
-    await popup.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return { width: style.width, right: style.right, top: style.top };
-    }),
-  ).toEqual({ width: '300px', right: '4px', top: '28px' });
+  await expect(panel).toBeVisible();
+  await expect(frame.locator('#toc-dropmenu')).toBeHidden();
+  await expect(panel.getByRole('treeitem')).toHaveCount(2);
   await expect
     .poll(() =>
       page.evaluate(
@@ -213,17 +209,18 @@ test('native outline action opens original page UI, dismisses from Shell and pin
             .at(-1)?.args.payload,
       ),
     )
-    .toMatchObject({ outlinePopoverOpen: true });
+    .toMatchObject({ outlinePanelOpen: true });
   await page.getByRole('button', { name: '全文搜索', exact: true }).click();
-  await expect(popup).toBeHidden();
+  await expect(panel).toBeVisible();
   await page.getByRole('button', { name: '返回文件', exact: true }).click();
   await toggle();
-  await expect(popup).toBeVisible();
-  await popup.locator('.outline-title-wrapper').hover();
-  await popup.locator('#pin-outline-btn').click();
-  await expect(popup).toBeHidden();
-  await expect(page.locator('.marklyra-sidebar-header')).toHaveText('大纲', { useInnerText: true });
-  await expect(page.getByRole('tree', { name: '文档标题' }).getByRole('treeitem')).toHaveCount(2);
+  await expect(panel).toBeHidden();
+  await toggle();
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole('button', { name: '关闭目录' })).toHaveCount(0);
+  await toggle();
+  await expect(panel).toBeHidden();
+  await expect(page.locator('.sidebar-current-title')).toHaveText('文档');
   expect(await history()).toBe(originalHistory);
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('save'));
@@ -335,6 +332,7 @@ test('native preferences close restores the existing editor selection and saves 
     .toBe(true);
   await page.keyboard.type('X');
   await expect(paragraph).toHaveText('AlphaX');
+  await waitForNativeUndo(page);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('undo'));
   await expect(paragraph).toHaveText('Alpha');
   await expect

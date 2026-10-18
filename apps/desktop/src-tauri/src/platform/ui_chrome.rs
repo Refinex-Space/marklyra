@@ -105,7 +105,7 @@ pub struct ChromeUpdate {
     #[serde(default)]
     dark: bool,
     #[serde(default)]
-    outline_popover_open: bool,
+    outline_panel_open: bool,
     #[serde(default)]
     source_mode: Option<bool>,
 }
@@ -156,7 +156,7 @@ pub(super) struct DocumentChrome {
     statistics: StatisticsSnapshot,
     always_show_word_count: bool,
     dark: bool,
-    outline_popover_open: bool,
+    outline_panel_open: bool,
     source_mode: Option<bool>,
 }
 
@@ -206,7 +206,7 @@ fn document_chrome(
         statistics: update.statistics,
         always_show_word_count: update.always_show_word_count,
         dark: update.dark,
-        outline_popover_open: update.outline_popover_open,
+        outline_panel_open: update.outline_panel_open,
         source_mode: update.source_mode,
     })
 }
@@ -275,7 +275,7 @@ pub async fn update_editor_chrome(
             update.statistics.menu_labels(),
             update.always_show_word_count,
             update.dark,
-            update.outline_popover_open,
+            update.outline_panel_open,
             update.source_mode,
         );
         Ok(())
@@ -548,7 +548,7 @@ mod tests {
             statistics: StatisticsSnapshot::default(),
             always_show_word_count: true,
             dark: false,
-            outline_popover_open: false,
+            outline_panel_open: false,
             source_mode: None,
         };
         let value = document_chrome(&services, "main", payload()).unwrap();
@@ -569,13 +569,13 @@ mod tests {
         assert!(
             !serde_json::from_value::<ChromeUpdate>(payload.clone())
                 .unwrap()
-                .outline_popover_open
+                .outline_panel_open
         );
-        payload["outlinePopoverOpen"] = true.into();
+        payload["outlinePanelOpen"] = true.into();
         assert!(
             serde_json::from_value::<ChromeUpdate>(payload.clone())
                 .unwrap()
-                .outline_popover_open
+                .outline_panel_open
         );
         assert!(serde_json::from_value::<ChromeUpdate>(payload.clone())
             .unwrap()
@@ -606,7 +606,7 @@ mod tests {
                     statistics: StatisticsSnapshot::default(),
                     always_show_word_count: true,
                     dark: false,
-                    outline_popover_open: false,
+                    outline_panel_open: false,
                     source_mode: None,
                 }
             )
@@ -658,7 +658,7 @@ mod tests {
             statistics: StatisticsSnapshot::default(),
             always_show_word_count: true,
             dark: false,
-            outline_popover_open: false,
+            outline_panel_open: false,
             source_mode: Some(false),
         };
         let chrome = document_chrome(&services, "main", payload())

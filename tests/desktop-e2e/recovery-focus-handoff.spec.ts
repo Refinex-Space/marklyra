@@ -64,7 +64,7 @@ test('closing recovery opened from a real Shell control restores that control wi
   page,
 }) => {
   await start(page, false);
-  const control = page.getByRole('button', { name: '大纲', exact: true });
+  const control = page.getByRole('button', { name: '搜索', exact: true });
   await control.focus();
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('marklyra-drafts'));
   await expect(dialog(page)).toBeVisible();

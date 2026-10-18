@@ -5,14 +5,13 @@ use objc2::{
     define_class, msg_send,
     rc::Retained,
     runtime::{AnyObject, Sel},
-    sel, AnyThread, DefinedClass, MainThreadOnly,
+    sel, DefinedClass, MainThreadOnly,
 };
 use objc2_app_kit::{
     NSAccessibility, NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua,
-    NSAppearanceNameDarkAqua, NSBezelStyle, NSButton, NSButtonType, NSEvent, NSFont,
-    NSLayoutAttribute, NSLayoutConstraint, NSMenu, NSMenuItem, NSTitlebarAccessoryViewController,
-    NSTrackingArea, NSTrackingAreaOptions, NSView, NSWindow, NSWindowStyleMask,
-    NSWindowTitleVisibility,
+    NSAppearanceNameDarkAqua, NSBezelStyle, NSButton, NSButtonType, NSFont, NSLayoutAttribute,
+    NSLayoutConstraint, NSMenu, NSMenuItem, NSTitlebarAccessoryViewController, NSView, NSWindow,
+    NSWindowStyleMask, NSWindowTitleVisibility,
 };
 use objc2_foundation::{
     MainThreadMarker, NSArray, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString, NSURL,
@@ -32,7 +31,6 @@ struct ChromeIvars {
     source_button: OnceCell<Retained<NSButton>>,
     source_mode: Cell<bool>,
     always_show_word_count: Cell<bool>,
-    hovered: Cell<bool>,
 }
 
 define_class!(
@@ -45,17 +43,11 @@ define_class!(
     unsafe impl NSObjectProtocol for MarkLyraTitlebarView {}
 
     impl MarkLyraTitlebarView {
-        #[unsafe(method(mouseEntered:))]
-        fn mouse_entered(&self, _event: &NSEvent) { self.show_actions(true); }
-
-        #[unsafe(method(mouseExited:))]
-        fn mouse_exited(&self, _event: &NSEvent) { self.show_actions(false); }
-
         #[unsafe(method(toggleSidebar:))]
         fn toggle_sidebar(&self, _sender: &AnyObject) { self.emit("view:sidebar"); }
 
         #[unsafe(method(toggleOutline:))]
-        fn toggle_outline(&self, _sender: &AnyObject) { self.emit("view:outline-popover"); }
+        fn toggle_outline(&self, _sender: &AnyObject) { self.emit("view:outline"); }
 
         #[unsafe(method(toggleSource:))]
         fn toggle_source(&self, _sender: &AnyObject) { self.emit("view:source"); }
@@ -88,7 +80,6 @@ impl MarkLyraTitlebarView {
             source_button: OnceCell::new(),
             source_mode: Cell::new(false),
             always_show_word_count: Cell::new(true),
-            hovered: Cell::new(false),
         });
         // SAFETY: NSView's designated initializer receives the allocated subclass and an NSRect.
         unsafe { msg_send![super(object), initWithFrame: rect(0.0, 0.0, 120.0, 22.0)] }
@@ -105,16 +96,15 @@ impl MarkLyraTitlebarView {
         }
     }
 
-    fn show_actions(&self, visible: bool) {
-        self.ivars().hovered.set(visible);
+    fn update_visibility(&self) {
+        // Normal editor controls remain discoverable without hovering the titlebar.
         let source_mode = self.ivars().source_mode.get();
         if let Some(button) = self.ivars().statistics_button.get() {
-            button
-                .setHidden(source_mode || (!visible && !self.ivars().always_show_word_count.get()));
+            button.setHidden(source_mode);
         }
         if let Some(buttons) = self.ivars().actions.get() {
             for button in buttons {
-                button.setHidden(source_mode || !visible);
+                button.setHidden(source_mode);
             }
         }
         if let Some(button) = self.ivars().source_button.get() {
@@ -196,7 +186,7 @@ impl EditorChrome {
             ]);
             NSLayoutConstraint::activateConstraints(&constraints);
             self.fullscreen_constraints = Some(constraints);
-            self.view.show_actions(false);
+            self.view.update_visibility();
         } else {
             if let Some(constraints) = self.fullscreen_constraints.take() {
                 NSLayoutConstraint::deactivateConstraints(&constraints);
@@ -205,7 +195,7 @@ impl EditorChrome {
             self.statistics
                 .setTranslatesAutoresizingMaskIntoConstraints(true);
             self.view.addSubview(&self.statistics);
-            self.view.show_actions(false);
+            self.view.update_visibility();
         }
     }
 
@@ -322,7 +312,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         outline.setImage(Some(&images.outline));
         outline.setTitle(&NSString::from_str(""));
         outline.setButtonType(NSButtonType::Toggle);
-        outline.setToolTip(Some(&NSString::from_str("Show Outline Popover")));
+        outline.setToolTip(Some(&NSString::from_str("显示/隐藏文档目录")));
         let sidebar = button(
             &view,
             "侧边栏",
@@ -347,20 +337,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         source.setAlphaValue(0.8);
         let _ = view.ivars().source_button.set(source);
         let _ = view.ivars().actions.set(vec![outline.clone(), sidebar]);
-        view.show_actions(false);
-        // SAFETY: view implements mouseEntered:/mouseExited: and outlives its retained tracking area.
-        let tracking = unsafe {
-            NSTrackingArea::initWithRect_options_owner_userInfo(
-                NSTrackingArea::alloc(),
-                view.bounds(),
-                NSTrackingAreaOptions::MouseEnteredAndExited
-                    | NSTrackingAreaOptions::ActiveAlways
-                    | NSTrackingAreaOptions::InVisibleRect,
-                Some(&view),
-                None,
-            )
-        };
-        view.addTrackingArea(&tracking);
+        view.update_visibility();
         let controller = NSTitlebarAccessoryViewController::new(mtm);
         controller.setView(&view);
         controller.setLayoutAttribute(NSLayoutAttribute::Right);
@@ -427,7 +404,7 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
         chrome.window.setDocumentEdited(update.dirty);
         chrome
             .outline
-            .setState(if update.outline_popover_open { 1 } else { 0 });
+            .setState(if update.outline_panel_open { 1 } else { 0 });
         chrome
             .statistics
             .setTitle(&NSString::from_str(&update.statistics_label));
@@ -446,7 +423,7 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
         if let Some(source_mode) = update.source_mode {
             chrome.view.ivars().source_mode.set(source_mode);
         }
-        chrome.view.show_actions(chrome.view.ivars().hovered.get());
+        chrome.view.update_visibility();
         chrome
             .statistics
             .setAccessibilityLabel(Some(&NSString::from_str(&format!(
@@ -480,7 +457,7 @@ pub(super) fn release(label: &str) {
                         .removeTitlebarAccessoryViewControllerAtIndex(index);
                 }
             }
-            chrome.view.show_actions(false);
+            chrome.view.update_visibility();
         }
     });
 }

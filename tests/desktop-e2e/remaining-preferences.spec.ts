@@ -73,7 +73,7 @@ test('outline preference controls existing context actions and persists without 
     (window as TestWindow).__desktopMock.nextDocument.text = raw;
   }, raw);
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  await page.getByRole('button', { name: '大纲', exact: true }).click();
+  await page.getByRole('button', { name: '文档目录', exact: true }).click();
   const frame = await page.locator('.marklyra-editor-frame').getAttribute('src');
   const tree = page.getByRole('tree', { name: '文档标题' });
   await tree.getByRole('treeitem', { name: 'Parent', exact: true }).click({ button: 'right' });
@@ -254,7 +254,7 @@ test('removing the focused outline arrow in another window restores its row only
     (window as TestWindow).__desktopMock.nextDocument.text = '# Parent\n\n## Child\n';
   });
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  await page.getByRole('button', { name: '大纲', exact: true }).click();
+  await page.getByRole('button', { name: '文档目录', exact: true }).click();
   await page.getByRole('button', { name: '折叠 Parent', exact: true }).focus();
   const other = await page.context().newPage();
   await other.goto('about:blank');

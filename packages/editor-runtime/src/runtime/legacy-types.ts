@@ -131,6 +131,8 @@ export interface LegacyEditor {
     show(): void;
     hide(): void;
     cm?: {
+      refresh(): void;
+      scrollTo?(left: number, top: number): void;
       getOption(name: string): unknown;
       setOption(name: string, value: unknown): void;
       getValue(): string;
@@ -217,12 +219,14 @@ export interface LegacyEditor {
   };
   toggleFocusMode(): void;
   toggleTypeWriterMode(): void;
+  setTypeWriterMode?(enabled: boolean, force?: boolean, initial?: boolean): void;
 }
 export interface LegacyFile {
   editor: LegacyEditor;
   _onInitParse: boolean;
   activeWindow: boolean;
   isLocked: boolean;
+  isTypeWriterMode?: boolean;
   inBusyMode?: boolean;
   option: Record<string, unknown>;
   bundle: Record<string, unknown>;

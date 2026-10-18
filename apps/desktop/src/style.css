@@ -306,9 +306,9 @@ button[aria-pressed="true"] {
   width: 1px;
   background: var(--border);
 }
-.sidebar-resize:hover::before,
-.sidebar-resize:focus-visible::before {
-  background: var(--focus);
+.pane-resize-handle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 .resize-shield {
   position: fixed;
@@ -355,6 +355,9 @@ button[aria-pressed="true"] {
 }
 .shell[data-native-chrome="true"] .marklyra-editor-frame {
   position: relative;
+  /* Side panels reserve text space inside one stable native viewport. Fractional
+     flex widths must not trigger the legacy editor's delayed resize/scroll logic. */
+  width: 100vw !important;
 }
 .format-toolbar {
   margin: 0;

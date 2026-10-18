@@ -62,11 +62,8 @@ async function check(type, name) {
       fonts.every((font) => font.count === 1 && font.loaded),
       JSON.stringify(fonts),
     );
-    const source = page.locator('.marklyra-sidebar-header .sidebar-header-action').first();
-    assert.equal(await source.locator('.shell-glyph').getAttribute('data-shell-glyph'), 'outline');
-    await source.click();
-    assert.equal(await source.locator('.shell-glyph').getAttribute('data-shell-glyph'), 'tree');
-    await source.click();
+    assert.equal(await page.getByRole('button', { name: '切换侧栏视图', exact: true }).count(), 0);
+    const source = page.getByRole('button', { name: '返回文件', exact: true });
     const search = page.getByRole('button', { name: '全文搜索', exact: true });
     assert.equal(await search.locator('.shell-glyph').getAttribute('data-shell-glyph'), 'search');
     await search.click();
@@ -126,8 +123,7 @@ async function check(type, name) {
       true,
     );
     await page.getByRole('button', { name: '切换到文档列表', exact: true }).click();
-    await source.click();
-    assert.equal(await source.locator('.shell-glyph').getAttribute('data-shell-glyph'), 'articles');
+    assert.equal(await page.locator('.sidebar-current-title').textContent(), '文档');
     assert.deepEqual(errors, []);
     return { browser: name, fonts, cases: 4, errors };
   } finally {

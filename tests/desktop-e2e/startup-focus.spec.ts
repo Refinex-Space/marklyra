@@ -49,7 +49,7 @@ test('closing a menu recovery chooser preserves a connected Shell control instea
   await page.addInitScript(installRecoveryMock);
   await page.goto('/');
   await expect(page.getByRole('button', { name: '打开', exact: true })).toBeEnabled();
-  const control = page.getByRole('button', { name: '大纲', exact: true });
+  const control = page.getByRole('button', { name: '搜索', exact: true });
   await control.focus();
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('marklyra-drafts'));
   const chooser = page.getByRole('dialog', { name: '恢复未保存的文档' });
@@ -76,7 +76,7 @@ test('a shell control focused during runtime loading keeps focus when the editor
   await page.addInitScript(installMock);
   await page.addInitScript(installRecoveryMock);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  const control = page.getByRole('button', { name: '大纲', exact: true });
+  const control = page.getByRole('button', { name: '搜索', exact: true });
   await control.focus();
   await expect(control).toBeFocused();
   release();
@@ -280,7 +280,7 @@ test('background startup retries once on native activation and later activations
   await expect.poll(count).toBe(1);
   await page.keyboard.type('Activated');
   await expect(frame.locator('#write')).toHaveText('Activated');
-  const control = page.getByRole('button', { name: '大纲', exact: true });
+  const control = page.getByRole('button', { name: '搜索', exact: true });
   await control.focus();
   await page.evaluate(() => {
     (window as TestWindow).__desktopMock.emitEvent('tauri://blur', false);

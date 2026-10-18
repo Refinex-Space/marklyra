@@ -16,9 +16,10 @@ const html = `<!doctype html><html lang="zh"><meta charset="utf-8"><link rel="st
 import React from '/@id/react';
 import ReactDOM from '/@id/react-dom/client';
 import {WorkspaceSidebar,SidebarHeader} from '/src/features/file-explorer/index.ts';
+import {DocumentDetailsPanel} from '/src/features/document-details/DocumentDetailsPanel.tsx';
 import {OutlinePanel} from '/src/features/outline/OutlinePanel.tsx';
 import '/src/style.css';
-function Harness(){const [mode,setMode]=React.useState('files'),[prefs,setPrefs]=React.useState({view:'articles',treeSort:0,articleSort:0,treeNoGroup:false,articleNoGroup:false}),[theme,setTheme]=React.useState('github'),[vars,setVars]=React.useState({}),[height,setHeight]=React.useState(600),[width,setWidth]=React.useState(270);window.configure=(patch)=>{if(patch.mode)setMode(patch.mode);if(patch.view)setPrefs(previous=>({...previous,view:patch.view}));if(patch.theme)setTheme(patch.theme);if(patch.vars)setVars(patch.vars);if(patch.height)setHeight(patch.height);if(patch.width)setWidth(patch.width);};return React.createElement('div',{className:'shell','data-native-chrome':'true','data-theme-name':theme,style:{height,flexDirection:'row',...vars}},React.createElement('aside',{className:'sidebar','data-file-view':prefs.view,'data-sidebar-mode':mode,style:{width,maxWidth:'none'}},React.createElement(SidebarHeader,{mode,change:setMode,fileView:prefs.view}),React.createElement('div',{className:'sidebar-panel',hidden:mode==='outline'},React.createElement(WorkspaceSidebar,{compact:true,mode:mode==='search'?'search':'files',onModeChange:setMode,filePreferences:prefs,onFilePreferencesChange:setPrefs,activePath:'/mock/B/a.md',onNewDocument:()=>window.probe.newDocuments++,onOpenDocument:(...args)=>window.probe.opened.push(args)})),React.createElement('nav',{className:'sidebar-panel',hidden:mode!=='outline'},React.createElement(OutlinePanel,{entries:[{id:'first',level:1,text:'Title'},{id:'child',level:2,text:'Child title'}],disabled:false,jump:async()=>{}}))));}
+function Harness(){const [mode,setMode]=React.useState('files'),[outlineOpen,setOutlineOpen]=React.useState(false),[prefs,setPrefs]=React.useState({view:'articles',treeSort:0,articleSort:0,treeNoGroup:false,articleNoGroup:false}),[theme,setTheme]=React.useState('github'),[vars,setVars]=React.useState({}),[height,setHeight]=React.useState(600),[width,setWidth]=React.useState(270);window.configure=(patch)=>{if(patch.mode){setOutlineOpen(patch.mode==='outline');if(patch.mode!=='outline')setMode(patch.mode);}if(patch.view)setPrefs(previous=>({...previous,view:patch.view}));if(patch.theme)setTheme(patch.theme);if(patch.vars)setVars(patch.vars);if(patch.height)setHeight(patch.height);if(patch.width)setWidth(patch.width);};return React.createElement('div',{className:'shell workspace','data-native-chrome':'true','data-theme-name':theme,style:{height,flexDirection:'row',...vars}},React.createElement('aside',{className:'sidebar','data-file-view':prefs.view,'data-sidebar-mode':mode,style:{width,maxWidth:'none'}},React.createElement(SidebarHeader,{mode,change:setMode,fileView:prefs.view}),React.createElement('div',{className:'sidebar-panel'},React.createElement(WorkspaceSidebar,{compact:true,mode:mode==='search'?'search':'files',onModeChange:setMode,filePreferences:prefs,onFilePreferencesChange:setPrefs,activePath:'/mock/B/a.md',onNewDocument:()=>window.probe.newDocuments++,onOpenDocument:(...args)=>window.probe.opened.push(args)}))),React.createElement(DocumentDetailsPanel,{open:outlineOpen,close:()=>setOutlineOpen(false),elementRef:()=>{}},React.createElement(OutlinePanel,{entries:[{id:'first',level:1,text:'Title'},{id:'child',level:2,text:'Child title'}],disabled:false,jump:async()=>{}})));}
 ReactDOM.createRoot(document.getElementById('probe')).render(React.createElement(Harness));
 </script></html>`;
 function installMock() {
@@ -421,9 +422,7 @@ async function check(browser, name) {
       assert.equal(measurements.tree.height, row.values['--marklyra-tree-row-height']);
       assert.equal(measurements.tree.backgroundColor, row.values['--marklyra-active-file-bg']);
       await page.evaluate(() => window.configure({ mode: 'outline' }));
-      await page.waitForFunction(
-        () => document.querySelector('.sidebar').dataset.sidebarMode === 'outline',
-      );
+      await page.waitForFunction(() => !document.querySelector('.document-details-panel').hidden);
       await page.locator('.outline-row').first().hover();
       measurements.outline = await page
         .locator('.outline-row')

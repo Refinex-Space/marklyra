@@ -12,7 +12,7 @@ import {defaultFileSidebarPreferences} from '/src/features/file-explorer/file-pr
 import '/src/style.css';
 function Harness(){const [mode,setMode]=React.useState('files'),[prefs,setPrefs]=React.useState({...defaultFileSidebarPreferences}),[choose,setChoose]=React.useState(0),[active,setActive]=React.useState('/mock/B/b2.md'),[mounted,setMounted]=React.useState(true),[theme,setTheme]=React.useState('github'),[source,setSource]=React.useState(undefined);
 Object.assign(window,{setMode,setPrefs,setChoose,setActive,setMounted,setTheme,setSource});window.probe.preferences=prefs;
-return React.createElement('div',{className:'shell','data-native-chrome':'true','data-theme-name':theme,style:{height:600,flexDirection:'row'}},React.createElement('aside',{className:'sidebar',style:{width:270,maxWidth:'none'}},React.createElement(SidebarHeader,{mode,change:setMode,fileView:prefs.view}),mounted&&React.createElement('div',{style:{flex:1,minHeight:0},hidden:mode==='outline'},React.createElement(WorkspaceSidebar,{compact:true,mode:mode==='search'?'search':'files',onModeChange:setMode,filePreferences:prefs,onFilePreferencesChange:setPrefs,chooseRequest:choose,activePath:active,activeSource:source,onOpenDocument:(...args)=>window.probe.opened.push(args)}))));}
+return React.createElement('div',{className:'shell','data-native-chrome':'true','data-theme-name':theme,style:{height:600,flexDirection:'row'}},React.createElement('aside',{className:'sidebar',style:{width:270,maxWidth:'none'}},React.createElement(SidebarHeader,{mode,change:setMode,fileView:prefs.view}),mounted&&React.createElement('div',{style:{flex:1,minHeight:0}},React.createElement(WorkspaceSidebar,{compact:true,mode:mode==='search'?'search':'files',onModeChange:setMode,filePreferences:prefs,onFilePreferencesChange:setPrefs,chooseRequest:choose,activePath:active,activeSource:source,onOpenDocument:(...args)=>window.probe.opened.push(args)}))));}
 ReactDOM.createRoot(document.getElementById('probe')).render(React.createElement(Harness));
 </script></html>`;
 function installMock() {
@@ -324,17 +324,15 @@ async function check(browser, name) {
     assert.equal(await page.getByRole('button', { name: 'note.md', exact: true }).count(), 1);
     assert.equal(await page.evaluate(() => window.probe.preferences.treeSort), 0);
     assert.equal(await page.evaluate(() => window.probe.preferences.articleSort), -1);
-    await page.getByRole('button', { name: '切换侧栏视图', exact: true }).click();
-    assert.equal(await page.locator('.sidebar-current-title').textContent(), '大纲');
-    assert.equal(await page.getByRole('menu', { name: '侧栏视图' }).count(), 0);
-    await page.getByRole('button', { name: '切换侧栏视图', exact: true }).click();
+    assert.equal(await page.getByRole('button', { name: '切换侧栏视图', exact: true }).count(), 0);
+    assert.equal(await page.locator('.sidebar-current-title').textContent(), '文件');
     await page.getByRole('button', { name: '切换到文档列表', exact: true }).click();
     const calls = await page.evaluate(
       () => window.probe.calls.filter((c) => c.command === 'list_workspace_documents').length,
     );
     assert.equal(calls, 2);
-    // The same mode/sort controls are reachable from the list context menu and keyboard.
-    await page.locator('.workspace-article').first().click({ button: 'right' });
+    // Directory sorting remains available from the footer; entries own file menus.
+    await page.locator('.workspace-footer').click({ button: 'right' });
     await page.getByRole('menu', { name: '目录操作' }).waitFor();
     assert.equal(
       await page
@@ -344,7 +342,7 @@ async function check(browser, name) {
     );
     await page.keyboard.press('Escape');
     await page.getByRole('menu', { name: '目录操作' }).waitFor({ state: 'hidden' });
-    await page.locator('.workspace-article').first().focus();
+    await page.getByRole('button', { name: '目录菜单', exact: true }).focus();
     await page.keyboard.press('Shift+F10');
     await page.getByRole('menu', { name: '目录操作' }).waitFor();
     await page.keyboard.press('Escape');

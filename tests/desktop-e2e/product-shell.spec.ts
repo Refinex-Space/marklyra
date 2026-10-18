@@ -1,4 +1,5 @@
 import { test as base, expect } from '@playwright/test';
+import { preferencesKey } from '../../apps/desktop/src/features/settings/preferences.js';
 import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 
@@ -75,13 +76,23 @@ test('sidebar keyboard and pointer resize persists and preserves the editor inst
   await expect(handle).toHaveAttribute('aria-valuenow', '180');
   await page.keyboard.press('Shift+ArrowRight');
   await expect(handle).toHaveAttribute('aria-valuenow', '220');
+  const savedWidth = () =>
+    page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key) ?? '{}').sidebarWidth,
+      preferencesKey,
+    );
+  expect(await savedWidth()).toBe(220);
   const bounds = await handle.boundingBox();
   if (!bounds) throw new Error('missing sidebar resize bounds');
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 100);
   await page.mouse.down();
   await page.mouse.move(bounds.x + bounds.width / 2 + 70, bounds.y + 100);
+  await expect(handle).toHaveAttribute('aria-valuenow', '290');
+  await expect.poll(async () => (await page.locator('.sidebar').boundingBox())?.width).toBe(290);
+  expect(await savedWidth()).toBe(220);
   await page.mouse.up();
   await expect(handle).toHaveAttribute('aria-valuenow', '290');
+  expect(await savedWidth()).toBe(290);
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
   await page.reload();
   await expect(handle).toHaveAttribute('aria-valuenow', '290');

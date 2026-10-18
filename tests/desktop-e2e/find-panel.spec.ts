@@ -10,6 +10,7 @@ import {
   readyLayout,
   saveLayoutSource,
 } from './layout.helpers.js';
+import { waitForNativeUndo } from './native-menu.helpers.js';
 
 const source = readFileSync(new URL('../fixtures/visual.md', import.meta.url), 'utf8');
 
@@ -208,6 +209,7 @@ for (const theme of ['github', 'night']) {
     await openLayoutDocument(page, source);
     await layoutCaret(page);
     await page.keyboard.type('X');
+    await waitForNativeUndo(page);
     await emitLayoutMenu(page, 'undo');
     await expect(
       page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
@@ -245,7 +247,7 @@ for (const theme of ['github', 'night']) {
       expect(Math.abs(state.inputTop - 35)).toBeLessThan(2);
       expect(state.background).toBe(state.bodyBackground);
       expect(Math.abs(state.contentTop - 28 - state.originalContentTop)).toBeLessThan(1);
-      await expect(page.locator('.marklyra-find-panel-shadow')).toHaveCSS(
+      await expect(page.locator('.marklyra-find-panel-shadow').first()).toHaveCSS(
         'box-shadow',
         state.shadow,
       );
@@ -253,7 +255,7 @@ for (const theme of ['github', 'night']) {
       await page.screenshot({ path: testInfo.outputPath(`${mode}.png`) });
       await panel.locator('.close-btn').click();
       await expect(panel).toBeHidden();
-      await expect(page.locator('.marklyra-find-panel-shadow')).toBeHidden();
+      await expect(page.locator('.marklyra-find-panel-shadow:visible')).toHaveCount(0);
     }
 
     await emitLayoutMenu(page, 'view:files');

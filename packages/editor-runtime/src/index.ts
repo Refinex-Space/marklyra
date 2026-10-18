@@ -234,9 +234,12 @@ export class MarkLyraEditor {
   private unconfirmedMarkdownToken: number | undefined;
   private outlinePopoverOpen = false;
   private currentHeading: string | null = null;
-  private contentInset = { left: 0, top: 0 };
+  private contentInset = { left: 0, top: 0, right: 0 };
+  private contentInsetTarget = { left: 0, top: 0, outlineTop: 0, right: 0, sequence: 0 };
+  private contentInsetApplied = 0;
   private findPanelBounds: { top: number; bottom: number; shadow: string } | null = null;
   private findPanelShadow: HTMLDivElement | null = null;
+  private findPanelTrailingShadow: HTMLDivElement | null = null;
   private readonly sourceBOM: NonNullable<RuntimeConfiguration['sourceBOM']>;
   private documentRevision = 0;
   private latestSelection: RuntimeSelection = { bookmark: null, text: '' };
@@ -672,59 +675,81 @@ export class MarkLyraEditor {
     await this.ready;
     await this.enqueue(() => this.request('outline-tracking', { enabled }));
   }
-  /** Keep theme media queries at the full host width when a host sidebar covers
-   * its leading edge. This changes geometry only, without rebuilding editable DOM. */
-  async setContentInset(left: number, top = 0, outlineTop = top): Promise<void> {
+  /** Keep theme media queries and find UI at the full host width while side panels
+   * reserve content space. This changes geometry without rebuilding editable DOM. */
+  async setContentInset(left: number, top = 0, outlineTop = top, right = 0): Promise<void> {
     if (
-      [left, top, outlineTop].some((value) => !Number.isFinite(value) || value < 0 || value > 16384)
+      [left, top, outlineTop, right].some(
+        (value) => !Number.isFinite(value) || value < 0 || value > 16384,
+      )
     )
       throw new RangeError('Content inset must be between 0 and 16384 pixels');
+    if (this.disposed) throw new Error('Editor has been destroyed');
+    // Geometry belongs to the host's current paint, independently of runtime round trips or IME.
+    this.element.style.width = left + right ? `calc(100% + ${left + right}px)` : '100%';
+    this.element.style.marginLeft = left ? `-${left}px` : '0px';
+    this.contentInset = { left, top, right };
+    const sequence = this.contentInsetTarget.sequence + 1;
+    this.contentInsetTarget = { left, top, outlineTop, right, sequence };
+    this.updateViewportClip();
     await this.ready;
-    this.assertAvailable();
     await this.enqueue(async () => {
-      await this.request('content-inset', { left, top, outlineTop });
-      this.element.style.width = left ? `calc(100% + ${left}px)` : '100%';
-      this.element.style.marginLeft = left ? `-${left}px` : '0px';
-      this.contentInset = { left, top };
-      this.updateViewportClip();
+      if (sequence <= this.contentInsetApplied) return;
+      const target = this.contentInsetTarget;
+      const { sequence: applied, ...payload } = target;
+      await this.request('content-inset', payload);
+      this.contentInsetApplied = applied;
     });
   }
   private updateViewportClip = (): void => {
-    const { left, top } = this.contentInset;
+    const { left, top, right } = this.contentInset;
     const panel = this.findPanelBounds;
-    // Native hosts let this iframe overflow the mount so the original find UI
-    // can span the window. Everything else stays clear of sidebar/titlebar hits.
+    const trailing = right ? `calc(100% - ${right}px)` : '100%';
+    // Expose the original scrollbar beyond the panel without exposing its covered content.
+    const scrollbar = `calc(100% - ${Math.min(right, 20)}px)`;
     this.element.style.clipPath =
-      !left && !top
+      !left && !top && !right
         ? ''
-        : panel && left
-          ? `polygon(${left}px ${top}px,100% ${top}px,100% 100%,${left}px 100%,${left}px ${panel.bottom}px,0 ${panel.bottom}px,0 ${panel.top}px,${left}px ${panel.top}px)`
-          : `inset(${top}px 0 0 ${left}px)`;
-    if (!panel || !left) {
+        : panel && (left || right)
+          ? `polygon(${left}px ${top}px,${trailing} ${top}px,${trailing} ${panel.top}px,100% ${panel.top}px,100% 100%,${scrollbar} 100%,${scrollbar} ${panel.bottom}px,${trailing} ${panel.bottom}px,${trailing} 100%,${left}px 100%,${left}px ${panel.bottom}px,0 ${panel.bottom}px,0 ${panel.top}px,${left}px ${panel.top}px)`
+          : right
+            ? `polygon(${left}px ${top}px,${trailing} ${top}px,${trailing} 100%,${scrollbar} 100%,${scrollbar} ${top}px,100% ${top}px,100% 100%,${left}px 100%)`
+            : `inset(${top}px 0 0 ${left}px)`;
+    if (!panel || (!left && !right)) {
       if (this.findPanelShadow) this.findPanelShadow.hidden = true;
+      if (this.findPanelTrailingShadow) this.findPanelTrailingShadow.hidden = true;
       return;
     }
-    // The frame is clipped at the strip's edge. Paint its original shadow over
-    // the sidebar without exposing the frame's opaque background below it.
-    if (!this.findPanelShadow) {
-      this.findPanelShadow = this.element.ownerDocument.createElement('div');
-      this.findPanelShadow.className = 'marklyra-find-panel-shadow';
-      this.findPanelShadow.setAttribute('aria-hidden', 'true');
-      this.findPanelShadow.inert = true;
-      this.findPanelShadow.style.cssText = 'position:fixed;pointer-events:none;';
-      this.element.before(this.findPanelShadow);
-    }
-    const shadow = this.findPanelShadow;
     const rect = this.element.getBoundingClientRect();
-    shadow.hidden = false;
-    Object.assign(shadow.style, {
-      left: `${rect.left}px`,
-      top: `${rect.top + panel.top}px`,
-      width: `${rect.width}px`,
-      height: `${panel.bottom - panel.top}px`,
-      boxShadow: panel.shadow,
-      clipPath: `inset(0 ${Math.max(0, rect.width - left)}px -32px 0)`,
-    });
+    for (const [key, width, clip] of [
+      ['findPanelShadow', left, `inset(0 ${Math.max(0, rect.width - left)}px -32px 0)`],
+      ['findPanelTrailingShadow', right, `inset(0 0 -32px ${Math.max(0, rect.width - right)}px)`],
+    ] as const) {
+      if (!width) {
+        this[key]?.remove();
+        this[key] = null;
+        continue;
+      }
+      if (!this[key]) {
+        const shadow = this.element.ownerDocument.createElement('div');
+        shadow.className = 'marklyra-find-panel-shadow';
+        shadow.setAttribute('aria-hidden', 'true');
+        shadow.inert = true;
+        shadow.style.cssText = 'position:fixed;pointer-events:none;';
+        this.element.before(shadow);
+        this[key] = shadow;
+      }
+      const shadow = this[key];
+      shadow.hidden = false;
+      Object.assign(shadow.style, {
+        left: `${rect.left}px`,
+        top: `${rect.top + panel.top}px`,
+        width: `${rect.width}px`,
+        height: `${panel.bottom - panel.top}px`,
+        boxShadow: panel.shadow,
+        clipPath: clip,
+      });
+    }
   };
   async flush(): Promise<string> {
     await this.ready;
@@ -1336,6 +1361,7 @@ export class MarkLyraEditor {
     window.removeEventListener('message', this.receive);
     this.element.remove();
     this.findPanelShadow?.remove();
+    this.findPanelTrailingShadow?.remove();
     window.removeEventListener('resize', this.updateViewportClip);
     window.removeEventListener('scroll', this.updateViewportClip, true);
     const error = new Error('Editor has been destroyed');

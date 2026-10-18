@@ -127,7 +127,7 @@ export async function readyLayout(page: Page, theme: string) {
   await expect
     .poll(() =>
       page
-        .frameLocator('.marklyra-editor-frame')
+        .frameLocator('.runtime-area .marklyra-editor-frame')
         .locator('#theme_css')
         .evaluate((element) => {
           if (!(element instanceof HTMLLinkElement)) throw Error('Missing original theme link');
@@ -137,7 +137,7 @@ export async function readyLayout(page: Page, theme: string) {
     .toBe(`/style/themes/${theme}.css`);
   expect(
     await page
-      .frameLocator('.marklyra-editor-frame')
+      .frameLocator('.runtime-area .marklyra-editor-frame')
       .locator('#theme_css')
       .evaluate((element) => (element as HTMLLinkElement).sheet?.cssRules.length ?? 0),
   ).toBeGreaterThan(0);
@@ -153,7 +153,9 @@ export async function openLayoutDocument(page: Page, source = layoutSource) {
     };
   }, source);
   await emitLayoutMenu(page, 'recent-open:00000000-0000-4000-8000-000000000001');
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write > h1')).toHaveText(
+  await expect(
+    page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > h1'),
+  ).toHaveText(
     source
       .replace(/^\uFEFF/, '')
       .split(/\r\n|\r|\n/)[0]
@@ -164,7 +166,7 @@ export async function openLayoutDocument(page: Page, source = layoutSource) {
 
 export async function layoutHistory(page: Page) {
   return page
-    .frameLocator('.marklyra-editor-frame')
+    .frameLocator('.runtime-area .marklyra-editor-frame')
     .locator('#write')
     .evaluate(() => {
       const editor = Reflect.get(window, 'editor') as {
@@ -176,7 +178,7 @@ export async function layoutHistory(page: Page) {
 
 export async function layoutSelection(page: Page) {
   return page
-    .frameLocator('.marklyra-editor-frame')
+    .frameLocator('.runtime-area .marklyra-editor-frame')
     .locator('#write')
     .evaluate((write) => {
       const selection = getSelection();
@@ -202,7 +204,7 @@ export async function layoutSelection(page: Page) {
 
 export async function layoutCaret(page: Page) {
   await page
-    .frameLocator('.marklyra-editor-frame')
+    .frameLocator('.runtime-area .marklyra-editor-frame')
     .locator('#write > p')
     .last()
     .evaluate((paragraph) => {
@@ -249,7 +251,7 @@ export async function saveLayoutSource(
 }
 
 export async function captureLayout(page: Page, testInfo: TestInfo, label: string) {
-  const frame = page.frameLocator('.marklyra-editor-frame');
+  const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
   const motion = await frame.locator('#write').evaluate(async () => {
     const query = Reflect.get(window, '$') as (selector: string) => {
       queue(name: string): unknown[];
@@ -377,7 +379,7 @@ export async function captureLayout(page: Page, testInfo: TestInfo, label: strin
       header: sample('.marklyra-sidebar-header'),
       search: sample('.sidebar-search-controls'),
       footer: sample('.workspace-footer'),
-      editor: sample('.marklyra-editor-frame'),
+      editor: sample('.runtime-area .marklyra-editor-frame'),
       menu: sample('[role="menu"]'),
       modal: sample('[role="dialog"]'),
       documentWidth: document.documentElement.scrollWidth,

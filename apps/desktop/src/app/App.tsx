@@ -6,13 +6,27 @@ import type {
   OutlineEntry,
 } from '@marklyra/editor-runtime';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { flushSync } from 'react-dom';
 import { CommandMenu } from '../components/CommandMenu.js';
 import { focusInitialEditor } from '../components/focusInitialEditor.js';
 import { Icon, type IconName } from '../components/Icon.js';
+import { ShellGlyph } from '../components/ShellGlyph.js';
 import { SidebarResize } from '../components/SidebarResize.js';
 import { useModalFocus } from '../components/useModalFocus.js';
+import { DocumentDetailsPanel } from '../features/document-details/DocumentDetailsPanel.js';
+import {
+  documentDetailsTransitionMs,
+  useDocumentDetailsLayout,
+} from '../features/document-details/useDocumentDetailsLayout.js';
 import { ExternalChangeNotice } from '../features/documents/ExternalChangeNotice.js';
 import { RecoveryPanel } from '../features/documents/RecoveryPanel.js';
 import {
@@ -138,6 +152,7 @@ export function App() {
   const imageInput = useRef<HTMLInputElement | null>(null);
   const preferenceThemes = useRef(new Map<string, AbortController>());
   const sidebarElement = useRef<HTMLElement | null>(null);
+  const detailsElement = useRef<HTMLElement | null>(null);
   const [importingImage, setImportingImage] = useState(false);
   const importingImageRef = useRef(false);
   const cancelApplicationQuit = () => {
@@ -230,7 +245,9 @@ export function App() {
     preferences.wordsPerMinute,
   );
   const [sidebar, setSidebar] = useState(true),
-    [tab, setTab] = useState<'files' | 'outline' | 'search'>('files');
+    [tab, setTab] = useState<'files' | 'search'>('files');
+  const [sidebarDragWidth, setSidebarDragWidth] = useState<number | null>(null);
+  const sidebarWidth = sidebarDragWidth ?? preferences.sidebarWidth;
   const [outline, setOutline] = useState<OutlineEntry[]>([]);
   const separateDark = applicationSystem.value?.values.useSeparateDarkTheme === true;
   const systemDark = useSystemAppearance(separateDark, doc.setMessage);
@@ -270,7 +287,8 @@ export function App() {
     reload: reloadThemes,
   } = themeSystem;
   const [currentHeading, setCurrentHeading] = useState<string | null>(null);
-  const [outlinePopoverOpen, setOutlinePopoverOpen] = useState(false);
+  const [outlinePanelOpen, setOutlinePanelOpen] = useState(false);
+  const detailsLayout = useDocumentDetailsLayout(outlinePanelOpen);
   const [chooseRequest, setChooseRequest] = useState(0);
   const exporter = useDocumentExport(editor, {
     title: doc.file ? filename(doc.file.path) : '未命名',
@@ -796,6 +814,7 @@ export function App() {
       editor: editor.current?.menuState ?? null,
       sidebar,
       sidebarTab: tab,
+      outlinePanelOpen,
       fileView: preferences.fileSidebar.view,
       fullscreen,
       statisticsOpen,
@@ -936,9 +955,8 @@ export function App() {
         setSidebar((visible) => !visible);
         return;
       }
-      if (value === 'view:outline') {
-        setSidebar(true);
-        setTab('outline');
+      if (value === 'view:outline' || value === 'view:outline-popover') {
+        setOutlinePanelOpen((open) => !open);
         return;
       }
       if (value === 'view:files' || value === 'view:articles') {
@@ -954,14 +972,6 @@ export function App() {
       if (value === 'view:workspace-search') {
         setSidebar(true);
         setTab('search');
-        return;
-      }
-      if (value === 'view:outline-popover') {
-        void editor.current
-          ?.toggleOutlinePopover()
-          .catch((error: unknown) =>
-            actions.current.doc.setMessage(`大纲浮层操作失败：${String(error)}`),
-          );
         return;
       }
       if (value.startsWith('statistics-unit:')) {
@@ -1301,7 +1311,7 @@ export function App() {
         preferences.statisticsUnit,
         preferences.alwaysShowWordCount,
         themeSystem.dark,
-        outlinePopoverOpen,
+        outlinePanelOpen,
         viewMode,
       )
       .catch((error: unknown) =>
@@ -1316,7 +1326,7 @@ export function App() {
     preferences.statisticsUnit,
     preferences.alwaysShowWordCount,
     themeSystem.dark,
-    outlinePopoverOpen,
+    outlinePanelOpen,
     viewMode,
   ]);
   useEffect(() => {
@@ -1328,32 +1338,13 @@ export function App() {
     });
   }, [ready, appliedEditorPreferences]);
   useEffect(() => {
-    if (!outlinePopoverOpen) return;
-    const close = () => {
-      void editor.current?.closeOutlinePopover().catch((error: unknown) => {
-        actions.current.doc.setMessage(`大纲浮层关闭失败：${String(error)}`);
-      });
-    };
-    const key = (event: globalThis.KeyboardEvent) => {
-      if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.isComposing) close();
-    };
-    // Events inside the isolated editor stay in its document; its original
-    // handlers own dismissal there. These listeners cover the surrounding Shell.
-    document.addEventListener('pointerdown', close, true);
-    document.addEventListener('keydown', key, true);
-    return () => {
-      document.removeEventListener('pointerdown', close, true);
-      document.removeEventListener('keydown', key, true);
-    };
-  }, [outlinePopoverOpen]);
-  useEffect(() => {
     if (!ready || !editor.current) return;
     void editor.current
-      .setOutlineTracking(sidebar && tab === 'outline')
+      .setOutlineTracking(outlinePanelOpen)
       .catch((error: unknown) =>
         actions.current.doc.setMessage(`大纲跟随设置失败：${String(error)}`),
       );
-  }, [ready, sidebar, tab]);
+  }, [ready, outlinePanelOpen]);
   useEffect(() => {
     if (!chrome.native || !doc.message) return;
     setNativeNotice(doc.message);
@@ -1380,10 +1371,19 @@ export function App() {
       void stop.then((unlisten) => unlisten());
     };
   }, [chrome.native]);
-  useEffect(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Read committed DOM geometry before the same paint as panel/sidebar state changes.
+  useLayoutEffect(() => {
     if (!ready || !editor.current) return;
     const instance = editor.current;
+    let active = true;
+    let frame = 0;
+    const panel = detailsElement.current;
     const update = () => {
+      const panel = detailsElement.current;
+      const right = panel
+        ? panel.getBoundingClientRect().width +
+          Number.parseFloat(getComputedStyle(panel).marginRight)
+        : 0;
       const left =
         chrome.native && sidebar ? (sidebarElement.current?.getBoundingClientRect().width ?? 0) : 0;
       void instance
@@ -1391,16 +1391,52 @@ export function App() {
           left,
           chrome.native && nativeOverlay && !fullscreen ? 28 : 0,
           chrome.native ? 28 : 0,
+          right,
         )
-        .catch((error: unknown) =>
-          actions.current.doc.setMessage(`正文布局更新失败：${String(error)}`),
-        );
+        .catch((error: unknown) => {
+          if (active) actions.current.doc.setMessage(`正文布局更新失败：${String(error)}`);
+        });
+    };
+    const paint = () => {
+      frame = 0;
+      update();
+      if (panel?.getAnimations().some((animation) => animation.playState === 'running')) schedule();
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(paint);
     };
     update();
-    const observer = new ResizeObserver(update);
+    schedule();
+    // Never resize an iframe inside ResizeObserver delivery: nested viewports can feed back.
+    const observer = new ResizeObserver(schedule);
     if (sidebarElement.current) observer.observe(sidebarElement.current);
-    return () => observer.disconnect();
-  }, [chrome.native, sidebar, ready, fullscreen, nativeOverlay]);
+    if (panel) {
+      observer.observe(panel);
+      panel.addEventListener('transitionrun', schedule);
+      panel.addEventListener('transitionend', schedule);
+      panel.addEventListener('transitioncancel', schedule);
+    }
+    window.addEventListener('resize', update);
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      panel?.removeEventListener('transitionrun', schedule);
+      panel?.removeEventListener('transitionend', schedule);
+      panel?.removeEventListener('transitioncancel', schedule);
+      window.removeEventListener('resize', update);
+    };
+  }, [
+    chrome.native,
+    sidebar,
+    ready,
+    fullscreen,
+    nativeOverlay,
+    outlinePanelOpen,
+    detailsLayout.width,
+    detailsLayout.present,
+    sidebarWidth,
+  ]);
   const insertImages = async (files: File[]) => {
     if (!files.length || importingImageRef.current || doc.working || !editor.current) return;
     importingImageRef.current = true;
@@ -1535,6 +1571,18 @@ export function App() {
           >
             <Icon name="print" />
           </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="文档目录"
+            title="显示/隐藏文档目录"
+            aria-pressed={outlinePanelOpen}
+            disabled={!ready || doc.working}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => setOutlinePanelOpen((open) => !open)}
+          >
+            <ShellGlyph name="outline" />
+          </button>
           <span className="toolbar-divider" />
           <button
             type="button"
@@ -1550,14 +1598,23 @@ export function App() {
           </button>
         </header>
       )}
-      <div className="workspace">
+      <div
+        className="workspace"
+        data-details-open={detailsLayout.present || undefined}
+        style={
+          {
+            '--document-details-width': `${detailsLayout.width}px`,
+            '--document-details-transition': `${documentDetailsTransitionMs}ms`,
+          } as CSSProperties
+        }
+      >
         <aside
           ref={sidebarElement}
           data-file-view={preferences.fileSidebar.view}
           data-sidebar-mode={tab}
           className="sidebar"
           hidden={!sidebar}
-          style={{ width: preferences.sidebarWidth }}
+          style={{ width: sidebarWidth }}
         >
           {chrome.native ? (
             <SidebarHeader
@@ -1581,14 +1638,14 @@ export function App() {
               </button>
               <button
                 type="button"
-                aria-pressed={tab === 'outline'}
-                onClick={() => setTab('outline')}
+                aria-pressed={tab === 'search'}
+                onClick={() => setTab('search')}
               >
-                大纲
+                搜索
               </button>
             </div>
           )}
-          <div className="sidebar-panel" hidden={tab === 'outline'}>
+          <div className="sidebar-panel">
             <WorkspaceSidebar
               filePreferences={preferences.fileSidebar}
               onFilePreferencesChange={(value) =>
@@ -1792,36 +1849,14 @@ export function App() {
               }}
             />
           </div>
-          <nav className="sidebar-panel" aria-label="大纲" hidden={tab !== 'outline'}>
-            <OutlinePanel
-              key={doc.file?.id ?? 'untitled'}
-              entries={outline}
-              collapsible={applicationSystem.value?.values.can_collapse_outline_panel !== false}
-              onCollapsibleChange={async (value) => {
-                try {
-                  await applicationPreferences.putFromEditor('can_collapse_outline_panel', value);
-                } catch (error) {
-                  doc.setMessage(`大纲偏好保存结果未确认：${String(error)}`);
-                }
-              }}
-              currentId={currentHeading}
-              disabled={!ready || doc.working}
-              jump={async (id) => {
-                await command({ type: 'jumpToBlock', id, preserveSelection: true });
-                try {
-                  await editor.current?.focus();
-                } catch (error) {
-                  doc.setMessage(`恢复编辑焦点失败：${String(error)}`);
-                }
-              }}
-            />
-          </nav>
         </aside>
         {sidebar && (
           <SidebarResize
             native={chrome.native}
             hide={() => setSidebar(false)}
-            width={preferences.sidebarWidth}
+            width={sidebarWidth}
+            trailingWidth={detailsLayout.present ? detailsLayout.width + 20 : 0}
+            onDragWidthChange={setSidebarDragWidth}
             change={(sidebarWidth) => setPreferences((value) => ({ ...value, sidebarWidth }))}
           />
         )}
@@ -1949,14 +1984,6 @@ export function App() {
                 onOutlineChange={setOutline}
                 onCurrentHeadingChange={setCurrentHeading}
                 onThemeAppearanceChange={themeSystem.receiveAppearance}
-                onOutlinePopoverChange={setOutlinePopoverOpen}
-                onOutlinePin={() => {
-                  setSidebar(true);
-                  setTab('outline');
-                  void editor.current
-                    ?.focus()
-                    .catch((error: unknown) => doc.setMessage(String(error)));
-                }}
                 onError={(error) => doc.setMessage(error.message)}
                 host={{
                   ...desktopContextHost,
@@ -1989,6 +2016,38 @@ export function App() {
             )}
           </div>
         </main>
+        <DocumentDetailsPanel
+          open={outlinePanelOpen}
+          elementRef={detailsElement}
+          width={detailsLayout.width}
+          minimum={detailsLayout.minimum}
+          maximum={detailsLayout.maximum}
+          resize={detailsLayout.resize}
+          finishTransition={detailsLayout.finishTransition}
+        >
+          <OutlinePanel
+            key={doc.file?.id ?? 'untitled'}
+            entries={outline}
+            collapsible={applicationSystem.value?.values.can_collapse_outline_panel !== false}
+            onCollapsibleChange={async (value) => {
+              try {
+                await applicationPreferences.putFromEditor('can_collapse_outline_panel', value);
+              } catch (error) {
+                doc.setMessage(`大纲偏好保存结果未确认：${String(error)}`);
+              }
+            }}
+            currentId={currentHeading}
+            disabled={!outlinePanelOpen || !ready || doc.working}
+            jump={async (id) => {
+              await command({ type: 'jumpToBlock', id, preserveSelection: true });
+              try {
+                await editor.current?.focus();
+              } catch (error) {
+                doc.setMessage(`恢复编辑焦点失败：${String(error)}`);
+              }
+            }}
+          />
+        </DocumentDetailsPanel>
       </div>
       {chrome.native && nativeNotice && (
         <div role="status" className="native-document-notice">

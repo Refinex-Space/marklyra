@@ -171,9 +171,9 @@ test('real editor updates the active card through input and one Undo/Redo withou
   await page.locator('[data-article-path="Chapter10.md"]').click();
   await expect(write).toHaveText('Beta document');
   await expect(card.locator('.workspace-article-summary')).toContainText('Alpha betaX');
-  await page.getByRole('button', { name: '切换侧栏视图', exact: true }).click();
-  await expect(page.locator('.sidebar-current-title')).toHaveText('大纲');
-  await page.getByRole('button', { name: '切换侧栏视图', exact: true }).click();
+  await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));
+  await expect(page.getByRole('complementary', { name: '文档目录' })).toBeVisible();
+  await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));
   await expect(page.locator('.sidebar-current-title')).toHaveText('文档');
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
   expect(errors).toEqual([]);

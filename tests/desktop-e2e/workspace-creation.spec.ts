@@ -293,7 +293,7 @@ test('late created-document open keeps a newly focused Shell control and release
   await expect
     .poll(() => page.evaluate(() => (window as CreationWindow).__creationMock.pendingOpen))
     .toBe(1);
-  const control = page.getByRole('button', { name: '切换侧栏视图', exact: true });
+  const control = page.getByRole('button', { name: '全文搜索', exact: true });
   await control.focus();
   await page.evaluate(() => (window as CreationWindow).__creationMock.releaseOpen());
   await expect.poll(async () => (await calls(page, 'finish_workspace_creation')).length).toBe(1);

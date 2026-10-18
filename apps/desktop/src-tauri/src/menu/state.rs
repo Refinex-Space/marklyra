@@ -42,6 +42,8 @@ pub struct Snapshot {
     editor: Option<EditorFacts>,
     sidebar: bool,
     sidebar_tab: SidebarTab,
+    #[serde(default)]
+    outline_panel_open: bool,
     file_view: FileView,
     fullscreen: bool,
     statistics_open: bool,
@@ -189,7 +191,7 @@ impl Snapshot {
             "view:focus" => editor.focus_mode,
             "view:typewriter" => editor.typewriter_mode,
             "view:sidebar" => self.sidebar,
-            "view:outline" => self.sidebar && self.sidebar_tab == SidebarTab::Outline,
+            "view:outline" => self.outline_panel_open,
             "view:files" => {
                 self.sidebar
                     && self.sidebar_tab == SidebarTab::Files
@@ -456,6 +458,9 @@ mod tests {
         assert!(!state.checked("view:files"));
         state.sidebar = false;
         assert!(!state.checked("view:articles"));
+        state.outline_panel_open = true;
+        assert!(state.checked("view:outline"));
+        assert!(!state.sidebar);
     }
     #[test]
     fn late_snapshot_does_not_reverse_newer_same_context() {

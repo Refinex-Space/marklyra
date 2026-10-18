@@ -25,7 +25,7 @@ export const editorChrome = {
     unit: StatisticsUnit,
     alwaysShowWordCount: boolean,
     dark: boolean,
-    outlinePopoverOpen: boolean,
+    outlinePanelOpen: boolean,
     viewMode?: MarkLyraViewMode,
   ) {
     const values = statistics ?? { words: 0, characters: 0, lines: 0, readingMinutes: 0 };
@@ -36,7 +36,7 @@ export const editorChrome = {
         dirty,
         alwaysShowWordCount,
         dark,
-        outlinePopoverOpen,
+        outlinePanelOpen,
         sourceMode: viewMode === undefined ? undefined : viewMode === 'source',
         statisticsLabel: `${values[unit].toLocaleString()} ${labels[unit]}`,
         statistics: {

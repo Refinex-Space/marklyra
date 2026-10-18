@@ -19,7 +19,7 @@ test('outline collapse, keyboard hierarchy and jump retain source bytes and edit
   await page.getByRole('button', { name: '打开', exact: true }).click();
   const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
   await expect(page.locator('.format-toolbar')).toBeHidden();
-  await page.getByRole('button', { name: '大纲', exact: true }).click();
+  await page.getByRole('button', { name: '文档目录', exact: true }).click();
   const tree = page.getByRole('tree', { name: '文档标题' });
   await expect(page.locator('.outline-heading,.outline-heading-level')).toHaveCount(0);
   await expect(tree.getByRole('treeitem')).toHaveCount(4);
@@ -171,7 +171,7 @@ test('outline filter matches literal Unicode, navigates from its input and resto
           before.history === JSON.stringify(editor.undo.commandStack),
       };
     });
-  await page.getByRole('button', { name: '大纲', exact: true }).click();
+  await page.getByRole('button', { name: '文档目录', exact: true }).click();
   const tree = page.getByRole('tree', { name: '文档标题' });
   await expect(tree.getByRole('treeitem')).toHaveCount(4);
   await page.getByRole('button', { name: '折叠 Parent', exact: true }).click();

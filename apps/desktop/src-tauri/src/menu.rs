@@ -115,13 +115,12 @@ const VIEW: &[MenuEntry] = &[
         "显示／隐藏侧边栏",
         Some("CmdOrCtrl+Shift+L"),
     ),
-    Action("view:outline", "大纲", Some("CmdOrCtrl+Ctrl+1")),
+    Action("view:outline", "文档目录", Some("CmdOrCtrl+Ctrl+1")),
     Action("view:articles", "文档列表", Some("CmdOrCtrl+Ctrl+2")),
     Action("view:files", "文件树", Some("CmdOrCtrl+Ctrl+3")),
     Action("view:workspace-search", "搜索", Some("CmdOrCtrl+Shift+F")),
     Separator,
     Action("view:statistics", "字数统计", None),
-    Action("view:outline-popover", "大纲窗口", None),
     Separator,
     Action("view:fullscreen", "全屏幕", Some("CmdOrCtrl+Ctrl+F")),
 ];
@@ -532,7 +531,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            77 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            76 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {

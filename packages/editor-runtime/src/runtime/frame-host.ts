@@ -70,6 +70,8 @@ let content = '';
 let modified = false;
 let loading = false;
 let nativeComposition = false;
+let sourceLayoutPending = false;
+let scrollbarMeasureFrame = 0;
 let disposed = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let clipboard: ClipboardEvent | null = null;
@@ -77,6 +79,67 @@ let clipboardReadCompletion: Promise<void> | undefined;
 let imageLayout: RuntimeImageLayout | undefined;
 let nodeLookup: RuntimeNodeLookup | undefined;
 const abort = new AbortController();
+const observedScrollports = new WeakSet<HTMLElement>();
+const scrollbarLayout = new ResizeObserver(() => {
+  if (scrollbarMeasureFrame) return;
+  scrollbarMeasureFrame = requestAnimationFrame(() => {
+    scrollbarMeasureFrame = 0;
+    measureScrollbars();
+  });
+});
+function measureScrollbars(): void {
+  for (const [selector, name] of [
+    ['content', '--marklyra-document-scrollbar-space'],
+    ['#typora-source .CodeMirror-scroll', '--marklyra-source-scrollbar-space'],
+  ] as const) {
+    const port = document.querySelector<HTMLElement>(selector);
+    if (!port) continue;
+    if (!observedScrollports.has(port)) {
+      scrollbarLayout.observe(port);
+      observedScrollports.add(port);
+    }
+    // Classic scrollbars reserve width; overlay scrollbars do not. Keep text width identical.
+    const value = `${Math.max(0, port.offsetWidth - port.clientWidth)}px`;
+    if (document.documentElement.style.getPropertyValue(name) !== value)
+      document.documentElement.style.setProperty(name, value);
+  }
+}
+function refreshSourceLayout(): void {
+  measureScrollbars();
+  const source = runtime.editor?.sourceView;
+  if (!source?.inSourceMode) {
+    sourceLayoutPending = false;
+    return;
+  }
+  sourceLayoutPending = composing();
+  if (!sourceLayoutPending) {
+    source.cm?.refresh();
+    measureScrollbars();
+  }
+}
+function preserveSourceResizeScroll(): void {
+  const editor = runtime.editor;
+  const setMode = editor?.setTypeWriterMode;
+  if (!editor || !setMode) return;
+  editor.setTypeWriterMode = function (enabled, force, initial) {
+    const source = this.sourceView;
+    const port = source.cm?.getWrapperElement().querySelector<HTMLElement>('.CodeMirror-scroll');
+    // Legacy resize re-applies even disabled typewriter mode and centers the cursor.
+    // Preserve reading position for that layout-only refresh; explicit mode changes still scroll.
+    const preserve =
+      force && !enabled && runtime.File?.isTypeWriterMode !== true && source.inSourceMode && port;
+    const top = port?.scrollTop ?? 0;
+    const left = port?.scrollLeft ?? 0;
+    setMode.call(this, enabled, force, initial);
+    if (preserve && port?.isConnected && source === this.sourceView && source.inSourceMode) {
+      if (source.cm?.scrollTo) source.cm.scrollTo(left, top);
+      else {
+        port.scrollLeft = left;
+        port.scrollTop = top;
+      }
+    }
+  };
+}
 runtime.__MARKLYRA_HTML_CALLBACK__ = (callback) =>
   guardHTMLCallback(
     runtime,
@@ -544,6 +607,7 @@ function command(value: MarkLyraCommand) {
       break;
     case 'toggleSource':
       file.toggleSourceMode();
+      refreshSourceLayout();
       break;
     case 'toggleFocus':
       editor.toggleFocusMode();
@@ -709,6 +773,7 @@ window.addEventListener(
           case 'content-inset': {
             const left = (message.payload as { left?: unknown } | null)?.left;
             const top = (message.payload as { top?: unknown } | null)?.top ?? 0;
+            const right = (message.payload as { right?: unknown } | null)?.right ?? 0;
             const outlineTop =
               (message.payload as { outlineTop?: unknown } | null)?.outlineTop ?? top;
             if (typeof left !== 'number' || !Number.isFinite(left) || left < 0 || left > 16384)
@@ -722,8 +787,12 @@ window.addEventListener(
               outlineTop > 16384
             )
               throw new Error('Invalid outline inset');
+            if (typeof right !== 'number' || !Number.isFinite(right) || right < 0 || right > 16384)
+              throw new Error('Invalid trailing content inset');
             document.documentElement.style.setProperty('--marklyra-content-inset', `${left}px`);
+            document.documentElement.style.setProperty('--marklyra-content-trailing', `${right}px`);
             document.documentElement.style.setProperty('--marklyra-content-top', `${top}px`);
+            refreshSourceLayout();
             findPanel.refresh();
             const popup = document.getElementById('toc-dropmenu');
             if (popup) popup.style.top = `${outlineTop}px`;
@@ -957,6 +1026,8 @@ window.addEventListener(
             outline.dispose();
             outlinePopover.destroy();
             findPanel.destroy();
+            scrollbarLayout.disconnect();
+            cancelAnimationFrame(scrollbarMeasureFrame);
             outlineNavigation.destroy();
             nodeLookup?.dispose();
             images.destroy();
@@ -1046,6 +1117,7 @@ document.addEventListener(
   () => {
     setTimeout(() => {
       nativeComposition = false;
+      if (sourceLayoutPending) refreshSourceLayout();
       send('composition', Boolean(runtime.editor?.isIME));
       schedule();
       outlineNavigation.schedule();
@@ -1174,6 +1246,7 @@ async function ready() {
     await new Promise((resolve) => setTimeout(resolve, 15));
   }
   installLiteralPrefix(runtime.editor);
+  preserveSourceResizeScroll();
   focus.install();
   nodeLookup = installNodeLookup(runtime.editor, runtime.$);
   images.install();
@@ -1187,11 +1260,18 @@ async function ready() {
     onError: (error) => send('runtime-error', String(error)),
   });
   const style = document.createElement('style');
+  // The host animates horizontal geometry. A second runtime transition would lag behind dragging.
   style.textContent =
-    ':root{--sidebar-width:var(--marklyra-content-inset,0px)!important}#typora-sidebar,#footer-word-count,#top-titlebar{display:none!important}body{padding:0!important}content{left:var(--marklyra-content-inset,0px)!important;margin-top:var(--marklyra-content-top,0px)!important;bottom:0!important}#write{--sidebar-width:var(--marklyra-content-inset,0px);min-height:calc(100vh - var(--marklyra-content-top,0px))}#typora-source{left:var(--marklyra-content-inset,0px)!important;top:var(--marklyra-content-top,0px)!important}#md-searchpanel{top:var(--marklyra-content-top,0px)!important}' +
+    'content,#typora-source{transition-property:top!important}' +
+    ':root{--sidebar-width:var(--marklyra-content-inset,0px)!important}#typora-sidebar,#footer-word-count,#top-titlebar{display:none!important}body{padding:0!important}content{left:var(--marklyra-content-inset,0px)!important;right:var(--marklyra-content-trailing,0px)!important;margin-top:var(--marklyra-content-top,0px)!important;bottom:0!important}#write{--sidebar-width:var(--marklyra-content-inset,0px);min-height:calc(100vh - var(--marklyra-content-top,0px))}#typora-source{left:var(--marklyra-content-inset,0px)!important;right:var(--marklyra-content-trailing,0px)!important;top:var(--marklyra-content-top,0px)!important}#md-searchpanel{top:var(--marklyra-content-top,0px)!important}' +
     '#md-searchpanel .input-group-addon.close-btn{display:table-cell;width:26px;min-width:26px;height:26px;padding:0;text-align:center;vertical-align:middle;line-height:0;border-radius:4px;box-shadow:none;-webkit-tap-highlight-color:transparent}' +
     '#md-searchpanel .input-group-addon.close-btn .ion-close-round{padding:0;line-height:1;vertical-align:middle}' +
     '#md-searchpanel .input-group-addon.close-btn:hover{background:color-mix(in srgb,var(--bg-color,#fff) 80%,var(--text-color,#333));opacity:1}';
+  // Keep the real scrollport at the window edge and reserve only the text area's trailing space.
+  style.textContent +=
+    'content{right:0!important;padding-right:max(0px,calc(var(--marklyra-content-trailing,0px) - var(--marklyra-document-scrollbar-space,0px)))!important}' +
+    '#typora-source{right:0!important}' +
+    '#typora-source .CodeMirror-scroll{overflow-y:auto!important;padding-right:max(0px,calc(var(--marklyra-content-trailing,0px) - var(--marklyra-source-scrollbar-space,0px)))!important}';
   document.head.append(style);
   // Install query guards outside tracking's Source replace-all proof wrapper.
   // Unsupported/no-result queries retain their own diagnostics before proof.

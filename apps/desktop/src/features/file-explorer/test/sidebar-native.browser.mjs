@@ -8,19 +8,22 @@ import React from '/@id/react';
 import ReactDOM from '/@id/react-dom/client';
 import {WorkspaceSidebar} from '/src/features/file-explorer/WorkspaceSidebar.tsx';
 import {SidebarHeader} from '/src/features/file-explorer/SidebarHeader.tsx';
+import {DocumentDetailsPanel} from '/src/features/document-details/DocumentDetailsPanel.tsx';
 import {OutlinePanel} from '/src/features/outline/OutlinePanel.tsx';
 import {SidebarResize} from '/src/components/SidebarResize.tsx';
 import '/src/style.css';
 const root=ReactDOM.createRoot(document.getElementById('probe'));
 function Harness(){
- const [mode,setMode]=React.useState('files'),[disabled,setDisabled]=React.useState(false),[width,setWidth]=React.useState(270),[hidden,setHidden]=React.useState(false);
- window.setMode=setMode;window.setDisabled=setDisabled;
- return React.createElement('div',{style:{display:'flex',height:600}},
+ const [mode,setMode]=React.useState('files'),[disabled,setDisabled]=React.useState(false),[width,setWidth]=React.useState(270),[hidden,setHidden]=React.useState(false),[outlineOpen,setOutlineOpen]=React.useState(false);
+ Object.assign(window,{setMode,setDisabled,setOutlineOpen});
+ return React.createElement('div',{className:'workspace',style:{display:'flex',height:600}},
   React.createElement('aside',{className:'sidebar',hidden,style:{width,minWidth:0,maxWidth:'none'}},
    React.createElement(SidebarHeader,{fileView:'tree',mode,change:setMode,disabled}),
-   React.createElement('div',{hidden:mode==='outline',style:{flex:1,minHeight:0}},React.createElement(WorkspaceSidebar,{filePreferences:{view:'tree',treeSort:0,articleSort:0,treeNoGroup:false,articleNoGroup:false},compact:true,mode:mode==='search'?'search':'files',onModeChange:setMode,disabled,activePath:'/mock/Else.md',onOpenDocument:(...args)=>window.probe.opened.push(args),onNewDocument:()=>window.probe.newDocuments++})),
-   React.createElement('div',{hidden:mode!=='outline',style:{flex:1,minHeight:0,overflow:'auto'}},React.createElement(OutlinePanel,{entries:[{id:'guide',level:1,text:'Guide'},{id:'start',level:3,text:'Start'},{id:'end',level:2,text:'End'},{id:'appendix',level:1,text:'Appendix'}],disabled,jump:async(id)=>window.probe.jumps.push(id)}))),
-  React.createElement(SidebarResize,{native:true,width,change:(value)=>{window.probe.widths.push(value);setWidth(value);},hide:()=>{window.probe.hidden++;setHidden(true);}}));
+   React.createElement('div',{style:{flex:1,minHeight:0}},React.createElement(WorkspaceSidebar,{filePreferences:{view:'tree',treeSort:0,articleSort:0,treeNoGroup:false,articleNoGroup:false},compact:true,mode:mode==='search'?'search':'files',onModeChange:setMode,disabled,activePath:'/mock/Else.md',onOpenDocument:(...args)=>window.probe.opened.push(args),onNewDocument:()=>window.probe.newDocuments++}))),
+  React.createElement(SidebarResize,{native:true,width,change:(value)=>{window.probe.widths.push(value);setWidth(value);},hide:()=>{window.probe.hidden++;setHidden(true);}}),
+  React.createElement('main',{style:{flex:1,minWidth:0}}),
+  React.createElement(DocumentDetailsPanel,{open:outlineOpen,close:()=>setOutlineOpen(false),elementRef:()=>{}},
+   React.createElement(OutlinePanel,{entries:[{id:'guide',level:1,text:'Guide'},{id:'start',level:3,text:'Start'},{id:'end',level:2,text:'End'},{id:'appendix',level:1,text:'Appendix'}],disabled,jump:async(id)=>window.probe.jumps.push(id)})));
 }
 root.render(React.createElement(Harness));window.dispose=()=>root.unmount();
 </script></html>`;
@@ -112,7 +115,7 @@ async function check(browser, name) {
     const listed = await page.evaluate(
       () => window.probe.calls.filter((item) => item.command === 'list_directory').length,
     );
-    await page.getByRole('button', { name: '切换侧栏视图', exact: true }).click();
+    await page.evaluate(() => window.setOutlineOpen(true));
     const tree = page.getByRole('tree', { name: '文档标题' });
     await tree.getByRole('treeitem', { name: 'Guide', exact: true }).waitFor();
     await tree.getByRole('treeitem', { name: 'Guide', exact: true }).focus();
@@ -146,7 +149,7 @@ async function check(browser, name) {
         .evaluate((el) => el === document.activeElement),
       true,
     );
-    await page.getByRole('button', { name: '切换侧栏视图', exact: true }).click();
+    await page.getByRole('button', { name: '关闭目录', exact: true }).click();
     assert.equal(await page.getByRole('button', { name: '笔记.md', exact: true }).count(), 1);
     assert.equal(
       await page.evaluate(

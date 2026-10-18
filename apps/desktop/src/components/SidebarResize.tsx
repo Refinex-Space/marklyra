@@ -4,69 +4,77 @@ export function SidebarResize({
   change,
   native = false,
   hide,
+  trailingWidth = 0,
+  onDragWidthChange,
 }: {
   width: number;
   change: (width: number) => void;
   native?: boolean;
   hide?: () => void;
+  trailingWidth?: number;
+  onDragWidthChange: (width: number | null) => void;
 }) {
-  const origin = useRef<{ x: number; width: number } | null>(null);
+  const origin = useRef<{ x: number; width: number; latest: number } | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [preview, setPreview] = useState<number | null>(null);
   const [viewport, setViewport] = useState(window.innerWidth);
   useEffect(() => {
     const resize = () => setViewport(window.innerWidth);
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);
   }, []);
+  useEffect(() => () => onDragWidthChange(null), [onDragWidthChange]);
   const minimum = native ? 160 : 180;
-  const maximum = Math.max(minimum, native ? viewport - 220 : Math.min(440, viewport - 300));
+  const available = viewport - trailingWidth - (native || trailingWidth ? 220 : 300);
+  const maximum = Math.max(minimum, native ? available : Math.min(440, available));
   const bounded = (next: number) => Math.round(Math.max(minimum, Math.min(maximum, next)));
   const resize = (next: number) => change(bounded(next));
+  const stop = () => {
+    origin.current = null;
+    setDragging(false);
+    onDragWidthChange(null);
+  };
+  const cancel = () => {
+    if (origin.current) resize(origin.current.latest);
+    stop();
+  };
   return (
     <>
       <hr
-        className="sidebar-resize"
+        className="sidebar-resize pane-resize-handle"
+        data-resizing={dragging || undefined}
         aria-label="调整侧栏宽度"
         aria-orientation="vertical"
         aria-valuemin={minimum}
         aria-valuemax={maximum}
-        aria-valuenow={width}
+        aria-valuenow={bounded(width)}
         tabIndex={0}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           event.preventDefault();
-          origin.current = {
-            x: event.clientX,
-            width:
-              event.currentTarget.previousElementSibling?.getBoundingClientRect().width ?? width,
-          };
+          const actual =
+            event.currentTarget.previousElementSibling?.getBoundingClientRect().width ?? width;
+          origin.current = { x: event.clientX, width: actual, latest: bounded(actual) };
           event.currentTarget.setPointerCapture(event.pointerId);
-          setPreview(width);
+          onDragWidthChange(origin.current.latest);
           setDragging(true);
         }}
         onPointerMove={(event) => {
           if (!origin.current) return;
           const next = origin.current.width + event.clientX - origin.current.x;
-          if (native) setPreview(event.clientX < 100 && hide ? 0 : bounded(next));
-          else resize(next);
+          origin.current.latest = bounded(next);
+          onDragWidthChange(origin.current.latest);
         }}
         onPointerUp={(event) => {
-          if (native && origin.current) {
-            if (event.clientX < 100 && hide) hide();
+          if (origin.current) {
+            if (native && event.clientX < 100 && hide) hide();
             else resize(origin.current.width + event.clientX - origin.current.x);
           }
-          origin.current = null;
-          setDragging(false);
-          setPreview(null);
+          stop();
           if (event.currentTarget.hasPointerCapture(event.pointerId))
             event.currentTarget.releasePointerCapture(event.pointerId);
         }}
-        onLostPointerCapture={() => {
-          origin.current = null;
-          setDragging(false);
-          setPreview(null);
-        }}
+        onPointerCancel={cancel}
+        onLostPointerCapture={cancel}
         onKeyDown={(event) => {
           if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
           event.preventDefault();
@@ -75,25 +83,12 @@ export function SidebarResize({
               ? minimum
               : event.key === 'End'
                 ? maximum
-                : width + (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 40 : 10),
+                : bounded(width) +
+                  (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 40 : 10),
           );
         }}
       />
       {dragging && <div className="resize-shield" />}
-      {native && dragging && preview !== null && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'fixed',
-            top: 0,
-            bottom: 0,
-            left: preview,
-            borderLeft: '1px solid var(--muted)',
-            pointerEvents: 'none',
-            zIndex: 100,
-          }}
-        />
-      )}
     </>
   );
 }
