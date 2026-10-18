@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "metadata": {
+    "source": "local",
+    "provider": null,
+    "organization": null,
+    "repositoryId": null,
+    "repositoryName": null,
+    "createdAt": "2026-10-17T07:37:03.221Z",
+    "updatedAt": "2026-10-17T07:37:03.221Z",
+    "languages": [
+      "CSS",
+      "HTML",
+      "JSON",
+      "Javascript",
+      "Markdown",
+      "Python",
+      "Rust",
+      "Swift",
+      "TypeScript",
+      "YAML"
+    ]
+  },
+  "tools": [
+    {
+      "toolId": "Biome",
+      "localConfigurationFile": "biome.json",
+      "useLocalConfigurationFile": true,
+      "patterns": []
+    }
+  ],
+  "exclude": []
+}

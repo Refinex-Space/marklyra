@@ -1,0 +1,38 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "jsx": "react-jsx",
+    "paths": {
+      "@marklyra/editor-core": [
+        "./packages/editor-core/src/index.ts"
+      ],
+      "@marklyra/editor-markdown": [
+        "./packages/editor-markdown/src/index.ts"
+      ],
+      "@marklyra/editor-view": [
+        "./packages/editor-view/src/index.ts"
+      ],
+      "@marklyra/editor-react": [
+        "./packages/editor-react/src/index.tsx"
+      ],
+      "@marklyra/editor-runtime": [
+        "./packages/editor-runtime/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "packages/*/src",
+    "packages/*/test",
+    "apps/*/src",
+    "apps/*/test",
+    "tests",
+    "*.config.ts",
+    "apps/*/*.config.ts"
+  ]
+}

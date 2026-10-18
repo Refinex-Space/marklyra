@@ -1,0 +1,687 @@
+use super::require_window;
+use crate::window_services::WindowServices;
+use document_service::DocumentPayload;
+use file_index::{
+    DirectoryListing, SearchOptions, SearchReport, Workspace, WorkspaceArticlesReport,
+    WorkspaceCatalogSnapshot, WorkspacePayload, WorkspaceRegistry,
+};
+use std::sync::{Arc, Mutex};
+use tauri::WebviewWindow;
+use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_dialog::DialogExt;
+mod duplicate;
+pub use duplicate::*;
+mod entry_actions;
+pub use entry_actions::*;
+mod entry_move;
+pub use entry_move::*;
+mod entry_rename;
+pub use entry_rename::*;
+mod file_undo;
+pub use file_undo::*;
+mod trash;
+pub use trash::*;
+
+pub type Workspaces = Arc<Mutex<WorkspaceRegistry>>;
+
+fn report_notification(result: tauri::Result<()>, event: &str) {
+    if let Err(error) = result {
+        eprintln!("File operation notification {event} failed: {error}");
+    }
+}
+
+fn workspace(registry: &Workspaces, id: &str) -> Result<Arc<Workspace>, String> {
+    registry
+        .lock()
+        .map_err(|_| "目录状态不可用".to_owned())?
+        .get(id)
+        .map_err(|error| error.to_string())
+}
+
+fn verify_workspace_window(window: &WebviewWindow, registry: &Workspaces) -> Result<(), String> {
+    require_window(window)?;
+    verify_workspace_registry(&window.state::<WindowServices>(), window.label(), registry)
+}
+
+fn verify_workspace_registry(
+    services: &WindowServices,
+    label: &str,
+    registry: &Workspaces,
+) -> Result<(), String> {
+    if !services.is_current_workspaces(label, registry) {
+        return Err("编辑窗口已关闭或已更换目录会话".into());
+    }
+    Ok(())
+}
+
+fn read_workspace<T>(
+    registry: &Workspaces,
+    id: &str,
+    verify_window: impl Fn() -> Result<(), String>,
+    read: impl FnOnce(&Workspace) -> Result<T, file_index::IndexError>,
+) -> Result<T, String> {
+    verify_window()?;
+    let selected = workspace(registry, id)?;
+    let report = read(&selected).map_err(|error| error.to_string())?;
+    verify_window()?;
+    let current = workspace(registry, id)?;
+    if !Arc::ptr_eq(&selected, &current) {
+        return Err("工作区已更换或关闭".into());
+    }
+    Ok(report)
+}
+
+fn collect_documents(
+    registry: &Workspaces,
+    id: &str,
+    extension: Option<&str>,
+    verify_window: impl Fn() -> Result<(), String>,
+) -> Result<WorkspaceArticlesReport, String> {
+    read_workspace(registry, id, verify_window, |selected| {
+        selected.list_documents_with_extension_and_entry_filter(
+            extension,
+            crate::platform::file_metadata::include_entry,
+        )
+    })
+}
+
+fn extra_extension(app: &AppHandle) -> Option<String> {
+    match app
+        .state::<crate::file_preferences::FilePreferencesHost>()
+        .default_extension(app)
+    {
+        Ok(extension)
+            if !file_index::TEXT_EXTENSIONS
+                .iter()
+                .any(|known| extension.eq_ignore_ascii_case(known)) =>
+        {
+            Some(extension)
+        }
+        Ok(_) => None,
+        Err(error) => {
+            eprintln!("Custom document type unavailable; keeping built-in types: {error}");
+            None
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn select_workspace(
+    app: AppHandle,
+    window: WebviewWindow,
+    services: State<'_, WindowServices>,
+) -> Result<WorkspacePayload, String> {
+    let workspaces = services.get_workspaces(window.label())?;
+    let history_request = app
+        .state::<crate::file_preferences::FilePreferencesHost>()
+        .history_request();
+    tauri::async_runtime::spawn_blocking(move || {
+        let history_ticket = match app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .prepare_folder_history(&app, history_request)
+        {
+            Ok(ticket) => ticket,
+            Err(error) => {
+                eprintln!("Directory history was not prepared: {error}");
+                None
+            }
+        };
+        let selected = app
+            .dialog()
+            .file()
+            .set_parent(&window)
+            .set_title("选择 Markdown 工作目录")
+            .blocking_pick_folder()
+            .ok_or("已取消选择目录")?;
+        let path = selected.into_path().map_err(|_| "无法读取所选目录路径")?;
+        let mut workspaces = workspaces.lock().map_err(|_| "目录状态不可用")?;
+        require_window(&window)?;
+        let result = workspaces
+            .select_authorized(&path)
+            .map_err(|error| error.to_string())?;
+        let bookmark = workspaces
+            .get(&result.id)
+            .map_err(|error| error.to_string())?
+            .bookmark();
+        drop(workspaces);
+        match bookmark {
+            Ok(bookmark) => {
+                if let Err(error) = app
+                    .state::<crate::file_preferences::FilePreferencesHost>()
+                    .remember_workspace(&app, &bookmark, history_ticket)
+                {
+                    eprintln!("Directory history was not updated: {error}");
+                }
+            }
+            // A metadata failure cannot revoke the user's retained directory FD.
+            Err(error) => eprintln!("Directory identity was not recorded: {error}"),
+        }
+        Ok(result)
+    })
+    .await
+    .map_err(|_| "选择目录任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub async fn list_directory(
+    workspace_id: String,
+    relative_path: Option<String>,
+    window: WebviewWindow,
+    services: State<'_, WindowServices>,
+) -> Result<DirectoryListing, String> {
+    let registry = services.get_workspaces(window.label())?;
+    let app = window.app_handle().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let extension = extra_extension(&app);
+        read_workspace(
+            &registry,
+            &workspace_id,
+            || verify_workspace_window(&window, &registry),
+            |selected| {
+                selected.list_directory_with_extension_and_entry_filter(
+                    relative_path.as_deref().unwrap_or(""),
+                    extension.as_deref(),
+                    crate::platform::file_metadata::include_entry,
+                )
+            },
+        )
+    })
+    .await
+    .map_err(|_| "读取目录任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub async fn snapshot_workspace(
+    workspace_id: String,
+    window: WebviewWindow,
+    services: State<'_, WindowServices>,
+) -> Result<WorkspaceCatalogSnapshot, String> {
+    let registry = services.get_workspaces(window.label())?;
+    let app = window.app_handle().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let extension = extra_extension(&app);
+        read_workspace(
+            &registry,
+            &workspace_id,
+            || verify_workspace_window(&window, &registry),
+            |selected| {
+                selected.catalog_snapshot_with_entry_filter(
+                    extension.as_deref(),
+                    crate::platform::file_metadata::include_entry,
+                )
+            },
+        )
+    })
+    .await
+    .map_err(|_| "目录变化检查任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub async fn list_workspace_documents(
+    workspace_id: String,
+    window: WebviewWindow,
+    services: State<'_, WindowServices>,
+) -> Result<WorkspaceArticlesReport, String> {
+    let registry = services.get_workspaces(window.label())?;
+    let app = window.app_handle().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let extension = extra_extension(&app);
+        collect_documents(&registry, &workspace_id, extension.as_deref(), || {
+            verify_workspace_window(&window, &registry)
+        })
+    })
+    .await
+    .map_err(|_| "读取文章列表任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub async fn open_workspace_document(
+    workspace_id: String,
+    relative_path: String,
+    window: WebviewWindow,
+    services: State<'_, WindowServices>,
+) -> Result<DocumentPayload, String> {
+    services.get_documents(window.label())?;
+    let app = window.app_handle().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let extension = extra_extension(&app);
+        window.state::<WindowServices>().open_workspace_document(
+            window.label(),
+            &workspace_id,
+            &relative_path,
+            extension.as_deref(),
+        )
+    })
+    .await
+    .map_err(|_| "打开目录文档任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub async fn search_workspace(
+    workspace_id: String,
+    query: String,
+    case_sensitive: Option<bool>,
+    whole_word: Option<bool>,
+    use_regex: Option<bool>,
+    max_results: Option<usize>,
+    window: WebviewWindow,
+) -> Result<SearchReport, String> {
+    let registry = window
+        .state::<WindowServices>()
+        .get_workspaces(window.label())?;
+    let app = window.app_handle().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let extension = extra_extension(&app);
+        read_workspace(
+            &registry,
+            &workspace_id,
+            || verify_workspace_window(&window, &registry),
+            |selected| {
+                selected.search_with_extension_and_entry_filter(
+                    SearchOptions {
+                        query: &query,
+                        case_sensitive: case_sensitive.unwrap_or(true),
+                        whole_word: whole_word.unwrap_or(false),
+                        use_regex: use_regex.unwrap_or(false),
+                        max_results: max_results.unwrap_or(200),
+                    },
+                    extension.as_deref(),
+                    crate::platform::file_metadata::include_entry,
+                )
+            },
+        )
+    })
+    .await
+    .map_err(|_| "目录搜索任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub async fn create_workspace_entry(
+    workspace_id: String,
+    parent_relative_path: String,
+    kind: file_index::EntryKind,
+    operation_id: String,
+    window: WebviewWindow,
+) -> Result<file_index::CreatedWorkspaceEntry, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let app = window.app_handle();
+        let extension = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .default_extension(app)?;
+        require_window(&window)?;
+        let created = window.state::<WindowServices>().create_workspace_entry(
+            window.label(),
+            &workspace_id,
+            &operation_id,
+            &parent_relative_path,
+            kind,
+            &extension,
+        )?;
+        let _ = app.emit("workspace-file-undo-changed", ());
+        if let Err(error) = app.emit("workspace-files-changed", ()) {
+            eprintln!("Created entry, but catalog notification failed: {error}");
+        }
+        Ok(created)
+    })
+    .await
+    .map_err(|_| "创建目录条目任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub async fn rename_workspace_creation(
+    workspace_id: String,
+    entry_token: String,
+    new_name: String,
+    window: WebviewWindow,
+) -> Result<file_index::CreatedWorkspaceEntry, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        require_window(&window)?;
+        let app = window.app_handle();
+        let preferences = app.state::<crate::file_preferences::FilePreferencesHost>();
+        let ticket = match preferences.prepare_history(app, preferences.history_request()) {
+            Ok(ticket) => ticket,
+            Err(error) => {
+                eprintln!("Recent rename migration was not prepared: {error}");
+                None
+            }
+        };
+        let result = window.state::<WindowServices>().rename_workspace_creation(
+            window.label(),
+            &workspace_id,
+            &entry_token,
+            &new_name,
+        )?;
+        let app = window.app_handle();
+        for (label, ids) in result.uncertain {
+            if let Err(error) = app.emit_to(&label, "document-file-operation-uncertain", ids) {
+                eprintln!("Uncertain rename warning delivery failed: {error}");
+            }
+        }
+        for (label, documents) in result.metadata {
+            if let Err(error) = app.emit_to(&label, "document-metadata-changed", documents) {
+                eprintln!("Renamed entry, but document metadata notification failed: {error}");
+            }
+        }
+        if let Err(error) = app.emit("workspace-files-changed", ()) {
+            eprintln!("Renamed entry, but catalog notification failed: {error}");
+        }
+        let _ = app.emit("workspace-file-undo-changed", ());
+        if let Some((old, new)) = result.confirmed_paths {
+            if let Err(error) =
+                crate::commands::recent::rename::migrate_creation_rename(app, &old, &new, ticket)
+            {
+                eprintln!("File renamed, but recent record migration was not confirmed: {error}");
+                let _ = app.emit_to(
+                    window.label(),
+                    "workspace-operation-warning",
+                    "文件已改名，但最近文件记录迁移未确认；未回滚文件",
+                );
+            }
+        }
+        result.entry.ok_or_else(|| {
+            "命名操作已执行，但文件位置无法确认；原稿已保留，请刷新核对或另存为，未自动重试"
+                .to_owned()
+        })
+    })
+    .await
+    .map_err(|_| "命名新条目任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub async fn finish_workspace_creation(
+    workspace_id: String,
+    entry_token: String,
+    window: WebviewWindow,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        window.state::<WindowServices>().mutate_workspace(
+            window.label(),
+            &workspace_id,
+            |workspace| {
+                workspace
+                    .finish_creation(&entry_token)
+                    .map_err(|e| e.to_string())
+            },
+        )
+    })
+    .await
+    .map_err(|_| "结束新条目命名任务未能完成".to_owned())?
+}
+
+/// Only called with a path returned by the actual system Save panel. Never IPC input.
+fn create_picker_file(path: &std::path::Path) -> Result<(), String> {
+    let parent = path.parent().ok_or("所选文件没有父目录")?;
+    let name = path.file_name().ok_or("所选文件名无效")?;
+    let directory = cap_std::fs::Dir::open_ambient_dir(parent, cap_std::ambient_authority())
+        .map_err(|e| e.to_string())?;
+    let mut options = cap_std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    directory
+        .open_with(std::path::Path::new(name), &options)
+        .and_then(|file| file.sync_all())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn create_workspace_file_with_dialog(
+    workspace_id: String,
+    window: WebviewWindow,
+) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let app = window.app_handle();
+        let selected_workspace = workspace(
+            &window
+                .state::<WindowServices>()
+                .get_workspaces(window.label())?,
+            &workspace_id,
+        )?;
+        let bookmark = selected_workspace.bookmark().map_err(|e| e.to_string())?;
+        require_window(&window)?;
+        let extension = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .default_extension(app)?;
+        let mut filters = file_index::TEXT_EXTENSIONS.to_vec();
+        if !filters
+            .iter()
+            .any(|known| extension.eq_ignore_ascii_case(known))
+        {
+            filters.push(&extension);
+        }
+        let selected = app
+            .dialog()
+            .file()
+            .set_parent(&window)
+            .set_title("新建文档")
+            .set_directory(bookmark.path())
+            .add_filter("Markdown / Text", &filters)
+            .add_filter("所有文件", &["*"])
+            .blocking_save_file();
+        let Some(selected) = selected else {
+            return Ok(false);
+        };
+        let path = selected.into_path().map_err(|_| "无法读取新建文件路径")?;
+        window.state::<WindowServices>().mutate_workspace(
+            window.label(),
+            &workspace_id,
+            |current| {
+                require_window(&window)?;
+                if !std::ptr::eq(current, selected_workspace.as_ref()) {
+                    return Err("工作区已更换或关闭".into());
+                }
+                create_picker_file(&path)?;
+                window.state::<WindowServices>().clear_file_undo();
+                Ok(())
+            },
+        )?;
+        if let Err(error) = app.emit("workspace-files-changed", ()) {
+            eprintln!("Created file, but catalog notification failed: {error}");
+        }
+        Ok(true)
+    })
+    .await
+    .map_err(|_| "新建文件面板任务未能完成".to_owned())?
+}
+
+#[tauri::command]
+pub fn close_workspace(
+    workspace_id: String,
+    window: WebviewWindow,
+    services: State<'_, WindowServices>,
+) -> Result<(), String> {
+    services.close_workspace(window.label(), &workspace_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::Cell;
+
+    #[test]
+    fn catalog_read_rejects_reused_window_label_while_old_cleanup_is_blocked() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("own.md"), "own fixture").unwrap();
+        let services = Arc::new(WindowServices::default());
+        services.register("catalog-race").unwrap();
+        let retained = services.get_workspaces("catalog-race").unwrap();
+        let grant = retained
+            .lock()
+            .unwrap()
+            .select_authorized(root.path())
+            .unwrap();
+        let documents = services.get_documents("catalog-race").unwrap();
+        let blocked = documents.lock().unwrap();
+        let mut cleanup = None;
+        let result = read_workspace(
+            &retained,
+            &grant.id,
+            || verify_workspace_registry(&services, "catalog-race", &retained),
+            |selected| {
+                let removing = Arc::clone(&services);
+                cleanup = Some(std::thread::spawn(move || removing.remove("catalog-race")));
+                let started = std::time::Instant::now();
+                while services.contains("catalog-race") {
+                    assert!(started.elapsed() < std::time::Duration::from_secs(2));
+                    std::thread::yield_now();
+                }
+                services.register("catalog-race").unwrap();
+                assert!(retained.lock().unwrap().get(&grant.id).is_ok());
+                selected.catalog_snapshot_with_entry_filter(None, |_| true)
+            },
+        );
+        assert!(result.unwrap_err().contains("已更换目录会话"));
+        drop(blocked);
+        cleanup.unwrap().join().unwrap().unwrap();
+        services.remove("catalog-race").unwrap();
+    }
+
+    #[test]
+    fn system_selected_new_file_is_empty_and_existing_entities_are_never_overwritten() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("中文.md");
+        create_picker_file(&path).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), b"");
+        std::fs::write(&path, b"\xef\xbb\xbfexisting\r\n").unwrap();
+        assert!(create_picker_file(&path).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), b"\xef\xbb\xbfexisting\r\n");
+        assert!(create_picker_file(root.path()).is_err());
+        #[cfg(unix)]
+        {
+            let link = root.path().join("link.md");
+            std::os::unix::fs::symlink(&path, &link).unwrap();
+            assert!(create_picker_file(&link).is_err());
+            assert_eq!(std::fs::read(&path).unwrap(), b"\xef\xbb\xbfexisting\r\n");
+        }
+    }
+
+    #[test]
+    fn custom_extension_is_an_operation_snapshot_with_the_same_window_grant() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("custom.vault"), "custom source").unwrap();
+        let registry = Arc::new(Mutex::new(WorkspaceRegistry::default()));
+        let selected = registry
+            .lock()
+            .unwrap()
+            .select_authorized(root.path())
+            .unwrap();
+        assert!(collect_documents(&registry, &selected.id, None, || Ok(()))
+            .unwrap()
+            .entries
+            .is_empty());
+        assert_eq!(
+            collect_documents(&registry, &selected.id, Some("vault"), || Ok(()))
+                .unwrap()
+                .entries[0]
+                .summary,
+            "custom source"
+        );
+        assert!(collect_documents(&registry, &selected.id, None, || Ok(()))
+            .unwrap()
+            .entries
+            .is_empty());
+        assert!(collect_documents(
+            &Arc::new(Mutex::new(WorkspaceRegistry::default())),
+            &selected.id,
+            Some("vault"),
+            || Ok(())
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn article_command_uses_window_registry_and_rejects_a_close_during_collection() {
+        let temporary = tempfile::tempdir().unwrap();
+        std::fs::write(temporary.path().join("article.md"), "read-only article").unwrap();
+        let services = WindowServices::default();
+        services.register("main").unwrap();
+        services.register("editor-other").unwrap();
+        let own = services.get_workspaces("main").unwrap();
+        let foreign = services.get_workspaces("editor-other").unwrap();
+        let selected = own
+            .lock()
+            .unwrap()
+            .select_authorized(temporary.path())
+            .unwrap();
+        assert!(collect_documents(&foreign, &selected.id, None, || Ok(())).is_err());
+        assert_eq!(
+            collect_documents(&own, &selected.id, None, || Ok(()))
+                .unwrap()
+                .entries[0]
+                .summary,
+            "read-only article"
+        );
+        let calls = Cell::new(0);
+        let result = collect_documents(&own, &selected.id, None, || {
+            calls.set(calls.get() + 1);
+            if calls.get() == 2 {
+                own.lock().unwrap().close(&selected.id);
+            }
+            Ok(())
+        });
+        assert!(result.is_err());
+        assert_eq!(calls.get(), 2);
+        assert_eq!(
+            std::fs::read_to_string(temporary.path().join("article.md")).unwrap(),
+            "read-only article"
+        );
+    }
+
+    #[test]
+    fn closed_editor_verification_prevents_late_article_result() {
+        let temporary = tempfile::tempdir().unwrap();
+        std::fs::write(temporary.path().join("article.md"), "article").unwrap();
+        let registry = Arc::new(Mutex::new(WorkspaceRegistry::default()));
+        let selected = registry
+            .lock()
+            .unwrap()
+            .select_authorized(temporary.path())
+            .unwrap();
+        let calls = Cell::new(0);
+        let result = collect_documents(&registry, &selected.id, None, || {
+            calls.set(calls.get() + 1);
+            if calls.get() == 2 {
+                return Err("editor closed".into());
+            }
+            Ok(())
+        });
+        assert_eq!(result.err().as_deref(), Some("editor closed"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_article_command_filters_real_hidden_and_package_entries_after_root_rename() {
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().join("selected");
+        std::fs::create_dir_all(root.join("Demo.app")).unwrap();
+        std::fs::create_dir_all(root.join("FinderHidden")).unwrap();
+        std::fs::write(root.join("Demo.app/inside.md"), "package content").unwrap();
+        std::fs::write(
+            root.join("FinderHidden/inside.md"),
+            "hidden directory content",
+        )
+        .unwrap();
+        std::fs::write(root.join("hidden.md"), "hidden file content").unwrap();
+        std::fs::write(root.join("visible.md"), "original authorized content").unwrap();
+        for path in [root.join("FinderHidden"), root.join("hidden.md")] {
+            assert!(std::process::Command::new("/usr/bin/chflags")
+                .arg("hidden")
+                .arg(path)
+                .status()
+                .unwrap()
+                .success());
+        }
+        let registry = Arc::new(Mutex::new(WorkspaceRegistry::default()));
+        let selected = registry.lock().unwrap().select_authorized(&root).unwrap();
+        let check = || {
+            let report = collect_documents(&registry, &selected.id, None, || Ok(())).unwrap();
+            assert_eq!(report.entries.len(), 1);
+            assert_eq!(report.entries[0].relative_path, "visible.md");
+            assert_eq!(report.entries[0].summary, "original authorized content");
+            assert_eq!(report.skipped.ignored, 3);
+        };
+        check();
+        std::fs::rename(&root, temporary.path().join("renamed")).unwrap();
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(root.join("foreign.md"), "replacement must not be scanned").unwrap();
+        check();
+    }
+}

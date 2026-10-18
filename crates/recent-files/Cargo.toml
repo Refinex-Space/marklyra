@@ -1,0 +1,20 @@
+[package]
+name = "recent-files"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+cap-std.workspace = true
+serde.workspace = true
+serde_json = "1.0.149"
+sha2 = "0.10.9"
+thiserror.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+document-service = { path = "../document-service" }

@@ -1,0 +1,23 @@
+{
+  "name": "@marklyra/playground",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4173 --strictPort",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@marklyra/editor-view": "workspace:*",
+    "@marklyra/editor-react": "workspace:*",
+    "@marklyra/editor-extensions": "workspace:*",
+    "@marklyra/editor-themes": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "@marklyra/editor-runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react-dom": "^19.2.0",
+    "@types/react": "^19.2.0"
+  }
+}

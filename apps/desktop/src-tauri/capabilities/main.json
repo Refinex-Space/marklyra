@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Trusted editor windows can listen to their menu events and update their title; document authorization stays in per-window Rust services.",
+  "windows": [
+    "main",
+    "editor-*"
+  ],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:window:allow-set-title",
+    "core:window:allow-close",
+    "core:window:allow-is-fullscreen",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-start-dragging",
+    "core:window:allow-internal-toggle-maximize",
+    "core:menu:allow-new",
+    "core:menu:allow-popup",
+    "core:resources:allow-close"
+  ]
+}

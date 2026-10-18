@@ -1,0 +1,47 @@
+{
+  "sourceVersion": "Typora 1.11.7 / 7472",
+  "assetsCarSha256": "3a52ece4b0a01232119543428b9727fb34fca29d2c2ad1df8b733277107224c8",
+  "provenance": "AppKit-derived private raster, not original encoded rendition bytes or public redistribution approval",
+  "assets": [
+    {
+      "file": "tocButton@2x.png",
+      "sha256": "95eb4ac2b02234699987b7247d1dee7b54cdfd134ff383f6c8c9cf0f934007a8",
+      "pngBytes": 501,
+      "pixelWidth": 26,
+      "pixelHeight": 20,
+      "pointWidth": 13,
+      "pointHeight": 10,
+      "isTemplate": false
+    },
+    {
+      "file": "tocButtonWhite@2x.png",
+      "sha256": "eec8355f1b2ea9db309492406d1e4316aaef0f0ffdc5443e3c73fe6cc197512c",
+      "pngBytes": 314,
+      "pixelWidth": 26,
+      "pixelHeight": 20,
+      "pointWidth": 13,
+      "pointHeight": 10,
+      "isTemplate": false
+    },
+    {
+      "file": "sideButton@2x.png",
+      "sha256": "b6b1ac819431967ca3d2294692bee9e5fedd4aa3b6a92725d5ba990e009e8047",
+      "pngBytes": 293,
+      "pixelWidth": 24,
+      "pixelHeight": 24,
+      "pointWidth": 12,
+      "pointHeight": 12,
+      "isTemplate": false
+    },
+    {
+      "file": "sideButtonWhite@2x.png",
+      "sha256": "6615e272b3a927e0c472048bb1456d9d804df15f72c5afa9ecd537d0ef1e1060",
+      "pngBytes": 301,
+      "pixelWidth": 24,
+      "pixelHeight": 24,
+      "pointWidth": 12,
+      "pointHeight": 12,
+      "isTemplate": false
+    }
+  ]
+}

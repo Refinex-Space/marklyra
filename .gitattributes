@@ -1,0 +1,2 @@
+# Keep audited upstream notices and their pinned hashes byte-exact on all hosts.
+licenses/fonts/** -text -whitespace

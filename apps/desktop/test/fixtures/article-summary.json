@@ -1,0 +1,221 @@
+{
+  "scope": "exact original three helper functions in isolated Node vm, not original app/DOM",
+  "rows": [
+    {
+      "id": "plain",
+      "strict": false,
+      "input": "# Title\n\nSome **bold** *italic* ~~strike~~ `code` $math$ [link](dest)",
+      "output": " Title\nSome bold  italic ~~strike~~ code  math link"
+    },
+    {
+      "id": "unsafe",
+      "strict": false,
+      "input": "<script>run()</script> ![alt](img.png) & literal",
+      "output": "<script>run()</script> !alt & literal"
+    },
+    {
+      "id": "YAML simple",
+      "strict": false,
+      "input": "---\ntitle: A\n---\nBody",
+      "output": "A\n---\nBody\nBody"
+    },
+    {
+      "id": "YAML next-colon",
+      "strict": false,
+      "input": "---\ntitle: A\n---\nBody\nhttps://example.invalid",
+      "output": "A\n---\nBody\nBody\nhttps://example.invalid"
+    },
+    {
+      "id": "YAML all-fields",
+      "strict": false,
+      "input": "---\ntitle: A\nsubtitle: B\nsummary: C\ndescription: D\n---\nBody",
+      "output": "A\nB\nC\nD\n---\nBody"
+    },
+    {
+      "id": "YAML quote",
+      "strict": false,
+      "input": "---\ntitle: \"Quoted\"\n---\nBody",
+      "output": "\"Quoted\"\n---\nBody\nBody"
+    },
+    {
+      "id": "YAML no-close",
+      "strict": false,
+      "input": "---\ntitle: A\nBody",
+      "output": "title: A\nBody"
+    },
+    {
+      "id": "YAML empty-body",
+      "strict": false,
+      "input": "---\ntitle: A\n---",
+      "output": "A\n---\ntitle: A\n"
+    },
+    {
+      "id": "YAML no-fields",
+      "strict": false,
+      "input": "---\nfoo: bar\n---\nBody",
+      "output": "Body"
+    },
+    {
+      "id": "YAML BOM",
+      "strict": false,
+      "input": "﻿---\r\ntitle: A\r\n---\r\nBody",
+      "output": "title: A\rBody"
+    },
+    {
+      "id": "YAML CRLF",
+      "strict": false,
+      "input": "---\r\ntitle: A\r\n---\r\nBody",
+      "output": "A\n---\nBody\nBody"
+    },
+    {
+      "id": "YAML CR-only",
+      "strict": false,
+      "input": "---\rtitle: A\r---\rBody",
+      "output": "title: A\rBody"
+    },
+    {
+      "id": "YAML leading-empty",
+      "strict": false,
+      "input": "\n---\ntitle: A\n---\nBody",
+      "output": "title: A\nBody"
+    },
+    {
+      "id": "YAML title-case",
+      "strict": false,
+      "input": "---\nTitle: A\n---\nBody",
+      "output": "Body"
+    },
+    {
+      "id": "YAML indentation",
+      "strict": false,
+      "input": "---\n  title: A\n description: B\n---\nBody",
+      "output": "A\nB\n---\nBody\nBody"
+    },
+    {
+      "id": "YAML blank-lines",
+      "strict": false,
+      "input": "---\ntitle: A\n\ncontinuation\n---\n\nBody",
+      "output": "A\ncontinuation\n---\nBody\nBody"
+    },
+    {
+      "id": "heading-no-space",
+      "strict": false,
+      "input": "###Heading\n## Head\n- item\n> quote",
+      "output": "Heading\n Head\n- item\n quote"
+    },
+    {
+      "id": "empty",
+      "strict": false,
+      "input": "",
+      "output": ""
+    },
+    {
+      "id": "plain",
+      "strict": true,
+      "input": "# Title\n\nSome **bold** *italic* ~~strike~~ `code` $math$ [link](dest)",
+      "output": "Title\nSome bold  italic ~~strike~~ code  math link"
+    },
+    {
+      "id": "unsafe",
+      "strict": true,
+      "input": "<script>run()</script> ![alt](img.png) & literal",
+      "output": "<script>run()</script> !alt & literal"
+    },
+    {
+      "id": "YAML simple",
+      "strict": true,
+      "input": "---\ntitle: A\n---\nBody",
+      "output": "A\n---\nBody\nBody"
+    },
+    {
+      "id": "YAML next-colon",
+      "strict": true,
+      "input": "---\ntitle: A\n---\nBody\nhttps://example.invalid",
+      "output": "A\n---\nBody\nBody\nhttps://example.invalid"
+    },
+    {
+      "id": "YAML all-fields",
+      "strict": true,
+      "input": "---\ntitle: A\nsubtitle: B\nsummary: C\ndescription: D\n---\nBody",
+      "output": "A\nB\nC\nD\n---\nBody"
+    },
+    {
+      "id": "YAML quote",
+      "strict": true,
+      "input": "---\ntitle: \"Quoted\"\n---\nBody",
+      "output": "\"Quoted\"\n---\nBody\nBody"
+    },
+    {
+      "id": "YAML no-close",
+      "strict": true,
+      "input": "---\ntitle: A\nBody",
+      "output": "title: A\nBody"
+    },
+    {
+      "id": "YAML empty-body",
+      "strict": true,
+      "input": "---\ntitle: A\n---",
+      "output": "A\n---\ntitle: A\n"
+    },
+    {
+      "id": "YAML no-fields",
+      "strict": true,
+      "input": "---\nfoo: bar\n---\nBody",
+      "output": "Body"
+    },
+    {
+      "id": "YAML BOM",
+      "strict": true,
+      "input": "﻿---\r\ntitle: A\r\n---\r\nBody",
+      "output": "title: A\rBody"
+    },
+    {
+      "id": "YAML CRLF",
+      "strict": true,
+      "input": "---\r\ntitle: A\r\n---\r\nBody",
+      "output": "A\n---\nBody\nBody"
+    },
+    {
+      "id": "YAML CR-only",
+      "strict": true,
+      "input": "---\rtitle: A\r---\rBody",
+      "output": "title: A\rBody"
+    },
+    {
+      "id": "YAML leading-empty",
+      "strict": true,
+      "input": "\n---\ntitle: A\n---\nBody",
+      "output": "title: A\nBody"
+    },
+    {
+      "id": "YAML title-case",
+      "strict": true,
+      "input": "---\nTitle: A\n---\nBody",
+      "output": "Body"
+    },
+    {
+      "id": "YAML indentation",
+      "strict": true,
+      "input": "---\n  title: A\n description: B\n---\nBody",
+      "output": "A\nB\n---\nBody\nBody"
+    },
+    {
+      "id": "YAML blank-lines",
+      "strict": true,
+      "input": "---\ntitle: A\n\ncontinuation\n---\n\nBody",
+      "output": "A\ncontinuation\n---\nBody\nBody"
+    },
+    {
+      "id": "heading-no-space",
+      "strict": true,
+      "input": "###Heading\n## Head\n- item\n> quote",
+      "output": "###Heading\nHead\n- item\n quote"
+    },
+    {
+      "id": "empty",
+      "strict": true,
+      "input": "",
+      "output": ""
+    }
+  ]
+}

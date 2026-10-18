@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "preferences",
+  "description": "The trusted preferences host can drag its window, update app-owned preferences and request a confirmed history clear; it owns no document or arbitrary filesystem capability.",
+  "windows": ["preferences"],
+  "permissions": ["core:window:allow-start-dragging"]
+}

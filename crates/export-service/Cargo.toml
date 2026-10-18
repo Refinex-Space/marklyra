@@ -1,0 +1,18 @@
+[package]
+name = "export-service"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+cap-std.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+dom_query = { version = "0.28.0", default-features = false }
+cssparser = "0.37.0"
+
+[dev-dependencies]
+tempfile.workspace = true

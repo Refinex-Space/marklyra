@@ -1,0 +1,44 @@
+[
+  {
+    "id": "escape",
+    "source": "---\r\ntitle: \"same\"  \n---\r\n\r\n```text\r\nsame  \t\nsame\r\n```\n\n| same | same |\r\n|---|---|\n| same | same |\r\n\n\\*same\\*\r\n\\*same\\*\n\\*same\\*\r\n\r\nTail  \t\n",
+    "from": 103,
+    "to": 107,
+    "insert": "Changed 中🙂"
+  },
+  {
+    "id": "entity",
+    "source": "---\r\ntitle: \"same\"  \n---\r\n\r\n```text\r\nsame  \t\nsame\r\n```\n\n| same | same |\r\n|---|---|\n| same | same |\r\n\n&amp;same\r\n&amp;same\n&amp;same\r\n\r\nTail  \t\n",
+    "from": 106,
+    "to": 110,
+    "insert": "Changed 中🙂"
+  },
+  {
+    "id": "nested-inline",
+    "source": "---\r\ntitle: \"same\"  \n---\r\n\r\n```text\r\nsame  \t\nsame\r\n```\n\n| same | same |\r\n|---|---|\n| same | same |\r\n\n**outer *same* same**\r\n**outer *same* same**\n**outer *same* same**\r\n\r\nTail  \t\n",
+    "from": 110,
+    "to": 114,
+    "insert": "Changed 中🙂"
+  },
+  {
+    "id": "hardbreak",
+    "source": "---\r\ntitle: \"same\"  \n---\r\n\r\n```text\r\nsame  \t\nsame\r\n```\n\n| same | same |\r\n|---|---|\n| same | same |\r\n\nsame  \r\nsame\r\nsame  \r\nsame\nsame  \r\nsame\r\n\r\nTail  \t\n",
+    "from": 101,
+    "to": 105,
+    "insert": "Changed 中🙂"
+  },
+  {
+    "id": "unicode",
+    "source": "---\r\ntitle: \"same\"  \n---\r\n\r\n```text\r\nsame  \t\nsame\r\n```\n\n| same | same |\r\n|---|---|\n| same | same |\r\n\nsame 🙂 中\r\nsame 🙂 中\nsame 🙂 中\r\n\r\nTail  \t\n",
+    "from": 101,
+    "to": 105,
+    "insert": "Changed 中🙂"
+  },
+  {
+    "id": "literal-rule",
+    "source": "---\r\ntitle: \"same\"  \n---\r\n\r\n```text\r\nsame  \t\nsame\r\n```\n\n| same | same |\r\n|---|---|\n| same | same |\r\n\n﻿---\r\n﻿---\n﻿---\r\n\r\nTail  \t\n",
+    "from": 120,
+    "to": 124,
+    "insert": "Changed 中🙂"
+  }
+]

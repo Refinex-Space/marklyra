@@ -1,0 +1,86 @@
+{
+  "schema": 2,
+  "scope": "Original authored inputs: six exact UTF-8 byte sizes, LF/no BOM, no disk decoding differences in computational comparison. BOM/mixed-EOL defaults have separate byte-identity checks.",
+  "cases": [
+    {
+      "id": "plain-10240",
+      "file": "plain-10240.md",
+      "bytes": 10240,
+      "utf16Units": 9718,
+      "kind": "plain",
+      "sha256": "7b718c34006e2ba72e22ae6ead7e5a398e6343e84f58ca9d79437ad984723dc9"
+    },
+    {
+      "id": "mixed-10240",
+      "file": "mixed-10240.md",
+      "bytes": 10240,
+      "utf16Units": 10066,
+      "kind": "mixed",
+      "sha256": "c6e21268d95db82c19e535c557b059dbda576648dee9b11c5d5f9ba0e0bcebab"
+    },
+    {
+      "id": "plain-102400",
+      "file": "plain-102400.md",
+      "bytes": 102400,
+      "utf16Units": 97150,
+      "kind": "plain",
+      "sha256": "25dde5ec3c6ec219b8682de2adb703be038cd7d83b89ce7cda59ba40360d005b"
+    },
+    {
+      "id": "mixed-102400",
+      "file": "mixed-102400.md",
+      "bytes": 102400,
+      "utf16Units": 100654,
+      "kind": "mixed",
+      "sha256": "cc0f5e91ddfd4b5a86f7af2a27118db6d275c3d5026242b7ba2d0d9bc551ebfa"
+    },
+    {
+      "id": "plain-1048576",
+      "file": "plain-1048576.md",
+      "bytes": 1048576,
+      "utf16Units": 995212,
+      "kind": "plain",
+      "sha256": "4cd34d5d2e4b2f5095064dd85b50572cb370c60bda90f64cebda5ad38a17c914"
+    },
+    {
+      "id": "mixed-1048576",
+      "file": "mixed-1048576.md",
+      "bytes": 1048576,
+      "utf16Units": 1030690,
+      "kind": "mixed",
+      "sha256": "3d9a8b0460badd1bdc9c97e7744550887296afb67bb92bd237dc0e933d6c53c2"
+    }
+  ],
+  "defaults": [
+    {
+      "bytes": 10240,
+      "kind": "plain",
+      "sha256": "121f8da9c37cad7982e87cbf09ff0c487e8186823472a468248297993c7b0825"
+    },
+    {
+      "bytes": 10240,
+      "kind": "mixed",
+      "sha256": "5034473a28f76159a6b4048c42568b8069173bc0383feea7d5eeb911a2430ce0"
+    },
+    {
+      "bytes": 102400,
+      "kind": "plain",
+      "sha256": "e6c681cfd8255990f0768bf45cbe16da19e1d1b04786654339478ce1239e901f"
+    },
+    {
+      "bytes": 102400,
+      "kind": "mixed",
+      "sha256": "7ccc1942cd383cf6948e0c0ef8e377b6ed7c5cba67b38416aefb834fccc20c23"
+    },
+    {
+      "bytes": 1048576,
+      "kind": "plain",
+      "sha256": "b465181a2964cce2a8ca3dba0e8c825f6755e2a310d9d1347157568dca5a224e"
+    },
+    {
+      "bytes": 1048576,
+      "kind": "mixed",
+      "sha256": "a62404ed0bf81dd765afe2f422b26cab4ded9655f187d49c776662009b673133"
+    }
+  ]
+}

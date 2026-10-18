@@ -1,0 +1,109 @@
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #344039;
+  background: #f8f9f7;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e2e7e0;
+}
+header strong {
+  font-size: 15px;
+}
+header span {
+  font-size: 12px;
+  color: #6a746c;
+  flex: 1;
+}
+a {
+  color: #54735e;
+  text-decoration: none;
+  font-size: 12px;
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 20px;
+  border-bottom: 1px solid #e2e7e0;
+  background: white;
+}
+button,
+select {
+  font: 12px system-ui;
+  color: inherit;
+  border: 1px solid #dfe5dc;
+  background: transparent;
+  border-radius: 5px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+button:hover {
+  background: #edf2e9;
+}
+button:disabled,
+select:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+button:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid #54735e;
+  outline-offset: 2px;
+}
+.toolbar-spacer {
+  flex: 1;
+}
+#editor {
+  flex: 1;
+  min-height: 0;
+  background: white;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 24px;
+  border-top: 1px solid #e2e7e0;
+  font-size: 11px;
+  color: #5f6d62;
+}
+#status {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  header {
+    padding: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  header span {
+    flex-basis: 50%;
+  }
+  nav {
+    padding: 8px;
+  }
+  .toolbar-spacer {
+    display: none;
+  }
+  footer {
+    padding: 8px 12px;
+  }
+}

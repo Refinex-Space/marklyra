@@ -1,0 +1,3 @@
+# Golden input identity includes literal BOM/EOL/whitespace on every checkout.
+fixtures/*.md -text
+fixtures/source-bom-mixed.md -whitespace

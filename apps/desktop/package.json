@@ -1,0 +1,26 @@
+{
+  "name": "@marklyra/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
+    "build": "vite build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@marklyra/editor-view": "workspace:*",
+    "@marklyra/editor-markdown": "workspace:*",
+    "@marklyra/editor-react": "workspace:*",
+    "@marklyra/editor-themes": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "@tauri-apps/api": "^2.10.1",
+    "@marklyra/editor-runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  }
+}

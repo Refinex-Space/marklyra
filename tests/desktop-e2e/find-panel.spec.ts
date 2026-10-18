@@ -1,0 +1,201 @@
+import { readFileSync } from 'node:fs';
+import { expect, type Page, test } from '@playwright/test';
+import type { TestWindow } from './desktop.helpers.js';
+import {
+  emitLayoutMenu,
+  installLayout,
+  layoutCaret,
+  layoutHistory,
+  openLayoutDocument,
+  readyLayout,
+  saveLayoutSource,
+} from './layout.helpers.js';
+
+const source = readFileSync(new URL('../fixtures/visual.md', import.meta.url), 'utf8');
+
+async function presentation(page: Page) {
+  return page
+    .frameLocator('.marklyra-editor-frame')
+    .locator('#md-searchpanel')
+    .evaluate((panel) => {
+      const input = panel.querySelector('#search-panel-input');
+      const content = document.querySelector('content');
+      if (!input || !content) throw Error('Missing original find UI');
+      const rect = panel.getBoundingClientRect();
+      const inputRect = input.getBoundingClientRect();
+      const style = getComputedStyle(panel);
+      const inputStyle = getComputedStyle(input);
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        height: rect.height,
+        inputLeft: inputRect.left,
+        inputTop: inputRect.top,
+        inputHeight: inputRect.height,
+        fontSize: inputStyle.fontSize,
+        padding: style.padding,
+        shadow: style.boxShadow,
+        background: style.backgroundColor,
+        bodyBackground: getComputedStyle(document.body).backgroundColor,
+        contentTop: content.getBoundingClientRect().top,
+        originalContentTop: Number.parseFloat(getComputedStyle(content).top),
+      };
+    });
+}
+
+async function expectWindowWideFind(page: Page) {
+  const panel = page.frameLocator('.marklyra-editor-frame').locator('#md-searchpanel');
+  await expect(panel).toBeVisible();
+  await expect
+    .poll(async () => {
+      const rect = await panel.boundingBox();
+      return rect && { x: rect.x, y: rect.y, width: rect.width };
+    })
+    .toEqual({ x: 0, y: 28, width: page.viewportSize()?.width });
+  // A DOM rectangle alone would miss clipping by the host or its sidebar header.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document.elementFromPoint(110, 48)?.classList.contains('marklyra-editor-frame'),
+      ),
+    )
+    .toBe(true);
+  expect(
+    await page.evaluate(() => document.elementFromPoint(50, 160)?.closest('.sidebar') !== null),
+  ).toBe(true);
+  expect(
+    await page.evaluate(() =>
+      document.elementFromPoint(innerWidth - 100, 14)?.classList.contains('native-titlebar-drag'),
+    ),
+  ).toBe(true);
+}
+
+for (const theme of ['github', 'night']) {
+  test(`${theme}: original find UI spans the window above every sidebar mode`, async ({
+    page,
+  }, testInfo) => {
+    await installLayout(page);
+    await readyLayout(page, theme);
+    await openLayoutDocument(page, source);
+    await layoutCaret(page);
+    await page.keyboard.type('X');
+    await emitLayoutMenu(page, 'undo');
+    await expect(
+      page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+    ).toHaveText('Tail text.');
+    const history = await layoutHistory(page);
+    const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
+    await emitLayoutMenu(page, 'open-folder');
+    const frame = page.frameLocator('.marklyra-editor-frame');
+    const panel = frame.locator('#md-searchpanel');
+    const input = frame.locator('#search-panel-input');
+    const captures = [];
+
+    for (const mode of ['files', 'outline', 'workspace-search']) {
+      await emitLayoutMenu(page, `view:${mode}`);
+      if (mode === 'workspace-search')
+        await expect(page.getByRole('searchbox', { name: '搜索文件', exact: true })).toBeFocused();
+      // Native CmdOrCtrl+F delivers this menu action even with Shell input focus.
+      await emitLayoutMenu(page, 'find');
+      await expectWindowWideFind(page);
+      await input.click();
+      await expect(input).toBeFocused();
+      await input.fill('Visual');
+      await input.press('Enter');
+      const state = await presentation(page);
+      expect(state).toMatchObject({
+        left: 0,
+        top: 28,
+        height: 39,
+        inputLeft: 98,
+        inputHeight: 26,
+        fontSize: '12px',
+        padding: '5px 8px 0px 16px',
+      });
+      // Night's original row line-height and browser subpixel rounding differ.
+      expect(Math.abs(state.inputTop - 35)).toBeLessThan(2);
+      expect(state.background).toBe(state.bodyBackground);
+      expect(Math.abs(state.contentTop - 28 - state.originalContentTop)).toBeLessThan(1);
+      await expect(page.locator('.marklyra-find-panel-shadow')).toHaveCSS(
+        'box-shadow',
+        state.shadow,
+      );
+      captures.push({ mode, ...state });
+      await page.screenshot({ path: testInfo.outputPath(`${mode}.png`) });
+      await panel.locator('.close-btn').click();
+      await expect(panel).toBeHidden();
+      await expect(page.locator('.marklyra-find-panel-shadow')).toBeHidden();
+    }
+
+    await emitLayoutMenu(page, 'view:files');
+    await frame.locator('#write > p').last().click();
+    await page.keyboard.press('Control+f');
+    await expectWindowWideFind(page);
+    await input.press('Escape');
+    await page.keyboard.press('Meta+f');
+    await expectWindowWideFind(page);
+
+    await emitLayoutMenu(page, 'replace');
+    await expect(panel).toHaveClass(/searchpanel-replace-mode/);
+    await expect.poll(async () => (await panel.boundingBox())?.height).toBe(74);
+    await frame.locator('#search-panel-replace-input').click();
+    await expect(frame.locator('#search-panel-replace-input')).toBeFocused();
+    await input.press('Escape');
+    await expect(panel).toBeHidden();
+
+    await emitLayoutMenu(page, 'find');
+    await page.getByRole('separator', { name: '调整侧栏宽度' }).press('Shift+ArrowRight');
+    await expectWindowWideFind(page);
+    await page.setViewportSize({ width: 960, height: 720 });
+    await expectWindowWideFind(page);
+    await emitLayoutMenu(page, 'view:sidebar');
+    await expect(page.locator('aside.sidebar')).toBeHidden();
+    await expect.poll(async () => (await panel.boundingBox())?.width).toBe(960);
+    await input.click();
+    await expect(input).toBeFocused();
+    await input.press('Escape');
+    await expect(panel).toBeHidden();
+    await emitLayoutMenu(page, 'view:source');
+    await expect(frame.locator('#typora-source')).toBeVisible();
+    await emitLayoutMenu(page, 'find');
+    await expect.poll(async () => (await panel.boundingBox())?.width).toBe(960);
+    await input.click();
+    await expect(input).toBeFocused();
+    await input.press('Escape');
+    await emitLayoutMenu(page, 'view:source');
+    await expect(frame.locator('#typora-source')).toBeHidden();
+
+    await emitLayoutMenu(page, 'view:files');
+    await page.evaluate(() => {
+      Reflect.set(window, '__marklyraLayoutFullscreen', true);
+      (window as TestWindow).__desktopMock.emitEvent('tauri://resize', { width: 960, height: 720 });
+    });
+    await expect(page.locator('.shell')).toHaveAttribute('data-fullscreen', 'true');
+    await emitLayoutMenu(page, 'find');
+    await expect
+      .poll(async () => {
+        const rect = await panel.boundingBox();
+        return rect && { x: rect.x, y: rect.y, width: rect.width };
+      })
+      .toEqual({ x: 0, y: 0, width: 960 });
+    await input.click();
+    await expect(input).toBeFocused();
+    await input.press('Escape');
+    await page.evaluate(() => {
+      Reflect.set(window, '__marklyraLayoutFullscreen', false);
+      (window as TestWindow).__desktopMock.emitEvent('tauri://resize', { width: 960, height: 720 });
+    });
+    await expect(page.locator('.shell')).toHaveAttribute('data-fullscreen', 'false');
+    expect(await layoutHistory(page)).toBe(history);
+    expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
+    await emitLayoutMenu(page, 'redo');
+    await expect(frame.locator('#write > p').last()).toHaveText('TailX text.');
+    await emitLayoutMenu(page, 'undo');
+    await saveLayoutSource(page, testInfo, 'find-preserves-source', source);
+    await testInfo.attach('presentation', {
+      contentType: 'application/json',
+      body: JSON.stringify(captures, null, 2),
+    });
+  });
+}

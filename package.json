@@ -1,0 +1,42 @@
+{
+  "name": "marklyra-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:editor": "pnpm --filter \"./packages/**\" -r build",
+    "build": "pnpm prepare:runtime && pnpm --filter \"./apps/**\" -r build",
+    "dev": "pnpm prepare:runtime && node scripts/dev-playground.mjs",
+    "desktop": "pnpm --filter @marklyra/desktop tauri dev",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:runtime-transform": "node --test scripts/lib/runtime-serialization.test.mjs scripts/lib/runtime-pairing.test.mjs scripts/lib/pairing-history.test.mjs scripts/lib/runtime-focus.test.mjs scripts/lib/runtime-context-cursor.test.mjs scripts/lib/runtime-literal.test.mjs scripts/lib/runtime-expand-focus.test.mjs scripts/lib/runtime-table-columns.test.mjs scripts/lib/runtime-advanced-lifecycle.test.mjs",
+    "test:browser": "pnpm build:editor && playwright test",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "lint": "biome check packages apps tests scripts --diagnostic-level=error",
+    "check": "pnpm typecheck && pnpm check:boundaries && pnpm test",
+    "pack:editor": "node scripts/pack-editor.mjs",
+    "benchmark": "pnpm build:editor && node scripts/benchmark-editor.mjs",
+    "build:desktop": "node scripts/build-desktop.mjs",
+    "test:desktop-shell": "pnpm prepare:runtime && playwright test -c playwright.desktop.config.ts",
+    "prepare:runtime": "pnpm build:editor && node scripts/prepare-runtime.mjs",
+    "prepare:native-icons": "node scripts/prepare-native-icons.mjs",
+    "dev:runtime": "node scripts/runtime-server.mjs",
+    "audit:dependencies": "node scripts/audit-dependencies.mjs",
+    "test:runtime": "pnpm prepare:runtime && playwright test -c playwright.runtime.config.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.0.0",
+    "acorn": "^8.15.0",
+    "fast-check": "^4.3.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,2215 @@
+import { MarkLyraMarkdownEditor } from '@marklyra/editor-react';
+import type {
+  HostAction,
+  MarkLyraCommand,
+  MarkLyraEditor,
+  OutlineEntry,
+} from '@marklyra/editor-runtime';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { CommandMenu } from '../components/CommandMenu.js';
+import { focusInitialEditor } from '../components/focusInitialEditor.js';
+import { Icon, type IconName } from '../components/Icon.js';
+import { SidebarResize } from '../components/SidebarResize.js';
+import { useModalFocus } from '../components/useModalFocus.js';
+import { ExternalChangeNotice } from '../features/documents/ExternalChangeNotice.js';
+import { RecoveryPanel } from '../features/documents/RecoveryPanel.js';
+import {
+  STALE_SEARCH_POSITION,
+  searchPositionIsCurrent,
+} from '../features/documents/search-position.js';
+import { useAutoSave } from '../features/documents/useAutoSave.js';
+import { useDocumentSession } from '../features/documents/useDocumentSession.js';
+import { useExternalChanges } from '../features/documents/useExternalChanges.js';
+import {
+  conversionExportActions,
+  type ExportAction,
+  useDocumentExport,
+} from '../features/export/useDocumentExport.js';
+import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
+import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
+import { hostTextInputFocused, useNativeMenus } from '../features/menus/useNativeMenus.js';
+import { useOsOpenEvents } from '../features/os-integration/useOsOpenEvents.js';
+import { OutlinePanel } from '../features/outline/OutlinePanel.js';
+import { RecentFilesPanel } from '../features/recent-files/RecentFilesPanel.js';
+import { editorSessionPreferences } from '../features/settings/editor-session-preferences.js';
+import { PreferencesPanel } from '../features/settings/PreferencesPanel.js';
+import type { StatisticsUnit } from '../features/settings/preferences.js';
+import {
+  applicationEditorPreferences,
+  applicationStatisticsPreferences,
+} from '../features/settings/runtime-preferences/application-preferences.js';
+import { startupEditorConfiguration } from '../features/settings/runtime-preferences/startup-editor-preferences.js';
+import { useApplicationPreferences } from '../features/settings/useApplicationPreferences.js';
+import { useMarkdownPreferences } from '../features/settings/useMarkdownPreferences.js';
+import { usePreferences } from '../features/settings/usePreferences.js';
+import { StatisticsStatus } from '../features/statistics/StatisticsStatus.js';
+import { useStatistics } from '../features/statistics/useStatistics.js';
+import { builtinTheme, validThemeId } from '../features/themes/model.js';
+import { useSystemAppearance } from '../features/themes/useSystemAppearance.js';
+import { useThemes } from '../features/themes/useThemes.js';
+import { applicationPreferences } from '../services/application-preferences.js';
+import { desktopContextHost } from '../services/context-menu.js';
+import { directoryHistory } from '../services/directory-history.js';
+import { desktopAvailable, documents } from '../services/documents.js';
+import { documentExports } from '../services/exports.js';
+import { filePreferences } from '../services/file-preferences.js';
+import { documentImages } from '../services/images.js';
+import {
+  cancelNativeInput,
+  importNativeInput,
+  nativeDropIntent,
+  nativeFileDrop,
+} from '../services/native-input.js';
+import { discoverRecovery } from '../services/recovery.js';
+import { type EditorRuntime, editorRuntime } from '../services/runtime.js';
+import { completePreferenceTheme } from '../services/theme-preferences.js';
+import { type EditorChrome, editorChrome } from '../services/ui-chrome.js';
+import { windowStartup } from '../services/window-startup.js';
+import { editorWindowIdentity, editorWindows } from '../services/windows.js';
+import { type WorkspaceFolder, workspaces } from '../services/workspaces.js';
+import { NativeEditorCommands, nativeEditorCommand } from './native-editor-commands.js';
+
+function filename(path: string) {
+  return path.split(/[\\/]/).at(-1) ?? '未命名';
+}
+export function App() {
+  const createdDocumentFocus = useRef<{
+    editor: MarkLyraEditor;
+    owner: object;
+    id: string | null;
+  } | null>(null);
+  const [windowIdentity] = useState(editorWindowIdentity);
+  const [creatingWindow, setCreatingWindow] = useState(false);
+  const creatingWindowRef = useRef(false);
+  const applicationQuit = useRef<string | null>(null);
+  const [cancellingDocument, setCancellingDocument] = useState(false);
+  const cancellingDocumentRef = useRef(false);
+  const [legacyPreferences, setPreferences, reloadPreferences] = usePreferences();
+  const applicationSystem = useApplicationPreferences();
+  const preferences = useMemo(
+    () => ({
+      ...legacyPreferences,
+      ...applicationStatisticsPreferences(applicationSystem.value, legacyPreferences),
+    }),
+    [applicationSystem.value, legacyPreferences],
+  );
+  const storedEditorPreferences = useMemo(
+    () =>
+      applicationSystem.value
+        ? applicationEditorPreferences(applicationSystem.value, preferences.editorPreferences)
+        : preferences.editorPreferences,
+    [applicationSystem.value, preferences.editorPreferences],
+  );
+  const editorStartup = useRef<typeof storedEditorPreferences | null>(null);
+  if (applicationSystem.value && !editorStartup.current)
+    editorStartup.current = storedEditorPreferences;
+  const startupEditorPreferences = editorStartup.current ?? storedEditorPreferences;
+  const appliedEditorPreferences = useMemo(
+    () => editorSessionPreferences(storedEditorPreferences, startupEditorPreferences),
+    [storedEditorPreferences, startupEditorPreferences],
+  );
+  const [chrome, setChrome] = useState<EditorChrome>({ native: false, preferencesWindow: false });
+  const [viewMode, setViewMode] = useState<'wysiwyg' | 'source'>();
+  const [osOpenReady, setOsOpenReady] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [nativeOverlay, setNativeOverlay] = useState(true);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [statisticsOpen, setStatisticsOpen] = useState(false);
+  const [nativeNotice, setNativeNotice] = useState('');
+  const [closingPanel, setClosingPanel] = useState(false);
+  const closingPanelRef = useRef(false);
+  const panelEditorOrigin = useRef({ preferences: false, statistics: false });
+  const nativePreferencesOrigin = useRef(false);
+  const editor = useRef<MarkLyraEditor | null>(null);
+  const editorCommandWork = useRef<Promise<void>>(Promise.resolve());
+  const nativeCommandBridge = useRef<NativeEditorCommands | null>(null);
+  const sessionWork = useRef<Promise<void>>(Promise.resolve());
+  const workspaceIdentity = useRef<WorkspaceFolder | null>(null);
+  const [initialWorkspace, setInitialWorkspace] = useState<WorkspaceFolder | null>(null);
+  const [sessionWorkspace, setSessionWorkspace] = useState<string | null>(null);
+  const startupControl = useRef<HTMLElement | null>(null);
+  const startupFocusDeferred = useRef(false);
+  const modalFocusHandled = useRef(false);
+  const recoveryCloseDeferred = useRef(false);
+  const startupFocusRunning = useRef(false);
+  const startupForegroundPending = useRef(false);
+  const imageInput = useRef<HTMLInputElement | null>(null);
+  const preferenceThemes = useRef(new Map<string, AbortController>());
+  const sidebarElement = useRef<HTMLElement | null>(null);
+  const [importingImage, setImportingImage] = useState(false);
+  const importingImageRef = useRef(false);
+  const cancelApplicationQuit = () => {
+    const token = applicationQuit.current;
+    applicationQuit.current = null;
+    if (token)
+      void editorWindows
+        .cancelQuit(token)
+        .catch((error: unknown) =>
+          actions.current.doc.setMessage(`无法取消退出：${String(error)}`),
+        );
+  };
+  const doc = useDocumentSession(
+    editor,
+    async () => {
+      if (desktopAvailable) {
+        await trackSession().catch(() => {});
+        await editorWindows.close(applicationQuit.current);
+      }
+      applicationQuit.current = null;
+    },
+    windowIdentity.draftKey,
+    cancelApplicationQuit,
+    async () => {
+      if (desktopAvailable) {
+        const bridge = nativeCommandBridge.current;
+        if (!bridge) throw new Error('编辑器仍在启动，请稍后重试');
+        await bridge.synchronize();
+      }
+      await editorCommandWork.current;
+    },
+  );
+  const cancelDocumentAction = async () => {
+    if (doc.working || !doc.pending || cancellingDocumentRef.current) return;
+    cancellingDocumentRef.current = true;
+    flushSync(() => setCancellingDocument(true));
+    try {
+      await editor.current?.focus();
+    } catch (error) {
+      doc.setMessage(`恢复编辑焦点失败：${String(error)}`);
+    } finally {
+      doc.cancel();
+      cancellingDocumentRef.current = false;
+      setCancellingDocument(false);
+    }
+  };
+  const disk = useExternalChanges(doc);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recentOpen, setRecentOpenState] = useState(false);
+  const recentRequested = useRef(false);
+  const setRecentOpen = useCallback((open: boolean) => {
+    recentRequested.current = open;
+    setRecentOpenState(open);
+  }, []);
+  const autosave = useAutoSave(
+    doc,
+    !!disk.notice || recoveryOpen || recentOpen || preferencesOpen,
+    applicationSystem.value?.values.enableAutoSave as boolean | undefined,
+  );
+  const unsavedPanel = useModalFocus(
+    !!doc.pending,
+    () => void cancelDocumentAction(),
+    doc.working || cancellingDocument,
+    cancellingDocument,
+  );
+  const offeredRecovery = useRef(false);
+  const [runtime, setRuntime] = useState<EditorRuntime | null>(null),
+    [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (ready) return;
+    const rememberControl = (event: FocusEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target !== document.body &&
+        target !== document.documentElement &&
+        target.tagName !== 'IFRAME' &&
+        target.closest('.shell')
+      )
+        startupControl.current = target;
+    };
+    document.addEventListener('focusin', rememberControl);
+    return () => document.removeEventListener('focusin', rememberControl);
+  }, [ready]);
+  const statistics = useStatistics(
+    editor,
+    ready,
+    doc.file?.id,
+    doc.working,
+    preferences.wordsPerMinute,
+  );
+  const [sidebar, setSidebar] = useState(true),
+    [tab, setTab] = useState<'files' | 'outline' | 'search'>('files');
+  const [outline, setOutline] = useState<OutlineEntry[]>([]);
+  const separateDark = applicationSystem.value?.values.useSeparateDarkTheme === true;
+  const systemDark = useSystemAppearance(separateDark, doc.setMessage);
+  const themeSystem = useThemes(editor, ready, doc.setMessage, {
+    separate: separateDark,
+    systemDark,
+    darkTheme: String(applicationSystem.value?.values.darkTheme ?? 'night.css').replace(
+      /\.css$/,
+      '',
+    ),
+    persistDark: async (theme) => {
+      const previous = await applicationPreferences.get();
+      const saved = await applicationPreferences.putFromEditor(
+        'darkTheme',
+        `${theme}.css`,
+        previous,
+      );
+      return async () => {
+        const latest = await applicationPreferences.get();
+        if (
+          latest.revision === saved.revision &&
+          latest.values.darkTheme === saved.values.darkTheme
+        )
+          await applicationPreferences.putFromEditor(
+            'darkTheme',
+            String(previous.values.darkTheme ?? 'night.css'),
+            latest,
+          );
+      };
+    },
+  });
+  const markdownSystem = useMarkdownPreferences(editor, ready, doc.setMessage);
+  const {
+    theme,
+    select: changeTheme,
+    selectAndWait: selectThemeAndWait,
+    reload: reloadThemes,
+  } = themeSystem;
+  const [currentHeading, setCurrentHeading] = useState<string | null>(null);
+  const [outlinePopoverOpen, setOutlinePopoverOpen] = useState(false);
+  const [chooseRequest, setChooseRequest] = useState(0);
+  const exporter = useDocumentExport(editor, {
+    title: doc.file ? filename(doc.file.path) : '未命名',
+    owner: doc.getOwner,
+    sourceId: () => doc.getFile()?.id,
+    unavailable: doc.working || !!doc.pending || !ready || themeSystem.working,
+    report: doc.setMessage,
+  });
+  const trackSession = (): Promise<void> => {
+    if (!desktopAvailable) return Promise.resolve();
+    const documentId = actions.current.doc.getFile()?.id ?? null,
+      workspaceId = workspaceIdentity.current?.id ?? null;
+    const work = sessionWork.current.then(() => windowStartup.track(documentId, workspaceId));
+    sessionWork.current = work.catch((error: unknown) => {
+      actions.current.doc.setMessage(`窗口会话尚未记录：${String(error)}`);
+    });
+    return work;
+  };
+  const closeRequested = async (): Promise<void> => {
+    if (desktopAvailable) {
+      try {
+        await trackSession();
+        await editorWindows.backup(applicationQuit.current);
+      } catch (error) {
+        actions.current.doc.setMessage(`关闭会话未能备份：${String(error)}`);
+      }
+    }
+    await actions.current.doc.request({ kind: 'close' });
+  };
+  const command = (
+    value: MarkLyraCommand,
+    strict = false,
+    expectedSource?: string,
+  ): Promise<void> => {
+    setStatisticsOpen(false);
+    setRecoveryOpen(false);
+    setRecentOpen(false);
+    const active = editor.current;
+    const owner = doc.getOwner();
+    const work = editorCommandWork.current.then(async () => {
+      if (!active || editor.current !== active || actions.current.doc.getOwner() !== owner)
+        throw new Error('编辑文档已更换，请重试编辑操作');
+      if (expectedSource !== undefined && active.getMarkdown() !== expectedSource)
+        throw new Error(STALE_SEARCH_POSITION);
+      if (strict && active.isComposing) {
+        doc.setMessage('请先完成输入法候选');
+        return;
+      }
+      try {
+        await active.execute(value);
+      } catch (error) {
+        // Candidate input can begin while an issued command awaits this queue.
+        // Its ordinary refusal is not an unknown Native delivery failure.
+        if (!strict || !active.isComposing) throw error;
+        doc.setMessage('请先完成输入法候选');
+      }
+    });
+    editorCommandWork.current = work.catch(() => {});
+    return work.catch((error: unknown) => {
+      doc.setMessage(String(error));
+      if (strict) throw error;
+    });
+  };
+  const action = (value: HostAction) => {
+    if (value === 'zoom-in' || value === 'zoom-out') {
+      if (!preferencesOpen && !statisticsOpen && desktopAvailable)
+        void applicationPreferences
+          .stepZoom(value === 'zoom-in' ? 'in' : 'out')
+          .catch((error) => doc.setMessage(`缩放未确认：${String(error)}`));
+      return;
+    }
+    if (value === 'new' || value === 'new-window') {
+      void newWindow(value === 'new' ? 'document' : 'window');
+      return;
+    }
+    if (
+      value === 'open' &&
+      chrome.native &&
+      (doc.getFile() || doc.hasUnsavedChanges() || editor.current?.hasPendingChanges)
+    ) {
+      void newWindow('open');
+      return;
+    }
+    if (preferencesOpen || statisticsOpen) {
+      if (value === 'close') void dismissAuxiliaryPanel();
+      return;
+    }
+    setStatisticsOpen(false);
+    setRecoveryOpen(false);
+    setRecentOpen(false);
+    setPreferencesOpen(false);
+    if (value === 'save' || value === 'save-as') void doc.save(value === 'save-as');
+    else if (value === 'close') void closeRequested();
+    else void doc.request({ kind: value });
+  };
+  const openPreferences = (editorOrigin?: boolean) => {
+    if (!editor.current || doc.working || doc.pending || closingPanelRef.current) return false;
+    if (editor.current.isComposing) {
+      doc.setMessage('请先完成输入法候选');
+      return false;
+    }
+    if (chrome.preferencesWindow) {
+      nativePreferencesOrigin.current =
+        editorOrigin ?? document.activeElement === editor.current.element;
+      void editorChrome
+        .openPreferences()
+        .catch((error: unknown) => doc.setMessage(`无法打开偏好设置：${String(error)}`));
+      return true;
+    }
+    panelEditorOrigin.current.preferences =
+      editorOrigin ??
+      (statisticsOpen
+        ? panelEditorOrigin.current.statistics
+        : document.activeElement === editor.current.element);
+    setRecoveryOpen(false);
+    setRecentOpen(false);
+    setStatisticsOpen(false);
+    setPreferencesOpen(true);
+    return true;
+  };
+  const windowOperation = async (work: () => Promise<unknown>, failure = '窗口操作未确认') => {
+    if (
+      !desktopAvailable ||
+      !ready ||
+      !editor.current ||
+      creatingWindowRef.current ||
+      doc.working ||
+      doc.pending ||
+      exporter.working ||
+      importingImageRef.current ||
+      preferencesOpen ||
+      statisticsOpen ||
+      recoveryOpen ||
+      recentOpen ||
+      closingPanelRef.current
+    )
+      return;
+    if (editor.current.isComposing) {
+      doc.setMessage('请先完成输入法候选');
+      return;
+    }
+    creatingWindowRef.current = true;
+    setCreatingWindow(true);
+    const active = editor.current;
+    const owner = doc.getOwner();
+    try {
+      await active.flush();
+      if (active.isComposing) throw new Error('请先完成输入法候选');
+      const revision = active.revision;
+      await doc.checkpoint();
+      await trackSession();
+      if (active.isComposing) throw new Error('请先完成输入法候选');
+      if (
+        editor.current !== active ||
+        actions.current.doc.getOwner() !== owner ||
+        active.revision !== revision ||
+        active.hasPendingChanges ||
+        actions.current.blockedEditorCommand ||
+        actions.current.doc.working ||
+        actions.current.exporter.working ||
+        importingImageRef.current
+      )
+        throw new Error('文稿或窗口状态已更改，请重试');
+      await work();
+    } catch (error) {
+      doc.setMessage(`${failure}：${String(error)}`);
+    } finally {
+      creatingWindowRef.current = false;
+      setCreatingWindow(false);
+    }
+  };
+  const newWindow = (kind: 'document' | 'window' | 'tab' | 'open' = 'window') =>
+    windowOperation(() => editorWindows.create(kind), '无法新建窗口');
+  const tabAction = (action: 'next' | 'previous' | 'detach' | 'merge' | 'toggle') =>
+    windowOperation(() => editorWindows.tab(action));
+  const focusStartup = async (instance: MarkLyraEditor, initial = false) => {
+    if (startupFocusRunning.current) {
+      startupForegroundPending.current = true;
+      return;
+    }
+    startupFocusRunning.current = true;
+    try {
+      const handled = await focusInitialEditor(
+        instance,
+        () => {
+          const current = actions.current;
+          return (
+            editor.current === instance &&
+            !current.doc.working &&
+            !current.doc.pending &&
+            !current.preferencesOpen &&
+            !current.statisticsOpen
+          );
+        },
+        () => startupControl.current,
+        editorWindows.isFocused,
+      );
+      startupFocusDeferred.current = !handled;
+    } catch (error) {
+      startupFocusDeferred.current = false;
+      if (editor.current === instance)
+        actions.current.doc.setMessage(`初始编辑焦点设置失败：${String(error)}`);
+    } finally {
+      startupFocusRunning.current = false;
+      if (initial && editor.current === instance) setReady(true);
+      if (startupForegroundPending.current) {
+        startupForegroundPending.current = false;
+        if (startupFocusDeferred.current) void focusStartup(instance);
+      }
+    }
+  };
+  const actions = useRef({
+    action,
+    command,
+    doc,
+    exporter,
+    openPreferences,
+    newWindow,
+    tabAction,
+    windowOperation,
+    dismissAuxiliaryPanel: () => dismissAuxiliaryPanel(),
+    focusStartup,
+    closeRequested,
+    cancelApplicationQuit,
+    unavailableForQuit:
+      !ready ||
+      doc.working ||
+      !!doc.pending ||
+      exporter.working ||
+      importingImage ||
+      creatingWindow ||
+      preferencesOpen ||
+      statisticsOpen ||
+      recoveryOpen ||
+      recentOpen ||
+      closingPanel,
+    blockedEditorCommand:
+      !ready ||
+      !editor.current ||
+      preferencesOpen ||
+      statisticsOpen ||
+      recoveryOpen ||
+      recentOpen ||
+      !!doc.pending ||
+      closingPanel,
+    preferencesOpen,
+    statisticsOpen,
+  });
+  actions.current = {
+    action,
+    command,
+    doc,
+    exporter,
+    openPreferences,
+    newWindow,
+    tabAction,
+    windowOperation,
+    dismissAuxiliaryPanel: () => dismissAuxiliaryPanel(),
+    focusStartup,
+    closeRequested,
+    cancelApplicationQuit,
+    unavailableForQuit:
+      !ready ||
+      doc.working ||
+      !!doc.pending ||
+      exporter.working ||
+      importingImage ||
+      creatingWindow ||
+      preferencesOpen ||
+      statisticsOpen ||
+      recoveryOpen ||
+      recentOpen ||
+      closingPanel,
+    blockedEditorCommand:
+      !ready ||
+      !editor.current ||
+      preferencesOpen ||
+      statisticsOpen ||
+      recoveryOpen ||
+      recentOpen ||
+      !!doc.pending ||
+      closingPanel,
+    preferencesOpen,
+    statisticsOpen,
+  };
+  const inputModalOpen = recoveryOpen || recentOpen || !!doc.pending;
+  const previousInputModal = useRef(false);
+  useEffect(() => {
+    const closed = previousInputModal.current && !inputModalOpen;
+    previousInputModal.current = inputModalOpen;
+    if (closed) {
+      if (!modalFocusHandled.current) startupFocusDeferred.current = true;
+      modalFocusHandled.current = false;
+    }
+    if (!inputModalOpen && ready && !doc.working && startupFocusDeferred.current && editor.current)
+      void actions.current.focusStartup(editor.current);
+  }, [inputModalOpen, ready, doc.working]);
+  const trackSessionLatest = useRef(trackSession);
+  trackSessionLatest.current = trackSession;
+  // File/authority changes only; ordinary input does not write session metadata.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: IDs schedule tracking; the callback reads the latest authoritative refs.
+  useEffect(() => {
+    if (ready && desktopAvailable) void trackSessionLatest.current().catch(() => {});
+  }, [ready, doc.file?.id, doc.file?.metadataRevision, sessionWorkspace]);
+  useEffect(() => {
+    if (!desktopAvailable || !ready) return;
+    let alive = true;
+    const seen = new Set<string>();
+    const window = getCurrentWindow();
+    const receive = async (value: unknown) => {
+      const drop = nativeFileDrop(value);
+      if (seen.has(drop.ticket)) return;
+      seen.add(drop.ticket);
+      if (seen.size > 128) seen.delete(seen.values().next().value ?? '');
+      const active = editor.current;
+      const origin = actions.current.doc;
+      let leased = false;
+      try {
+        if (
+          !active ||
+          importingImageRef.current ||
+          actions.current.unavailableForQuit ||
+          active.isComposing
+        )
+          throw new Error('请先完成当前文稿操作或输入法候选，再拖入文件');
+        importingImageRef.current = true;
+        leased = true;
+        setImportingImage(true);
+        const owner = origin.getOwner();
+        await active.flush();
+        const text = active.getMarkdown(),
+          revision = active.revision;
+        const preferences = await filePreferences.get();
+        if (
+          !alive ||
+          actions.current.blockedEditorCommand ||
+          actions.current.exporter.working ||
+          actions.current.doc.working ||
+          actions.current.doc.pending ||
+          editor.current !== active ||
+          actions.current.doc.getOwner() !== owner ||
+          active.isComposing ||
+          active.hasPendingChanges ||
+          active.revision !== revision ||
+          active.getMarkdown() !== text
+        )
+          throw new Error('拖放期间文稿或输入已有变化，请重新拖入');
+        const intent = nativeDropIntent(drop, preferences);
+        if (intent === 'unsupported-import')
+          throw new Error('暂不支持此格式的导入；可在文件设置中选择插入链接');
+        if (intent === 'document') {
+          if (drop.entries.length !== 1) throw new Error('请逐个拖入需要打开的文稿');
+          // Consume the Native receipt while its source owner is still current.
+          // The unopened candidate survives an explicit Save/SaveAs confirmation;
+          // it is never activated until the existing dirty-document gate accepts.
+          const candidate = await documents.openNative(drop.ticket);
+          if (candidate.nativeSameDocument || candidate.path === origin.getFile()?.path) {
+            if (candidate.id !== origin.getFile()?.id) await documents.close(candidate.id);
+            return;
+          }
+          if (
+            !alive ||
+            actions.current.blockedEditorCommand ||
+            actions.current.exporter.working ||
+            editor.current !== active ||
+            actions.current.doc.getOwner() !== owner ||
+            active.isComposing ||
+            active.hasPendingChanges ||
+            active.revision !== revision ||
+            active.getMarkdown() !== text
+          ) {
+            await documents.close(candidate.id);
+            throw new Error('准备打开期间文稿已有变化，请重新拖入');
+          }
+          await actions.current.doc.request({ kind: 'native-input', document: candidate });
+          return;
+        }
+        if (intent === 'directory') {
+          if (drop.entries.length !== 1) throw new Error('请逐个拖入需要打开的目录');
+          const folder = await workspaces.openNative(drop.ticket);
+          if (
+            !alive ||
+            actions.current.blockedEditorCommand ||
+            editor.current !== active ||
+            actions.current.doc.getOwner() !== owner
+          ) {
+            await workspaces.close(folder.id);
+            return;
+          }
+          if (
+            workspaceIdentity.current ||
+            actions.current.doc.getFile() ||
+            actions.current.doc.hasUnsavedChanges() ||
+            active.hasPendingChanges
+          ) {
+            try {
+              const catalog = await directoryHistory.list(folder.id);
+              if (
+                !alive ||
+                actions.current.blockedEditorCommand ||
+                editor.current !== active ||
+                actions.current.doc.getOwner() !== owner ||
+                active.isComposing ||
+                active.hasPendingChanges ||
+                active.revision !== revision ||
+                active.getMarkdown() !== text
+              )
+                return;
+              await directoryHistory.openNewWindow(catalog.revision, {
+                kind: 'workspace',
+                workspaceId: folder.id,
+              });
+            } finally {
+              await workspaces.close(folder.id);
+            }
+          } else {
+            setInitialWorkspace(folder);
+            setSidebar(true);
+            setTab('files');
+          }
+          return;
+        }
+        const point = {
+          x: (drop.position.x * globalThis.window.innerWidth) / drop.viewport.width,
+          y: (drop.position.y * globalThis.window.innerHeight) / drop.viewport.height,
+        };
+        if (intent === 'images' && document.elementFromPoint(point.x, point.y) !== active.element)
+          throw new Error('请将图片拖入正文编辑区域');
+        await active.importNativeInput(
+          { id: drop.ticket, ...(intent === 'images' ? { point } : {}) },
+          importNativeInput(drop.ticket, intent === 'images' ? 'paste' : 'references'),
+        );
+      } finally {
+        await cancelNativeInput(drop.ticket).catch(() => {});
+        if (leased) {
+          importingImageRef.current = false;
+          if (alive) setImportingImage(false);
+        }
+      }
+    };
+    const listeners = [
+      window.listen<unknown>('native-file-drop', (event) => {
+        void receive(event.payload).catch((error: unknown) => {
+          if (alive) actions.current.doc.setMessage(`文件拖入未完成：${String(error)}`);
+        });
+      }),
+      window.listen<string>('native-file-input-error', (event) => {
+        if (alive) actions.current.doc.setMessage(`文件拖入未完成：${event.payload}`);
+      }),
+    ];
+    return () => {
+      alive = false;
+      for (const listener of listeners) void listener.then((stop) => stop()).catch(() => {});
+    };
+  }, [ready]);
+  const dismissAuxiliaryPanel = async () => {
+    const current = actions.current;
+    if (closingPanelRef.current || (!current.preferencesOpen && !current.statisticsOpen)) return;
+    const kind = current.preferencesOpen ? 'preferences' : 'statistics';
+    const instance = editor.current;
+    closingPanelRef.current = true;
+    flushSync(() => setClosingPanel(true));
+    try {
+      // Complete the cross-frame focus request before reporting the dialog closed.
+      // No range reconstruction: the SDK preserves the existing editor selection.
+      if (panelEditorOrigin.current[kind] && instance) await instance.focus();
+    } catch (error) {
+      actions.current.doc.setMessage(`恢复编辑焦点失败：${String(error)}`);
+    } finally {
+      setPreferencesOpen(false);
+      setStatisticsOpen(false);
+      closingPanelRef.current = false;
+      setClosingPanel(false);
+    }
+  };
+  useEffect(() => {
+    if (!desktopAvailable) return;
+    const bridge = new NativeEditorCommands({
+      capture: (action) => {
+        const active = editor.current;
+        const composing = active?.isComposing === true;
+        if (composing) actions.current.doc.setMessage('请先完成输入法候选');
+        return {
+          editor: active,
+          documentOwner: actions.current.doc.getOwner(),
+          blocked:
+            actions.current.blockedEditorCommand ||
+            !actions.current.doc.acceptsEditorCommands() ||
+            composing ||
+            (hostTextInputFocused(active) && action !== 'find' && action !== 'replace'),
+        };
+      },
+      execute: async (value, expectedEditor, owner) => {
+        if (
+          !expectedEditor ||
+          editor.current !== expectedEditor ||
+          actions.current.doc.getOwner() !== owner
+        )
+          throw new Error('编辑命令所属文档窗口已更换');
+        if (!nativeMenuCommandAllowed(expectedEditor.menuState, value)) return;
+        if (hostTextInputFocused(expectedEditor) && value.type !== 'find') return;
+        await actions.current.command(value, true);
+      },
+      onError: (error) => setNativeNotice(`无法完成上一条编辑操作，暂未保存：${error.message}`),
+    });
+    nativeCommandBridge.current = bridge;
+    return () => {
+      if (nativeCommandBridge.current === bridge) nativeCommandBridge.current = null;
+      bridge.dispose();
+    };
+  }, []);
+  useNativeMenus(
+    ready ? editor.current : null,
+    {
+      ready,
+      blocked:
+        actions.current.blockedEditorCommand ||
+        doc.working ||
+        exporter.working ||
+        importingImage ||
+        creatingWindow ||
+        editor.current?.isComposing === true,
+      editor: editor.current?.menuState ?? null,
+      sidebar,
+      sidebarTab: tab,
+      fileView: preferences.fileSidebar.view,
+      fullscreen,
+      statisticsOpen,
+      availableFormats: [
+        'html-plain',
+        ...(exporter.capabilities?.image ? ['image'] : []),
+        ...(exporter.capabilities?.formats ?? []),
+      ],
+      canImport: (exporter.capabilities?.importExtensions.length ?? 0) > 0,
+    },
+    async () => {
+      const bridge = nativeCommandBridge.current;
+      if (!bridge) throw new Error('菜单命令通道尚未初始化');
+      return bridge.whenReady();
+    },
+    doc.setMessage,
+  );
+  useOsOpenEvents(ready && osOpenReady, {
+    editor: () => editor.current,
+    available: () =>
+      !actions.current.unavailableForQuit &&
+      !actions.current.blockedEditorCommand &&
+      !actions.current.doc.working &&
+      !actions.current.doc.pending &&
+      !actions.current.exporter.working,
+    mayInitialize: () =>
+      !actions.current.blockedEditorCommand &&
+      !actions.current.exporter.working &&
+      !importingImageRef.current &&
+      !creatingWindowRef.current,
+    owner: () => actions.current.doc.getOwner(),
+    canReuse: () => !actions.current.doc.getFile() && !actions.current.doc.hasUnsavedChanges(),
+    initialize: (file, revision, guard) => actions.current.doc.initialize(file, revision, guard),
+    settleSession: () => trackSession(),
+    report: (message) => actions.current.doc.setMessage(message),
+  });
+  useEffect(() => {
+    if (ready && desktopAvailable) void actions.current.exporter.refreshCapabilities();
+  }, [ready]);
+  useEffect(() => {
+    let alive = true;
+    void editorChrome.initialize().then(
+      (value) => {
+        if (alive) setChrome(value);
+      },
+      (error: unknown) => {
+        if (alive) actions.current.doc.setMessage(`标题栏初始化失败：${String(error)}`);
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!ready || !desktopAvailable || !windowIdentity.primary || offeredRecovery.current) return;
+    offeredRecovery.current = true;
+    const expected = actions.current.doc.source.current;
+    const revision = editor.current?.revision;
+    void discoverRecovery().then(
+      (listing) => {
+        if (listing.fallbackAvailable || listing.drafts.some((draft) => !draft.active)) {
+          const current = actions.current.doc;
+          if (
+            !current.dirty &&
+            !current.working &&
+            !current.pending &&
+            !recentRequested.current &&
+            !actions.current.preferencesOpen &&
+            !actions.current.statisticsOpen &&
+            !editor.current?.isComposing &&
+            !editor.current?.hasPendingChanges &&
+            current.source.current === expected &&
+            editor.current?.revision === revision
+          )
+            setRecoveryOpen(true);
+          else current.setMessage('发现未保存的恢复副本，可从“恢复草稿”打开');
+        }
+        if (listing.issues.length)
+          actions.current.doc.setMessage('部分恢复记录需要检查，请打开恢复草稿查看详情');
+      },
+      (error: unknown) => actions.current.doc.setMessage(`无法读取恢复副本：${String(error)}`),
+    );
+  }, [ready, windowIdentity.primary]);
+  useEffect(() => {
+    let alive = true;
+    void editorRuntime().then(
+      (value) => {
+        if (alive) {
+          setRuntime(value);
+          if (value.nativeInputWarning) setNativeNotice(value.nativeInputWarning);
+        }
+      },
+      (error) => {
+        if (alive) actions.current.doc.setMessage(String(error));
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => {
+    let alive = true;
+    const stops: (() => void)[] = [];
+    const menu = (value: string) => {
+      if (value === 'new-tab') {
+        void actions.current.newWindow('tab');
+        return;
+      }
+      if (value.startsWith('tab:')) {
+        const action = value.slice(4);
+        if (
+          action === 'next' ||
+          action === 'previous' ||
+          action === 'detach' ||
+          action === 'merge' ||
+          action === 'toggle'
+        )
+          void actions.current.tabAction(action);
+        return;
+      }
+      if (value === 'new-window') {
+        void actions.current.newWindow();
+        return;
+      }
+      if (value === 'preferences') {
+        actions.current.openPreferences();
+        return;
+      }
+      // Native menus still dispatch while a WebView dialog has focus. Keep
+      // document commands out of settings inputs and statistics dialogs.
+      if (actions.current.preferencesOpen || actions.current.statisticsOpen) {
+        if (value === 'close') actions.current.action('close');
+        if (value === 'view:statistics' && actions.current.statisticsOpen)
+          void actions.current.dismissAuxiliaryPanel();
+        return;
+      }
+      if (value === 'view:sidebar') {
+        setSidebar((visible) => !visible);
+        return;
+      }
+      if (value === 'view:outline') {
+        setSidebar(true);
+        setTab('outline');
+        return;
+      }
+      if (value === 'view:files' || value === 'view:articles') {
+        const view = value === 'view:files' ? 'tree' : 'articles';
+        setPreferences((current) => ({
+          ...current,
+          fileSidebar: { ...current.fileSidebar, view },
+        }));
+        setSidebar(true);
+        setTab('files');
+        return;
+      }
+      if (value === 'view:workspace-search') {
+        setSidebar(true);
+        setTab('search');
+        return;
+      }
+      if (value === 'view:outline-popover') {
+        void editor.current
+          ?.toggleOutlinePopover()
+          .catch((error: unknown) =>
+            actions.current.doc.setMessage(`大纲浮层操作失败：${String(error)}`),
+          );
+        return;
+      }
+      if (value.startsWith('statistics-unit:')) {
+        const unit = value.slice('statistics-unit:'.length);
+        if (['words', 'characters', 'lines', 'readingMinutes'].includes(unit))
+          setPreferences((current) => ({ ...current, statisticsUnit: unit as StatisticsUnit }));
+        return;
+      }
+      if (/^recent-open:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(value)) {
+        setRecoveryOpen(false);
+        setRecentOpen(false);
+        void actions.current.doc.request({
+          kind: 'recent',
+          id: value.slice('recent-open:'.length),
+        });
+        return;
+      }
+      if (value === 'recent-files') {
+        setStatisticsOpen(false);
+        const current = actions.current.doc;
+        if (!editor.current || current.working || current.pending) return;
+        if (editor.current.isComposing) {
+          current.setMessage('请先完成输入法候选');
+          return;
+        }
+        setRecoveryOpen(false);
+        setRecentOpen(true);
+        return;
+      }
+      if (value === 'marklyra-drafts') {
+        const current = actions.current.doc;
+        if (!editor.current || current.working || current.pending || editor.current.isComposing)
+          return;
+        setRecentOpen(false);
+        setRecoveryOpen(true);
+        return;
+      }
+      if (value === 'view:fullscreen') {
+        const active = editor.current,
+          owner = actions.current.doc.getOwner();
+        if (
+          actions.current.blockedEditorCommand ||
+          actions.current.doc.working ||
+          editor.current?.isComposing
+        )
+          return;
+        const window = getCurrentWindow();
+        void window
+          .isFullscreen()
+          .then((current) => {
+            if (
+              editor.current !== active ||
+              actions.current.doc.getOwner() !== owner ||
+              actions.current.unavailableForQuit ||
+              active?.isComposing
+            )
+              return;
+            return window.setFullscreen(!current);
+          })
+          .catch((error: unknown) =>
+            actions.current.doc.setMessage(`全屏状态未确认：${String(error)}`),
+          );
+        return;
+      }
+      if (value === 'view:statistics') {
+        const active = editor.current;
+        if (
+          !active ||
+          actions.current.blockedEditorCommand ||
+          actions.current.doc.working ||
+          active.isComposing ||
+          active.menuState?.sourceMode
+        )
+          return;
+        panelEditorOrigin.current.statistics = document.activeElement === active.element;
+        setRecoveryOpen(false);
+        setRecentOpen(false);
+        setPreferencesOpen(false);
+        setStatisticsOpen(true);
+        return;
+      }
+      if (value === 'import-document') {
+        const active = editor.current,
+          owner = actions.current.doc.getOwner();
+        void actions.current.windowOperation(async () => {
+          let imported: Awaited<ReturnType<typeof documentExports.importDocument>>;
+          try {
+            imported = await documentExports.importDocument();
+          } catch (error) {
+            if (String(error) === '已取消导入') return;
+            throw error;
+          }
+          if (editor.current !== active || actions.current.doc.getOwner() !== owner) {
+            await documents.close(imported.id);
+            actions.current.doc.setMessage(
+              `已导入另存为 ${imported.path}；当前文稿已切换，请手动打开导入结果`,
+            );
+            return;
+          }
+          await actions.current.doc.request({ kind: 'native-input', document: imported });
+        }, '导入未完成');
+        return;
+      }
+      if (
+        value === 'export-html' ||
+        value === 'export-html-plain' ||
+        value === 'export-image' ||
+        value === 'print-preview' ||
+        conversionExportActions.has(value as ExportAction)
+      ) {
+        setRecoveryOpen(false);
+        setRecentOpen(false);
+        void actions.current.exporter.run(value as ExportAction);
+        return;
+      }
+      if (['open', 'save', 'save-as', 'new', 'close'].includes(value)) {
+        actions.current.action(value as HostAction);
+        return;
+      }
+      if (value === 'open-folder') {
+        setRecoveryOpen(false);
+        setRecentOpen(false);
+        setSidebar(true);
+        setTab('files');
+        setChooseRequest((value) => value + 1);
+        return;
+      }
+      const item = nativeEditorCommand(value);
+      if (item) {
+        const active = editor.current;
+        if (
+          !nativeMenuCommandAllowed(active?.menuState ?? null, item, hostTextInputFocused(active))
+        )
+          return;
+        void actions.current.command(item);
+        return;
+      }
+      const [name, argument] = value.split(':');
+      if (name === 'theme' && argument) changeTheme(argument);
+    };
+    if (desktopAvailable) {
+      const nativeWindow = getCurrentWindow();
+      const tabLayoutListener = nativeWindow
+        .listen<{ overlay: boolean }>('native-tab-layout', (event) => {
+          if (typeof event.payload?.overlay === 'boolean') setNativeOverlay(event.payload.overlay);
+        })
+        .then((stop) => (alive ? stops.push(stop) : stop()));
+      const themeSelectionListener = nativeWindow
+        .listen<{ token: string; themeId: string; target?: 'normal' | 'dark' }>(
+          'preference-theme-request',
+          (event) => {
+            const payload = event.payload;
+            if (
+              !payload ||
+              !/^[a-f0-9-]{36}$/.test(payload.token) ||
+              !validThemeId(payload.themeId)
+            )
+              return;
+            if (preferenceThemes.current.has(payload.token)) return;
+            const abort = new AbortController();
+            preferenceThemes.current.set(payload.token, abort);
+            void selectThemeAndWait(payload.themeId, {
+              target: payload.target ?? 'normal',
+              signal: abort.signal,
+              commit: (stylesToken) => completePreferenceTheme(payload.token, stylesToken, null),
+            })
+              .catch((error: unknown) =>
+                completePreferenceTheme(payload.token, null, String(error)).catch(() => {}),
+              )
+              .finally(() => preferenceThemes.current.delete(payload.token));
+          },
+        )
+        .then((stop) => (alive ? stops.push(stop) : stop()));
+      const themeCancellationListener = nativeWindow
+        .listen<{ token: string }>('preference-theme-cancelled', (event) =>
+          preferenceThemes.current.get(event.payload?.token)?.abort(),
+        )
+        .then((stop) => (alive ? stops.push(stop) : stop()));
+      const quitListener = nativeWindow
+        .listen<{ token: string }>('application-quit-request', (event) => {
+          const token = event.payload.token;
+          if (typeof token !== 'string' || !token) return;
+          const current = actions.current;
+          if (applicationQuit.current === token) return;
+          applicationQuit.current = token;
+          if (current.unavailableForQuit || !editor.current || editor.current.isComposing) {
+            current.cancelApplicationQuit();
+            current.doc.setMessage(
+              editor.current?.isComposing
+                ? '请先完成输入法候选，再退出应用'
+                : '请先完成当前操作或关闭对话框，再退出应用',
+            );
+            return;
+          }
+          void current.closeRequested();
+        })
+        .then((stop) => (alive ? stops.push(stop) : stop()));
+      const menuListener = nativeWindow
+        .listen<unknown>('menu-action', (event) => {
+          if (typeof event.payload === 'string') menu(event.payload);
+          else nativeCommandBridge.current?.accept(event.payload);
+        })
+        .then(async (stop) => {
+          if (!alive) {
+            stop();
+            return;
+          }
+          stops.push(stop);
+          // Listener must be installed before Native begins issuing sequence IDs.
+          await nativeCommandBridge.current?.start();
+        });
+      const closeListener = getCurrentWindow()
+        .onCloseRequested((event) => {
+          event.preventDefault();
+          actions.current.action('close');
+        })
+        .then((stop) => (alive ? stops.push(stop) : stop()));
+      const focusListener = nativeWindow
+        .onFocusChanged((event) => {
+          if (event.payload) reloadThemes();
+          if (
+            event.payload &&
+            editor.current &&
+            (startupFocusDeferred.current || startupFocusRunning.current)
+          )
+            void actions.current.focusStartup(editor.current);
+        })
+        .then((stop) => (alive ? stops.push(stop) : stop()));
+      const settingsListener = nativeWindow
+        .listen('preferences-changed', () => {
+          reloadPreferences();
+          reloadThemes();
+        })
+        .then((stop) => (alive ? stops.push(stop) : stop()));
+      const preferencesClosed = nativeWindow
+        .listen('preferences-closed', () => {
+          void actions.current.exporter.refreshCapabilities();
+          if (!nativePreferencesOrigin.current || !editor.current) return;
+          nativePreferencesOrigin.current = false;
+          const instance = editor.current;
+          void focusInitialEditor(
+            instance,
+            () => {
+              const current = actions.current;
+              return (
+                editor.current === instance &&
+                !current.doc.working &&
+                !current.doc.pending &&
+                !current.preferencesOpen &&
+                !current.statisticsOpen &&
+                !instance.isComposing
+              );
+            },
+            () => null,
+            editorWindows.isFocused,
+          ).catch((error: unknown) =>
+            actions.current.doc.setMessage(`恢复编辑焦点失败：${String(error)}`),
+          );
+        })
+        .then((stop) => (alive ? stops.push(stop) : stop()));
+      void Promise.all([
+        quitListener,
+        menuListener,
+        closeListener,
+        focusListener,
+        settingsListener,
+        preferencesClosed,
+        themeSelectionListener,
+        themeCancellationListener,
+        tabLayoutListener,
+      ])
+        .then(() => {
+          if (alive) return editorWindows.ready();
+        })
+        .catch((error: unknown) => {
+          if (alive) actions.current.doc.setMessage(`窗口事件初始化失败：${String(error)}`);
+        });
+    }
+    const key = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.isComposing) return;
+      const value = event.key.toLowerCase();
+      if (value === ',') {
+        event.preventDefault();
+        actions.current.openPreferences();
+        return;
+      }
+      if (actions.current.preferencesOpen || actions.current.statisticsOpen) {
+        if (['s', 'o', 'n', 'w'].includes(value)) event.preventDefault();
+        if (value === 'w') actions.current.action('close');
+        return;
+      }
+      if (value === 'n' && event.shiftKey) {
+        event.preventDefault();
+        void actions.current.newWindow();
+        return;
+      }
+      if (value === 's' || value === 'o' || value === 'n') {
+        event.preventDefault();
+        actions.current.action(
+          value === 's' ? (event.shiftKey ? 'save-as' : 'save') : value === 'o' ? 'open' : 'new',
+        );
+      }
+    };
+    document.addEventListener('keydown', key);
+    return () => {
+      alive = false;
+      for (const stop of stops) stop();
+      for (const abort of preferenceThemes.current.values()) abort.abort();
+      preferenceThemes.current.clear();
+      document.removeEventListener('keydown', key);
+    };
+  }, [
+    setRecentOpen,
+    reloadPreferences,
+    setPreferences,
+    changeTheme,
+    reloadThemes,
+    selectThemeAndWait,
+  ]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeSystem.dark ? 'dark' : 'light';
+  }, [themeSystem.dark]);
+  useEffect(() => {
+    if (desktopAvailable && !chrome.native)
+      void getCurrentWindow().setTitle(
+        `${doc.dirty ? '● ' : ''}${doc.file ? filename(doc.file.path) : '未命名'} — MarkLyra`,
+      );
+  }, [doc.file, doc.dirty, chrome.native]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Native resolves the same ID to its new path after a metadata generation change.
+  useEffect(() => {
+    if (!chrome.native) return;
+    void editorChrome
+      .update(
+        doc.file?.id ?? null,
+        doc.dirty,
+        statistics.value,
+        preferences.statisticsUnit,
+        preferences.alwaysShowWordCount,
+        themeSystem.dark,
+        outlinePopoverOpen,
+        viewMode,
+      )
+      .catch((error: unknown) =>
+        actions.current.doc.setMessage(`标题栏更新失败：${String(error)}`),
+      );
+  }, [
+    chrome.native,
+    doc.file?.id,
+    doc.file?.metadataRevision,
+    doc.dirty,
+    statistics.value,
+    preferences.statisticsUnit,
+    preferences.alwaysShowWordCount,
+    themeSystem.dark,
+    outlinePopoverOpen,
+    viewMode,
+  ]);
+  useEffect(() => {
+    if (!ready || !editor.current) return;
+    const instance = editor.current;
+    void instance.setPreferences(appliedEditorPreferences).catch((error: unknown) => {
+      if (editor.current === instance)
+        actions.current.doc.setMessage(`编辑器设置应用失败：${String(error)}`);
+    });
+  }, [ready, appliedEditorPreferences]);
+  useEffect(() => {
+    if (!outlinePopoverOpen) return;
+    const close = () => {
+      void editor.current?.closeOutlinePopover().catch((error: unknown) => {
+        actions.current.doc.setMessage(`大纲浮层关闭失败：${String(error)}`);
+      });
+    };
+    const key = (event: globalThis.KeyboardEvent) => {
+      if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.isComposing) close();
+    };
+    // Events inside the isolated editor stay in its document; its original
+    // handlers own dismissal there. These listeners cover the surrounding Shell.
+    document.addEventListener('pointerdown', close, true);
+    document.addEventListener('keydown', key, true);
+    return () => {
+      document.removeEventListener('pointerdown', close, true);
+      document.removeEventListener('keydown', key, true);
+    };
+  }, [outlinePopoverOpen]);
+  useEffect(() => {
+    if (!ready || !editor.current) return;
+    void editor.current
+      .setOutlineTracking(sidebar && tab === 'outline')
+      .catch((error: unknown) =>
+        actions.current.doc.setMessage(`大纲跟随设置失败：${String(error)}`),
+      );
+  }, [ready, sidebar, tab]);
+  useEffect(() => {
+    if (!chrome.native || !doc.message) return;
+    setNativeNotice(doc.message);
+    const timer = setTimeout(() => setNativeNotice(''), 6000);
+    return () => clearTimeout(timer);
+  }, [chrome.native, doc.message]);
+  useEffect(() => {
+    if (!chrome.native) return;
+    let alive = true;
+    const window = getCurrentWindow();
+    const update = () =>
+      void window.isFullscreen().then(
+        (value) => {
+          if (alive) setFullscreen(value === true);
+        },
+        (error: unknown) => {
+          if (alive) actions.current.doc.setMessage(`无法读取全屏状态：${String(error)}`);
+        },
+      );
+    update();
+    const stop = window.onResized(update);
+    return () => {
+      alive = false;
+      void stop.then((unlisten) => unlisten());
+    };
+  }, [chrome.native]);
+  useEffect(() => {
+    if (!ready || !editor.current) return;
+    const instance = editor.current;
+    const update = () => {
+      const left =
+        chrome.native && sidebar ? (sidebarElement.current?.getBoundingClientRect().width ?? 0) : 0;
+      void instance
+        .setContentInset(
+          left,
+          chrome.native && nativeOverlay && !fullscreen ? 28 : 0,
+          chrome.native ? 28 : 0,
+        )
+        .catch((error: unknown) =>
+          actions.current.doc.setMessage(`正文布局更新失败：${String(error)}`),
+        );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    if (sidebarElement.current) observer.observe(sidebarElement.current);
+    return () => observer.disconnect();
+  }, [chrome.native, sidebar, ready, fullscreen, nativeOverlay]);
+  const insertImages = async (files: File[]) => {
+    if (!files.length || importingImageRef.current || doc.working || !editor.current) return;
+    importingImageRef.current = true;
+    setImportingImage(true);
+    try {
+      for (const file of files) await editor.current.insertImage(file, file.name);
+      doc.setMessage(files.length > 1 ? `已插入 ${files.length} 张图片` : '已插入图片');
+    } catch (error) {
+      doc.setMessage(String(error));
+    } finally {
+      importingImageRef.current = false;
+      setImportingImage(false);
+    }
+  };
+  const toolbar: [string, MarkLyraCommand, IconName][] = [
+    ['粗体', { type: 'format', style: 'strong' }, 'bold'],
+    ['斜体', { type: 'format', style: 'em' }, 'italic'],
+    ['表格', { type: 'insertTable' }, 'table'],
+    ['代码', { type: 'codeBlock' }, 'code'],
+    ['公式', { type: 'mathBlock' }, 'formula'],
+    ['查找', { type: 'find' }, 'search'],
+    ['源码', { type: 'toggleSource' }, 'source'],
+  ];
+  return (
+    <div
+      className="shell"
+      data-native-chrome={chrome.native}
+      data-native-overlay={nativeOverlay}
+      data-fullscreen={fullscreen}
+      data-theme-name={theme}
+      data-theme-loading={themeSystem.working || undefined}
+      style={themeSystem.appearance as CSSProperties}
+    >
+      {chrome.native && nativeOverlay && !fullscreen && (
+        <div className="native-titlebar-drag" data-tauri-drag-region="" />
+      )}
+      {!chrome.native && (
+        <header className="toolbar">
+          <button
+            type="button"
+            className="icon-button"
+            title="切换侧栏"
+            onClick={() => setSidebar(!sidebar)}
+            aria-label="切换侧栏"
+            aria-expanded={sidebar}
+          >
+            <Icon name="sidebar" />
+          </button>
+          <div className="document-title" title={doc.file?.path ?? '未命名文档'}>
+            {doc.file ? filename(doc.file.path) : '未命名'}
+            {doc.dirty && (
+              <span className="document-dirty" title="未保存">
+                {' •'}
+              </span>
+            )}
+          </div>
+          <span className="toolbar-spacer" />
+          <button
+            type="button"
+            className="icon-button"
+            title="查找文档"
+            aria-label="查找文档"
+            disabled={!ready || doc.working}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => void command({ type: 'find' })}
+          >
+            <Icon name="search" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            title="格式工具"
+            aria-label="格式工具"
+            aria-pressed={preferences.formatToolbar}
+            onClick={() =>
+              setPreferences((value) => ({ ...value, formatToolbar: !value.formatToolbar }))
+            }
+          >
+            <Icon name="format" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            title="新建窗口"
+            aria-label="新建窗口"
+            disabled={!desktopAvailable || !ready || creatingWindow || doc.working || !!doc.pending}
+            onClick={() => void newWindow()}
+          >
+            <Icon name="newWindow" />
+          </button>
+          <button
+            type="button"
+            className="tool-button"
+            title="打开文档"
+            aria-label="打开"
+            disabled={doc.working || !ready}
+            onClick={() => action('open')}
+          >
+            <Icon name="open" />
+          </button>
+          <button
+            type="button"
+            className="tool-button"
+            title="保存文档"
+            aria-label="保存"
+            disabled={doc.working || !ready}
+            onClick={() => action('save')}
+          >
+            <Icon name="save" />
+          </button>
+          <button
+            type="button"
+            disabled={
+              exporter.working || doc.working || !!doc.pending || !ready || !desktopAvailable
+            }
+            className="icon-button"
+            aria-label="导出 HTML"
+            title="导出 HTML"
+            onClick={() => void exporter.run('export-html')}
+          >
+            <Icon name="export" />
+          </button>
+          <button
+            type="button"
+            disabled={
+              exporter.working || doc.working || !!doc.pending || !ready || !desktopAvailable
+            }
+            className="icon-button"
+            aria-label="打印预览"
+            title="打印预览 / PDF"
+            onClick={() => void exporter.run('print-preview')}
+          >
+            <Icon name="print" />
+          </button>
+          <span className="toolbar-divider" />
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="偏好设置"
+            title="偏好设置"
+            disabled={!ready || doc.working || !!doc.pending}
+            onClick={(event) => {
+              if (openPreferences(false)) event.currentTarget.focus();
+            }}
+          >
+            <Icon name="settings" />
+          </button>
+        </header>
+      )}
+      <div className="workspace">
+        <aside
+          ref={sidebarElement}
+          data-file-view={preferences.fileSidebar.view}
+          data-sidebar-mode={tab}
+          className="sidebar"
+          hidden={!sidebar}
+          style={{ width: preferences.sidebarWidth }}
+        >
+          {chrome.native ? (
+            <SidebarHeader
+              mode={tab}
+              fileView={preferences.fileSidebar.view}
+              change={(mode) => {
+                setTab(mode);
+                if (mode !== 'search')
+                  void editor.current
+                    ?.focus()
+                    .catch((error: unknown) =>
+                      actions.current.doc.setMessage(`恢复编辑焦点失败：${String(error)}`),
+                    );
+              }}
+              disabled={doc.working || !ready}
+            />
+          ) : (
+            <div className="sidebar-tabs">
+              <button type="button" aria-pressed={tab === 'files'} onClick={() => setTab('files')}>
+                文件
+              </button>
+              <button
+                type="button"
+                aria-pressed={tab === 'outline'}
+                onClick={() => setTab('outline')}
+              >
+                大纲
+              </button>
+            </div>
+          )}
+          <div className="sidebar-panel" hidden={tab === 'outline'}>
+            <WorkspaceSidebar
+              filePreferences={preferences.fileSidebar}
+              onFilePreferencesChange={(value) =>
+                setPreferences((current) => ({ ...current, fileSidebar: value }))
+              }
+              compact={chrome.native}
+              mode={tab === 'search' ? 'search' : 'files'}
+              onModeChange={setTab}
+              onNewDocument={() => void newWindow('document')}
+              prepareEntryOpenNew={async () => {
+                const active = editor.current;
+                const before = actions.current.doc;
+                if (!active || before.working || before.pending || active.isComposing)
+                  throw Error('请先完成当前文稿操作或输入法候选');
+                const owner = before.getOwner();
+                await active.flush();
+                const latest = actions.current.doc;
+                if (
+                  editor.current !== active ||
+                  latest.getOwner() !== owner ||
+                  latest.working ||
+                  latest.pending ||
+                  active.isComposing ||
+                  active.hasPendingChanges
+                )
+                  throw Error('当前文稿已更改，请重试新窗口操作');
+                await trackSession();
+                if (
+                  editor.current !== active ||
+                  actions.current.doc.getOwner() !== owner ||
+                  active.isComposing ||
+                  active.hasPendingChanges
+                )
+                  throw Error('新窗口准备期间文稿已更改，请重试');
+                return {
+                  documentId: latest.getFile()?.id ?? null,
+                  text: active.getMarkdown(),
+                  savedText: latest.getFile()?.text ?? '',
+                };
+              }}
+              onDuplicateCompleted={async (workspaceId, relativePath, sourceIsCurrent) => {
+                const active = editor.current;
+                const current = actions.current.doc;
+                if (!active || current.working || current.pending || active.isComposing)
+                  return false;
+                await active.flush();
+                if (
+                  !sourceIsCurrent &&
+                  (current.getFile() || current.hasUnsavedChanges() || active.hasPendingChanges)
+                )
+                  return true;
+                const previousId = current.getFile()?.id;
+                await current.request({ kind: 'workspace', workspaceId, relativePath });
+                return (
+                  !actions.current.doc.pending && actions.current.doc.getFile()?.id !== previousId
+                );
+              }}
+              prepareCreatedDocument={async () => {
+                createdDocumentFocus.current = null;
+                const active = editor.current;
+                const before = actions.current.doc;
+                if (!active || before.working || before.pending || active.isComposing)
+                  throw new Error('请先完成当前文档操作或输入法候选');
+                const owner = before.getOwner();
+                await active.flush();
+                const latest = actions.current.doc;
+                if (
+                  editor.current !== active ||
+                  latest.getOwner() !== owner ||
+                  latest.working ||
+                  latest.pending ||
+                  active.isComposing
+                )
+                  throw new Error('当前文档状态已更改，请重试新建操作');
+                createdDocumentFocus.current = {
+                  editor: active,
+                  owner,
+                  id: latest.getFile()?.id ?? null,
+                };
+                if (latest.getFile() || latest.hasUnsavedChanges() || active.hasPendingChanges)
+                  return undefined;
+                const revision = active.revision;
+                return async (workspaceId, relativePath) => {
+                  const origin = document.activeElement;
+                  const mayLoad = () => {
+                    const focused = document.activeElement;
+                    return !(
+                      focused !== origin &&
+                      focused instanceof HTMLElement &&
+                      focused.isConnected &&
+                      focused.closest('.shell') &&
+                      focused.matches(
+                        'input, textarea, button, select, a[href], [tabindex], [contenteditable="true"]',
+                      )
+                    );
+                  };
+                  if (editor.current !== active || actions.current.doc.getOwner() !== owner)
+                    throw new Error('当前文档已更换，已保留新文件');
+                  const created = await workspaces.open(workspaceId, relativePath);
+                  if (
+                    editor.current !== active ||
+                    actions.current.doc.getOwner() !== owner ||
+                    !mayLoad()
+                  ) {
+                    await documents.close(created.id);
+                    throw new Error('当前文档已更换，已保留新文件');
+                  }
+                  if (!(await actions.current.doc.initialize(created, revision, mayLoad)))
+                    throw new Error('创建期间已有输入或文档操作，已保留当前文稿和新文件');
+                  createdDocumentFocus.current = {
+                    editor: active,
+                    owner: actions.current.doc.getOwner(),
+                    id: created.id,
+                  };
+                };
+              }}
+              onCreatedDocumentNamed={async (namingInput: HTMLInputElement | null = null) => {
+                const ticket = createdDocumentFocus.current;
+                createdDocumentFocus.current = null;
+                if (
+                  !ticket ||
+                  editor.current !== ticket.editor ||
+                  actions.current.doc.getOwner() !== ticket.owner ||
+                  (actions.current.doc.getFile()?.id ?? null) !== ticket.id ||
+                  ticket.editor.isComposing
+                )
+                  return;
+                const focused = document.activeElement;
+                if (
+                  focused !== namingInput &&
+                  focused instanceof HTMLElement &&
+                  focused.isConnected &&
+                  focused.closest('.shell') &&
+                  focused.matches(
+                    'input, textarea, button, select, a[href], [tabindex], [contenteditable="true"]',
+                  )
+                )
+                  return;
+                await ticket.editor.focus();
+              }}
+              shouldOpenDirectoryWindow={async () => {
+                const active = editor.current;
+                const current = actions.current.doc;
+                if (!active || current.working || current.pending || active.isComposing)
+                  throw new Error('请先完成当前文档操作或输入法候选');
+                await active.flush();
+                const latest = actions.current.doc;
+                if (
+                  editor.current !== active ||
+                  latest.working ||
+                  latest.pending ||
+                  active.isComposing
+                )
+                  throw new Error('当前文档状态已更改，请重试目录操作');
+                return latest.getFile() !== null || latest.hasUnsavedChanges();
+              }}
+              initialWorkspace={initialWorkspace}
+              onWorkspaceChange={(workspace) => {
+                workspaceIdentity.current = workspace;
+                setSessionWorkspace(workspace?.id ?? null);
+              }}
+              chooseRequest={chooseRequest}
+              disabled={doc.working || !ready}
+              activePath={doc.file?.path}
+              activeSource={doc.snapshot}
+              activeSavedSource={doc.file?.text}
+              savedPreview={doc.savedPreview}
+              filePlatform={runtime?.platform ?? 'browser'}
+              onOpenDocument={(workspaceId, relativePath, match) => {
+                void doc.request({ kind: 'workspace', workspaceId, relativePath, match });
+              }}
+              onCurrentDocument={(match) => {
+                if (match) {
+                  const active = editor.current;
+                  const owner = doc.getOwner();
+                  if (!active) return;
+                  void active
+                    .flush()
+                    .then((source) => {
+                      if (editor.current !== active || actions.current.doc.getOwner() !== owner)
+                        return;
+                      if (!searchPositionIsCurrent(source, match)) {
+                        actions.current.doc.setMessage(STALE_SEARCH_POSITION);
+                        return;
+                      }
+                      return command(
+                        {
+                          type: 'sourcePosition',
+                          line: match.line,
+                          column: match.column,
+                        },
+                        false,
+                        source,
+                      );
+                    })
+                    .catch((error: unknown) => doc.setMessage(String(error)));
+                } else
+                  void editor.current
+                    ?.focus()
+                    .catch((error: unknown) => doc.setMessage(String(error)));
+              }}
+            />
+          </div>
+          <nav className="sidebar-panel" aria-label="大纲" hidden={tab !== 'outline'}>
+            <OutlinePanel
+              key={doc.file?.id ?? 'untitled'}
+              entries={outline}
+              collapsible={applicationSystem.value?.values.can_collapse_outline_panel !== false}
+              onCollapsibleChange={async (value) => {
+                try {
+                  await applicationPreferences.putFromEditor('can_collapse_outline_panel', value);
+                } catch (error) {
+                  doc.setMessage(`大纲偏好保存结果未确认：${String(error)}`);
+                }
+              }}
+              currentId={currentHeading}
+              disabled={!ready || doc.working}
+              jump={async (id) => {
+                await command({ type: 'jumpToBlock', id, preserveSelection: true });
+                try {
+                  await editor.current?.focus();
+                } catch (error) {
+                  doc.setMessage(`恢复编辑焦点失败：${String(error)}`);
+                }
+              }}
+            />
+          </nav>
+        </aside>
+        {sidebar && (
+          <SidebarResize
+            native={chrome.native}
+            hide={() => setSidebar(false)}
+            width={preferences.sidebarWidth}
+            change={(sidebarWidth) => setPreferences((value) => ({ ...value, sidebarWidth }))}
+          />
+        )}
+        <main className="document-area runtime-area" aria-busy={!ready || doc.working}>
+          <ExternalChangeNotice
+            sync={disk}
+            busy={doc.working || !!doc.pending}
+            saveAs={() => void doc.save(true)}
+          />
+          <fieldset
+            className="format-toolbar"
+            hidden={chrome.native || !preferences.formatToolbar}
+            aria-label="格式工具"
+          >
+            <button
+              type="button"
+              aria-label={importingImage ? '插入中…' : '本地图片'}
+              disabled={!ready || doc.working || importingImage || !desktopAvailable}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => imageInput.current?.click()}
+            >
+              <Icon name="image" />
+              <span>{importingImage ? '插入中…' : '本地图片'}</span>
+            </button>
+            <input
+              ref={imageInput}
+              type="file"
+              aria-label="选择本地图片"
+              accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+              multiple
+              hidden
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []);
+                event.target.value = '';
+                void insertImages(files);
+              }}
+            />
+            <CommandMenu
+              disabled={!ready || doc.working}
+              execute={(value) => void command(value)}
+            />
+            {toolbar.map(([label, item, icon]) => (
+              <button
+                type="button"
+                key={label}
+                title={label}
+                aria-label={label}
+                onMouseDown={(event) => event.preventDefault()}
+                disabled={!ready}
+                onClick={() => void command(item)}
+              >
+                <Icon name={icon} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </fieldset>
+          {applicationSystem.error && (
+            <div role="alert">
+              应用偏好尚未就绪：{applicationSystem.error}
+              <button type="button" onClick={applicationSystem.retry}>
+                重试
+              </button>
+            </div>
+          )}
+          <div className="runtime-editor-mount">
+            {runtime && doc.recoveryReady && markdownSystem.initial && applicationSystem.value ? (
+              <MarkLyraMarkdownEditor
+                runtimeUrl={runtime.url}
+                markdown={doc.initial}
+                startupPreferences={startupEditorConfiguration(applicationSystem.value.values)}
+                preferences={appliedEditorPreferences}
+                markdownPreferences={{
+                  indentSize: markdownSystem.initial.indentSize,
+                  prettyIndent: markdownSystem.initial.prettyIndent,
+                  headingStyle: markdownSystem.initial.headingStyle ?? 0,
+                  ulStyle: markdownSystem.initial.ulStyle ?? 0,
+                  olStyle: markdownSystem.initial.olStyle ?? 0,
+                }}
+                configuration={{
+                  sourceBOM: 'text',
+                  nativeMenus: runtime.nativeMenus,
+                  platform: runtime.platform,
+                  locale: 'zh-Hans',
+                  theme: builtinTheme(theme),
+                }}
+                onReady={(instance) => {
+                  editor.current = instance;
+                  const initialRevision = instance.revision;
+                  void (async () => {
+                    if (desktopAvailable) {
+                      try {
+                        const boot = await windowStartup.take();
+                        if (editor.current !== instance) return;
+                        if (boot.document) {
+                          await actions.current.doc.initialize(
+                            boot.document,
+                            initialRevision,
+                            undefined,
+                            boot.draft?.text,
+                          );
+                        }
+                        if (editor.current !== instance) return;
+                        if (boot.workspace) setInitialWorkspace(boot.workspace);
+                        if (boot.warnings.length)
+                          actions.current.doc.setMessage(boot.warnings.join('\n'));
+                      } catch (error) {
+                        if (editor.current === instance)
+                          actions.current.doc.setMessage(`启动恢复未完成：${String(error)}`);
+                      }
+                    }
+                    if (editor.current === instance) {
+                      try {
+                        await actions.current.doc.initializeImageContext(instance);
+                      } catch (error) {
+                        actions.current.doc.setMessage(`图片暂存尚未就绪：${String(error)}`);
+                      }
+                      await focusStartup(instance, true);
+                      if (editor.current === instance) setOsOpenReady(true);
+                    }
+                  })();
+                }}
+                onChange={doc.change}
+                onStatisticsInvalidated={statistics.invalidate}
+                onViewModeChange={setViewMode}
+                onOutlineChange={setOutline}
+                onCurrentHeadingChange={setCurrentHeading}
+                onThemeAppearanceChange={themeSystem.receiveAppearance}
+                onOutlinePopoverChange={setOutlinePopoverOpen}
+                onOutlinePin={() => {
+                  setSidebar(true);
+                  setTab('outline');
+                  void editor.current
+                    ?.focus()
+                    .catch((error: unknown) => doc.setMessage(String(error)));
+                }}
+                onError={(error) => doc.setMessage(error.message)}
+                host={{
+                  ...desktopContextHost,
+                  onAction: (value) => actions.current.action(value),
+                  images: documentImages,
+                }}
+              />
+            ) : (
+              <div className="editor-loading">
+                {!doc.recoveryReady ? (
+                  <>
+                    <p>正在准备草稿保护…</p>
+                    {doc.message && (
+                      <button type="button" onClick={doc.retryRecovery}>
+                        重新连接草稿保护
+                      </button>
+                    )}
+                  </>
+                ) : !markdownSystem.initial ? (
+                  <>
+                    <p>{markdownSystem.error || '正在读取Markdown缩进初值…'}</p>
+                    <button type="button" onClick={markdownSystem.retry}>
+                      重试读取设置
+                    </button>
+                  </>
+                ) : (
+                  '正在加载编辑器…'
+                )}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+      {chrome.native && nativeNotice && (
+        <div role="status" className="native-document-notice">
+          {nativeNotice}
+        </div>
+      )}
+      {markdownSystem.initial && markdownSystem.error && (
+        <div role="alert" id="markdown-preferences-sync-status" className="native-document-notice">
+          {markdownSystem.error}{' '}
+          <button type="button" disabled={markdownSystem.working} onClick={markdownSystem.retry}>
+            重试同步
+          </button>
+        </div>
+      )}
+      {!chrome.native && (
+        <footer className="statusbar">
+          <span className="document-status" title={doc.message || doc.file?.path || '未命名文档'}>
+            {doc.message || (doc.dirty ? '未保存更改' : doc.file ? '已保存' : '未命名文档')}
+          </span>
+          {desktopAvailable && (
+            <>
+              <button
+                type="button"
+                disabled={doc.working || !!doc.pending || !ready}
+                title="最近文件"
+                onClick={(event) => {
+                  if (editor.current?.isComposing) {
+                    doc.setMessage('请先完成输入法候选');
+                    return;
+                  }
+                  event.currentTarget.focus();
+                  setRecoveryOpen(false);
+                  setRecentOpen(true);
+                }}
+              >
+                <Icon name="history" />
+                <span className="sr-only">最近文件</span>
+              </button>
+              <button
+                type="button"
+                disabled={doc.working || !!doc.pending || !ready}
+                title="恢复草稿"
+                onClick={(event) => {
+                  event.currentTarget.focus();
+                  setRecentOpen(false);
+                  setRecoveryOpen(true);
+                }}
+              >
+                <Icon name="recovery" />
+                <span className="sr-only">恢复草稿</span>
+              </button>
+            </>
+          )}
+          {disk.notice && disk.dismissed && (
+            <button type="button" onClick={disk.show}>
+              查看磁盘变化
+            </button>
+          )}
+          {doc.file && (
+            <button
+              type="button"
+              disabled={disk.checking || doc.working}
+              onClick={disk.check}
+              title={
+                disk.watchFallback
+                  ? '自动通知不可用；仍会定期检查文件变化'
+                  : '检查外部程序对文件的修改'
+              }
+            >
+              <Icon name="refresh" />
+              <span className="sr-only">{disk.checking ? '检查中…' : '检查文件变化'}</span>
+            </button>
+          )}
+          {(doc.working || exporter.working) && (
+            <span>{doc.working ? '处理中…' : '准备导出…'}</span>
+          )}
+          {doc.file && <span className="document-encoding">{doc.file.encoding}</span>}
+          <StatisticsStatus
+            statistics={statistics}
+            unit={preferences.statisticsUnit}
+            open={statisticsOpen}
+            closing={closingPanel}
+            setOpen={(open) => {
+              if (!open) {
+                void dismissAuxiliaryPanel();
+                return;
+              }
+              if (closingPanelRef.current) return;
+              if (open) {
+                panelEditorOrigin.current.statistics =
+                  document.activeElement === editor.current?.element;
+                setPreferencesOpen(false);
+                setRecentOpen(false);
+                setRecoveryOpen(false);
+              }
+              setStatisticsOpen(open);
+            }}
+          />
+        </footer>
+      )}
+      {preferencesOpen && !doc.pending && (
+        <PreferencesPanel
+          value={preferences}
+          update={setPreferences}
+          theme={theme}
+          themes={themeSystem.catalog.themes.map((entry) => entry.id)}
+          setTheme={changeTheme}
+          autosave={autosave.enabled}
+          setAutosave={autosave.setEnabled}
+          desktop={desktopAvailable}
+          closing={closingPanel}
+          close={() => void dismissAuxiliaryPanel()}
+        />
+      )}
+      {recentOpen && (
+        <RecentFilesPanel
+          close={() => setRecentOpen(false)}
+          open={(id) => {
+            setRecentOpen(false);
+            void doc.request({ kind: 'recent', id });
+          }}
+        />
+      )}
+      {recoveryOpen && (
+        <RecoveryPanel
+          beforeClose={async (target, signal) => {
+            const instance = editor.current;
+            const owner = actions.current.doc.getOwner();
+            recoveryCloseDeferred.current = false;
+            const check = () => {
+              if (signal.aborted) throw new Error('关闭已取消');
+              const current = actions.current;
+              if (
+                !instance ||
+                editor.current !== instance ||
+                current.doc.getOwner() !== owner ||
+                current.doc.working ||
+                current.doc.pending ||
+                current.preferencesOpen ||
+                current.statisticsOpen ||
+                instance.isComposing
+              )
+                throw new Error('请先完成当前文档操作或输入法候选');
+            };
+            const foreground = () =>
+              desktopAvailable ? editorWindows.isFocused() : Promise.resolve(document.hasFocus());
+            check();
+            const initiallyForeground = await foreground();
+            check();
+            if (!initiallyForeground) {
+              recoveryCloseDeferred.current = true;
+              return;
+            }
+            if (
+              target &&
+              target !== instance?.element &&
+              target !== document.body &&
+              target !== document.documentElement &&
+              target.isConnected &&
+              target.getClientRects().length > 0 &&
+              !target.matches(':disabled, [inert]')
+            ) {
+              target.focus();
+              if (document.activeElement !== target) throw new Error('原输入位置暂时无法接收焦点');
+            } else {
+              await instance?.focus();
+            }
+            check();
+            const stillForeground = await foreground();
+            check();
+            recoveryCloseDeferred.current = !stillForeground;
+          }}
+          close={(focusHandled = false) => {
+            modalFocusHandled.current = focusHandled && !recentOpen && !doc.pending;
+            if (modalFocusHandled.current)
+              startupFocusDeferred.current = recoveryCloseDeferred.current;
+            setRecoveryOpen(false);
+          }}
+          report={doc.setMessage}
+          restore={(draft, associate) =>
+            void doc.request({ kind: 'recover', id: draft.id, version: draft.version, associate })
+          }
+        />
+      )}
+      {doc.pending && (
+        <div className="modal-backdrop">
+          <section
+            ref={unsavedPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unsaved-title"
+          >
+            <h2 id="unsaved-title">保存当前更改？</h2>
+            <p>继续之前，可以保存当前文档。</p>
+            <div>
+              <button
+                type="button"
+                disabled={doc.working || cancellingDocument}
+                onClick={() => void cancelDocumentAction()}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={doc.working || cancellingDocument}
+                onClick={() => void doc.discard()}
+              >
+                放弃修改
+              </button>
+              <button
+                type="button"
+                disabled={doc.working || cancellingDocument}
+                autoFocus
+                onClick={() => void doc.saveAndContinue()}
+              >
+                保存后继续
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}

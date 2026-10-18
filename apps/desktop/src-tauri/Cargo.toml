@@ -1,0 +1,57 @@
+[package]
+name = "marklyra-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+name = "marklyra_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.2", features = [] }
+
+[dependencies]
+uuid.workspace = true
+serde.workspace = true
+serde_json = "1.0.154"
+cap-std.workspace = true
+same-file = "1.0.6"
+image-assets = { path = "../../../crates/image-assets" }
+base64 = "0.22.1"
+file-index = { path = "../../../crates/file-index" }
+document-service = { path = "../../../crates/document-service" }
+export-service = { path = "../../../crates/export-service" }
+recovery-store = { path = "../../../crates/recovery-store" }
+recent-files = { path = "../../../crates/recent-files" }
+tauri = { version = "2.11.2", features = [] }
+tauri-plugin-dialog = "2.7.1"
+open = { version = "=5.4.4", default-features = false }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "=0.6.5"
+block2 = "=0.6.2"
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSPasteboard", "NSPasteboardItem", "NSAppearance", "NSWindow", "NSView", "NSResponder", "NSViewController", "NSTitlebarAccessoryViewController", "NSButton", "NSControl", "NSCell", "NSButtonCell", "NSImage", "NSFont", "NSEvent", "NSTrackingArea", "NSLayoutConstraint", "NSLayoutAnchor", "NSAccessibilityProtocols", "NSMenu", "NSMenuItem", "NSAlert", "NSAttributedString", "NSDocument", "NSSavePanel", "NSPrintInfo", "NSPrintOperation", "objc2-core-foundation", "NSBitmapImageRep", "NSImageRep"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSString", "NSEnumerator", "NSGeometry", "NSURL", "NSUserDefaults", "NSFileManager", "NSError", "NSLocale", "NSData", "FoundationErrors"] }
+
+[target.'cfg(windows)'.dependencies]
+clipboard-win = { version = "=5.4.1", features = ["std"] }
+webview2-com = "=0.39.1"
+windows = { version = "=0.62.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Registry", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_Shell_Common"] }
+
+[dev-dependencies]
+tauri = { version = "2.11.2", features = ["test"] }
+tempfile.workspace = true
+
+[[test]]
+name = "clipboard-native"
+path = "tests/clipboard-native.rs"
+harness = false
+
+[[test]]
+name = "export-image-native"
+path = "tests/export-image-native.rs"
+harness = false

@@ -1,0 +1,39 @@
+Private desktop icon resources — received identities and notices
+
+FontAwesome 4.1.0
+Received WOFF SHA-256: 66db52b456efe7e29cec11fa09421d03cb09e37ed1b567307ec0444fd605ce31
+The received bytes match the official v4.1.0 WOFF downloaded on 2026-10-17.
+Upstream project author: Dave Gandy, http://fontawesome.io
+Received font name-table copyright (retained verbatim):
+Copyright 2014 Adobe Systems Incorporated. All rights reserved.
+Received family: FontAwesome; received version: Version 4.1.0 2013
+Upstream v4.1.0 README licenses the font under SIL Open Font License 1.1.
+The complete OFL 1.1 accompanies this notice as fontawesome-OFL.txt in the
+local build, sourced from licenses/fonts/OFL-1.1.txt in this repository.
+The received font is not modified, subsetted or internally renamed here.
+Do not treat the CSS family alias as a change to the font's internal names.
+Source: https://github.com/FortAwesome/Font-Awesome/tree/v4.1.0
+Font: https://raw.githubusercontent.com/FortAwesome/Font-Awesome/v4.1.0/fonts/fontawesome-webfont.woff
+License evidence: https://github.com/FortAwesome/Font-Awesome/blob/v4.1.0/README.md
+The unusual received copyright field is also present in the identical
+upstream file; it has not been silently replaced with an invented notice.
+
+Ionicons
+Received WOFF SHA-256: c5fd4000901f835054a4e6ed4bf0ddd5800ba2a3aebe5e5e4fc3147497c14636
+Received family: Ionicons; internal version: Version 001.000
+Received name-table author: Adam Bradley; generated with FontForge 2.0.
+The received directory includes the MIT License with Copyright (c) 2014
+Drifty (http://drifty.com/). That complete received license is already
+bundled as ionicons-MIT.txt; SHA-256:
+5407c91b6c8b7305f72aec4ee5ffb99b32ed9a5413c19cf3cd1b94354d2645e8
+The official v2.0.1 license text matches this received license exactly.
+The official v2.0.1 WOFF does NOT match the received font bytes. The
+conversion/subset lineage remains unresolved; directory naming alone
+must not be presented as proof of an identical upstream font artifact.
+Source: https://github.com/ionic-team/ionicons/blob/v2.0.1/LICENSE
+
+Typora icon and native titlebar images
+The typora-icon font and four native Assets.car-derived images remain
+private application resources without confirmed public redistribution rights.
+This notice does not grant a license to those files, Typora themes or the
+commercial editor. All current application bundles remain local/private.

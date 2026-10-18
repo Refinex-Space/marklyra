@@ -1,0 +1,26 @@
+{
+  "name": "@marklyra/editor-core",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "THIRD-PARTY-NOTICES.txt"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run test"
+  },
+  "dependencies": {
+    "diff": "9.0.0"
+  }
+}

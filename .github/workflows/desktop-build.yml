@@ -1,0 +1,52 @@
+name: Desktop development bundles (manual only)
+on:
+  workflow_dispatch:
+    inputs:
+      source_reviewed:
+        description: Confirm the tracked source and licenses were reviewed for this private runner
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  build:
+    if: inputs.source_reviewed
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: universal-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: macOS target libraries
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm check
+      - run: pnpm lint
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+      - run: pnpm exec playwright install chromium webkit
+      - run: pnpm test:browser
+      - run: pnpm test:desktop-shell
+      - run: node scripts/check-provenance.mjs --tracked
+      - run: node scripts/build-desktop.mjs --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/bundle/

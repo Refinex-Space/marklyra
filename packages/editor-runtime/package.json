@@ -1,0 +1,25 @@
+{
+  "name": "@marklyra/editor-runtime",
+  "version": "0.2.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "THIRD-PARTY-NOTICES.txt"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./frame-host.js": "./dist/frame-host.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && vite build --config vite.config.ts"
+  },
+  "dependencies": {
+    "@marklyra/editor-core": "workspace:*"
+  }
+}

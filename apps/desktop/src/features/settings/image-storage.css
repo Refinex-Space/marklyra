@@ -1,0 +1,75 @@
+.preferences-panel .image-storage-settings {
+  min-width: 0;
+}
+.image-storage-settings .preference-row select {
+  max-width: 210px;
+}
+.image-storage-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 12px 0;
+}
+.image-storage-custom input {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font:
+    12px / 1.5 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+.image-storage-custom input[aria-invalid="true"] {
+  border-color: #b86751;
+}
+.image-storage-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 11px;
+  border-radius: 4px;
+  background: var(--sidebar);
+  font-size: 11px;
+  color: var(--muted);
+}
+.image-storage-preview output {
+  font:
+    12px / 1.6 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.preferences-panel .image-storage-error {
+  color: #ae4f36;
+  font-size: 11px;
+  margin: 7px 0;
+}
+.preferences-panel .image-storage-help {
+  font-size: 11px;
+  margin: 9px 0 0;
+}
+:root[data-theme="dark"] .preferences-panel .image-storage-error {
+  color: #efa88e;
+}
+@media (max-width: 480px) {
+  .image-storage-settings .preference-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .image-storage-settings .preference-row select {
+    max-width: none;
+  }
+}
+
+.image-storage-custom small {
+  color: var(--muted);
+  font-size: 11px;
+}

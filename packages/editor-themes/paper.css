@@ -1,0 +1,102 @@
+.tr-editor {
+  color: var(--editor-text, #27313b);
+  font:
+    17px / 1.7 Charter,
+    "Iowan Old Style",
+    "Songti SC",
+    Georgia,
+    serif;
+  outline: none;
+  overflow-wrap: anywhere;
+  min-height: 60vh;
+  caret-color: var(--accent, #58705f);
+  white-space: pre-wrap;
+  tab-size: 4;
+}
+.tr-editor .tr-block {
+  position: relative;
+  margin: 0;
+  min-height: 1.7em;
+}
+.tr-editor h1 {
+  font-size: 2.15em;
+  line-height: 1.35;
+  margin: 0.55em 0 0.25em !important;
+  letter-spacing: -0.025em;
+}
+.tr-editor h2 {
+  font-size: 1.65em;
+  line-height: 1.4;
+}
+.tr-editor h3 {
+  font-size: 1.3em;
+}
+.tr-editor h4,
+.tr-editor h5,
+.tr-editor h6 {
+  font-size: 1.05em;
+}
+.tr-editor .tr-marker {
+  font: inherit;
+  color: #8a929a;
+  font-weight: 400;
+}
+.tr-editor .tr-blank {
+  min-height: 0.75em;
+}
+.tr-editor .tr-blank[data-active="true"] {
+  min-height: 1.7em;
+}
+.tr-editor blockquote {
+  border-left: 3px solid #b6c4bc;
+  padding-left: 1em;
+  color: #657369;
+}
+.tr-editor code,
+.tr-editor pre {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.87em;
+}
+.tr-editor code {
+  background: #eef1ee;
+  padding: 0.08em 0.2em;
+  border-radius: 3px;
+}
+.tr-editor pre {
+  background: #f3f5f3;
+  padding: 1em;
+  border: 1px solid #e3e8e3;
+  border-radius: 6px;
+}
+.tr-editor .tr-frontmatter {
+  color: #69766c;
+}
+.tr-editor .tr-list-item[data-active="false"]::before {
+  content: attr(data-bullet);
+  position: absolute;
+  left: 0.2em;
+}
+.tr-editor a {
+  color: #48715b;
+  text-decoration: underline;
+  cursor: text;
+}
+.tr-editor s {
+  color: #879187;
+}
+.tr-editor ::selection {
+  background: #cee0d3;
+}
+@media (prefers-color-scheme: dark) {
+  .tr-editor {
+    color: var(--editor-text, #d6ded9);
+  }
+  .tr-editor pre,
+  .tr-editor code {
+    background: #252e29;
+    border-color: #3d4941;
+  }
+  .tr-editor ::selection {
+    background: #405d49;
+  }
+}

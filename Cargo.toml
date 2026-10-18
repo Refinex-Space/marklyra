@@ -1,0 +1,23 @@
+[workspace]
+members = ["crates/document-service", "crates/file-index", "crates/image-assets", "crates/export-service", "crates/recovery-store", "crates/recent-files", "apps/desktop/src-tauri"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+authors = ["refinex"]
+license = "LicenseRef-Proprietary"
+
+[workspace.dependencies]
+cap-std = "4.0.3"
+regex = "1.13.1"
+serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.18"
+tempfile = "3.27.0"
+uuid = { version = "1.23.2", features = ["v4"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

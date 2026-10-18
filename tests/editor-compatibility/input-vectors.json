@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "classification": {
+    "system-preedit": "Real OS input source with observed composition/preedit and candidate or native composition evidence; do not infer from final Unicode alone",
+    "direct-text": "Direct browser text insertion or paste; Unicode/source correctness only",
+    "synthetic-composition": "Programmatically dispatched events; lifecycle guards only"
+  },
+  "contexts": [
+    "paragraph",
+    "strong-boundary",
+    "link-boundary",
+    "list",
+    "table-cell",
+    "code",
+    "source",
+    "modal-handoff",
+    "window-handoff"
+  ],
+  "native": [
+    {
+      "id": "zh-ni",
+      "language": "zh-Hans",
+      "inputMethod": "System Pinyin",
+      "keys": ["n", "i"],
+      "confirm": "Space after selecting observed 你 candidate",
+      "expected": "你",
+      "undoUnit": "one confirmed candidate"
+    },
+    {
+      "id": "zh-zhongwen",
+      "language": "zh-Hans",
+      "inputMethod": "System Pinyin",
+      "keys": ["z", "h", "o", "n", "g", "w", "e", "n"],
+      "confirm": "Space after selecting observed 中文 candidate",
+      "expected": "中文",
+      "undoUnit": "one confirmed candidate"
+    },
+    {
+      "id": "ja-nihongo",
+      "language": "ja",
+      "inputMethod": "System Japanese romaji",
+      "keys": ["n", "i", "h", "o", "n", "g", "o"],
+      "confirm": "Convert and select observed 日本語 candidate, then Enter",
+      "expected": "日本語",
+      "undoUnit": "measure actual committed conversion unit",
+      "environment": "not enabled on current host"
+    },
+    {
+      "id": "ko-hangul",
+      "language": "ko",
+      "inputMethod": "System Korean two-set",
+      "keys": ["g", "k", "s", "r", "m", "f"],
+      "confirm": "Commit actual Hangul composition; Hanja candidate window is not required",
+      "expected": "한글",
+      "undoUnit": "measure actual syllable/composition unit",
+      "environment": "not enabled on current host"
+    }
+  ],
+  "nativeOperations": [
+    "confirm",
+    "cancel",
+    "repeat-composition",
+    "punctuation",
+    "candidate-arrow",
+    "cross-inline",
+    "cross-block",
+    "undo-redo-save",
+    "modal-handoff",
+    "window-handoff"
+  ],
+  "unicode": [
+    { "id": "cjk", "text": "中文日本語한글" },
+    { "id": "emoji-zwj", "text": "👩🏽‍💻👨‍👩‍👧‍👦🇨🇳" },
+    { "id": "combining", "text": "éäक्‍ष" },
+    { "id": "variation", "text": "☕️✈︎" },
+    { "id": "bidi", "text": "مرحبا שלום 中文" }
+  ],
+  "acceptance": {
+    "source": "No-op byte identity and exact selected-range changes, preserve BOM/EOL/unmodified source",
+    "selection": "Record DOM and CM UTF-16 endpoints separately; do not confuse code points or grapheme clusters with UTF-16 units",
+    "native": "Record OS/input source/runtime hashes, actual candidate, event trust/composition, AX/screenshot, saved bytes and observed history unit",
+    "platforms": "macOS WKWebView and Windows WebView2 require separate real-host evidence"
+  }
+}
