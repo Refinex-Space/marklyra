@@ -13,6 +13,68 @@ import {
 
 const source = readFileSync(new URL('../fixtures/visual.md', import.meta.url), 'utf8');
 
+for (const theme of ['github', 'night']) {
+  test(`${theme}: sidebar search option icons match the original find panel`, async ({
+    page,
+  }, testInfo) => {
+    await installLayout(page);
+    await readyLayout(page, theme);
+    await openLayoutDocument(page, source);
+    await emitLayoutMenu(page, 'open-folder');
+    await emitLayoutMenu(page, 'view:workspace-search');
+    const input = page.getByRole('searchbox', { name: '搜索文件', exact: true });
+    await expect(input).toBeFocused();
+    await emitLayoutMenu(page, 'find');
+    const frame = page.frameLocator('.marklyra-editor-frame');
+    for (const [label, name] of [
+      ['区分大小写', 'case'],
+      ['查找整个单词', 'word'],
+      ['正则表达式', 'regexp'],
+    ] as const) {
+      const button = page.getByRole('button', { name: label, exact: true });
+      const icon = button.locator('svg');
+      const original = frame.locator(`#searchpanel-${name}-option-btn svg`);
+      await expect(icon.locator('use')).toHaveAttribute(
+        'href',
+        `/__runtime-icons/search-options.svg#find-and-replace-icon-${name}`,
+      );
+      // Cmd+F covers the sidebar header; compare rendered SVG geometry despite that overlap.
+      await expect
+        .poll(() => icon.evaluate((element) => (element as SVGGraphicsElement).getBBox().width))
+        .toBeGreaterThan(0);
+      const geometry = [];
+      for (const svg of [icon, original])
+        geometry.push(
+          await svg.locator('use').evaluate((element) => {
+            const { width, height } = element.getBoundingClientRect();
+            return { width: Math.round(width * 100), height: Math.round(height * 100) };
+          }),
+        );
+      expect(geometry[0]).toEqual(geometry[1]);
+    }
+    await frame.locator('#md-searchpanel .close-btn').click();
+    await input.focus();
+    const caseOption = page.getByRole('button', { name: '区分大小写', exact: true });
+    const word = page.getByRole('button', { name: '查找整个单词', exact: true });
+    const regexp = page.getByRole('button', { name: '正则表达式', exact: true });
+    await caseOption.click();
+    await expect(caseOption).toHaveAttribute('aria-pressed', 'true');
+    await expect(input).toBeFocused();
+    await word.click();
+    await expect(word).toHaveAttribute('aria-pressed', 'true');
+    await regexp.click();
+    await expect(regexp).toHaveAttribute('aria-pressed', 'true');
+    await expect(word).toHaveAttribute('aria-pressed', 'false');
+    await word.click();
+    await expect(word).toHaveAttribute('aria-pressed', 'true');
+    await expect(regexp).toHaveAttribute('aria-pressed', 'false');
+    await expect(input).toBeFocused();
+    await page.locator('.marklyra-sidebar-header').screenshot({
+      path: testInfo.outputPath('sidebar-search-options.png'),
+    });
+  });
+}
+
 async function presentation(page: Page) {
   return page
     .frameLocator('.marklyra-editor-frame')

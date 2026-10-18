@@ -25,3 +25,10 @@ export const SHELL_ICON_MANIFEST = Object.freeze([
     license: 'OFL-1.1',
   },
 ]);
+
+// Exact symbols from the private runtime page; SVG artwork stays out of Git.
+export const SEARCH_ICON_MANIFEST = Object.freeze([
+  { name: 'case', sha256: 'cf6b7be022b4dda02e4f7111b3fda18ea46366377d0f8c2ff4141f81e7582687' },
+  { name: 'word', sha256: 'b345eb86697e3a2cf5510a60288df53ee3751126bdb32c8fc34321227be77a62' },
+  { name: 'regexp', sha256: 'c3315e5d9ff9044134f2414c1b9714db694b0d96886f31c8b719e069f4cf444c' },
+]);

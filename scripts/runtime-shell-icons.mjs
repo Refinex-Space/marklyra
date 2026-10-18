@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SHELL_ICON_MANIFEST } from './runtime-shell-icon-manifest.mjs';
+import { SEARCH_ICON_MANIFEST, SHELL_ICON_MANIFEST } from './runtime-shell-icon-manifest.mjs';
 
 export { SHELL_ICON_MANIFEST };
 export const SHELL_ICON_PREFIX = '/__runtime-icons/';
@@ -35,7 +35,7 @@ async function verifiedInput(root, relativePath, expectedHash, expectedBytes) {
       throw new Error('not a regular private input');
     const bytes = await readFile(path);
     if (
-      digest(bytes) !== expectedHash ||
+      (expectedHash !== undefined && digest(bytes) !== expectedHash) ||
       (expectedBytes !== undefined && bytes.length !== expectedBytes)
     )
       throw new Error('identity mismatch');
@@ -66,6 +66,26 @@ async function verifiedResources(sourceDirectory) {
     if (result.status === 'rejected') throw result.reason;
     resources.set(...result.value);
   }
+  const pageRoot = await realpath(resolve(root, '..'));
+  const html = (await verifiedInput(pageRoot, 'index.html')).toString('utf8');
+  const symbols = SEARCH_ICON_MANIFEST.map(({ name, sha256 }) => {
+    const matches = [
+      ...html.matchAll(
+        new RegExp(`<symbol id="find-and-replace-icon-${name}"[^>]*>[\\s\\S]*?</symbol>`, 'g'),
+      ),
+    ];
+    if (matches.length !== 1 || digest(matches[0][0]) !== sha256)
+      throw new Error(`Runtime shell icon identity mismatch (search ${name})`);
+    return matches[0][0];
+  });
+  const searchIcons = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg">${symbols.join('\n')}</svg>`,
+  );
+  resources.set('search-options.svg', {
+    bytes: searchIcons,
+    type: 'image/svg+xml',
+    sha256: digest(searchIcons),
+  });
   const notice = await verifiedInput(root, ioniconsNotice.path, ioniconsNotice.sha256);
   resources.set('licenses/ionicons-MIT.txt', {
     bytes: notice,
@@ -94,6 +114,12 @@ async function verifiedResources(sourceDirectory) {
           'Private desktop resources; separate review required for SDK or public distribution',
         source: 'Typora 1.11.7 / 7472 shipped style resources, unchanged font bytes',
         fonts: SHELL_ICON_MANIFEST,
+        searchIcons: {
+          file: 'search-options.svg',
+          source: 'index.html',
+          symbols: SEARCH_ICON_MANIFEST,
+          license: 'private-unreviewed',
+        },
         notices: [
           { file: 'licenses/ionicons-MIT.txt', sha256: ioniconsNotice.sha256 },
           ...reviewedNotices.map((record) => ({

@@ -29,6 +29,14 @@ interface SearchProps {
   presence?: readonly RelativeEntryPresence[] | undefined;
 }
 
+function SearchOptionIcon({ name }: { name: 'case' | 'word' | 'regexp' }) {
+  return (
+    <svg className="sidebar-search-icon" viewBox="0 0 20 16" aria-hidden="true">
+      <use href={`/__runtime-icons/search-options.svg#find-and-replace-icon-${name}`} />
+    </svg>
+  );
+}
+
 function skippedSummary(report: WorkspaceSearchReport): string {
   const { skipped } = report;
   const parts = [
@@ -210,7 +218,7 @@ export function WorkspaceSearch({
               setCaseSensitive((value) => !value);
             }}
           >
-            Aa
+            <SearchOptionIcon name="case" />
           </button>
           <button
             type="button"
@@ -226,7 +234,7 @@ export function WorkspaceSearch({
               if (!wholeWord) setUseRegex(false);
             }}
           >
-            <span aria-hidden="true">|ab|</span>
+            <SearchOptionIcon name="word" />
           </button>
           <button
             type="button"
@@ -242,7 +250,7 @@ export function WorkspaceSearch({
               if (!useRegex) setWholeWord(false);
             }}
           >
-            <span aria-hidden="true">.*</span>
+            <SearchOptionIcon name="regexp" />
           </button>
         </div>
       )}

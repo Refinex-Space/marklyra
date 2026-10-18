@@ -17,6 +17,7 @@ import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createServer } from 'vite';
 import { SHELL_FONT_MANIFEST } from './runtime-shell-fonts.mjs';
+import { SEARCH_ICON_MANIFEST } from './runtime-shell-icon-manifest.mjs';
 import {
   runtimeShellIcons,
   SHELL_ICON_MANIFEST,
@@ -48,6 +49,7 @@ async function fixture(t, copy = false) {
       await mkdir(dirname(join(fonts, path)), { recursive: true });
       await copyFile(join(source, path), join(fonts, path));
     }
+  if (copy) await copyFile(join(source, '../index.html'), join(root, 'index.html'));
   return { root, fonts };
 }
 
@@ -143,6 +145,23 @@ test('three private icon fonts, precise family aliases and the actual Ionicons n
   );
 });
 
+test('search sprite preserves exactly the three original find-panel symbols', async (t) => {
+  const { root } = await fixture(t);
+  const origin = await server(t, root);
+  const response = await request(origin, `${SHELL_ICON_PREFIX}search-options.svg`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers['content-type'], 'image/svg+xml');
+  const html = await readFile(join(source, '../index.html'), 'utf8');
+  const symbols = [...response.bytes.toString().matchAll(/<symbol\b[^>]*>[\s\S]*?<\/symbol>/g)];
+  assert.equal(symbols.length, 3);
+  for (const [index, { name, sha256 }] of SEARCH_ICON_MANIFEST.entries()) {
+    assert.match(symbols[index][0], new RegExp(`id="find-and-replace-icon-${name}"`));
+    assert.ok(html.includes(symbols[index][0]));
+    assert.equal(digest(symbols[index][0]), sha256);
+  }
+  assert.equal((await request(origin, `${SHELL_ICON_PREFIX}index.html`)).status, 404);
+});
+
 test('unknown, encoded and traversal requests cannot expose other private resources', async (t) => {
   const { root } = await fixture(t);
   const origin = await server(t, root);
@@ -164,7 +183,7 @@ test('unknown, encoded and traversal requests cannot expose other private resour
   );
 });
 
-for (const mutation of ['missing', 'corrupt', 'symlink', 'notice'])
+for (const mutation of ['missing', 'corrupt', 'symlink', 'notice', 'search-symbol'])
   test(`private icon ${mutation} input fails before serving or emitting`, async (t) => {
     const { root, fonts } = await fixture(t, true);
     const target = join(fonts, SHELL_ICON_MANIFEST[0].path);
@@ -178,6 +197,10 @@ for (const mutation of ['missing', 'corrupt', 'symlink', 'notice'])
     }
     if (mutation === 'notice')
       await writeFile(join(fonts, 'ionicons-2.0.1/LICENSE'), 'changed notice');
+    if (mutation === 'search-symbol') {
+      const page = join(root, 'index.html');
+      await writeFile(page, (await readFile(page, 'utf8')).replace('M10.919,13', 'M10.918,13'));
+    }
     const plugin = runtimeShellIcons({ sourceDirectory: fonts });
     plugin.configResolved({ command: 'build' });
     let emitted = 0;
@@ -192,7 +215,7 @@ for (const mutation of ['missing', 'corrupt', 'symlink', 'notice'])
     assert.equal(emitted, 0);
   });
 
-test('build hooks emit exactly eight identity-verified assets including mandatory notices while serve never emits', async () => {
+test('build hooks emit exactly nine identity-verified assets including mandatory notices while serve never emits', async () => {
   const serving = runtimeShellIcons();
   serving.configResolved({ command: 'serve' });
   await serving.buildStart.call({
@@ -208,7 +231,7 @@ test('build hooks emit exactly eight identity-verified assets including mandator
       output.set(asset.fileName, asset.source);
     },
   });
-  assert.equal(output.size, 8);
+  assert.equal(output.size, 9);
   for (const font of SHELL_ICON_MANIFEST)
     assert.equal(digest(output.get(`${SHELL_ICON_PREFIX.slice(1)}${font.path}`)), font.sha256);
   assert.ok(output.has('__runtime-icons/licenses/ionicons-MIT.txt'));
@@ -216,6 +239,7 @@ test('build hooks emit exactly eight identity-verified assets including mandator
   assert.ok(output.has('__runtime-icons/licenses/icon-notices.txt'));
   assert.ok(output.has('__runtime-icons/provenance.json'));
   assert.ok(output.has('__runtime-icons/icons.css'));
+  assert.ok(output.has('__runtime-icons/search-options.svg'));
 });
 
 for (const mutation of ['missing-ofl', 'changed-notices', 'notice-symlink'])

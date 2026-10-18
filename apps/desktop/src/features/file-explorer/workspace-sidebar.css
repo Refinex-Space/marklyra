@@ -406,15 +406,23 @@
   margin: 1px 0 2px 4px;
 }
 .sidebar-search-controls .sidebar-search-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 20px;
-  border: 0;
-  border-radius: 2px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
   padding: 0;
   opacity: 0.5;
   font-size: 11px;
   line-height: 20px;
   color: inherit;
+}
+.sidebar-search-icon {
+  width: 20px;
+  height: 14px;
+  fill: currentColor;
 }
 .sidebar-search-controls .sidebar-search-option[aria-pressed="true"],
 .sidebar-search-controls .sidebar-search-option:hover,
