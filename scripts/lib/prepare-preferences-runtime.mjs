@@ -73,8 +73,30 @@ export function transformPreferencesSource(source) {
     debugDictionaries = [],
     outlineGroups = [],
     exitModeRows = [],
-    diagramRows = [];
+    diagramRows = [],
+    codeLanguageHints = [],
+    codeLanguageControls = [];
   walk(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      member(node.callee) === 'p.a.createElement' &&
+      member(node.arguments[0]) === 'b.u' &&
+      node.arguments[1]?.type === 'ObjectExpression' &&
+      node.arguments[1].properties.some(
+        (property) =>
+          property.key?.name === 'keyName' && property.value?.value === 'defaultCodeLang',
+      )
+    ) {
+      const suggest = node.arguments[1].properties.find(
+        (property) => property.key?.name === 'suggest',
+      )?.value;
+      if (suggest) codeLanguageControls.push({ node, suggest });
+    }
+    if (
+      node.type === 'Literal' &&
+      node.value === 'https://support.typora.io/Code-Fences/#default-code-language'
+    )
+      codeLanguageHints.push(node);
     if (
       node.type === 'CallExpression' &&
       member(node.callee) === 'p.a.createElement' &&
@@ -186,6 +208,8 @@ export function transformPreferencesSource(source) {
     outlineGroups.length !== 1 ||
     exitModeRows.length !== 1 ||
     diagramRows.length !== 1 ||
+    codeLanguageHints.length !== 1 ||
+    codeLanguageControls.length !== 1 ||
     edits.length !== 4
   )
     throw new Error('Unexpected original Preferences bridge/layout structure');
@@ -206,6 +230,20 @@ export function transformPreferencesSource(source) {
     text: source.slice(diagramRow.checkbox.start, diagramRow.checkbox.end),
   });
   edits.push(...preferenceHelpLinkEdits(source, ast));
+  const codeLanguageHint = codeLanguageHints[0];
+  edits.push({ start: codeLanguageHint.start, end: codeLanguageHint.end, text: 'null' });
+  // Use the same select component as code indentation. Keep the verified language
+  // list, canonical empty/last-used values and any already-saved custom language.
+  const codeLanguageControl = codeLanguageControls[0];
+  const languages = source.slice(
+    codeLanguageControl.suggest.start,
+    codeLanguageControl.suggest.end,
+  );
+  edits.push({
+    start: codeLanguageControl.node.start,
+    end: codeLanguageControl.node.end,
+    text: `p.a.createElement(b.r,{keyName:"defaultCodeLang",value:this.getValue("defaultCodeLang")||"",onChange:this.onChange,optionsList:(function(items,current){var options=items.map(function(item,index){return typeof item==="string"?[index===0?"":item,item]:[item.key,item.label]});if(current&&!options.some(function(option){return option[0]===current}))options.push([current,current]);return options})(${languages},this.getValue("defaultCodeLang"))})`,
+  });
   const bridge = bridges[0];
   edits.push({ start: bridge.start, end: bridge.end, text: 'window.__MARKLYRA_SETTINGS_BRIDGE__' });
   for (const node of guards) {

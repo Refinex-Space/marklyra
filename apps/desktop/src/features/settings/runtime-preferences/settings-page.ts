@@ -1,3 +1,4 @@
+import { setupBoundedSelect } from './bounded-select.js';
 import { type FileTypePageControls, renderFileTypes } from './file-types-page.js';
 import { renderSavePreferences, type SavePageControls } from './save-preferences-page.js';
 import css from './settings-page.css?inline';
@@ -41,6 +42,9 @@ export function setupSettingsPage(
   style.textContent = css;
   document.head.append(style);
   positionHelpTooltips();
+  const refreshBoundedSelect = setupBoundedSelect(
+    'select[data-marklyra-preference="defaultCodeLang"]',
+  );
   document.addEventListener('keydown', (event) => {
     const item =
       event.target instanceof HTMLElement && event.target.closest<HTMLElement>('.nav-group-item');
@@ -147,6 +151,7 @@ export function setupSettingsPage(
       }
     }
     arrangeHints(pane);
+    refreshBoundedSelect();
   };
   document.addEventListener('input', (event) => {
     if (event.target instanceof Element && event.target.matches('.search-input'))

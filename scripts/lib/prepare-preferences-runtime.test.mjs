@@ -35,7 +35,7 @@ test('verified AST edits isolate settings and remove redundant or unsupported co
   const transformed = transformPreferencesSource(source);
   assert.equal(transformed.metadata.capabilityChecks, 26);
   assert.equal(transformed.metadata.bridgeCount, 1);
-  assert.equal(transformed.metadata.edits.length, 39);
+  assert.equal(transformed.metadata.edits.length, 41);
   assert.equal(transformed.metadata.originalSha256, preferencesResources[sourcePath]);
   let expected = source;
   for (const edit of [...transformed.metadata.edits].reverse())
@@ -53,6 +53,12 @@ test('verified AST edits isolate settings and remove redundant or unsupported co
   assert.ok(transformed.code.includes('keyName:"enable_diagram"'));
   assert.ok(transformed.code.includes('hint:"(Sequence, Flowchart and Mermaid)"'));
   assert.ok(transformed.code.includes('keyName:"save_file_on_switch"'));
+  assert.ok(
+    !transformed.code.includes('https://support.typora.io/Code-Fences/#default-code-language'),
+  );
+  assert.ok(transformed.code.includes('keyName:"defaultCodeLang"'));
+  assert.ok(transformed.code.includes('p.a.createElement(b.r,{keyName:"defaultCodeLang"'));
+  assert.ok(transformed.code.includes('keyName:"defaultCodeLangOption"'));
   assert.doesNotThrow(() => new Script(transformed.code));
   assert.equal(
     digest(await readFile(resolve(input, sourcePath))),

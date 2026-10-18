@@ -965,6 +965,33 @@ html[data-settings-dark="true"] {
   background: var(--settings-hover);
   color: var(--settings-text);
 }
+[data-settings-page] .settings-select-popup {
+  display: block;
+  position: fixed;
+  z-index: 100;
+  right: auto;
+  margin: 0;
+  padding: 5px;
+  border: 1px solid var(--settings-line);
+  max-height: 252px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-shadow: 0 2px 8px #00000014;
+  font-size: 13px;
+}
+[data-settings-page] .settings-select-popup li {
+  display: flex;
+  justify-content: space-between;
+  line-height: 20px;
+  cursor: pointer;
+}
+[data-settings-page] .settings-select-popup li.active {
+  background: var(--settings-hover);
+  color: var(--settings-text);
+}
+[data-settings-page] .settings-select-popup li[aria-selected="true"]::after {
+  content: "✓";
+}
 [data-settings-page] .ty-tooltip {
   position: fixed;
   width: max-content;
