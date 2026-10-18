@@ -1,5 +1,6 @@
 use super::{
-    native_hover, native_images::TitlebarImages, DocumentChrome, StatisticsSnapshot, StatisticsUnit,
+    native_hover, native_images::TitlebarImages, native_title, title_layout::TitlebarLayout,
+    DocumentChrome, StatisticsSnapshot, StatisticsUnit,
 };
 use objc2::{
     define_class, msg_send,
@@ -31,6 +32,7 @@ struct ChromeIvars {
     source_button: OnceCell<Retained<NSButton>>,
     source_mode: Cell<bool>,
     always_show_word_count: Cell<bool>,
+    content_layout: Cell<Option<TitlebarLayout>>,
 }
 
 define_class!(
@@ -43,6 +45,12 @@ define_class!(
     unsafe impl NSObjectProtocol for MarkLyraTitlebarView {}
 
     impl MarkLyraTitlebarView {
+        #[unsafe(method(layout))]
+        fn layout(&self) {
+            // SAFETY: this is the NSView layout override, on AppKit's main thread.
+            unsafe { let _: () = msg_send![super(self), layout]; }
+            self.position_title();
+        }
         #[unsafe(method(toggleSidebar:))]
         fn toggle_sidebar(&self, _sender: &AnyObject) { self.emit("view:sidebar"); }
 
@@ -80,6 +88,7 @@ impl MarkLyraTitlebarView {
             source_button: OnceCell::new(),
             source_mode: Cell::new(false),
             always_show_word_count: Cell::new(true),
+            content_layout: Cell::new(None),
         });
         // SAFETY: NSView's designated initializer receives the allocated subclass and an NSRect.
         unsafe { msg_send![super(object), initWithFrame: rect(0.0, 0.0, 120.0, 22.0)] }
@@ -93,6 +102,13 @@ impl MarkLyraTitlebarView {
             action,
         ) {
             eprintln!("Native titlebar action delivery failed: {error}");
+        }
+    }
+
+    fn position_title(&self) {
+        if let (Some(window), Some(layout)) = (self.window(), self.ivars().content_layout.get()) {
+            let accessory_left = self.convertRect_toView(self.bounds(), None).origin.x;
+            native_title::position(&window, layout, accessory_left);
         }
     }
 
@@ -228,6 +244,8 @@ impl EditorChrome {
         if let Some(source) = self.view.ivars().source_button.get() {
             source.setFrame(rect(leading + width - 55.0, 4.0, 96.0, 18.0));
         }
+        self.view.setNeedsLayout(true);
+        self.view.position_title();
     }
 }
 
@@ -460,6 +478,18 @@ pub(super) fn release(label: &str) {
             chrome.view.update_visibility();
         }
     });
+}
+
+pub(super) fn update_title_layout(label: &str, layout: TitlebarLayout) -> Result<(), String> {
+    MainThreadMarker::new().ok_or("原生标题栏需要主线程")?;
+    CHROME.with(|registry| {
+        let registry = registry.borrow();
+        let chrome = registry.get(label).ok_or("原生标题栏尚未初始化")?;
+        chrome.view.ivars().content_layout.set(Some(layout));
+        chrome.view.setNeedsLayout(true);
+        chrome.view.position_title();
+        Ok(())
+    })
 }
 
 pub(super) fn window_changed(label: &str) {

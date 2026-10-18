@@ -152,6 +152,7 @@ export function App() {
   const imageInput = useRef<HTMLInputElement | null>(null);
   const preferenceThemes = useRef(new Map<string, AbortController>());
   const sidebarElement = useRef<HTMLElement | null>(null);
+  const documentAreaElement = useRef<HTMLElement | null>(null);
   const detailsElement = useRef<HTMLElement | null>(null);
   const [importingImage, setImportingImage] = useState(false);
   const importingImageRef = useRef(false);
@@ -1378,6 +1379,7 @@ export function App() {
     let active = true;
     let frame = 0;
     const panel = detailsElement.current;
+    let previousTitleLayout = '';
     const update = () => {
       const panel = detailsElement.current;
       const right = panel
@@ -1386,6 +1388,21 @@ export function App() {
         : 0;
       const left =
         chrome.native && sidebar ? (sidebarElement.current?.getBoundingClientRect().width ?? 0) : 0;
+      if (chrome.native && documentAreaElement.current) {
+        const area = documentAreaElement.current.getBoundingClientRect();
+        const payload = {
+          contentLeft: area.left,
+          contentRight: area.right,
+          viewportWidth: document.documentElement.clientWidth,
+        };
+        const key = JSON.stringify(payload);
+        if (key !== previousTitleLayout) {
+          previousTitleLayout = key;
+          void editorChrome.updateTitleLayout(payload).catch((error: unknown) => {
+            if (active) actions.current.doc.setMessage(`标题栏布局更新失败：${String(error)}`);
+          });
+        }
+      }
       void instance
         .setContentInset(
           left,
@@ -1859,7 +1876,11 @@ export function App() {
             change={(sidebarWidth) => setPreferences((value) => ({ ...value, sidebarWidth }))}
           />
         )}
-        <main className="document-area runtime-area" aria-busy={!ready || doc.working}>
+        <main
+          ref={documentAreaElement}
+          className="document-area runtime-area"
+          aria-busy={!ready || doc.working}
+        >
           <ExternalChangeNotice
             sync={disk}
             busy={doc.working || !!doc.pending}

@@ -179,6 +179,91 @@ test('native titlebar follows accepted view mode when statistics fail and preser
     .toBe('Alpha');
 });
 
+test('native title layout follows the actual reading area through both pane sizes and delayed native replies', async ({
+  page,
+}) => {
+  const lastLayout = () =>
+    page.evaluate(
+      () =>
+        (window as TestWindow).__desktopMock.calls
+          .filter((call) => call.command === 'update_editor_title_layout')
+          .at(-1)?.args.payload as
+          | { contentLeft: number; contentRight: number; viewportWidth: number }
+          | undefined,
+    );
+  const aligned = async () => {
+    await expect
+      .poll(async () => {
+        const layout = await lastLayout();
+        const area = await page.locator('main.document-area').boundingBox();
+        if (!layout || !area) return Number.POSITIVE_INFINITY;
+        return Math.max(
+          Math.abs(layout.contentLeft - area.x),
+          Math.abs(layout.contentRight - area.x - area.width),
+          Math.abs(layout.viewportWidth - (page.viewportSize()?.width ?? 0)),
+        );
+      })
+      .toBeLessThanOrEqual(0.5);
+  };
+  await aligned();
+  const iframe = await page.locator('.runtime-area iframe').elementHandle();
+  for (const width of [960, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const key of ['Home', 'End']) {
+      await page.getByRole('separator', { name: '调整侧栏宽度' }).press(key);
+      await aligned();
+    }
+  }
+  await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));
+  const panel = page.getByRole('complementary', { name: '文档目录' });
+  await expect(panel).toBeVisible();
+  for (const key of ['Home', 'End']) {
+    await page.getByRole('separator', { name: '调整目录宽度' }).press(key);
+    await aligned();
+  }
+  await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:sidebar'));
+  await expect(page.locator('aside.sidebar')).toBeHidden();
+  await aligned();
+  await page.evaluate(() => {
+    const host = window as TestWindow & {
+      __TAURI_INTERNALS__: {
+        invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;
+      };
+    };
+    const previous = host.__TAURI_INTERNALS__.invoke;
+    const state = { pending: 0, maximum: 0, hold: true, release: () => {} };
+    Reflect.set(window, '__titleLayoutGate', state);
+    host.__TAURI_INTERNALS__.invoke = async (command, args = {}) => {
+      if (command !== 'update_editor_title_layout') return previous(command, args);
+      state.maximum = Math.max(state.maximum, ++state.pending);
+      try {
+        if (state.hold)
+          await new Promise<void>((resolve) => {
+            state.release = resolve;
+          });
+        return await previous(command, args);
+      } finally {
+        state.pending--;
+      }
+    };
+  });
+  await page.getByRole('separator', { name: '调整目录宽度' }).press('Home');
+  await expect
+    .poll(() => page.evaluate(() => Reflect.get(window, '__titleLayoutGate').pending))
+    .toBe(1);
+  await page.getByRole('separator', { name: '调整目录宽度' }).press('End');
+  for (const action of ['view:outline', 'view:sidebar', 'view:outline'])
+    await page.evaluate((action) => (window as TestWindow).__desktopMock.emitMenu(action), action);
+  await page.evaluate(() => {
+    const state = Reflect.get(window, '__titleLayoutGate');
+    state.hold = false;
+    state.release();
+  });
+  await aligned();
+  expect(await page.evaluate(() => Reflect.get(window, '__titleLayoutGate').maximum)).toBe(1);
+  expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
+});
+
 test('native outline action toggles an independent right panel without the legacy popover', async ({
   page,
 }) => {
@@ -211,7 +296,8 @@ test('native outline action toggles an independent right panel without the legac
       ),
     )
     .toMatchObject({ outlinePanelOpen: true });
-  await page.getByRole('button', { name: '全文搜索', exact: true }).click();
+  await expect(page.getByRole('button', { name: '全文搜索', exact: true })).toHaveCount(0);
+  await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:workspace-search'));
   await expect(panel).toBeVisible();
   await page.getByRole('button', { name: '返回文件', exact: true }).click();
   await toggle();

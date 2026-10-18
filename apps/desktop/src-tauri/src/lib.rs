@@ -78,6 +78,7 @@ pub fn run() {
             platform::ui_chrome::markdown_selection::complete_preference_markdown,
             platform::ui_chrome::initialise_editor_chrome,
             platform::ui_chrome::update_editor_chrome,
+            platform::ui_chrome::update_editor_title_layout,
             platform::ui_chrome::open_preferences_window,
             platform::ui_chrome::close_preferences_window,
             platform::ui_chrome::preferences_changed,

@@ -751,6 +751,7 @@ export function WorkspaceSidebar({
       className={`workspace-sidebar${compact ? ' workspace-sidebar-compact' : ''}`}
       aria-label="目录与全文搜索"
       data-mode={activeTab}
+      data-empty={!workspace || undefined}
       onDragStart={move.dragStart}
       onDragEnd={move.dragEnd}
       onDragOver={move.dragOver}
@@ -862,18 +863,20 @@ export function WorkspaceSidebar({
           ) : (
             <span className="workspace-navigation-spacer" aria-hidden="true" />
           )}
-          <button
-            id={`${searchTargetId}-trigger`}
-            type="button"
-            className="sidebar-header-action"
-            aria-label="全文搜索"
-            aria-controls={`${tabsId}-search-panel`}
-            title="全文搜索"
-            disabled={controlsDisabled}
-            onClick={() => changeTab('search')}
-          >
-            <ShellGlyph className="ui-icon" name="search" />
-          </button>
+          {workspace && (
+            <button
+              id={`${searchTargetId}-trigger`}
+              type="button"
+              className="sidebar-header-action"
+              aria-label="全文搜索"
+              aria-controls={`${tabsId}-search-panel`}
+              title="全文搜索"
+              disabled={controlsDisabled}
+              onClick={() => changeTab('search')}
+            >
+              <ShellGlyph className="ui-icon" name="search" />
+            </button>
+          )}
         </nav>
       )}
       {error && (

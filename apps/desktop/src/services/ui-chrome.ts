@@ -7,7 +7,32 @@ export interface EditorChrome {
   native: boolean;
   preferencesWindow: boolean;
 }
+interface TitlebarLayout {
+  contentLeft: number;
+  contentRight: number;
+  viewportWidth: number;
+}
+let pendingTitleLayout: TitlebarLayout | undefined;
+let titleLayoutWork: Promise<void> | undefined;
+
 export const editorChrome = {
+  updateTitleLayout(layout: TitlebarLayout): Promise<void> {
+    pendingTitleLayout = layout;
+    titleLayoutWork ??= (async () => {
+      try {
+        // Coalesce animation/drag frames and keep native updates in order.
+        while (pendingTitleLayout) {
+          const payload = pendingTitleLayout;
+          pendingTitleLayout = undefined;
+          await invoke<void>('update_editor_title_layout', { payload });
+        }
+      } finally {
+        pendingTitleLayout = undefined;
+        titleLayoutWork = undefined;
+      }
+    })();
+    return titleLayoutWork;
+  },
   async initialize(): Promise<EditorChrome> {
     if (!desktopAvailable) return { native: false, preferencesWindow: false };
     const result = await invoke<EditorChrome | null>('initialise_editor_chrome');

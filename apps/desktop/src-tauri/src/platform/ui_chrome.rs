@@ -1,6 +1,10 @@
 //! Native chrome is owned by its editor window; preferences never acquire document capabilities.
 #[cfg(target_os = "macos")]
 mod macos;
+#[cfg(target_os = "macos")]
+mod native_title;
+mod title_layout;
+use title_layout::TitlebarLayout;
 pub mod markdown_selection;
 #[cfg(target_os = "macos")]
 mod native_hover;
@@ -241,6 +245,25 @@ pub async fn initialise_editor_chrome(window: WebviewWindow) -> Result<ChromeCap
         native,
         preferences_window: true,
     })
+}
+
+#[tauri::command]
+pub async fn update_editor_title_layout(
+    window: WebviewWindow,
+    payload: TitlebarLayout,
+) -> Result<(), String> {
+    require_editor(&window)?;
+    let layout = payload.validate()?;
+    #[cfg(target_os = "macos")]
+    return on_main(window, move |window| {
+        macos::update_title_layout(window.label(), layout)
+    })
+    .await;
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = layout;
+        Ok(())
+    }
 }
 
 #[tauri::command]

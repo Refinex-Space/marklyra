@@ -9,6 +9,52 @@ import {
 } from './layout.helpers.js';
 
 for (const theme of ['github', 'night']) {
+  test(`${theme}: an empty sidebar keeps its guidance and folder entry visible without hover and shows search only after opening a folder`, async ({
+    page,
+  }, info) => {
+    await installLayout(page);
+    await readyLayout(page, theme);
+    const sidebar = page.locator('aside.sidebar');
+    const empty = sidebar.locator('.workspace-compact-empty');
+    const footer = sidebar.getByRole('navigation', { name: '目录位置', exact: true });
+    const trigger = sidebar.getByRole('button', { name: '目录菜单', exact: true });
+    const frame = page.frameLocator('.runtime-area iframe').locator('#write');
+    const iframe = await page.locator('.runtime-area iframe').elementHandle();
+    for (const view of ['view:files', 'view:articles']) {
+      await emitLayoutMenu(page, view);
+      await frame.click();
+      await page.mouse.move(1100, 400);
+      expect(await sidebar.evaluate((element) => element.matches(':hover, :focus-within'))).toBe(
+        false,
+      );
+      await expect(empty).toHaveText('没有打开的文件夹');
+      await expect(empty).toHaveCSS('opacity', '1');
+      await expect(footer).toBeVisible();
+      await expect(footer).toHaveCSS('opacity', '1');
+      await expect(footer).toHaveCSS('animation-name', 'none');
+      await expect(trigger).toBeEnabled();
+      await expect(trigger).toContainText('打开文件夹…');
+      await expect(sidebar.getByRole('button', { name: '全文搜索', exact: true })).toHaveCount(0);
+      const resting = await footer.boundingBox();
+      await sidebar.hover();
+      await expect(empty).toHaveCSS('opacity', '1');
+      await expect(footer).toHaveCSS('animation-name', 'none');
+      await frame.click();
+      await page.mouse.move(1100, 400);
+      await expect(footer).toHaveCSS('opacity', '1');
+      expect(await footer.boundingBox()).toEqual(resting);
+      await sidebar.screenshot({ path: info.outputPath(`${view.slice(5)}-empty-sidebar.png`) });
+    }
+    await trigger.click();
+    await page.getByRole('menuitem', { name: '打开文件夹…', exact: true }).click();
+    await expect(empty).toHaveCount(0);
+    const search = sidebar.getByRole('button', { name: '全文搜索', exact: true });
+    await expect(search).toBeVisible();
+    await search.click();
+    await expect(page.getByRole('searchbox', { name: '搜索文件', exact: true })).toBeFocused();
+    expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
+  });
+
   test(`${theme}: workspace name and search share one persistent row with a rounded hover fill`, async ({
     page,
   }, info) => {
