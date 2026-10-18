@@ -310,6 +310,24 @@ html[data-settings-dark="true"] {
   width: min(100%, 320px);
   margin-left: auto;
 }
+[data-settings-page] .row > select[data-marklyra-preference="image_save_location"] {
+  flex: 1 1 100%;
+  width: 100%;
+  margin-left: 0;
+}
+[data-settings-page] .row:has(> input[data-marklyra-preference="custom_image_save_location"]) {
+  flex-wrap: nowrap;
+}
+[data-settings-page] .row > input[data-marklyra-preference="custom_image_save_location"] {
+  flex: 1 1 0;
+  max-width: none !important;
+}
+[data-settings-page]
+  .row:has(> input[data-marklyra-preference="custom_image_save_location"])
+  > .icon-button {
+  flex: 0 0 auto;
+  margin-left: 0 !important;
+}
 [data-settings-page] .settings-select-row {
   position: relative;
 }
