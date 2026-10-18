@@ -73,40 +73,44 @@ export function RecentFilesPanel({ close, open }: { close(): void; open(id: stri
         aria-modal="true"
         aria-labelledby="recent-files-title"
       >
-        <h2 id="recent-files-title">最近文件</h2>
-        <p>选择文件继续编辑。移除或清空只影响此列表，不会删除文件。</p>
-        {error && <p role="alert">{error}</p>}
-        {!listing && !error && <p>正在读取最近文件…</p>}
-        {listing?.entries.length === 0 && <p>暂无最近打开的文件。</p>}
-        <ul className="recent-files-list">
-          {listing?.entries.map((entry) => (
-            <li key={entry.id}>
-              <button
-                type="button"
-                className="recent-file-open"
-                disabled={busy}
-                onClick={() => {
-                  close();
-                  open(entry.id);
-                }}
-                aria-label={`打开最近文件 ${entry.path}`}
-              >
-                <strong>{entry.name}</strong>
-                <span>{entry.path}</span>
-                <small>{new Date(entry.lastOpenedAt).toLocaleString()}</small>
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                aria-label={`移除最近记录 ${entry.path}`}
-                onClick={() => void mutate(() => recentFiles.remove(entry.id))}
-              >
-                移除
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div>
+        <header className="recent-files-heading">
+          <h2 id="recent-files-title">最近文件</h2>
+          <p>选择文件继续编辑。移除或清空只影响此列表，不会删除文件。</p>
+        </header>
+        <div className="recent-files-body">
+          {error && <p role="alert">{error}</p>}
+          {!listing && !error && <p>正在读取最近文件…</p>}
+          {listing?.entries.length === 0 && <p>暂无最近打开的文件。</p>}
+          <ul className="recent-files-list">
+            {listing?.entries.map((entry) => (
+              <li key={entry.id}>
+                <button
+                  type="button"
+                  className="recent-file-open"
+                  disabled={busy}
+                  onClick={() => {
+                    close();
+                    open(entry.id);
+                  }}
+                  aria-label={`打开最近文件 ${entry.path}`}
+                >
+                  <strong title={entry.name}>{entry.name}</strong>
+                  <small>{new Date(entry.lastOpenedAt).toLocaleString()}</small>
+                  <span title={entry.path}>{entry.path}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  aria-label={`移除最近记录 ${entry.path}`}
+                  onClick={() => void mutate(() => recentFiles.remove(entry.id))}
+                >
+                  移除
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <footer className="recent-files-actions">
           <button
             type="button"
             disabled={busy || (!error && !listing?.entries.length)}
@@ -120,7 +124,7 @@ export function RecentFilesPanel({ close, open }: { close(): void; open(id: stri
           <button type="button" disabled={busy} onClick={close}>
             关闭
           </button>
-        </div>
+        </footer>
       </section>
     </div>
   );

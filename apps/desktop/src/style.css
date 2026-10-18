@@ -684,38 +684,93 @@ button[aria-pressed="true"] {
   overflow: auto;
 }
 .modal-backdrop .recent-files-panel {
-  width: min(760px, 85vw);
-  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  width: min(760px, calc(100vw - 32px));
+  min-width: 0;
+  max-height: min(80dvh, 680px);
+  padding: 0;
+  overflow: hidden;
+}
+.recent-files-heading {
+  flex: none;
+  padding: 20px 24px 12px;
+}
+.recent-files-heading h2 {
+  margin-bottom: 6px;
+}
+.recent-files-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.modal-backdrop .recent-files-body {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0 24px 12px;
   overflow: auto;
+  overscroll-behavior: contain;
+}
+.recent-files-body > p {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+.recent-files-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--border);
 }
 .recent-files-list {
   list-style: none;
+  margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 .recent-files-list li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 .recent-files-list .recent-file-open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 16px;
   flex: 1;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
   text-align: left;
+  line-height: 20px;
 }
 .recent-file-open strong,
-.recent-file-open span,
-.recent-file-open small {
-  display: block;
-  overflow-wrap: anywhere;
+.recent-file-open span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-file-open strong {
+  font-weight: 600;
 }
 .recent-file-open span,
 .recent-file-open small {
   color: var(--muted);
   font-size: 12px;
-  margin-top: 3px;
+}
+.recent-file-open span {
+  grid-column: 1 / -1;
+  line-height: 18px;
+}
+.recent-file-open small {
+  align-self: center;
+  font-size: 11px;
+  white-space: nowrap;
 }
 .recovery-list {
   list-style: none;
