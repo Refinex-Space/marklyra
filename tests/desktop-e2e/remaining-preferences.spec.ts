@@ -124,12 +124,9 @@ test('original remaining controls use finite persistence and queue warning reset
   await page.goto('/?view=preferences');
   const ui = page.frameLocator('.runtime-preferences-frame');
   await expect(ui.locator('.nav-group-item')).toHaveCount(7);
-  await expect(ui.locator('[data-marklyra-preference="can_collapse_outline_panel"]')).toBeChecked();
-  await ui.locator('[data-marklyra-preference="can_collapse_outline_panel"]').uncheck();
-  await page.reload();
-  await expect(
-    ui.locator('[data-marklyra-preference="can_collapse_outline_panel"]'),
-  ).not.toBeChecked();
+  await expect(ui.locator('[data-marklyra-preference="can_collapse_outline_panel"]')).toHaveCount(
+    0,
+  );
   await ui.locator('.nav-group-item').nth(3).click();
   await ui.locator('[data-marklyra-preference="noLegacyMath"]').click();
   await ui.locator('[data-marklyra-preference="auto_numbering_for_math"]').selectOption('all');

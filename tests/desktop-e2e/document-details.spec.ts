@@ -18,7 +18,7 @@ const details = (page: Page) => page.getByRole('complementary', { name: '文档�
 const content = (page: Page) =>
   page.frameLocator('.runtime-area .marklyra-editor-frame').locator('content');
 
-test('the file preference for collapsible outline updates the right panel live and survives a modeled restart', async ({
+test('the outline context menu updates the right panel live and survives a modeled restart', async ({
   page,
 }, info) => {
   await installLayout(page);
@@ -30,15 +30,8 @@ test('the file preference for collapsible outline updates the right panel live a
   const history = await layoutHistory(page);
   await page.getByRole('button', { name: '折叠 Guide', exact: true }).click();
   await expect(tree.getByRole('treeitem')).toHaveCount(1);
-  await page.evaluate(async () => {
-    const host = window as TestWindow & {
-      __TAURI_INTERNALS__: { invoke(command: string, args: unknown): Promise<unknown> };
-    };
-    await host.__TAURI_INTERNALS__.invoke('put_application_preferences', {
-      expectedRevision: host.__desktopMock.applicationPreferences.revision,
-      change: { key: 'can_collapse_outline_panel', value: false },
-    });
-  });
+  await tree.click({ button: 'right' });
+  await page.getByRole('menuitemradio', { name: '平铺大纲', exact: true }).click();
   await expect(tree.getByRole('treeitem')).toHaveCount(3);
   await expect(tree.locator('.outline-disclosure')).toHaveCount(0);
   expect(await frame?.evaluate((element) => element.isConnected)).toBe(true);

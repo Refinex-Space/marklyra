@@ -151,18 +151,13 @@ for (const theme of ['github', 'night']) {
         ),
       )
       .toBe(2);
-    await settings(page)
-      .locator('[data-marklyra-preference="can_collapse_outline_panel"]')
-      .uncheck();
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            (window as TestWindow).__desktopMock.applicationPreferences.values
-              .can_collapse_outline_panel,
-        ),
-      )
-      .toBe(false);
+    await expect(
+      settings(page).locator('[data-marklyra-preference="can_collapse_outline_panel"]'),
+    ).toHaveCount(0);
+    await settings(page).getByRole('searchbox', { name: '搜索设置', exact: true }).fill('允许折叠');
+    await expect(settings(page).locator('.settings-page-heading p')).toHaveText(
+      '没有找到匹配的设置，请尝试其他关键词。',
+    );
     await settings(page).getByRole('searchbox', { name: '搜索设置', exact: true }).fill('启动');
     await expect(settings(page).locator('.settings-page-heading h1')).toHaveText('搜索结果');
     await expect(
@@ -201,7 +196,7 @@ for (const theme of ['github', 'night']) {
     ).toHaveValue('2');
     await expect(
       settings(page).locator('[data-marklyra-preference="can_collapse_outline_panel"]'),
-    ).not.toBeChecked();
+    ).toHaveCount(0);
     await settings(page).getByRole('button', { name: '返回应用', exact: true }).click();
     expect(errors).toEqual([]);
   });
@@ -218,7 +213,8 @@ test('return waits for the in-flight preference before restoring the document', 
   await page.evaluate(() => {
     Reflect.get(window, '__settingsSave').hold = true;
   });
-  await settings(page).locator('[data-marklyra-preference="can_collapse_outline_panel"]').uncheck();
+  await settings(page).getByRole('button', { name: '通用', exact: true }).click();
+  await settings(page).locator('[data-marklyra-preference="quitAfterWindowClose"]').check();
   await expect
     .poll(() => page.evaluate(() => Reflect.get(window, '__settingsSave').pending))
     .toBe(1);
@@ -239,11 +235,9 @@ test('return waits for the in-flight preference before restoring the document', 
   await expect(page.locator('.preferences-page')).toHaveCount(0);
   expect(
     await page.evaluate(
-      () =>
-        (window as TestWindow).__desktopMock.applicationPreferences.values
-          .can_collapse_outline_panel,
+      () => (window as TestWindow).__desktopMock.applicationPreferences.values.quitAfterWindowClose,
     ),
-  ).toBe(false);
+  ).toBe(true);
 });
 
 test('application Quit closes the settings page before running the document close flow', async ({
@@ -447,16 +441,16 @@ test('deferred preferences notify only after saving, refresh one toast and expir
   const notice = page.locator('.settings-effect-notice');
   await expect(ui.getByRole('button', { name: '返回应用', exact: true })).toBeVisible();
   await expect(notice).toHaveCount(0);
-  await ui.locator('[data-marklyra-preference="can_collapse_outline_panel"]').uncheck();
+  await ui.getByRole('button', { name: '通用', exact: true }).click();
+  await ui.locator('[data-marklyra-preference="quitAfterWindowClose"]').check();
   await expect
     .poll(() =>
       page.evaluate(
         () =>
-          (window as TestWindow).__desktopMock.applicationPreferences.values
-            .can_collapse_outline_panel,
+          (window as TestWindow).__desktopMock.applicationPreferences.values.quitAfterWindowClose,
       ),
     )
-    .toBe(false);
+    .toBe(true);
   await expect(notice).toHaveCount(0);
   for (const category of ['编辑器', 'Markdown']) {
     await ui.getByRole('button', { name: category, exact: true }).click();

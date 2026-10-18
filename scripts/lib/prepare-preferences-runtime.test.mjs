@@ -30,12 +30,12 @@ test('unknown or already transformed Preferences cannot acquire the settings bri
   );
 });
 
-test('verified AST edits isolate capability checks, change handler and local dictionaries only', async () => {
+test('verified AST edits isolate settings and remove the redundant outline group', async () => {
   const source = await readFile(resolve(input, sourcePath), 'utf8');
   const transformed = transformPreferencesSource(source);
   assert.equal(transformed.metadata.capabilityChecks, 26);
   assert.equal(transformed.metadata.bridgeCount, 1);
-  assert.equal(transformed.metadata.edits.length, 33);
+  assert.equal(transformed.metadata.edits.length, 34);
   assert.equal(transformed.metadata.originalSha256, preferencesResources[sourcePath]);
   let expected = source;
   for (const edit of [...transformed.metadata.edits].reverse())
@@ -44,6 +44,9 @@ test('verified AST edits isolate capability checks, change handler and local dic
   assert.equal(transformed.metadata.transformedSha256, digest(transformed.code));
   assert.ok(!transformed.code.includes('window.webkit'));
   assert.ok(!transformed.code.includes('../locales/'));
+  assert.ok(!transformed.code.includes('keyName:"can_collapse_outline_panel"'));
+  assert.ok(!transformed.code.includes('"Collapsible Outline on Left Panel"'));
+  assert.ok(transformed.code.includes('keyName:"save_file_on_switch"'));
   assert.doesNotThrow(() => new Script(transformed.code));
   assert.equal(
     digest(await readFile(resolve(input, sourcePath))),

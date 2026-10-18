@@ -69,8 +69,27 @@ export function transformPreferencesSource(source) {
     guards = [],
     changes = [],
     dictionaries = [],
-    debugDictionaries = [];
+    debugDictionaries = [],
+    outlineGroups = [];
   walk(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      member(node.callee) === 'p.a.createElement' &&
+      member(node.arguments[0]) === 'b.k' &&
+      node.arguments
+        .slice(2)
+        .some(
+          (child) =>
+            child.type === 'CallExpression' &&
+            child.arguments[1]?.type === 'ObjectExpression' &&
+            child.arguments[1].properties.some(
+              (property) =>
+                property.key?.name === 'keyName' &&
+                property.value?.value === 'can_collapse_outline_panel',
+            ),
+        )
+    )
+      outlineGroups.push(node);
     if (member(node) === 'window.webkit.messageHandlers._setting') bridges.push(node);
     if (member(node) === 'window.webkit') guards.push(node);
     if (node.type === 'Literal' && node.value === '../locales/')
@@ -115,9 +134,14 @@ export function transformPreferencesSource(source) {
     changes.length !== 1 ||
     dictionaries.length !== 1 ||
     debugDictionaries.length !== 1 ||
+    outlineGroups.length !== 1 ||
     edits.length !== 4
   )
     throw new Error('Unexpected original Preferences bridge/layout structure');
+  // Outline mode is configured in the Shell's context menu. Remove the whole
+  // original group so it leaves neither an empty card nor a settings search hit.
+  const outlineGroup = outlineGroups[0];
+  edits.push({ start: outlineGroup.start, end: outlineGroup.end, text: 'null' });
   const bridge = bridges[0];
   edits.push({ start: bridge.start, end: bridge.end, text: 'window.__MARKLYRA_SETTINGS_BRIDGE__' });
   for (const node of guards) {

@@ -160,7 +160,7 @@ function arrangeFileGroups(pane: Element) {
     { title: '启动与新建', keys: ['restoreWhenLaunch', 'defaultExtension'] },
     {
       title: '文档与记录',
-      keys: ['can_collapse_outline_panel', 'save_file_on_switch', 'noRecentFiles'],
+      keys: ['save_file_on_switch', 'noRecentFiles'],
     },
     { title: '拖放行为', keys: ['actionWhenDropFolder'] },
   ];
