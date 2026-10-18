@@ -39,6 +39,11 @@ export class RuntimeFindPanel {
     if (visible) root.setProperty('--marklyra-notification-top', `${rect.bottom}px`);
     else root.removeProperty('--marklyra-notification-top');
     const notification = this.notification;
+    const message = notification?.querySelector('#md-notification');
+    const body = message?.querySelector('.ty-enter-mode-warning-body');
+    const compact = Boolean(body && !body.textContent?.trim());
+    if (message && message.hasAttribute('data-marklyra-compact-hint') !== compact)
+      message.toggleAttribute('data-marklyra-compact-hint', compact);
     const notice = notification?.getBoundingClientRect();
     const showNotice =
       notification &&

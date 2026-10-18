@@ -1317,6 +1317,11 @@ async function ready() {
     #md-notification label:has(#ty-suppress-mode-warning-input){display:inline-flex;align-items:center;white-space:nowrap;margin:0!important;gap:6px}
     #ty-suppress-mode-warning-input{margin:0!important}
     #ty-suppress-mode-warning-close-btn{float:none!important;margin-top:0!important}
+    .ty-show-notification #md-notification[data-marklyra-compact-hint]{display:flex!important;align-items:center;gap:16px}
+    #md-notification[data-marklyra-compact-hint]:before{top:50%!important;transform:translateY(-50%);line-height:1}
+    #md-notification[data-marklyra-compact-hint] .ty-enter-mode-warning-header{flex:1;min-width:0;margin:0!important}
+    #md-notification[data-marklyra-compact-hint] > div:has(#ty-suppress-mode-warning-input){flex:0 0 auto;padding-left:0!important}
+    #md-notification[data-marklyra-compact-hint] .ty-enter-mode-warning-body{display:none}
   `;
   document.head.append(noticeStyle);
   // Install query guards outside tracking's Source replace-all proof wrapper.

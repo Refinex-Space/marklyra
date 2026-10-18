@@ -79,17 +79,30 @@ for (const theme of layoutThemes) {
           ?.querySelector('#ty-suppress-mode-warning-input')
           ?.getBoundingClientRect();
         if (!close || !checkbox) throw Error('Missing hint actions');
+        if (!notice) throw Error('Missing hint');
+        const bar = notice.getBoundingClientRect();
+        const title = element.getBoundingClientRect();
+        const bell = getComputedStyle(notice, '::before');
         return {
           textLeft: Math.min(...boxes.map((box) => box.left)),
           textRight: Math.max(...boxes.map((box) => box.right)),
           right: innerWidth - close.right,
           order: checkbox.right < close.left,
+          height: bar.height,
+          titleCenter: title.top + title.height / 2,
+          actionCenter: close.top + close.height / 2,
+          bellCenter: bar.top + Number.parseFloat(bell.top),
+          bellTransform: bell.transform,
         };
       });
       expect(geometry.textLeft).toBeGreaterThanOrEqual(0);
       expect(geometry.textRight).toBeLessThanOrEqual(width);
       expect(geometry.right).toBeLessThanOrEqual(24);
       expect(geometry.order).toBe(true);
+      expect(geometry.height).toBeLessThanOrEqual(50);
+      expect(Math.abs(geometry.titleCenter - geometry.actionCenter)).toBeLessThanOrEqual(1);
+      expect(geometry.bellTransform).not.toBe('none');
+      expect(Math.abs(geometry.titleCenter - geometry.bellCenter)).toBeLessThanOrEqual(1);
       const closeBox = await close.boundingBox();
       if (!closeBox) throw Error('Missing close button');
       const hit = await page.evaluate(
