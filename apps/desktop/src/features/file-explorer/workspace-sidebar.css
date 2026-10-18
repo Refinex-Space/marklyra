@@ -497,9 +497,12 @@
   margin-left: 8px;
 }
 .workspace-sidebar-compact .workspace-tree-row {
-  display: block;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
   border-radius: 0;
   height: auto;
+  min-height: var(--workspace-row-height);
   width: calc(100% - 8px);
   margin-left: 8px;
   line-height: 22px;
@@ -525,7 +528,7 @@
   position: relative;
 }
 .workspace-sidebar-compact .workspace-tree-disclosure {
-  float: left;
+  flex: 0 0 8px;
   width: 8px;
   min-height: 22px;
   line-height: var(--marklyra-tree-icon-line-height, 22px);
@@ -543,6 +546,7 @@
 }
 /* Slight gap between the disclosure triangle slot and the entry icon. */
 .workspace-sidebar-compact .workspace-tree-row > .workspace-glyph {
+  float: none;
   margin-left: 2px;
 }
 .workspace-sidebar-compact .workspace-tree-row:hover::before {
@@ -563,11 +567,12 @@
   box-shadow: inset 4px 0 var(--workspace-active-border);
 }
 .workspace-sidebar-compact .workspace-tree-name {
-  display: inline-block;
-  max-width: calc(100% - 25px);
+  display: block;
+  flex: 1;
+  max-width: none;
   height: 22px;
   line-height: 22px;
-  text-overflow: clip;
+  text-overflow: ellipsis;
 }
 .workspace-root-row {
   display: flex;
