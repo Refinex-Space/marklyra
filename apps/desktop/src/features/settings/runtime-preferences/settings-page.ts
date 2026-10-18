@@ -215,7 +215,10 @@ function arrangeHints(pane: ParentNode) {
     hint.style.top = `${anchor.top - origin.top + (anchor.height - 16) / 2}px`;
     if (!hint.hasAttribute('tabindex')) {
       hint.tabIndex = 0;
-      hint.setAttribute('aria-label', hint.getAttribute('hint') || '查看说明');
+      hint.setAttribute(
+        'aria-label',
+        imageUrlHelp(hint) || hint.getAttribute('hint') || '查看说明',
+      );
     }
   }
 }
@@ -254,6 +257,16 @@ function arrangeIndentControls(pane: Element) {
   }
 }
 
+function imageUrlHelp(hint: HTMLElement) {
+  if (!hint.closest('.checkbox')?.querySelector('[data-marklyra-preference="autoEscapeImageURL"]'))
+    return null;
+  return (
+    'URL 转义会对空格、中文等字符进行编码。\n' +
+    '例如，img/example file.png 会转为 img/example%20file.png，其中 %20 表示空格。\n' +
+    '开启后与其他 Markdown 引擎的兼容性更好；关闭后路径更易阅读。'
+  );
+}
+
 function positionHelpTooltips() {
   const tooltip = document.getElementById('ty-tooltip');
   if (!tooltip) return;
@@ -262,6 +275,8 @@ function positionHelpTooltips() {
   const position = () => {
     frame = 0;
     if (!anchor?.isConnected || !tooltip.classList.contains('shown')) return;
+    const description = imageUrlHelp(anchor);
+    if (description && tooltip.textContent !== description) tooltip.textContent = description;
     const target = anchor.getBoundingClientRect();
     // The original tooltip writes both left and right; clear its old right edge
     // before measuring, otherwise repositioning can squeeze the text to one column.

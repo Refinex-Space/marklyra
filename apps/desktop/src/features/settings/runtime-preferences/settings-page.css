@@ -728,8 +728,9 @@ html[data-settings-dark="true"] {
   }
 }
 [data-settings-page] .ty-tooltip {
+  display: block;
   max-width: 300px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid var(--settings-line);
   border-radius: 7px;
   background: var(--settings-bg);
@@ -739,6 +740,10 @@ html[data-settings-dark="true"] {
   box-shadow: 0 2px 6px #00000014;
   font-size: 12px;
   line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-overflow: clip;
 }
 
 [data-settings-page] .label-input-group,
