@@ -660,6 +660,73 @@ html[data-settings-dark="true"] {
   padding: 8px 12px !important;
   background: var(--settings-input);
 }
+[data-settings-page] .settings-indent-group .label-input-group tr {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+}
+[data-settings-page] .settings-indent-group .label-input-group td {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 14px 0;
+  text-align: left;
+}
+[data-settings-page] .settings-indent-group td:first-child > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+[data-settings-page] .settings-indent-group .settings-indent-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto !important;
+}
+[data-settings-page] .settings-indent-group select {
+  width: 64px;
+  height: 30px;
+  min-height: 30px;
+  padding: 4px 8px;
+}
+[data-settings-page] .settings-indent-group .checkbox {
+  display: flex;
+  align-items: center;
+  margin: 0 !important;
+}
+[data-settings-page] .settings-indent-group .checkbox > label {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  font-weight: 400;
+}
+[data-settings-page] .settings-indent-group .checkbox input[type="checkbox"] {
+  flex: none;
+  top: auto;
+  margin: 0;
+}
+[data-settings-page] .settings-indent-label {
+  white-space: nowrap;
+}
+[data-settings-page] .settings-indent-group td > div:has(> pre) {
+  margin: 0 !important;
+  overflow-x: auto;
+}
+@media (max-width: 1050px) {
+  [data-settings-page] .settings-indent-group .label-input-group tr {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  [data-settings-page] .settings-indent-group .label-input-group td + td {
+    padding-top: 0;
+  }
+}
 [data-settings-page] .ty-tooltip {
   max-width: 300px;
   padding: 8px 10px;

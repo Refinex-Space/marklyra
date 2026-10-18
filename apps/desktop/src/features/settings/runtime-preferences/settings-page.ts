@@ -115,6 +115,7 @@ export function setupSettingsPage(close: () => void, fileTypes?: FileTypePageCon
     arrangeFileGroups(pane);
     if (fileTypes) renderFileTypes(pane, fileTypes);
     arrangeEditingGroups(pane);
+    arrangeIndentControls(pane);
     pane
       .querySelector('[data-marklyra-preference="zoomFactor"]')
       ?.closest('tr')
@@ -231,6 +232,26 @@ function arrangeEditingGroups(pane: Element) {
     group.classList.toggle('settings-card-end', index === keys.length - 1);
     group.dataset.sectionTitle = '输入与编辑';
   });
+}
+
+function arrangeIndentControls(pane: Element) {
+  for (const select of pane.querySelectorAll<HTMLSelectElement>(
+    'select[data-marklyra-preference="indentSize"]',
+  )) {
+    const group = select.closest('.input-group');
+    const cell = select.parentElement;
+    if (!group || !cell) continue;
+    group.classList.add('settings-indent-group');
+    cell.classList.add('settings-indent-size');
+    select.setAttribute('aria-label', '缩进宽度');
+    if (!cell.querySelector('.settings-indent-label')) {
+      const label = document.createElement('span');
+      label.className = 'settings-indent-label';
+      label.textContent = '缩进宽度';
+      label.setAttribute('aria-hidden', 'true');
+      cell.prepend(label);
+    }
+  }
 }
 
 function positionHelpTooltips() {
