@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { TestWindow } from './desktop.helpers.js';
 import { emitLayoutMenu, installLayout, readyLayout } from './layout.helpers.js';
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: recent-history help explains recording and clearing instead of displaying a URL`, async ({
     page,
   }, info) => {

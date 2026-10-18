@@ -23,7 +23,13 @@ fn get(host: &ThemeHost, token: &str, path: &str) -> Response<Vec<u8>> {
 
 #[test]
 fn ids_preserve_unicode_and_dots_but_reject_cross_platform_unsafe_names() {
-    for valid in ["github", "中文", "my.theme-v2_好", "a..b", "prn-theme"] {
+    for valid in [
+        "marklyra-light",
+        "中文",
+        "my.theme-v2_好",
+        "a..b",
+        "prn-theme",
+    ] {
         assert!(valid_theme_id(valid), "{valid}");
     }
     for invalid in [
@@ -59,9 +65,9 @@ fn ids_preserve_unicode_and_dots_but_reject_cross_platform_unsafe_names() {
 fn own_folder_catalog_always_contains_builtins_and_excludes_override_files() {
     let (directory, host) = setup();
     write(directory.path(), "中文.dark.css", b"body{}");
-    write(directory.path(), "github.css", b"body{color:red}");
+    write(directory.path(), "marklyra-light.css", b"body{color:red}");
     write(directory.path(), "base.user.css", b"body{}");
-    write(directory.path(), "github.user.css", b"body{}");
+    write(directory.path(), "marklyra-light.user.css", b"body{}");
     write(directory.path(), ".hidden.css", b"body{}");
     write(directory.path(), "ignore.txt", b"text");
     let result = host.catalog(directory.path()).unwrap();
@@ -69,20 +75,24 @@ fn own_folder_catalog_always_contains_builtins_and_excludes_override_files() {
         result.folder_path,
         directory.path().join("themes").to_str().unwrap()
     );
-    assert_eq!(result.themes.len(), 7);
+    assert_eq!(result.themes.len(), 3);
     assert!(
         result
             .themes
             .iter()
-            .find(|theme| theme.id == "github")
+            .find(|theme| theme.id == "marklyra-light")
             .unwrap()
             .builtin
     );
     assert_eq!(result.themes.last().unwrap().id, "中文.dark");
     assert!(!result.themes.last().unwrap().builtin);
-    let selected = prepare(&host, directory.path(), "github", 1);
-    assert_eq!(selected.theme, "github");
-    assert!(selected.styles.theme.unwrap().ends_with("/github.css"));
+    let selected = prepare(&host, directory.path(), "marklyra-light", 1);
+    assert_eq!(selected.theme, "marklyra-light");
+    assert!(selected
+        .styles
+        .theme
+        .unwrap()
+        .ends_with("/marklyra-light.css"));
     assert!(selected
         .styles
         .base_user
@@ -92,9 +102,9 @@ fn own_folder_catalog_always_contains_builtins_and_excludes_override_files() {
         .styles
         .theme_user
         .unwrap()
-        .ends_with("/github.user.css"));
+        .ends_with("/marklyra-light.user.css"));
     assert_eq!(
-        get(&host, &selected.token, "github.css").body(),
+        get(&host, &selected.token, "marklyra-light.css").body(),
         b"body{color:red}"
     );
 }
@@ -107,7 +117,7 @@ fn source_names_follow_mac_filter_without_rewriting_user_files() {
     write(directory.path(), "foo.CSS", b"skip upper suffix");
     write(directory.path(), "foo.css.bak", b"anchored safety check");
     let catalog = host.catalog(directory.path()).unwrap();
-    assert_eq!(catalog.themes.len(), 7);
+    assert_eq!(catalog.themes.len(), 3);
     assert_eq!(
         catalog
             .themes
@@ -123,15 +133,7 @@ fn source_names_follow_mac_filter_without_rewriting_user_files() {
             .iter()
             .map(|theme| theme.id.as_str())
             .collect::<Vec<_>>(),
-        [
-            "github",
-            "gothic",
-            "my-theme",
-            "newsprint",
-            "night",
-            "pixyll",
-            "whitey"
-        ]
+        ["marklyra-dark", "marklyra-light", "my-theme"]
     );
     assert_eq!(
         fs::read(directory.path().join("themes/MyTheme.css")).unwrap(),
@@ -139,9 +141,8 @@ fn source_names_follow_mac_filter_without_rewriting_user_files() {
     );
 }
 #[test]
-fn full_css_filename_order_matches_the_original_fourteen_item_mac_theme_menu() {
-    // Original native AX: private/evidence/theme-v19/native/theme-menu.ax.
-    // Insert base/dark variants out of order; all six built-ins are supplied by catalog.
+fn bundled_pair_and_user_themes_are_sorted_by_css_filename() {
+    // Insert user variants out of order; the two built-ins are supplied by catalog.
     let (directory, host) = setup();
     for id in [
         "vercel",
@@ -172,15 +173,11 @@ fn full_css_filename_order_matches_the_original_fourteen_item_mac_theme_menu() {
                 "Github Dark High Contrast",
                 false
             ),
-            ("github", "Github", true),
-            ("gothic", "Gothic", true),
             ("lapis-dark", "Lapis Dark", false),
             ("lapis", "Lapis", false),
-            ("newsprint", "Newsprint", true),
-            ("night", "Night", true),
-            ("pixyll", "Pixyll", true),
+            ("marklyra-dark", "MarkLyra Dark", true),
+            ("marklyra-light", "MarkLyra Light", true),
             ("vercel", "Vercel", false),
-            ("whitey", "Whitey", true),
         ]
     );
 }
@@ -189,7 +186,7 @@ fn custom_theme_urls_use_the_actual_source_filename_and_utf8_percent_encoding() 
     let (directory, host) = setup();
     write(directory.path(), "中文.theme.css", b"p{color:blue}");
     let result = prepare(&host, directory.path(), "中文.theme", 1);
-    assert_eq!(result.theme, "github");
+    assert_eq!(result.theme, "marklyra-light");
     assert!(result
         .styles
         .theme
@@ -204,9 +201,9 @@ fn custom_theme_urls_use_the_actual_source_filename_and_utf8_percent_encoding() 
 #[test]
 fn protocol_is_read_only_typed_scriptless_and_cross_window_revocable() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"a{}");
+    write(directory.path(), "marklyra-light.css", b"a{}");
     write(directory.path(), "font.woff2", b"font");
-    let result = prepare(&host, directory.path(), "github", 1);
+    let result = prepare(&host, directory.path(), "marklyra-light", 1);
     let font = get(&host, &result.token, "font.woff2");
     assert_eq!(font.status(), StatusCode::OK);
     assert_eq!(font.headers()[header::CONTENT_TYPE], "font/woff2");
@@ -245,14 +242,14 @@ fn protocol_is_read_only_typed_scriptless_and_cross_window_revocable() {
 #[test]
 fn request_paths_do_not_escape_or_read_non_resource_types() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"");
+    write(directory.path(), "marklyra-light.css", b"");
     write(directory.path(), "source.js", b"secret");
     write(directory.path(), "image.svg", b"<svg/>");
-    let result = prepare(&host, directory.path(), "github", 1);
+    let result = prepare(&host, directory.path(), "marklyra-light", 1);
     for path in [
         "../secret.css",
-        "nested/../github.css",
-        "/github.css",
+        "nested/../marklyra-light.css",
+        "/marklyra-light.css",
         "a\\b.css",
         "a:b.css",
         "%2e%2e/secret.css",
@@ -278,20 +275,20 @@ fn request_paths_do_not_escape_or_read_non_resource_types() {
 #[test]
 fn cached_resources_are_stable_per_generation_and_new_load_sees_user_edits() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"old");
-    let old = prepare(&host, directory.path(), "github", 1);
+    write(directory.path(), "marklyra-light.css", b"old");
+    let old = prepare(&host, directory.path(), "marklyra-light", 1);
     host.accept_styles("main", &old.token).unwrap();
-    write(directory.path(), "github.css", b"new");
-    assert_eq!(get(&host, &old.token, "github.css").body(), b"old");
-    let new = prepare(&host, directory.path(), "github", 2);
-    assert_eq!(get(&host, &new.token, "github.css").body(), b"new");
+    write(directory.path(), "marklyra-light.css", b"new");
+    assert_eq!(get(&host, &old.token, "marklyra-light.css").body(), b"old");
+    let new = prepare(&host, directory.path(), "marklyra-light", 2);
+    assert_eq!(get(&host, &new.token, "marklyra-light.css").body(), b"new");
     assert_eq!(
-        get(&host, &old.token, "github.css").status(),
+        get(&host, &old.token, "marklyra-light.css").status(),
         StatusCode::OK
     );
     host.accept_styles("main", &new.token).unwrap();
     assert_eq!(
-        get(&host, &old.token, "github.css").status(),
+        get(&host, &old.token, "marklyra-light.css").status(),
         StatusCode::NOT_FOUND
     );
     assert!(host.accept_styles("main", &old.token).is_err());
@@ -303,47 +300,53 @@ fn active_theme_reports_the_accepted_actual_id_and_clears_only_the_closed_owner(
     write(directory.path(), "custom.css", b"body{}");
     assert_eq!(host.active_theme("main"), None);
     let custom = prepare(&host, directory.path(), "custom", 1);
-    assert_eq!(custom.theme, "github");
+    assert_eq!(custom.theme, "marklyra-light");
     assert_eq!(host.active_theme("main"), None);
     host.accept_styles("main", &custom.token).unwrap();
     assert_eq!(host.active_theme("main").as_deref(), Some("custom"));
-    let pending = prepare(&host, directory.path(), "night", 2);
+    let pending = prepare(&host, directory.path(), "marklyra-dark", 2);
     assert!(host.accept_styles("main", "unknown").is_err());
     assert_eq!(host.active_theme("main").as_deref(), Some("custom"));
     let other = host
         .prepare_styles(
             host.begin_load("editor-other", 1).unwrap(),
-            "whitey",
+            "marklyra-light",
             directory.path(),
         )
         .unwrap();
     host.accept_styles("editor-other", &other.token).unwrap();
     host.accept_styles("main", &pending.token).unwrap();
-    assert_eq!(host.active_theme("main").as_deref(), Some("night"));
+    assert_eq!(host.active_theme("main").as_deref(), Some("marklyra-dark"));
     host.release_window("main");
     assert_eq!(host.active_theme("main"), None);
-    assert_eq!(host.active_theme("editor-other").as_deref(), Some("whitey"));
+    assert_eq!(
+        host.active_theme("editor-other").as_deref(),
+        Some("marklyra-light")
+    );
 }
 #[test]
 fn rapid_prepares_failures_and_late_completion_cannot_revoke_the_active_theme() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"active");
-    let active = prepare(&host, directory.path(), "github", 1);
+    write(directory.path(), "marklyra-light.css", b"active");
+    let active = prepare(&host, directory.path(), "marklyra-light", 1);
     host.accept_styles("main", &active.token).unwrap();
-    let pending = prepare(&host, directory.path(), "github", 2);
+    let pending = prepare(&host, directory.path(), "marklyra-light", 2);
     let late = host.begin_load("main", 3).unwrap();
     let latest = host.begin_load("main", 4).unwrap();
     assert!(host
-        .prepare_styles(late, "github", directory.path())
+        .prepare_styles(late, "marklyra-light", directory.path())
         .is_err());
     assert!(host
         .prepare_styles(latest, "missing", directory.path())
         .is_err());
     assert_eq!(
-        get(&host, &pending.token, "github.css").status(),
+        get(&host, &pending.token, "marklyra-light.css").status(),
         StatusCode::NOT_FOUND
     );
-    assert_eq!(get(&host, &active.token, "github.css").body(), b"active");
+    assert_eq!(
+        get(&host, &active.token, "marklyra-light.css").body(),
+        b"active"
+    );
     assert!(host.begin_load("main", 4).is_err());
     assert!(host.begin_load("main", 0).is_err());
     assert!(host.begin_load("main", MAX_SAFE_INTEGER + 1).is_err());
@@ -356,9 +359,9 @@ fn closed_window_generation_cannot_install_after_reregistering_the_same_label() 
     host.release_window("main");
     host.register_window("main").unwrap();
     assert!(host
-        .prepare_styles(request, "github", directory.path())
+        .prepare_styles(request, "marklyra-light", directory.path())
         .is_err());
-    let current = prepare(&host, directory.path(), "github", 1);
+    let current = prepare(&host, directory.path(), "marklyra-light", 1);
     host.accept_styles("main", &current.token).unwrap();
     host.register_window("main").unwrap();
     assert!(host.begin_load("main", 1).is_err());
@@ -370,21 +373,21 @@ fn closed_window_generation_cannot_install_after_reregistering_the_same_label() 
 #[test]
 fn css_limits_invalid_encoding_and_catalog_scan_limit_are_explicit() {
     let (directory, host) = setup();
-    let active = prepare(&host, directory.path(), "github", 1);
+    let active = prepare(&host, directory.path(), "marklyra-light", 1);
     host.accept_styles("main", &active.token).unwrap();
-    write(directory.path(), "github.css", b"\xff");
+    write(directory.path(), "marklyra-light.css", b"\xff");
     let request = host.begin_load("main", 2).unwrap();
     assert!(host
-        .prepare_styles(request, "github", directory.path())
+        .prepare_styles(request, "marklyra-light", directory.path())
         .unwrap_err()
         .contains("UTF-8"));
-    fs::File::create(directory.path().join("themes/github.css"))
+    fs::File::create(directory.path().join("themes/marklyra-light.css"))
         .unwrap()
         .set_len(MAX_CSS_BYTES as u64 + 1)
         .unwrap();
     let request = host.begin_load("main", 3).unwrap();
     assert!(host
-        .prepare_styles(request, "github", directory.path())
+        .prepare_styles(request, "marklyra-light", directory.path())
         .is_err());
     assert!(host.accept_styles("main", &active.token).is_ok());
     for index in 0..MAX_CATALOG_ENTRIES {
@@ -395,13 +398,13 @@ fn css_limits_invalid_encoding_and_catalog_scan_limit_are_explicit() {
 #[test]
 fn per_resource_and_cache_budgets_are_bounded_and_released_with_the_window() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"");
+    write(directory.path(), "marklyra-light.css", b"");
     let path = directory.path().join("themes/large.woff2");
     fs::File::create(&path)
         .unwrap()
         .set_len(MAX_ASSET_BYTES as u64 + 1)
         .unwrap();
-    let result = prepare(&host, directory.path(), "github", 1);
+    let result = prepare(&host, directory.path(), "marklyra-light", 1);
     assert_eq!(
         get(&host, &result.token, "large.woff2").status(),
         StatusCode::PAYLOAD_TOO_LARGE
@@ -427,7 +430,7 @@ fn per_resource_and_cache_budgets_are_bounded_and_released_with_the_window() {
 #[test]
 fn global_cache_limit_counts_active_and_pending_generations_without_evicting_active() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"");
+    write(directory.path(), "marklyra-light.css", b"");
     fs::File::create(directory.path().join("themes/font.woff2"))
         .unwrap()
         .set_len(MAX_ASSET_BYTES as u64)
@@ -438,7 +441,7 @@ fn global_cache_limit_counts_active_and_pending_generations_without_evicting_act
         for request_id in [1, 2] {
             let request = host.begin_load(owner, request_id).unwrap();
             let result = host
-                .prepare_styles(request, "github", directory.path())
+                .prepare_styles(request, "marklyra-light", directory.path())
                 .unwrap();
             assert_eq!(
                 resource_response(&host, owner, &result.token, "font.woff2", &Method::GET).status(),
@@ -456,7 +459,7 @@ fn global_cache_limit_counts_active_and_pending_generations_without_evicting_act
     host.register_window("editor-extra").unwrap();
     let request = host.begin_load("editor-extra", 1).unwrap();
     let extra = host
-        .prepare_styles(request, "github", directory.path())
+        .prepare_styles(request, "marklyra-light", directory.path())
         .unwrap();
     assert_eq!(
         resource_response(
@@ -490,11 +493,11 @@ fn global_cache_limit_counts_active_and_pending_generations_without_evicting_act
 #[test]
 fn empty_resources_still_count_toward_the_lease_entry_budget() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"");
+    write(directory.path(), "marklyra-light.css", b"");
     for index in 0..MAX_LEASE_ASSETS {
         write(directory.path(), &format!("{index}.png"), b"");
     }
-    let result = prepare(&host, directory.path(), "github", 1);
+    let result = prepare(&host, directory.path(), "marklyra-light", 1);
     for index in 0..MAX_LEASE_ASSETS - 1 {
         assert_eq!(
             get(&host, &result.token, &format!("{index}.png")).status(),
@@ -516,13 +519,13 @@ fn empty_resources_still_count_toward_the_lease_entry_budget() {
 #[test]
 fn a_resource_request_already_waiting_on_the_old_lease_is_revoked_after_window_close() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"");
+    write(directory.path(), "marklyra-light.css", b"");
     write(
         directory.path(),
         "font.woff2",
         b"must not be delivered after close",
     );
-    let result = prepare(&host, directory.path(), "github", 1);
+    let result = prepare(&host, directory.path(), "marklyra-light", 1);
     let lease = host.lease("main", &result.token).unwrap();
     let guard = lease.assets.lock().unwrap();
     let worker_host = host.clone();
@@ -560,8 +563,8 @@ fn symlinked_files_parents_and_theme_root_are_refused() {
         directory.path().join("themes/font.woff2"),
     )
     .unwrap();
-    assert_eq!(host.catalog(directory.path()).unwrap().themes.len(), 6);
-    let result = prepare(&host, directory.path(), "github", 1);
+    assert_eq!(host.catalog(directory.path()).unwrap().themes.len(), 2);
+    let result = prepare(&host, directory.path(), "marklyra-light", 1);
     for path in ["leak.css", "assets/font.woff2", "font.woff2"] {
         assert_eq!(
             get(&host, &result.token, path).status(),
@@ -575,7 +578,7 @@ fn symlinked_files_parents_and_theme_root_are_refused() {
     .unwrap();
     let request = host.begin_load("main", 2).unwrap();
     assert!(host
-        .prepare_styles(request, "github", directory.path())
+        .prepare_styles(request, "marklyra-light", directory.path())
         .is_err());
     let config = tempfile::tempdir().unwrap();
     symlink(outside.path(), config.path().join("themes")).unwrap();
@@ -585,24 +588,27 @@ fn symlinked_files_parents_and_theme_root_are_refused() {
 #[test]
 fn renamed_root_keeps_its_capability_and_never_opens_the_replacement_ambient_path() {
     let (directory, host) = setup();
-    write(directory.path(), "github.css", b"old style");
+    write(directory.path(), "marklyra-light.css", b"old style");
     write(directory.path(), "assets/font.woff2", b"original font");
-    let result = prepare(&host, directory.path(), "github", 1);
+    let result = prepare(&host, directory.path(), "marklyra-light", 1);
     fs::rename(
         directory.path().join("themes"),
         directory.path().join("moved"),
     )
     .unwrap();
-    write(directory.path(), "github.css", b"replacement");
+    write(directory.path(), "marklyra-light.css", b"replacement");
     write(directory.path(), "assets/font.woff2", b"replacement font");
     assert_eq!(
         get(&host, &result.token, "assets/font.woff2").body(),
         b"original font"
     );
-    assert_eq!(get(&host, &result.token, "github.css").body(), b"old style");
-    let current = prepare(&host, directory.path(), "github", 2);
     assert_eq!(
-        get(&host, &current.token, "github.css").body(),
+        get(&host, &result.token, "marklyra-light.css").body(),
+        b"old style"
+    );
+    let current = prepare(&host, directory.path(), "marklyra-light", 2);
+    assert_eq!(
+        get(&host, &current.token, "marklyra-light.css").body(),
         b"old style"
     );
     assert!(host.folder_path(directory.path()).is_err());

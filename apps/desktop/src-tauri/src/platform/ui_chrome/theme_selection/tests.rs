@@ -399,12 +399,12 @@ fn actual_theme_leases() -> (
     let themes = crate::themes::ThemeHost::default();
     themes.register_window("main").unwrap();
     themes.catalog(config.path()).unwrap();
-    std::fs::write(config.path().join("themes/github.css"), b"old{}").unwrap();
+    std::fs::write(config.path().join("themes/marklyra-light.css"), b"old{}").unwrap();
     std::fs::write(config.path().join("themes/gothic.css"), b"new{}").unwrap();
     let old = themes
         .prepare_styles(
             themes.begin_load("main", 1).unwrap(),
-            "github",
+            "marklyra-light",
             config.path(),
         )
         .unwrap();
@@ -444,7 +444,7 @@ fn preferences_receives_success_only_after_the_real_theme_host_accepts_the_pendi
             &themes,
             "main",
             &old.token,
-            "github.css",
+            "marklyra-light.css",
             &tauri::http::Method::GET
         )
         .status(),
@@ -487,7 +487,7 @@ fn expired_preferences_completion_does_not_accept_resources_or_destroy_the_old_a
             &themes,
             "main",
             &old.token,
-            "github.css",
+            "marklyra-light.css",
             &tauri::http::Method::GET
         )
         .status(),

@@ -10,25 +10,30 @@ describe('export preference receipts', () => {
     ipc.invoke.mockReset();
   });
   it('requires the exact complete changed object and next revision', async () => {
-    const snapshot = { schemaVersion: 1, revision: 4, html: { exportTheme: 'night' }, pdf: {} };
+    const snapshot = {
+      schemaVersion: 1,
+      revision: 4,
+      html: { exportTheme: 'marklyra-dark' },
+      pdf: {},
+    };
     ipc.invoke.mockResolvedValue(snapshot);
     await expect(
-      exportPreferences.put(3, { key: 'export.html', value: { exportTheme: 'night' } }),
+      exportPreferences.put(3, { key: 'export.html', value: { exportTheme: 'marklyra-dark' } }),
     ).resolves.toEqual(snapshot);
     expect(ipc.invoke).toHaveBeenCalledWith('put_export_preferences', {
       expectedRevision: 3,
-      change: { key: 'export.html', value: { exportTheme: 'night' } },
+      change: { key: 'export.html', value: { exportTheme: 'marklyra-dark' } },
     });
   });
   it('does not retry ambiguous, stale or mismatching committed receipts', async () => {
     for (const receipt of [
-      { schemaVersion: 1, revision: 3, html: { exportTheme: 'night' }, pdf: {} },
-      { schemaVersion: 1, revision: 4, html: { exportTheme: 'github' }, pdf: {} },
+      { schemaVersion: 1, revision: 3, html: { exportTheme: 'marklyra-dark' }, pdf: {} },
+      { schemaVersion: 1, revision: 4, html: { exportTheme: 'marklyra-light' }, pdf: {} },
       { schemaVersion: 1, revision: 4, html: {}, pdf: {} },
     ]) {
       ipc.invoke.mockReset().mockResolvedValue(receipt);
       await expect(
-        exportPreferences.put(3, { key: 'export.html', value: { exportTheme: 'night' } }),
+        exportPreferences.put(3, { key: 'export.html', value: { exportTheme: 'marklyra-dark' } }),
       ).rejects.toThrow('不得重放');
       expect(ipc.invoke).toHaveBeenCalledTimes(1);
     }

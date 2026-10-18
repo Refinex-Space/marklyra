@@ -27,7 +27,7 @@ test('preferences restore theme and toolbar visibility after reload without chan
 }) => {
   await page.getByRole('button', { name: '偏好设置' }).click();
   const panel = page.getByRole('dialog', { name: '偏好设置' });
-  await panel.getByLabel('主题', { exact: true }).selectOption('night');
+  await panel.getByLabel('主题', { exact: true }).selectOption('marklyra-dark');
   await panel.getByLabel('显示格式工具栏').uncheck();
   await panel.getByLabel('状态栏主要单位').selectOption('characters');
   await panel.getByLabel('阅读速度（词 / 分钟）').fill('240');
@@ -43,7 +43,7 @@ test('preferences restore theme and toolbar visibility after reload without chan
   await page.reload();
   await expect(page.getByRole('button', { name: '打开', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: '偏好设置' }).click();
-  await expect(panel.getByLabel('主题', { exact: true })).toHaveValue('night');
+  await expect(panel.getByLabel('主题', { exact: true })).toHaveValue('marklyra-dark');
   await expect(panel.getByLabel('显示格式工具栏')).not.toBeChecked();
   await expect(panel.getByLabel('阅读速度（词 / 分钟）')).toHaveValue('240');
   await expect(panel.getByLabel('状态栏主要单位')).toHaveValue('characters');

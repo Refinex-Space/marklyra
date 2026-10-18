@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { emitLayoutMenu, installLayout, readyLayout } from './layout.helpers.js';
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: settings details stay aligned through focus, hover and custom controls`, async ({
     page,
   }, info) => {
@@ -64,8 +64,10 @@ for (const theme of ['github', 'night']) {
       paint: getComputedStyle(el, '::before').backgroundImage,
       line: getComputedStyle(el).getPropertyValue('--settings-page-line').trim(),
     }));
-    expect(band.line).toBe(theme === 'night' ? '#3b3e44' : '#e8e9eb');
-    expect(band.paint).toContain(theme === 'night' ? 'rgb(59, 62, 68)' : 'rgb(232, 233, 235)');
+    expect(band.line).toBe(theme === 'marklyra-dark' ? '#30363d' : '#e8e9eb');
+    expect(band.paint).toContain(
+      theme === 'marklyra-dark' ? 'rgb(48, 54, 61)' : 'rgb(232, 233, 235)',
+    );
     await ui.getByRole('button', { name: 'Markdown', exact: true }).click();
     await expect(ui.locator('.content:not(.display-none) .input-group-header a')).toHaveCount(0);
     await ui.getByRole('button', { name: '外观', exact: true }).click();

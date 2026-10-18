@@ -349,7 +349,7 @@ test('inline preferences synchronize typed changes and restore editor commands o
         imageStorageFolder: '${filename}.assets',
       }),
     );
-    localStorage.setItem('marklyra-theme', 'night');
+    localStorage.setItem('marklyra-theme', 'marklyra-dark');
     (window as TestWindow).__desktopMock.emitEvent('preferences-changed', null);
   });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');

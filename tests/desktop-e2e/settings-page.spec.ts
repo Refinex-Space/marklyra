@@ -93,7 +93,7 @@ const source =
 const settings = (page: import('@playwright/test').Page) =>
   page.frameLocator('.runtime-preferences-frame');
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: settings use the main window, centered groups and return to the unchanged editor`, async ({
     page,
   }, info) => {
@@ -122,7 +122,7 @@ for (const theme of ['github', 'night']) {
     const settingsFrame = await page.locator('.runtime-preferences-frame').elementHandle();
     await expect(settings(page).locator('html')).toHaveAttribute(
       'data-settings-dark',
-      String(theme === 'night'),
+      String(theme === 'marklyra-dark'),
     );
     const geometry = await settings(page)
       .locator('.pane')
@@ -206,7 +206,7 @@ test('editor settings omit the unsupported exit-mode row and preserve caret pref
   page,
 }, info) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   const editor = page.frameLocator('.runtime-area iframe');
   const iframe = await page.locator('.runtime-area iframe').elementHandle();
@@ -267,7 +267,7 @@ test('return waits for the in-flight preference before restoring the document', 
 }) => {
   await installLayout(page);
   await page.addInitScript(settingsMock);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await emitLayoutMenu(page, 'preferences');
   await expect(settings(page).getByRole('button', { name: '返回应用', exact: true })).toBeVisible();
   await page.evaluate(() => {
@@ -305,7 +305,7 @@ test('application Quit closes the settings page before running the document clos
 }) => {
   await installLayout(page);
   await page.addInitScript(settingsMock);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await emitLayoutMenu(page, 'preferences');
   await expect(settings(page).getByRole('button', { name: '返回应用', exact: true })).toBeVisible();
   await page.evaluate(() =>
@@ -336,7 +336,7 @@ test('application Quit closes the settings page before running the document clos
 test('keyboard return commits a valid text field that has not blurred yet', async ({ page }) => {
   await installLayout(page);
   await page.addInitScript(settingsMock);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await emitLayoutMenu(page, 'preferences');
   const ui = settings(page);
   await ui.locator('select[data-marklyra-preference="defaultExtension"]').selectOption('custom');
@@ -355,7 +355,7 @@ test('a settings frame that has not initialized can still return to the document
   page,
 }) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   let release: (() => void) | undefined;
   const gate = new Promise<void>((resolve) => {
     release = resolve;
@@ -377,7 +377,7 @@ test('a settings frame that has not initialized can still return to the document
 
 test('settings search updates its empty state as the query changes', async ({ page }) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await emitLayoutMenu(page, 'preferences');
   const ui = settings(page);
   const search = ui.getByRole('searchbox', { name: '搜索设置', exact: true });
@@ -394,7 +394,7 @@ test('inline theme and Markdown settings complete through the existing editor wi
 }, info) => {
   await installLayout(page);
   await page.addInitScript(settingsMock);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   const raw = '\uFEFFAlpha\r\n\r\nKeep  \n';
   await page.evaluate((text) => {
     const mock = (window as TestWindow).__desktopMock;
@@ -407,8 +407,8 @@ test('inline theme and Markdown settings complete through the existing editor wi
   await emitLayoutMenu(page, 'preferences');
   const ui = settings(page);
   await ui.locator('.nav-group-item').nth(5).click();
-  await ui.locator('[data-marklyra-preference="theme"]').selectOption('night.css');
-  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'night');
+  await ui.locator('[data-marklyra-preference="theme"]').selectOption('marklyra-dark.css');
+  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'marklyra-dark');
   await expect(ui.locator('html')).toHaveAttribute('data-settings-dark', 'true');
   await ui.locator('.nav-group-item').nth(3).click();
   await ui.locator('[data-marklyra-preference="heading_style"]').selectOption('3');
@@ -433,7 +433,7 @@ test('settings sidebar resizes live and keeps help beside labels and controls al
   page,
 }, info) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await emitLayoutMenu(page, 'preferences');
   const frame = settings(page);
   await expect(frame.getByRole('button', { name: '返回应用', exact: true })).toBeVisible();
@@ -495,7 +495,7 @@ test('deferred preferences notify only after saving, refresh one toast and expir
 }, info) => {
   await installLayout(page);
   await page.addInitScript(settingsMock);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await emitLayoutMenu(page, 'preferences');
   const ui = settings(page);
   const notice = page.locator('.settings-effect-notice');
@@ -575,7 +575,7 @@ test('deferred preferences notify only after saving, refresh one toast and expir
 test('failed deferred preference saves do not announce success', async ({ page }) => {
   await installLayout(page);
   await page.addInitScript(settingsMock);
-  await readyLayout(page, 'night');
+  await readyLayout(page, 'marklyra-dark');
   await emitLayoutMenu(page, 'preferences');
   const ui = settings(page);
   await ui.getByRole('button', { name: 'Markdown', exact: true }).click();

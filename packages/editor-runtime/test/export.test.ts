@@ -12,8 +12,16 @@ describe('self-contained HTML export boundary', () => {
   it('only accepts the finite public options and defaults to styled', () => {
     expect(exportOptions()).toEqual({ styled: true });
     expect(
-      exportOptions({ title: '<script>as literal title</script>', styled: false, theme: 'night' }),
-    ).toEqual({ title: '<script>as literal title</script>', styled: false, theme: 'night' });
+      exportOptions({
+        title: '<script>as literal title</script>',
+        styled: false,
+        theme: 'marklyra-dark',
+      }),
+    ).toEqual({
+      title: '<script>as literal title</script>',
+      styled: false,
+      theme: 'marklyra-dark',
+    });
     for (const value of [
       { runCommand: 'echo unsafe' },
       { path: '/private/file' },
@@ -64,7 +72,7 @@ describe('self-contained HTML export boundary', () => {
     ).toBe(false);
   });
   it('only resolves font files inside bundled theme resources', () => {
-    const base = 'http://127.0.0.1:4174/style/themes/github.css',
+    const base = 'http://127.0.0.1:4174/style/themes/marklyra-light.css',
       runtime = 'http://127.0.0.1:4174/index.html';
     expect(bundledFontUrl('./github/a.woff2', base, runtime)).toBe(
       'http://127.0.0.1:4174/style/themes/github/a.woff2',

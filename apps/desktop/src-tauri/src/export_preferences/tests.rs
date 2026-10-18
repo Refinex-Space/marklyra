@@ -38,7 +38,7 @@ fn cas_persists_only_confirmed_objects_and_preserves_other_format() {
         .apply(
             0,
             Change::Html(HtmlSettings {
-                export_theme: Some("night".into()),
+                export_theme: Some("marklyra-dark".into()),
             }),
         )
         .unwrap();
@@ -87,8 +87,7 @@ fn corrupt_snapshot_is_rejected_without_reset() {
 
 #[test]
 fn old_schema_records_preserve_existing_values_and_add_only_absent_image_defaults() {
-    let old =
-        r#"{"schemaVersion":1,"revision":7,"html":{"exportTheme":"night"},"pdf":{"paper":"A5"}}"#;
+    let old = r#"{"schemaVersion":1,"revision":7,"html":{"exportTheme":"marklyra-dark"},"pdf":{"paper":"A5"}}"#;
     let mut snapshot: Snapshot = serde_json::from_str(old).unwrap();
     snapshot.validate().unwrap();
     assert_eq!(snapshot.image, ImageSettings::default());
@@ -123,4 +122,18 @@ fn old_schema_records_preserve_existing_values_and_add_only_absent_image_default
         r#"{"key":"export.image","value":{"runCommand":true}}"#
     )
     .is_err());
+}
+
+#[test]
+fn retired_export_themes_resolve_to_the_branded_pair_on_read() {
+    for (old, current) in [
+        ("github", "marklyra-light"),
+        ("gothic", "marklyra-light"),
+        ("night", "marklyra-dark"),
+    ] {
+        let value: HtmlSettings =
+            serde_json::from_value(serde_json::json!({"exportTheme": old})).unwrap();
+        assert_eq!(value.export_theme.as_deref(), Some(current));
+        value.validate().unwrap();
+    }
 }

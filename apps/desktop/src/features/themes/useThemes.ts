@@ -15,8 +15,10 @@ import {
   normalizeThemeId,
   persistThemeChoice,
   prepareThemeChoice,
+  resolveThemeId,
   rollbackThemeChoice,
   storedTheme,
+  type ThemeCatalog,
   type ThemeChoiceWrite,
   themeChoiceKey,
 } from './model.js';
@@ -47,15 +49,16 @@ export function useThemes(
   report: (message: string) => void,
   mode?: ThemeMode,
 ) {
+  const catalogRef = useRef<ThemeCatalog | null>(null);
   const modeRef = useRef(mode);
   modeRef.current = mode;
-  const effectiveStored = useCallback(
-    () =>
+  const effectiveStored = useCallback(() => {
+    const stored =
       modeRef.current?.separate && modeRef.current.systemDark
         ? modeRef.current.darkTheme
-        : storedTheme(),
-    [],
-  );
+        : storedTheme();
+    return catalogRef.current ? resolveThemeId(stored, catalogRef.current) : stored;
+  }, []);
   const [requested, setRequested] = useState<{
     theme: string;
     version: number;
@@ -85,7 +88,9 @@ export function useThemes(
       const next = ++version.current;
       const dark = !!(modeRef.current?.separate && modeRef.current.systemDark);
       const target = options.target ?? (dark ? 'dark' : 'normal');
-      const selected = normalizeThemeId(value);
+      const selected = catalogRef.current
+        ? resolveThemeId(normalizeThemeId(value), catalogRef.current)
+        : normalizeThemeId(value);
       const rendered = options.passive
         ? selected
         : target === 'dark'
@@ -132,7 +137,8 @@ export function useThemes(
   useEffect(() => {
     if (waiter.current && !waiter.current.passive) return;
     const desired = mode?.separate && mode.systemDark ? mode.darkTheme : storedTheme();
-    void selectAndWait(desired, { passive: true }).catch(() => {});
+    const resolved = catalogRef.current ? resolveThemeId(desired, catalogRef.current) : desired;
+    void selectAndWait(resolved, { passive: true }).catch(() => {});
   }, [mode?.separate, mode?.systemDark, mode?.darkTheme, selectAndWait]);
   const receiveAppearance = useCallback((value: ThemeAppearance) => {
     if (!applying.current) setAppearance(value);
@@ -175,12 +181,17 @@ export function useThemes(
     applying.current = true;
     setWorking(true);
     void (async () => {
-      const [nextCatalog, prepared] = await Promise.all([
-        themeFiles.catalog(),
-        themeFiles.prepare(theme, id),
-      ]);
+      const nextCatalog = await themeFiles.catalog();
       if (!current()) return;
+      catalogRef.current = nextCatalog;
       setCatalog(nextCatalog);
+      const resolved = resolveThemeId(theme, nextCatalog);
+      if (resolved !== theme) {
+        setRequested({ theme: resolved, version: requested.version });
+        return;
+      }
+      const prepared = await themeFiles.prepare(theme, id);
+      if (!current()) return;
       const skin = await instance.setThemeStyles(prepared.styles, prepared.theme, operation.signal);
       if (!current()) return;
       const loadedFonts = await instance.getThemeFonts();
@@ -303,7 +314,7 @@ export function useThemes(
     catalog,
     appearance,
     working,
-    dark: darkBackground(appearance['--marklyra-body-bg'], theme === 'night'),
+    dark: darkBackground(appearance['--marklyra-body-bg'], theme === 'marklyra-dark'),
     select,
     selectAndWait,
     reload,

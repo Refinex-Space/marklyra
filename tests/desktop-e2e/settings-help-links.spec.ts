@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { emitLayoutMenu, installLayout, readyLayout } from './layout.helpers.js';
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: every settings category omits Learn More links without empty hint spacing`, async ({
     page,
   }, info) => {

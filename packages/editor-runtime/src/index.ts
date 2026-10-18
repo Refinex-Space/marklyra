@@ -264,7 +264,7 @@ export class MarkLyraEditor {
     this.sourceBOM = options.configuration?.sourceBOM ?? 'metadata';
     if (this.sourceBOM !== 'metadata' && this.sourceBOM !== 'text')
       throw new TypeError('sourceBOM must be metadata or text');
-    this.activeTheme = options.configuration?.theme ?? 'github';
+    this.activeTheme = options.configuration?.theme ?? 'marklyra-light';
     this.images = new DocumentImages(
       options.host?.images,
       options.documentContext ?? null,
@@ -349,7 +349,7 @@ export class MarkLyraEditor {
     url.searchParams.set('markdown-preferences', JSON.stringify(this.activeMarkdownPreferences));
     url.searchParams.set('channel', this.channel);
     url.searchParams.set('locale', options.configuration?.locale ?? 'en');
-    url.searchParams.set('theme', options.configuration?.theme ?? 'github');
+    url.searchParams.set('theme', options.configuration?.theme ?? 'marklyra-light');
     this.ready = new Promise<void>((resolve, reject) => {
       this.readyResolve = resolve;
       this.readyReject = reject;
@@ -437,10 +437,7 @@ export class MarkLyraEditor {
     theme?: RuntimeConfiguration['theme'],
     signal?: AbortSignal,
   ): Promise<ThemeAppearance> {
-    if (
-      theme !== undefined &&
-      !['github', 'gothic', 'night', 'newsprint', 'pixyll', 'whitey'].includes(theme)
-    )
+    if (theme !== undefined && !['marklyra-light', 'marklyra-dark'].includes(theme))
       throw new TypeError('Invalid base theme');
     await this.ready;
     return this.enqueue(async () => {
@@ -2063,7 +2060,7 @@ export class MarkLyraEditor {
         nativeMenus: false,
         platform: 'browser',
         locale: 'en',
-        theme: 'github',
+        theme: 'marklyra-light',
         ...this.options.configuration,
         sourceBOM: this.sourceBOM,
         contextMenu: this.contextMenu.capabilities,

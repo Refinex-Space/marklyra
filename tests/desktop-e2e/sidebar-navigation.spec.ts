@@ -8,7 +8,7 @@ import {
   saveLayoutSource,
 } from './layout.helpers.js';
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: an empty sidebar keeps its guidance and folder entry visible without hover and shows search only after opening a folder`, async ({
     page,
   }, info) => {

@@ -2,7 +2,7 @@ import { expect, type Page, type TestInfo } from '@playwright/test';
 import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 
-export const layoutThemes = ['github', 'gothic', 'night', 'newsprint', 'pixyll', 'whitey'] as const;
+export const layoutThemes = ['marklyra-light', 'marklyra-dark'] as const;
 export const layoutSizes = [
   { width: 960, height: 720 },
   { width: 1280, height: 900 },

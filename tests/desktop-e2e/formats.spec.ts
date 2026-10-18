@@ -20,7 +20,7 @@ test('image and plain HTML snapshots consume confirmed options and preserve draf
       quality: 2,
       useThemeFontSize: 0,
       imageFontSize: 24,
-      exportTheme: 'night',
+      exportTheme: 'marklyra-dark',
     };
   });
   await page.getByRole('button', { name: '打开', exact: true }).click();
@@ -43,7 +43,7 @@ test('image and plain HTML snapshots consume confirmed options and preserve draf
     quality: 2,
     useThemeFontSize: 0,
     imageFontSize: 24,
-    exportTheme: 'night',
+    exportTheme: 'marklyra-dark',
   });
   expect(call?.args.sourceId).toBe('doc-a');
   expect(String(call?.args.html)).toContain('tailX');

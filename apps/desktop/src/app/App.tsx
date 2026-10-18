@@ -267,7 +267,7 @@ export function App() {
   const themeSystem = useThemes(editor, ready, doc.setMessage, {
     separate: separateDark,
     systemDark,
-    darkTheme: String(applicationSystem.value?.values.darkTheme ?? 'night.css').replace(
+    darkTheme: String(applicationSystem.value?.values.darkTheme ?? 'marklyra-dark.css').replace(
       /\.css$/,
       '',
     ),
@@ -286,7 +286,7 @@ export function App() {
         )
           await applicationPreferences.putFromEditor(
             'darkTheme',
-            String(previous.values.darkTheme ?? 'night.css'),
+            String(previous.values.darkTheme ?? 'marklyra-dark.css'),
             latest,
           );
       };

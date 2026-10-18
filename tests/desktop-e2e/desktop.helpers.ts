@@ -311,7 +311,7 @@ export function installMock(
     if (command === 'list_theme_catalog')
       return {
         folderPath: '/mock/themes',
-        themes: ['github', 'gothic', 'night', 'newsprint', 'pixyll', 'whitey'].map((id) => ({
+        themes: ['marklyra-light', 'marklyra-dark'].map((id) => ({
           id,
           name: id,
           builtin: true,

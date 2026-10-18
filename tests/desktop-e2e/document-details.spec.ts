@@ -22,7 +22,7 @@ test('the outline context menu updates the right panel live and survives a model
   page,
 }, info) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   await emitLayoutMenu(page, 'view:outline');
   const tree = details(page).getByRole('tree', { name: '文档标题' });
@@ -94,7 +94,7 @@ async function expectAligned(page: Page) {
     .toBeLessThanOrEqual(2);
 }
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: right outline occupies a third column and preserves the editor and selection`, async ({
     page,
   }, info) => {
@@ -163,7 +163,7 @@ test('right outline stays independent of files/search and adapts to resizing and
   page,
 }, info) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   await emitLayoutMenu(page, 'open-folder');
   await emitLayoutMenu(page, 'view:outline');
@@ -237,7 +237,7 @@ test('both side panels resize live within their limits and keep thin dividers wi
   page,
 }, info) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   await emitLayoutMenu(page, 'open-folder');
   await layoutCaret(page);
@@ -378,7 +378,7 @@ test('both side panels resize live within their limits and keep thin dividers wi
   await saveLayoutSource(page, info, 'resized-outline-preserves-source', source);
 });
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: both pane dividers stay equally thin and unchanged on hover`, async ({
     page,
   }) => {
@@ -419,7 +419,7 @@ test('outline opening and closing interpolate the layout, reverse cleanly and re
   page,
 }, info) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   const sampleToggle = () =>
     page.evaluate(async () => {
@@ -502,7 +502,7 @@ test('rapid outline reversals keep the real document scrollbar at the window edg
     });
   });
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   const longSource = `# Stable scrollbar\n\n${'## Section\n\nLong paragraph.\n\n'.repeat(80)}`;
   await openLayoutDocument(page, longSource);
   // Even a platform that temporarily paints an overlay scrollbar must be clipped by the mask.
@@ -589,7 +589,7 @@ test('outline layout changes during composition preserve editable nodes and hist
   page,
 }, info) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   await layoutCaret(page);
   const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
@@ -624,7 +624,7 @@ test('an open outline follows the next document without retaining old headings',
   page,
 }, info) => {
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   await emitLayoutMenu(page, 'view:outline');
   await expect(details(page).getByRole('treeitem', { name: 'Guide', exact: true })).toBeVisible();
@@ -645,7 +645,7 @@ test('an open outline follows the next document without retaining old headings',
   await saveLayoutSource(page, info, 'new-document-outline', next);
 });
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: only the document scrollbar occupies the window edge while outline scrolling stays independent`, async ({
     page,
   }, info) => {

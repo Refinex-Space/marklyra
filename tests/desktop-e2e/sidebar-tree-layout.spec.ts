@@ -29,7 +29,7 @@ const entries: WorkspaceEntry[] = [
   ),
 ];
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: sidebar tree icons and names remain on one line while resizing with ellipsis`, async ({
     page,
   }, info) => {

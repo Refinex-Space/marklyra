@@ -1,0 +1,34 @@
+/* MarkLyra Light: the GitHub reading layout with explicit light surfaces. */
+:root {
+  color-scheme: light;
+  --bg-color: #fff;
+  --side-bar-bg-color: #fafafa;
+  --text-color: #333;
+  --control-text-color: #777;
+  --control-text-hover-color: #24292f;
+  --primary-color: #4183c4;
+  --item-hover-bg-color: #eeeff1;
+  --item-hover-text-color: #24292f;
+  --active-file-bg-color: #eeeff1;
+  --active-file-text-color: #24292f;
+  --active-file-border-color: #8b949e;
+  --ml-border: #dfe2e5;
+  --ml-heading-border: #eee;
+  --ml-muted: #777;
+  --ml-surface: #f8f8f8;
+  --ml-code: #f3f4f4;
+  --ml-meta: #f7f7f7;
+  --ml-selection: #b6d7ff;
+  --ml-syntax-keyword: #d73a49;
+  --ml-syntax-string: #032f62;
+  --ml-syntax-function: #6f42c1;
+  --ml-syntax-number: #005cc5;
+  --ml-syntax-tag: #22863a;
+  --ml-syntax-comment: #6a737d;
+  --ml-highlight: #fff0a6;
+  --node-fill: #f8f8f8;
+  /* Empty selects the runtime's CSS-variable-based Mermaid palette. */
+  --mermaid-theme: "";
+  --node-text-color: #333;
+  --cluster-fill: #f8f8f8;
+}

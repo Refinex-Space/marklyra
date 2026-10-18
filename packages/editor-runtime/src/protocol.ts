@@ -108,7 +108,7 @@ export type MarkLyraCommand =
         | 'link'
         | 'image';
     }
-  | { type: 'setTheme'; theme: 'github' | 'gothic' | 'night' | 'newsprint' | 'pixyll' | 'whitey' }
+  | { type: 'setTheme'; theme: 'marklyra-light' | 'marklyra-dark' }
   | { type: 'jumpToBlock'; id: string; preserveSelection?: boolean }
   | { type: 'restoreSelection'; bookmark: CursorBookmark }
   | { type: 'insertLink'; url: string; title: string };
@@ -116,7 +116,7 @@ export interface RuntimeConfiguration {
   nativeMenus: boolean;
   platform: 'macos' | 'windows' | 'browser';
   locale: 'en' | 'zh-Hans';
-  theme: 'github' | 'gothic' | 'night' | 'newsprint' | 'pixyll' | 'whitey';
+  theme: 'marklyra-light' | 'marklyra-dark';
   /** metadata: preserve one file BOM outside parser input (default).
    * text: the host has already decoded encoding metadata; FEFF is literal text. */
   sourceBOM?: 'metadata' | 'text';

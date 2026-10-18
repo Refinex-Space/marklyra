@@ -25,13 +25,9 @@ const MAX_LEASE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_LEASE_ASSETS: usize = 256;
 const MAX_CACHE_BYTES: usize = 64 * 1024 * 1024;
 const RESOURCE_CSP: &str = "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'; sandbox";
-const BUILTINS: &[(&str, &str)] = &[
-    ("github", "Github"),
-    ("gothic", "Gothic"),
-    ("night", "Night"),
-    ("newsprint", "Newsprint"),
-    ("pixyll", "Pixyll"),
-    ("whitey", "Whitey"),
+pub(crate) const BUILTINS: &[(&str, &str)] = &[
+    ("marklyra-light", "MarkLyra Light"),
+    ("marklyra-dark", "MarkLyra Dark"),
 ];
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
@@ -288,7 +284,7 @@ impl ThemeHost {
             theme: if builtin(theme_id) {
                 theme_id
             } else {
-                "github"
+                "marklyra-light"
             }
             .into(),
             styles: ThemeStyles {

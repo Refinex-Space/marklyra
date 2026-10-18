@@ -408,15 +408,7 @@ function protectControls() {
     }
     if (element instanceof HTMLSelectElement && key?.endsWith(':exportTheme')) {
       for (const option of element.options) {
-        option.disabled = ![
-          '',
-          'github',
-          'gothic',
-          'newsprint',
-          'night',
-          'pixyll',
-          'whitey',
-        ].includes(option.value);
+        option.disabled = !['', 'marklyra-light', 'marklyra-dark'].includes(option.value);
         if (option.disabled) option.title = '指定导出主题暂不支持；可选择当前主题继承已授权样式。';
       }
     }

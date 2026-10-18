@@ -61,7 +61,7 @@ let configuration: RuntimeConfiguration = {
   nativeMenus: false,
   platform: 'browser',
   locale: 'en',
-  theme: 'github',
+  theme: 'marklyra-light',
 };
 let changeSequence = 0;
 let documentGeneration = 0;
@@ -438,12 +438,10 @@ function respond(name: string, data: unknown): unknown {
 }
 const selectedLocale =
   new URL(location.href).searchParams.get('locale') === 'zh-Hans' ? 'zh-Hans' : 'Base';
-const requestedTheme = new URL(location.href).searchParams.get('theme') ?? 'github';
-const theme = ['github', 'gothic', 'night', 'newsprint', 'pixyll', 'whitey'].includes(
-  requestedTheme,
-)
+const requestedTheme = new URL(location.href).searchParams.get('theme') ?? 'marklyra-light';
+const theme = ['marklyra-light', 'marklyra-dark'].includes(requestedTheme)
   ? requestedTheme
-  : 'github';
+  : 'marklyra-light';
 const startupOptions = marklyraStartupPreferences(
   JSON.parse(new URL(location.href).searchParams.get('startup-preferences') ?? '{}'),
 );
@@ -728,9 +726,7 @@ window.addEventListener(
             if (!file || !value) throw new Error('Theme runtime is unavailable');
             if (
               value.theme !== undefined &&
-              !['github', 'gothic', 'night', 'newsprint', 'pixyll', 'whitey'].includes(
-                String(value.theme),
-              )
+              !['marklyra-light', 'marklyra-dark'].includes(String(value.theme))
             )
               throw new TypeError('Invalid base theme');
             const previous = runtime._options.theme;

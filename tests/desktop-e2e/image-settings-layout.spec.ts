@@ -15,7 +15,7 @@ async function rowInsets(control: Locator) {
   });
 }
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: image insertion controls fill their rows across window sizes and retain path editing`, async ({
     page,
   }, info) => {

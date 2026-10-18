@@ -10,12 +10,21 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
     T::deserialize(deserializer).map(Some)
 }
 
+fn present_theme<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<String>, D::Error> {
+    let value = String::deserialize(deserializer)?;
+    Ok(Some(match value.as_str() {
+        "night" => "marklyra-dark".into(),
+        "github" | "gothic" | "newsprint" | "pixyll" | "whitey" => "marklyra-light".into(),
+        _ => value,
+    }))
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HtmlSettings {
     #[serde(
         default,
-        deserialize_with = "present",
+        deserialize_with = "present_theme",
         skip_serializing_if = "Option::is_none"
     )]
     pub export_theme: Option<String>,
@@ -25,7 +34,7 @@ pub struct HtmlSettings {
 pub struct PdfSettings {
     #[serde(
         default,
-        deserialize_with = "present",
+        deserialize_with = "present_theme",
         skip_serializing_if = "Option::is_none"
     )]
     pub export_theme: Option<String>,
@@ -108,18 +117,9 @@ fn validate_pandoc_setting(value: &str) -> Result<(), String> {
     }
 }
 fn theme(value: &Option<String>) -> bool {
-    value.as_deref().is_none_or(|s| {
-        [
-            "",
-            "github",
-            "gothic",
-            "newsprint",
-            "night",
-            "pixyll",
-            "whitey",
-        ]
-        .contains(&s)
-    })
+    value
+        .as_deref()
+        .is_none_or(|s| ["", "marklyra-light", "marklyra-dark"].contains(&s))
 }
 impl HtmlSettings {
     fn validate(&self) -> Result<(), String> {
@@ -190,7 +190,7 @@ pub struct ImageSettings {
     pub image_font_size: Option<u32>,
     #[serde(
         default,
-        deserialize_with = "present",
+        deserialize_with = "present_theme",
         skip_serializing_if = "Option::is_none"
     )]
     pub export_theme: Option<String>,

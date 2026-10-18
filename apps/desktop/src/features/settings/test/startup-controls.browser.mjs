@@ -110,7 +110,11 @@ function installMock(runtimeUrl) {
       if (command === 'list_theme_catalog')
         return {
           folderPath: '/mock/themes',
-          themes: ['github', 'night'].map((id) => ({ id, name: id, builtin: true })),
+          themes: ['marklyra-light', 'marklyra-dark'].map((id) => ({
+            id,
+            name: id,
+            builtin: true,
+          })),
         };
       if (command === 'get_file_preferences')
         return {

@@ -15,7 +15,7 @@ import { editorRuntime } from '../../services/runtime.js';
 import { type StartupPreferences, startupPreferences } from '../../services/startup.js';
 import { themeFiles } from '../../services/themes.js';
 import { editorChrome } from '../../services/ui-chrome.js';
-import { storedTheme, type ThemeCatalog } from '../themes/model.js';
+import { resolveThemeId, storedTheme, type ThemeCatalog } from '../themes/model.js';
 import { readAutoSavePreference } from './auto-save-preference.js';
 import { filenameImageStorageFolder } from './image-storage.js';
 import { readPreferences, savePreferences } from './preferences.js';
@@ -65,9 +65,9 @@ function options(
   const value = readPreferences();
   const folder = value.imageStorageFolder;
   const statistics = applicationStatisticsPreferences(application, value);
-  let theme = 'github.css';
+  let theme = 'marklyra-light.css';
   try {
-    const candidate = `${storedTheme()}.css`;
+    const candidate = `${resolveThemeId(storedTheme(), catalog)}.css`;
     if (catalog.themes.some((entry) => `${entry.id}.css` === candidate)) theme = candidate;
   } catch {
     /* Defaults remain available when storage is blocked. */
@@ -104,7 +104,7 @@ function options(
     enableAutoSave: application.values.enableAutoSave ?? readAutoSavePreference(),
     zoomFactor: application.values.zoomFactor ?? 1,
     quitAfterWindowClose: application.values.quitAfterWindowClose ?? false,
-    darkTheme: application.values.darkTheme ?? 'night.css',
+    darkTheme: `${resolveThemeId(String(application.values.darkTheme ?? 'marklyra-dark.css').replace(/\.css$/, ''), catalog)}.css`,
     useSeparateDarkTheme: application.values.useSeparateDarkTheme ?? false,
     can_collapse_outline_panel: application.values.can_collapse_outline_panel ?? true,
     ...startupEditorOptions(application.values),
@@ -338,9 +338,9 @@ export function PreferencesWindow({
         embedded
           ? ({
               '--settings-sidebar-width': `${pageSidebarWidth}px`,
-              '--settings-sidebar-bg': sidebarBackground || (dark ? '#2e3033' : '#fafafa'),
-              '--settings-page-bg': dark ? '#25272b' : '#fff',
-              '--settings-page-line': dark ? '#3b3e44' : '#e8e9eb',
+              '--settings-sidebar-bg': sidebarBackground || (dark ? '#161b22' : '#fafafa'),
+              '--settings-page-bg': dark ? '#0d1117' : '#fff',
+              '--settings-page-line': dark ? '#30363d' : '#e8e9eb',
             } as CSSProperties)
           : undefined
       }

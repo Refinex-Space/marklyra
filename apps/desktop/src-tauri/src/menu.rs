@@ -125,12 +125,8 @@ const VIEW: &[MenuEntry] = &[
     Action("view:fullscreen", "全屏幕", Some("CmdOrCtrl+Ctrl+F")),
 ];
 const THEMES: &[MenuEntry] = &[
-    Action("theme:github", "Github", None),
-    Action("theme:gothic", "Gothic", None),
-    Action("theme:newsprint", "Newsprint", None),
-    Action("theme:night", "Night", None),
-    Action("theme:pixyll", "Pixyll", None),
-    Action("theme:whitey", "Whitey", None),
+    Action("theme:marklyra-light", "MarkLyra Light", None),
+    Action("theme:marklyra-dark", "MarkLyra Dark", None),
 ];
 const WINDOW: &[MenuEntry] = &[
     Action("close", "关闭窗口", Some("CmdOrCtrl+W")),
@@ -404,8 +400,8 @@ mod tests {
     #[test]
     fn theme_check_actions_use_the_same_preview_disablement_as_other_editor_actions() {
         for id in [
-            "theme:github",
-            "theme:night",
+            "theme:marklyra-light",
+            "theme:marklyra-dark",
             "theme:中文主题",
             "save",
             "undo",
@@ -470,10 +466,7 @@ mod tests {
                 "view",
                 &["source", "focus", "typewriter", "sidebar", "outline"][..],
             ),
-            (
-                "theme",
-                &["github", "gothic", "night", "newsprint", "pixyll", "whitey"][..],
-            ),
+            ("theme", &["marklyra-light", "marklyra-dark"][..]),
         ] {
             for value in values {
                 let id = format!("{prefix}:{value}");
@@ -531,7 +524,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            76 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            72 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {

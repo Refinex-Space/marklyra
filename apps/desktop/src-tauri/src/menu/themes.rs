@@ -87,21 +87,15 @@ pub(super) fn theme_id(action: &str) -> Option<&str> {
 
 pub(super) fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Submenu<R>> {
     let menu = Submenu::with_id(app, SUBMENU_ID, "主题", true)?;
-    let entries: Vec<_> = [
-        ("github", "Github"),
-        ("gothic", "Gothic"),
-        ("newsprint", "Newsprint"),
-        ("night", "Night"),
-        ("pixyll", "Pixyll"),
-        ("whitey", "Whitey"),
-    ]
-    .into_iter()
-    .map(|(id, name)| ThemeEntry {
-        id: id.into(),
-        name: name.into(),
-        builtin: true,
-    })
-    .collect();
+    let entries: Vec<_> = crate::themes::BUILTINS
+        .iter()
+        .copied()
+        .map(|(id, name)| ThemeEntry {
+            id: id.into(),
+            name: name.into(),
+            builtin: true,
+        })
+        .collect();
     fill(app, &menu, &entries, &selection(app))?;
     Ok(menu)
 }
@@ -220,7 +214,7 @@ mod tests {
     }
     #[test]
     fn only_portable_theme_ids_can_be_routed() {
-        for id in ["github", "custom-night", "中文主题", "a.b"] {
+        for id in ["marklyra-light", "custom-night", "中文主题", "a.b"] {
             assert_eq!(theme_id(&format!("theme:{id}")), Some(id));
         }
         for id in [
@@ -241,29 +235,29 @@ mod tests {
     fn only_accepted_styles_are_checked_while_pending_or_failed_selection_syncs_to_the_old_id() {
         let (config, themes) = setup();
         let state = ThemeMenuState::default();
-        accept(&themes, config.path(), "main", "github", 1);
+        accept(&themes, config.path(), "main", "marklyra-light", 1);
         let pending = themes
             .prepare_styles(
                 themes.begin_load("main", 2).unwrap(),
-                "night",
+                "marklyra-dark",
                 config.path(),
             )
             .unwrap();
         for _ in 0..2 {
             let selected = state.resolve(Some("main"), None, |label| themes.active_theme(label));
             assert!(selected.enabled);
-            assert!(selected.checked("theme:github"));
-            assert!(!selected.checked("theme:night"));
+            assert!(selected.checked("theme:marklyra-light"));
+            assert!(!selected.checked("theme:marklyra-dark"));
             assert!(!selected.checked("save"));
         }
         assert!(themes.accept_styles("main", "invalid-token").is_err());
         assert!(state
             .resolve(Some("main"), None, |label| themes.active_theme(label))
-            .checked("theme:github"));
+            .checked("theme:marklyra-light"));
         themes.accept_styles("main", &pending.token).unwrap();
         let selected = state.resolve(Some("main"), None, |label| themes.active_theme(label));
-        assert!(!selected.checked("theme:github"));
-        assert!(selected.checked("theme:night"));
+        assert!(!selected.checked("theme:marklyra-light"));
+        assert!(selected.checked("theme:marklyra-dark"));
     }
     #[test]
     fn catalog_rebuild_keeps_the_custom_actual_theme_checked_exactly_once() {
@@ -284,14 +278,14 @@ mod tests {
                 .map(|entry| entry.id.as_str())
                 .collect::<Vec<_>>();
             assert_eq!(checked, ["bespoke"]);
-            assert!(!selected.checked("theme:github"));
+            assert!(!selected.checked("theme:marklyra-light"));
         }
     }
     #[test]
     fn focused_editor_wins_over_preferences_opener_and_non_editors_never_enable_actions() {
         let (config, themes) = setup();
-        accept(&themes, config.path(), "main", "github", 1);
-        accept(&themes, config.path(), "editor-other", "night", 1);
+        accept(&themes, config.path(), "main", "marklyra-light", 1);
+        accept(&themes, config.path(), "editor-other", "marklyra-dark", 1);
         let state = ThemeMenuState::default();
         let selected = state.resolve(Some("main"), Some("editor-other"), |label| {
             themes.active_theme(label)
@@ -299,7 +293,7 @@ mod tests {
         assert_eq!(
             selected,
             Selection {
-                theme_id: Some("github".into()),
+                theme_id: Some("marklyra-light".into()),
                 enabled: true
             }
         );
@@ -309,7 +303,7 @@ mod tests {
         assert_eq!(
             preferences,
             Selection {
-                theme_id: Some("night".into()),
+                theme_id: Some("marklyra-dark".into()),
                 enabled: false
             }
         );
@@ -322,14 +316,14 @@ mod tests {
         });
         assert!(initial.enabled);
         assert_eq!(initial.theme_id, None);
-        assert!(!initial.checked("theme:night"));
+        assert!(!initial.checked("theme:marklyra-dark"));
         assert_eq!(state.resolve(None, None, |_| None), preferences);
     }
     #[test]
     fn closing_one_window_revokes_its_active_state_without_changing_another_window_selection() {
         let (config, themes) = setup();
-        accept(&themes, config.path(), "main", "github", 1);
-        accept(&themes, config.path(), "editor-other", "night", 1);
+        accept(&themes, config.path(), "main", "marklyra-light", 1);
+        accept(&themes, config.path(), "editor-other", "marklyra-dark", 1);
         let state = ThemeMenuState::default();
         state.resolve(Some("main"), None, |label| themes.active_theme(label));
         themes.release_window("main");
@@ -337,17 +331,17 @@ mod tests {
         let selected = state.resolve(Some("editor-other"), None, |label| {
             themes.active_theme(label)
         });
-        assert!(selected.checked("theme:night"));
+        assert!(selected.checked("theme:marklyra-dark"));
         themes.release_window("editor-other");
         let no_editor = state.resolve(None, None, |_| None);
         assert!(!no_editor.enabled);
-        assert!(no_editor.checked("theme:night"));
+        assert!(no_editor.checked("theme:marklyra-dark"));
     }
     #[test]
     fn no_accepted_theme_never_produces_a_checked_unknown_or_non_theme_action() {
         let state = ThemeMenuState::default();
         let selected = state.resolve(None, None, |_| panic!("no owner"));
-        for action in ["save", "theme:github", "theme:../bad"] {
+        for action in ["save", "theme:marklyra-light", "theme:../bad"] {
             assert!(!selected.checked(action));
         }
     }

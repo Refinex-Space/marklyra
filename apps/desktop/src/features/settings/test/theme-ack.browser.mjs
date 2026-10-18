@@ -24,7 +24,7 @@ assert.equal(
 );
 
 function installMock(runtimeUrl) {
-  localStorage.setItem('marklyra-theme', 'github');
+  localStorage.setItem('marklyra-theme', 'marklyra-light');
   localStorage.removeItem('marklyra-theme-choice-v1');
   window.isTauri = true;
   window.probe = {
@@ -68,12 +68,8 @@ function installMock(runtimeUrl) {
         return {
           folderPath: '/mock/themes',
           themes: [
-            'github',
-            'gothic',
-            'night',
-            'newsprint',
-            'pixyll',
-            'whitey',
+            'marklyra-light',
+            'marklyra-dark',
             'dark',
             'ocean',
           ].map((id) => ({ id, name: id, builtin: !['dark', 'ocean'].includes(id) })),
@@ -129,14 +125,17 @@ for (const [engine, type] of [
             await select.locator('option').evaluateAll((nodes) => nodes.map((node) => node.value))
           ).includes('dark.css'),
         );
-        const selected = outcome === 'custom' ? 'dark.css' : 'night.css';
+        const selected = outcome === 'custom' ? 'dark.css' : 'marklyra-dark.css';
         await select.selectOption(selected);
         await page.waitForFunction(() => window.probe.pending !== null);
         assert.equal(
           await page.evaluate(() => window.probe.pending.themeId),
           selected.slice(0, -4),
         );
-        assert.equal(await page.evaluate(() => localStorage.getItem('marklyra-theme')), 'github');
+        assert.equal(
+          await page.evaluate(() => localStorage.getItem('marklyra-theme')),
+          'marklyra-light',
+        );
         assert.equal(
           await page.evaluate(() => localStorage.getItem('marklyra-theme-choice-v1')),
           null,
@@ -147,7 +146,10 @@ for (const [engine, type] of [
         // This advances the actual child clock, not a real system IME or a native deadline.
         await page.clock.fastForward(16000);
         assert.match(await status.textContent(), /正在保存/);
-        assert.equal(await page.evaluate(() => localStorage.getItem('marklyra-theme')), 'github');
+        assert.equal(
+          await page.evaluate(() => localStorage.getItem('marklyra-theme')),
+          'marklyra-light',
+        );
         assert.equal(
           await page.evaluate(
             () =>
@@ -161,8 +163,11 @@ for (const [engine, type] of [
         );
         if (outcome === 'failure') {
           await status.filter({ hasText: '未保存' }).waitFor();
-          assert.equal(await select.inputValue(), 'github.css');
-          assert.equal(await page.evaluate(() => localStorage.getItem('marklyra-theme')), 'github');
+          assert.equal(await select.inputValue(), 'marklyra-light.css');
+          assert.equal(
+            await page.evaluate(() => localStorage.getItem('marklyra-theme')),
+            'marklyra-light',
+          );
           assert.equal(
             await page.evaluate(() => localStorage.getItem('marklyra-theme-choice-v1')),
             null,

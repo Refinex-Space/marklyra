@@ -14,7 +14,7 @@ async function mount(page: import('@playwright/test').Page, dark = true) {
         JSON.stringify({
           schemaVersion: 1,
           revision: 1,
-          values: { useSeparateDarkTheme: true, darkTheme: 'night.css' },
+          values: { useSeparateDarkTheme: true, darkTheme: 'marklyra-dark.css' },
         }),
       );
   }, dark);
@@ -25,11 +25,11 @@ test('separate dark choice follows actual host appearance without changing norma
   page,
 }) => {
   await mount(page);
-  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'night');
+  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'marklyra-dark');
   const frame = await page.locator('.marklyra-editor-frame').getAttribute('src');
   expect(await page.evaluate(() => localStorage.getItem('marklyra-theme-choice-v1'))).toBeNull();
   await page.evaluate(() =>
-    (window as TestWindow).__desktopMock.emitTarget('main', 'menu-action', 'theme:gothic'),
+    (window as TestWindow).__desktopMock.emitTarget('main', 'menu-action', 'theme:marklyra-light'),
   );
   await expect
     .poll(() =>
@@ -38,15 +38,15 @@ test('separate dark choice follows actual host appearance without changing norma
           JSON.parse(localStorage.getItem('mock-application-preferences') ?? '{}').values.darkTheme,
       ),
     )
-    .toBe('gothic.css');
+    .toBe('marklyra-light.css');
   expect(await page.evaluate(() => localStorage.getItem('marklyra-theme-choice-v1'))).toBeNull();
   await page.evaluate(() => {
     Reflect.set(window, '__testSystemDark', false);
     window.dispatchEvent(new Event('focus'));
   });
-  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'github');
+  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'marklyra-light');
   await page.evaluate(() =>
-    (window as TestWindow).__desktopMock.emitTarget('main', 'menu-action', 'theme:whitey'),
+    (window as TestWindow).__desktopMock.emitTarget('main', 'menu-action', 'theme:marklyra-dark'),
   );
   await expect
     .poll(() =>
@@ -54,15 +54,15 @@ test('separate dark choice follows actual host appearance without changing norma
         () => JSON.parse(localStorage.getItem('marklyra-theme-choice-v1') ?? '{}').theme,
       ),
     )
-    .toBe('whitey');
+    .toBe('marklyra-dark');
   await page.evaluate(() => {
     Reflect.set(window, '__testSystemDark', true);
     window.dispatchEvent(new Event('focus'));
   });
-  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'gothic');
+  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'marklyra-light');
   expect(await page.locator('.marklyra-editor-frame').getAttribute('src')).toBe(frame);
   await page.reload();
-  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'gothic');
+  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'marklyra-light');
 });
 test('outline preference controls existing context actions and persists without reconstructing the editor', async ({
   page,
@@ -117,7 +117,7 @@ test('outline preference controls existing context actions and persists without 
     )
     .toBe(raw);
 });
-test('original remaining controls use finite persistence and queue warning reset', async ({
+test('remaining controls persist while the removed dialog reset stays unavailable', async ({
   page,
 }) => {
   await page.addInitScript(installMock, { label: 'preferences', nativeChrome: true });
@@ -144,7 +144,7 @@ test('original remaining controls use finite persistence and queue warning reset
     });
   await ui.locator('.nav-group-item').nth(6).click();
   await ui.locator('[data-marklyra-preference="quitAfterWindowClose"]').check();
-  await ui.locator('[data-marklyra-file-action="reset-dialog-warnings"]').click();
+  await expect(ui.locator('[data-marklyra-file-action="reset-dialog-warnings"]')).toHaveCount(0);
   await expect
     .poll(() =>
       page.evaluate(
@@ -154,7 +154,7 @@ test('original remaining controls use finite persistence and queue warning reset
           ).length,
       ),
     )
-    .toBe(1);
+    .toBe(0);
 });
 
 test('a missing passive dark theme retains the previous view without a retry loop', async ({
@@ -184,7 +184,7 @@ test('a missing passive dark theme retains the previous view without a retry loo
   });
   await page.goto('/');
   await expect(page.getByRole('contentinfo')).toContainText('主题加载失败');
-  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'github');
+  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'marklyra-light');
   await page.waitForTimeout(1100);
   expect(
     await page.evaluate(
@@ -207,7 +207,7 @@ test('a committed dark theme with a lost reply is read back without replaying th
       JSON.stringify({
         schemaVersion: 1,
         revision: 1,
-        values: { useSeparateDarkTheme: true, darkTheme: 'night.css' },
+        values: { useSeparateDarkTheme: true, darkTheme: 'marklyra-dark.css' },
       }),
     );
     const internal = Reflect.get(window, '__TAURI_INTERNALS__') as {
@@ -221,12 +221,12 @@ test('a committed dark theme with a lost reply is read back without replaying th
     };
   });
   await page.goto('/');
-  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'night');
+  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'marklyra-dark');
   await page.evaluate(() =>
-    (window as TestWindow).__desktopMock.emitTarget('main', 'menu-action', 'theme:gothic'),
+    (window as TestWindow).__desktopMock.emitTarget('main', 'menu-action', 'theme:marklyra-dark'),
   );
   await expect(page.getByRole('contentinfo')).toContainText('未确认');
-  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'gothic');
+  await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', 'marklyra-dark');
   expect(
     await page.evaluate(
       () =>
@@ -240,7 +240,7 @@ test('a committed dark theme with a lost reply is read back without replaying th
       () =>
         JSON.parse(localStorage.getItem('mock-application-preferences') ?? '{}').values.darkTheme,
     ),
-  ).toBe('gothic.css');
+  ).toBe('marklyra-dark.css');
 });
 
 test('removing the focused outline arrow in another window restores its row only after returning', async ({

@@ -19,7 +19,7 @@ export interface ResolvedExportOptions {
 }
 export const MAX_EXPORT_BYTES = 32 * 1024 * 1024;
 export const MAX_EXPORT_RESOURCE_BYTES = 8 * 1024 * 1024;
-const themes = new Set(['github', 'gothic', 'night', 'newsprint', 'pixyll', 'whitey']);
+const themes = new Set(['marklyra-light', 'marklyra-dark']);
 
 export function exportOptions(value: ExportHTMLOptions = {}): ResolvedExportOptions {
   if (!value || typeof value !== 'object' || Array.isArray(value))

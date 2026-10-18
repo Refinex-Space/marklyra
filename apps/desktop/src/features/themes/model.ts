@@ -1,14 +1,7 @@
 import type { MarkLyraCommand } from '@marklyra/editor-runtime';
 
 export type BuiltinTheme = Extract<MarkLyraCommand, { type: 'setTheme' }>['theme'];
-export const builtinThemes: readonly BuiltinTheme[] = [
-  'github',
-  'gothic',
-  'newsprint',
-  'night',
-  'pixyll',
-  'whitey',
-];
+export const builtinThemes: readonly BuiltinTheme[] = ['marklyra-light', 'marklyra-dark'];
 export interface ThemeEntry {
   id: string;
   name: string;
@@ -34,21 +27,29 @@ export function validThemeId(value: unknown): value is string {
 }
 
 export function normalizeThemeId(value: unknown): string {
-  return validThemeId(value) ? value : 'github';
+  return validThemeId(value) ? value : 'marklyra-light';
 }
 
 export function builtinTheme(value: string): BuiltinTheme {
-  return builtinThemes.includes(value as BuiltinTheme) ? (value as BuiltinTheme) : 'github';
+  return builtinThemes.includes(value as BuiltinTheme) ? (value as BuiltinTheme) : 'marklyra-light';
 }
 
 export const defaultThemeCatalog: ThemeCatalog = {
   folderPath: '',
   themes: builtinThemes.map((id) => ({
     id,
-    name: id[0]?.toUpperCase() + id.slice(1),
+    name: id === 'marklyra-dark' ? 'MarkLyra Dark' : 'MarkLyra Light',
     builtin: true,
   })),
 };
+
+/** Retired bundled choices fall back only when no user theme owns that exact ID. */
+export function resolveThemeId(id: string, catalog: ThemeCatalog): string {
+  if (catalog.themes.some((theme) => theme.id === id)) return id;
+  if (id === 'night' || id === 'dark') return 'marklyra-dark';
+  if (['github', 'gothic', 'newsprint', 'pixyll', 'whitey'].includes(id)) return 'marklyra-light';
+  return id;
+}
 
 export function themeCatalog(value: unknown): ThemeCatalog {
   if (!value || typeof value !== 'object') throw new TypeError('Invalid theme catalog');
@@ -91,9 +92,9 @@ export function storedTheme(): string {
       if (validThemeId(record.theme) && typeof record.revision === 'string') return record.theme;
     }
     const legacy = localStorage.getItem('marklyra-theme');
-    return legacy === 'dark' ? 'night' : normalizeThemeId(legacy);
+    return legacy === 'dark' ? 'marklyra-dark' : normalizeThemeId(legacy);
   } catch {
-    return 'github';
+    return 'marklyra-light';
   }
 }
 

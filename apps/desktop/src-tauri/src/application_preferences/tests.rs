@@ -241,7 +241,7 @@ fn editor_entry_cannot_write_parser_lifecycle_or_arbitrary_application_fields() 
         assert!(!editor_change_allowed(&key));
     }
     for (key, good, bad) in [
-        (Key::DarkTheme, "night.css", "../secret.css"),
+        (Key::DarkTheme, "marklyra-dark.css", "../secret.css"),
         (Key::AutoNumberingForMath, "all", "custom"),
         (Key::MathFormatOnCopy, "latex", "png"),
     ] {

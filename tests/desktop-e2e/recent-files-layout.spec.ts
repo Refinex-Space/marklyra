@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { emitLayoutMenu, installLayout, readyLayout } from './layout.helpers.js';
 import { installRecentMock, type RecentMockWindow } from './recent.helpers.js';
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: recent cards are compact and only the history body scrolls`, async ({
     page,
   }, info) => {

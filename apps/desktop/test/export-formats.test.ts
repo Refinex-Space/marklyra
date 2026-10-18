@@ -17,7 +17,7 @@ describe('finite formats and original image preferences', () => {
       quality: 2,
       useThemeFontSize: 0,
       imageFontSize: 24,
-      exportTheme: 'night',
+      exportTheme: 'marklyra-dark',
     };
     const record = { ...old, image, pandocPath: '/opt/homebrew/bin/pandoc' };
     expect(exportPreferencesSnapshot(record)).toEqual(record);

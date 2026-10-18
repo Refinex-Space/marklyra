@@ -14,7 +14,10 @@ import {
 
 describe('runtime preferences policy', () => {
   it('accepts supported values without granting source code, upload or filesystem capabilities', () => {
-    expect(preferenceChange('theme', 'night.css')).toEqual({ key: 'theme', value: 'night.css' });
+    expect(preferenceChange('theme', 'marklyra-dark.css')).toEqual({
+      key: 'theme',
+      value: 'marklyra-dark.css',
+    });
     expect(preferenceChange('wordsPerMinute', 600)).toEqual({ key: 'wordsPerMinute', value: 600 });
     const pathTemplate = `./assets/\${filename}`;
     expect(preferenceChange('custom_image_save_location', pathTemplate)).toEqual({
@@ -48,17 +51,17 @@ describe('runtime preferences policy', () => {
 
   it('initializes only supported host-owned settings and bounded display metadata', () => {
     const options = initialPreferencesOptions({
-      theme: 'night.css',
+      theme: 'marklyra-dark.css',
       wordsPerMinute: 400,
-      allThemes: ['night.css', 'custom.css'],
+      allThemes: ['marklyra-dark.css', 'custom.css'],
       _documentPath: '/private/file',
       _options: { license: 'secret' },
       osVersion: '26.5.2',
     });
-    expect(options.theme).toBe('night.css');
+    expect(options.theme).toBe('marklyra-dark.css');
     expect(options.wordsPerMinute).toBe(400);
     expect(options.osVersion).toBe('26.5.2');
-    expect(options.allThemes).toEqual(['night.css', 'custom.css']);
+    expect(options.allThemes).toEqual(['marklyra-dark.css', 'custom.css']);
     expect(options).not.toHaveProperty('_documentPath');
     expect(options).not.toHaveProperty('_options');
     expect(options.send_usage_info).toBe(false);
@@ -77,20 +80,20 @@ describe('runtime preferences policy', () => {
   });
 
   it('accepts catalogued user themes and refuses unlisted choices or unsafe catalog names', () => {
-    const themes = preferenceThemeFiles(['github.css', 'custom.css', 'custom.css']);
-    expect(themes).toEqual(['github.css', 'custom.css']);
+    const themes = preferenceThemeFiles(['marklyra-light.css', 'custom.css', 'custom.css']);
+    expect(themes).toEqual(['marklyra-light.css', 'custom.css']);
     expect(preferenceChange('theme', 'custom.css', themes)).toEqual({
       key: 'theme',
       value: 'custom.css',
     });
-    expect(() => preferenceChange('theme', 'night.css', themes)).toThrow();
+    expect(() => preferenceChange('theme', 'marklyra-dark.css', themes)).toThrow();
     for (const value of [
       [],
       ['../outside.css'],
       ['Upper.css'],
       ['base.user.css'],
       ['bad name.css'],
-      ['github.css', 1],
+      ['marklyra-light.css', 1],
     ])
       expect(() => preferenceThemeFiles(value)).toThrow();
   });

@@ -21,7 +21,7 @@ async function mount(page: Page) {
         host.__desktopMock.calls.push({ command, args });
         return {
           token: `custom-${String(args.requestId)}`,
-          theme: 'github',
+          theme: 'marklyra-light',
           styles: {
             theme: `http://127.0.0.1:4174/__shell_theme__/${String(args.themeId)}.css`,
             baseUser: null,
@@ -128,7 +128,7 @@ test('missing theme CSS reports failure to preferences and retains the confirmed
   });
   await expect(page.locator('[data-theme-loading]')).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem('marklyra-theme-choice-v1'))).toBeNull();
-  expect(await page.locator('.shell').getAttribute('data-theme-name')).toBe('github');
+  expect(await page.locator('.shell').getAttribute('data-theme-name')).toBe('marklyra-light');
 });
 
 test('native confirmation failure restores original styles, font ownership and storage', async ({
@@ -147,7 +147,7 @@ test('native confirmation failure restores original styles, font ownership and s
       () => Array.from(document.fonts).filter((face) => face.family.includes('User Shell')).length,
     ),
   ).toBe(0);
-  expect(await page.locator('.shell').getAttribute('data-theme-name')).toBe('github');
+  expect(await page.locator('.shell').getAttribute('data-theme-name')).toBe('marklyra-light');
   expect((await completed(page))[1]?.args).toMatchObject({
     stylesToken: null,
     error: expect.stringContaining('Native theme commit failed'),

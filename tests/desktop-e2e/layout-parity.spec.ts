@@ -183,7 +183,7 @@ test('content inset, fullscreen, theme breakpoints and long-document scrolling p
 }, testInfo) => {
   test.setTimeout(60_000);
   await installLayout(page);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page);
   await layoutCaret(page);
   const iframe = await page.locator('.marklyra-editor-frame').elementHandle();

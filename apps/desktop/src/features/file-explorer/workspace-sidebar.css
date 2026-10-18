@@ -480,7 +480,7 @@
   font-size: var(--marklyra-sidebar-font-size, 14px);
   line-height: var(--marklyra-sidebar-line-height, 1.42857143);
 }
-.shell[data-theme-name="night"] .workspace-sidebar-compact {
+.shell[data-theme-name="marklyra-dark"] .workspace-sidebar-compact {
   --workspace-active-bg: var(--marklyra-active-file-bg, #222);
   --workspace-active-border: var(--marklyra-active-file-border, #8d8df0);
   --workspace-active-text: var(--marklyra-active-file-text, white);
@@ -869,14 +869,14 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.shell[data-theme-name="night"] .workspace-article {
+.shell[data-theme-name="marklyra-dark"] .workspace-article {
   border-bottom: var(--marklyra-article-border-bottom, none);
 }
-.shell[data-theme-name="night"] .workspace-article[aria-current="page"] {
+.shell[data-theme-name="marklyra-dark"] .workspace-article[aria-current="page"] {
   color: var(--marklyra-article-selected-text, white);
   background: var(--marklyra-article-selected-bg, #222);
 }
-.shell[data-theme-name="night"] .workspace-article-summary {
+.shell[data-theme-name="marklyra-dark"] .workspace-article-summary {
   opacity: var(--marklyra-summary-opacity, 1);
 }
 .workspace-footer .workspace-switch-file-view {
@@ -1179,19 +1179,19 @@
   font: inherit;
   text-decoration: underline;
 }
-.shell[data-theme-name="night"] .directory-footer-popup {
+.shell[data-theme-name="marklyra-dark"] .directory-footer-popup {
   background: var(--marklyra-body-bg, var(--sidebar));
   border: 1px solid currentColor;
   box-shadow: 0 2px 8px #0007;
 }
-.shell[data-theme-name="night"] .directory-current-dot {
+.shell[data-theme-name="marklyra-dark"] .directory-current-dot {
   background: white;
 }
-.shell[data-theme-name="night"]
+.shell[data-theme-name="marklyra-dark"]
   .directory-sort-row
   .workspace-sort-controls
   button[aria-checked="true"],
-.shell[data-theme-name="night"] .directory-sort-row .workspace-sort-controls button:hover {
+.shell[data-theme-name="marklyra-dark"] .directory-sort-row .workspace-sort-controls button:hover {
   color: white;
 }
 .workspace-sidebar-compact .workspace-compact-empty {

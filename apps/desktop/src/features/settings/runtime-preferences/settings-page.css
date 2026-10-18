@@ -12,14 +12,14 @@ html[data-settings-page] {
   color-scheme: light;
 }
 html[data-settings-dark="true"] {
-  --settings-sidebar-bg: #2e3033;
-  --settings-bg: #25272b;
-  --settings-text: #e2e4e8;
-  --settings-muted: #9fa3ab;
-  --settings-line: #3b3e44;
-  --settings-hover: #3b3e44;
-  --settings-input: #303237;
-  --settings-accent: #78a9fa;
+  --settings-sidebar-bg: #161b22;
+  --settings-bg: #0d1117;
+  --settings-text: #e6edf3;
+  --settings-muted: #8b949e;
+  --settings-line: #30363d;
+  --settings-hover: #30363d;
+  --settings-input: #161b22;
+  --settings-accent: #58a6ff;
   --settings-focus: #858b94;
   color-scheme: dark;
 }

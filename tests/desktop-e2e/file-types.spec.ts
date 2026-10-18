@@ -62,7 +62,7 @@ function installTypesMock(catalog: string[]) {
     return original(command, args);
   };
 }
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: file types save, restore, update the default and preserve the active document`, async ({
     page,
   }, info) => {
@@ -153,7 +153,7 @@ test('a failed file type save restores its switch and preserves the confirmed co
 }) => {
   await installLayout(page);
   await page.addInitScript(installTypesMock, [...baseFileTypes]);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await emitLayoutMenu(page, 'preferences');
   const ui = page.frameLocator('.runtime-preferences-frame');
   await expect(ui.getByRole('switch', { name: '.txt 文件类型', exact: true })).toBeChecked();
@@ -173,7 +173,7 @@ test('a failed custom type deletion keeps the row and its persisted configuratio
 }) => {
   await installLayout(page);
   await page.addInitScript(installTypesMock, [...baseFileTypes, 'own']);
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await emitLayoutMenu(page, 'preferences');
   const ui = page.frameLocator('.runtime-preferences-frame');
   await expect(

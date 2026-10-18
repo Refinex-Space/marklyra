@@ -68,7 +68,7 @@ for (const other of [false, true]) {
       other,
       changedOnOpen: false,
     });
-    await readyLayout(page, 'github');
+    await readyLayout(page, 'marklyra-light');
     await openLayoutDocument(page, source);
     await emitLayoutMenu(page, 'open-folder');
     const history = await layoutHistory(page);
@@ -103,7 +103,7 @@ test('stale current document search retains the live caret and dirty source', as
     other: false,
     changedOnOpen: false,
   });
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   await emitLayoutMenu(page, 'open-folder');
   await emitLayoutMenu(page, 'view:workspace-search');
@@ -142,7 +142,7 @@ test('disk change between search and open does not jump to stale coordinates', a
     other: true,
     changedOnOpen: true,
   });
-  await readyLayout(page, 'github');
+  await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page, source);
   await emitLayoutMenu(page, 'open-folder');
   await emitLayoutMenu(page, 'view:workspace-search');

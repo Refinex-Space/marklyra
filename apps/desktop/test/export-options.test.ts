@@ -6,9 +6,9 @@ describe('confirmed export settings consumption', () => {
   const settings: ExportPreferencesSnapshot = {
     schemaVersion: 1,
     revision: 4,
-    html: { exportTheme: 'night' },
+    html: { exportTheme: 'marklyra-dark' },
     pdf: {
-      exportTheme: 'gothic',
+      exportTheme: 'marklyra-light',
       paper: 'custom',
       'paper.custom': [148, 210],
       'paper.margin': 'custom',
@@ -21,11 +21,11 @@ describe('confirmed export settings consumption', () => {
   };
   it('isolates HTML and PDF themes and applies the captured paper geometry', () => {
     expect(documentExportOptions(settings, false, '稿')).toMatchObject({
-      html: { title: '稿', theme: 'night' },
+      html: { title: '稿', theme: 'marklyra-dark' },
     });
     expect(documentExportOptions(settings, false, '稿').html).not.toHaveProperty('print');
     expect(documentExportOptions(settings, true, '稿')).toEqual({
-      html: { title: '稿', theme: 'gothic', print: { splitPages: true } },
+      html: { title: '稿', theme: 'marklyra-light', print: { splitPages: true } },
       print: {
         paperSize: 'custom',
         customPaperSizeMm: [148, 210],

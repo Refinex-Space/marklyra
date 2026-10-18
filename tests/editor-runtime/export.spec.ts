@@ -77,7 +77,7 @@ test('HTML export preserves active selection/history and renders advanced syntax
   const html = await page.evaluate(() =>
     (window as ImageTestWindow).imageHostFixture.editors[0]?.exportHTML({
       title: 'Literal <title>',
-      theme: 'gothic',
+      theme: 'marklyra-light',
     }),
   );
   expect(typeof html).toBe('string');
@@ -346,7 +346,7 @@ for (const action of ['edit', 'load', 'destroy'] as const) {
   });
 }
 
-for (const theme of ['github', 'gothic', 'night', 'newsprint', 'pixyll', 'whitey'] as const) {
+for (const theme of ['marklyra-light', 'marklyra-dark'] as const) {
   test(`bundled ${theme} theme retains CSS and loads every exported font offline`, async ({
     page,
     context,

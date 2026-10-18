@@ -89,7 +89,7 @@ function installMock(runtimeUrl) {
       if (command === 'list_theme_catalog')
         return {
           folderPath: '/mock/themes',
-          themes: [{ id: 'github', name: 'github', builtin: true }],
+          themes: [{ id: 'marklyra-light', name: 'marklyra-light', builtin: true }],
         };
       if (command === 'get_file_preferences')
         return {

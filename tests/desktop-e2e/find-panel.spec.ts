@@ -14,7 +14,7 @@ import { waitForNativeUndo } from './native-menu.helpers.js';
 
 const source = readFileSync(new URL('../fixtures/visual.md', import.meta.url), 'utf8');
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: sidebar search option icons match the original find panel`, async ({
     page,
   }, testInfo) => {
@@ -200,7 +200,7 @@ async function expectWindowWideFind(page: Page) {
   ).toBe(true);
 }
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: original find UI spans the window above every sidebar mode`, async ({
     page,
   }, testInfo) => {

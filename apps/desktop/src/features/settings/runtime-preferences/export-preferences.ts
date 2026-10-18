@@ -54,7 +54,7 @@ export interface ExportPreferencesSnapshot {
   image?: ImageExportPreferences;
   pandocPath?: string;
 }
-const themes = ['', 'github', 'gothic', 'newsprint', 'night', 'pixyll', 'whitey'];
+const themes = ['', 'marklyra-light', 'marklyra-dark'];
 const pdfFields = [
   'exportTheme',
   'paper',

@@ -33,14 +33,7 @@ import {
 import { initialStartupOptions } from './startup-preferences.js';
 
 export const preferencesProtocol = 'marklyra/preferences/v1';
-export const preferenceThemes = [
-  'github.css',
-  'gothic.css',
-  'newsprint.css',
-  'night.css',
-  'pixyll.css',
-  'whitey.css',
-] as const;
+export const preferenceThemes = ['marklyra-light.css', 'marklyra-dark.css'] as const;
 export const preferenceKeys = [
   'theme',
   'image_save_location',
@@ -203,11 +196,11 @@ export function initialPreferencesOptions(
     actionWhenDropImport: '',
     canUseDarkMode: true,
     useSeparateDarkTheme: false,
-    darkTheme: 'night.css',
+    darkTheme: 'marklyra-dark.css',
     can_collapse_outline_panel: true,
     quitAfterWindowClose: false,
     use_seamless_window: true,
-    theme: 'github.css',
+    theme: 'marklyra-light.css',
     image_save_location: 'assert',
     custom_image_save_location: './assets',
     wordsPerMinute: 382,

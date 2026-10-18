@@ -21,7 +21,7 @@ const bounds = (control: Locator) =>
     return { left: box.left, right: box.right };
   });
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: code language keeps standard styling with a bounded scrollable popup and saved values`, async ({
     page,
   }, info) => {

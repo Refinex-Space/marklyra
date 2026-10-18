@@ -524,7 +524,7 @@ mod tests {
             "format:strong",
             "find",
             "view:source",
-            "theme:night",
+            "theme:marklyra-dark",
         ] {
             assert_eq!(menu_route(preview, id), MenuRoute::Ignore, "{id}");
         }

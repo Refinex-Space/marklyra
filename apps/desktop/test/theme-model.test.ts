@@ -9,7 +9,7 @@ import {
 } from '../src/features/themes/model.js';
 
 describe('portable theme identity', () => {
-  it.each(['github', 'custom-night', '中文主题', 'a.b', 'x_2', '月影'])(
+  it.each(['marklyra-light', 'custom-night', '中文主题', 'a.b', 'x_2', '月影'])(
     'accepts an ordinary filename identity %s',
     (id) => {
       expect(validThemeId(id)).toBe(true);
@@ -33,13 +33,13 @@ describe('portable theme identity', () => {
     'x'.repeat(121),
   ])('rejects ambiguous or unsafe identities %#', (id) => {
     expect(validThemeId(id)).toBe(false);
-    expect(normalizeThemeId(id)).toBe('github');
+    expect(normalizeThemeId(id)).toBe('marklyra-light');
   });
   it('keeps a custom filename distinct from the engine builtin fallback', () => {
     expect(normalizeThemeId('dark')).toBe('dark');
     expect(normalizeThemeId('中文主题')).toBe('中文主题');
-    expect(builtinTheme('中文主题')).toBe('github');
-    expect(builtinTheme('night')).toBe('night');
+    expect(builtinTheme('中文主题')).toBe('marklyra-light');
+    expect(builtinTheme('marklyra-dark')).toBe('marklyra-dark');
   });
   it('copies a bounded catalog and rejects unsafe or repeated native entries', () => {
     const result = themeCatalog(defaultThemeCatalog);
@@ -61,4 +61,17 @@ describe('portable theme identity', () => {
     expect(darkBackground('rgb(240, 241, 242)', true)).toBe(false);
     expect(darkBackground(undefined, true)).toBe(true);
   });
+});
+
+it('offers only the branded pair and resolves retired choices without shadowing user files', async () => {
+  const { defaultThemeCatalog, resolveThemeId } = await import('../src/features/themes/model.js');
+  expect(defaultThemeCatalog.themes).toEqual([
+    { id: 'marklyra-light', name: 'MarkLyra Light', builtin: true },
+    { id: 'marklyra-dark', name: 'MarkLyra Dark', builtin: true },
+  ]);
+  expect(resolveThemeId('github', defaultThemeCatalog)).toBe('marklyra-light');
+  expect(resolveThemeId('night', defaultThemeCatalog)).toBe('marklyra-dark');
+  const custom = { folderPath: '', themes: [{ id: 'github', name: 'My Github', builtin: false }] };
+  expect(resolveThemeId('github', custom)).toBe('github');
+  expect(resolveThemeId('missing-custom', defaultThemeCatalog)).toBe('missing-custom');
 });

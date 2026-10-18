@@ -1,0 +1,37 @@
+/* MarkLyra Dark: GitHub-inspired charcoal surfaces and restrained syntax colors. */
+:root {
+  color-scheme: dark;
+  --bg-color: #0d1117;
+  --side-bar-bg-color: #161b22;
+  --text-color: #e6edf3;
+  --control-text-color: #8b949e;
+  --control-text-hover-color: #f0f6fc;
+  --primary-color: #58a6ff;
+  --item-hover-bg-color: #21262d;
+  --item-hover-text-color: #e6edf3;
+  --active-file-bg-color: #21262d;
+  --active-file-text-color: #f0f6fc;
+  --active-file-border-color: #58a6ff;
+  --window-border: 1px solid #30363d;
+  --select-text-bg-color: #264f78;
+  --search-select-bg-color: #264f78;
+  --rawblock-edit-panel-bd: #30363d;
+  --ml-border: #30363d;
+  --ml-heading-border: #30363d;
+  --ml-muted: #8b949e;
+  --ml-surface: #161b22;
+  --ml-code: #21262d;
+  --ml-meta: #161b22;
+  --ml-selection: #264f78;
+  --ml-syntax-keyword: #ff7b72;
+  --ml-syntax-string: #a5d6ff;
+  --ml-syntax-function: #d2a8ff;
+  --ml-syntax-number: #79c0ff;
+  --ml-syntax-tag: #7ee787;
+  --ml-syntax-comment: #8b949e;
+  --ml-highlight: #574500;
+  --node-fill: #161b22;
+  --mermaid-theme: dark;
+  --node-text-color: #e6edf3;
+  --cluster-fill: #161b22;
+}

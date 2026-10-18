@@ -11,7 +11,7 @@ type LinkId = (typeof links)[number];
 /** Operates on the original three style links, outside the document/history model. */
 export class RuntimeThemes {
   private sources: ThemeStyles = { ...emptyThemeStyles };
-  private builtin = new URL('./style/themes/github.css', location.href).href;
+  private builtin = new URL('./style/themes/marklyra-light.css', location.href).href;
   private readonly abort = new AbortController();
   private observer: MutationObserver | undefined;
   private frame = 0;
@@ -24,8 +24,8 @@ export class RuntimeThemes {
     if (!links.includes(id as LinkId) || !value.startsWith('file:///__marklyra_themes__/'))
       return value;
     if (id === 'theme_css') {
-      const name = value.split('/').at(-1) ?? 'github.css';
-      if (/^(github|gothic|night|newsprint|pixyll|whitey)\.css$/.test(name))
+      const name = value.split('/').at(-1) ?? 'marklyra-light.css';
+      if (/^(marklyra-light|marklyra-dark)\.css$/.test(name))
         this.builtin = new URL(`./style/themes/${name}`, location.href).href;
       return this.sources.theme ?? this.builtin;
     }

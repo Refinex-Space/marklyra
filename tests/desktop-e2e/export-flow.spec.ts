@@ -5,6 +5,8 @@ import { draftSource, installRecoveryMock } from './recovery-test-util.js';
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(installMock);
   await page.addInitScript(installRecoveryMock);
+  // Isolate export writes from the independently enabled background-save policy.
+  await page.addInitScript(() => localStorage.setItem('marklyra-autosave', 'false'));
   await page.goto('/');
   await expect(page.getByRole('button', { name: '打开', exact: true })).toBeEnabled();
 });
@@ -19,7 +21,7 @@ test('HTML and print menus consume their own confirmed settings without saving t
     mock.exportPreferences = {
       schemaVersion: 1,
       revision: 2,
-      html: { exportTheme: 'gothic' },
+      html: { exportTheme: 'marklyra-light' },
       pdf: {
         paper: 'A5',
         'paper.margin': 'custom',
@@ -28,7 +30,7 @@ test('HTML and print menus consume their own confirmed settings without saving t
         'paper.marginLeft': 10,
         'paper.marginRight': 11,
         splitPages: true,
-        exportTheme: 'night',
+        exportTheme: 'marklyra-dark',
       },
     };
   }, raw);

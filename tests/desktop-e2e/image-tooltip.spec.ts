@@ -19,7 +19,7 @@ async function textInsets(tooltip: Locator) {
   });
 }
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: image URL help explains escaping and keeps long text inside both paddings`, async ({
     page,
   }, info) => {

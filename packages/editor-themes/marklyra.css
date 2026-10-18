@@ -1,0 +1,185 @@
+/* Shared presentation only. Both palettes keep the verified GitHub typography and spacing. */
+html,
+body {
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+body {
+  fill: currentColor;
+}
+#write {
+  color: var(--text-color);
+}
+a,
+.cm-s-inner .cm-link {
+  color: var(--primary-color);
+}
+h1,
+h2 {
+  border-bottom-color: var(--ml-heading-border);
+}
+h6,
+blockquote,
+.md-tag,
+.md-meta,
+.md-comment,
+.md-footnote,
+.md-def-name,
+.md-def-title,
+.md-url,
+.md-fences .code-tooltip,
+.md-fences .md-fences-adv-panel {
+  color: var(--ml-muted);
+}
+blockquote {
+  border-left-color: var(--ml-border);
+}
+hr {
+  background-color: var(--ml-border);
+}
+table tr,
+table th,
+table td {
+  border-color: var(--ml-border);
+}
+table tr {
+  background-color: var(--bg-color);
+}
+table tr:nth-child(2n),
+thead {
+  background-color: var(--ml-surface);
+}
+code,
+tt {
+  background-color: var(--ml-code);
+  border-color: var(--ml-border);
+}
+.md-fences,
+.CodeMirror,
+.md-fences .CodeMirror-scroll,
+.md-mathjax-midline {
+  background: var(--ml-surface);
+  color: var(--text-color);
+  border-color: var(--ml-border);
+}
+#write pre.md-meta-block {
+  background: var(--ml-meta);
+  color: var(--ml-muted);
+}
+.CodeMirror-gutters {
+  background: var(--ml-surface);
+  border-right-color: var(--ml-border);
+}
+.CodeMirror-linenumber {
+  color: var(--ml-muted);
+}
+.CodeMirror div.CodeMirror-cursor {
+  border-left-color: var(--text-color);
+}
+.CodeMirror-selected,
+.CodeMirror-focused .CodeMirror-selected {
+  background: var(--ml-selection);
+}
+#write ::selection {
+  background: var(--ml-selection);
+}
+.cm-s-inner .cm-keyword,
+.cm-s-inner .cm-operator {
+  color: var(--ml-syntax-keyword);
+}
+.cm-s-inner .cm-string,
+.cm-s-inner .cm-string-2 {
+  color: var(--ml-syntax-string);
+}
+.cm-s-inner .cm-def,
+.cm-s-inner .cm-variable-3,
+.cm-s-inner .cm-builtin {
+  color: var(--ml-syntax-function);
+}
+.cm-s-inner .cm-number,
+.cm-s-inner .cm-atom,
+.cm-s-inner .cm-attribute {
+  color: var(--ml-syntax-number);
+}
+.cm-s-inner .cm-tag,
+.cm-s-inner .cm-positive {
+  color: var(--ml-syntax-tag);
+}
+.cm-s-inner .cm-comment {
+  color: var(--ml-syntax-comment);
+}
+.cm-s-inner .cm-variable,
+.cm-s-inner .cm-variable-2,
+.cm-s-inner .cm-property {
+  color: var(--text-color);
+}
+.md-lang {
+  color: var(--ml-syntax-function);
+}
+#write mark {
+  background: var(--ml-highlight);
+  color: var(--text-color);
+}
+#write input[type="checkbox"] {
+  accent-color: var(--primary-color);
+}
+#write .md-task-list-done {
+  color: var(--ml-muted);
+}
+.md-rawblock-control,
+.md-rawblock-tooltip,
+.code-tooltip,
+#typora-quick-open,
+#typora-quick-open-item,
+.dropdown-menu,
+.context-menu,
+.ty-tooltip {
+  background: var(--ml-surface);
+  color: var(--text-color);
+  border-color: var(--ml-border);
+}
+.code-tooltip {
+  box-shadow: 0 1px 3px #0002;
+}
+#typora-sidebar,
+.mac-seamless-mode #typora-sidebar {
+  background: var(--side-bar-bg-color);
+  color: var(--text-color);
+}
+.file-node-content:hover,
+.outline-item:hover {
+  background: var(--item-hover-bg-color);
+}
+.file-list-item.active,
+.file-node-content.active {
+  background: var(--active-file-bg-color);
+}
+.on-focus-mode blockquote {
+  border-left-color: var(--ml-border);
+}
+/* Diagrams use the same text and edge contrast as the document. */
+.md-diagram-panel svg {
+  color: var(--text-color);
+}
+.md-diagram-panel .label,
+.md-diagram-panel .nodeLabel {
+  color: var(--text-color);
+}
+.md-diagram-panel text,
+.md-diagram-panel .edgeLabel {
+  fill: var(--text-color);
+}
+.md-diagram-panel .node rect,
+.md-diagram-panel .node circle,
+.md-diagram-panel .node polygon,
+.md-diagram-panel .labelBox {
+  fill: var(--ml-surface);
+  stroke: var(--ml-border);
+}
+.md-diagram-panel .edgePath path,
+.md-diagram-panel .flowchart-link {
+  stroke: var(--ml-muted);
+}
+.md-diagram-panel marker path {
+  fill: var(--ml-muted);
+}

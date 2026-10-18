@@ -286,7 +286,7 @@ fn only_exact_supported_editor_actions_are_sequenced() {
         "heading:7",
         "format:anything",
         "list:unknown",
-        "theme:night",
+        "theme:marklyra-dark",
     ] {
         assert!(!is_editor_action(action), "{action}");
     }

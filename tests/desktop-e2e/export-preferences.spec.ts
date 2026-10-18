@@ -26,7 +26,7 @@ test('original export controls persist only implemented format settings and rest
     ['Right', '14'],
   ] as const)
     await field(`paper.margin${name}`).fill(value);
-  await field('exportTheme').selectOption('night');
+  await field('exportTheme').selectOption('marklyra-dark');
   await field('splitPages').check();
   await expect(field('header').first()).toBeDisabled();
   await expect(field('footer').first()).toBeDisabled();
@@ -43,7 +43,7 @@ test('original export controls persist only implemented format settings and rest
       'paper.marginBottom': 12,
       'paper.marginLeft': 13,
       'paper.marginRight': 14,
-      exportTheme: 'night',
+      exportTheme: 'marklyra-dark',
       splitPages: true,
     });
   await original
@@ -52,7 +52,7 @@ test('original export controls persist only implemented format settings and rest
     .click();
   await original
     .locator('[data-marklyra-preference="export.html:exportTheme"]')
-    .selectOption('newsprint');
+    .selectOption('marklyra-light');
   await expect(original.locator('[data-marklyra-preference="export.html:sidebar"]')).toBeDisabled();
   await expect(
     original.locator('[data-marklyra-preference="export.html:appendHead"]'),
@@ -67,7 +67,7 @@ test('original export controls persist only implemented format settings and rest
     .click();
   await expect(
     original.locator('[data-marklyra-preference="export.html:exportTheme"]'),
-  ).toHaveValue('newsprint');
+  ).toHaveValue('marklyra-light');
   await original.locator('.export-item').filter({ hasText: /^PDF$/ }).click();
   await expect(field('paper')).toHaveValue('custom');
   await expect(field('paper.custom').nth(0)).toHaveValue('148');

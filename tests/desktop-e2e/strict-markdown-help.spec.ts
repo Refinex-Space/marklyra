@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { emitLayoutMenu, installLayout, readyLayout } from './layout.helpers.js';
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: strict Markdown explains parser behavior without the external help link`, async ({
     page,
   }, info) => {

@@ -178,7 +178,11 @@ async function focusEnd(frame: Frame) {
     .toMatchObject({ type: 'cursor', start: 14, end: 14 });
 }
 
-async function apply(page: Page, value: Partial<ThemeStyles>, theme?: 'github' | 'night') {
+async function apply(
+  page: Page,
+  value: Partial<ThemeStyles>,
+  theme?: 'marklyra-light' | 'marklyra-dark',
+) {
   return page.evaluate(
     ({ value, theme }) => (window as unknown as Host).marklyraEditor.setThemeStyles(value, theme),
     { value, theme },
@@ -235,7 +239,7 @@ test('failed replacement restores the prior complete cascade and keeps editing u
   const hrefs = await frame
     .locator('#theme_css,#base_user_css,#theme_user_css')
     .evaluateAll((elements) => elements.map((element) => (element as HTMLLinkElement).href));
-  await expect(apply(page, { theme: `${root}missing.css` }, 'night')).rejects.toThrow(
+  await expect(apply(page, { theme: `${root}missing.css` }, 'marklyra-dark')).rejects.toThrow(
     'could not be loaded',
   );
   expect(
@@ -480,19 +484,21 @@ for (const succeeds of [true, false]) {
       const host = window as unknown as Host;
       const jobs = { first: 'pending', second: 'pending' };
       host.themeTest.jobs = jobs;
-      void host.marklyraEditor.setThemeStyles({ baseUser: `${root}controlled.css` }, 'gothic').then(
-        () => {
-          jobs.first = 'resolved';
-        },
-        () => {
-          jobs.first = 'rejected';
-        },
-      );
+      void host.marklyraEditor
+        .setThemeStyles({ baseUser: `${root}controlled.css` }, 'marklyra-light')
+        .then(
+          () => {
+            jobs.first = 'resolved';
+          },
+          () => {
+            jobs.first = 'rejected';
+          },
+        );
     }, root);
     await entered;
     await page.evaluate(() => {
       const host = window as unknown as Host;
-      void host.marklyraEditor.execute({ type: 'setTheme', theme: 'night' }).then(
+      void host.marklyraEditor.execute({ type: 'setTheme', theme: 'marklyra-dark' }).then(
         () => {
           if (host.themeTest.jobs) host.themeTest.jobs.second = 'resolved';
         },
@@ -505,12 +511,12 @@ for (const succeeds of [true, false]) {
     await expect
       .poll(() => page.evaluate(() => (window as unknown as Host).themeTest.jobs))
       .toEqual({ first: succeeds ? 'resolved' : 'rejected', second: 'resolved' });
-    expect(await frame.evaluate(() => Reflect.get(window, '_options').theme)).toBe('night');
+    expect(await frame.evaluate(() => Reflect.get(window, '_options').theme)).toBe('marklyra-dark');
     expect(
       await page.evaluate(() =>
         Reflect.get((window as unknown as Host).marklyraEditor, 'activeTheme'),
       ),
-    ).toBe('night');
+    ).toBe('marklyra-dark');
     expect(
       await frame.locator('#write p').evaluate((element) => getComputedStyle(element).color),
     ).toBe(succeeds ? 'rgb(110, 120, 130)' : 'rgb(60, 61, 62)');

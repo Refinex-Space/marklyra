@@ -252,7 +252,7 @@ describe('active SDK extension registry (host doubles, not runtime/native accept
     for (const value of [
       { type: 'native.eval', path: '/tmp/file' },
       { type: 'restoreSelection', bookmark: { type: 'remove' } },
-      { type: 'setTheme', theme: 'night' },
+      { type: 'setTheme', theme: 'marklyra-dark' },
       { type: 'insertText', text: 'x', path: '/tmp/file' },
       { type: 'heading', level: 9 },
       { type: 'format', style: 'unknown' },

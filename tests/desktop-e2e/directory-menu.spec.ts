@@ -207,7 +207,7 @@ async function save(page: Page) {
     .toBe('\uFEFFKeep **Bravo**\r\n\r\nTail  \r\n');
 }
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: directory popup and footer avoid focus rings while retaining keyboard navigation`, async ({
     page,
   }, info) => {

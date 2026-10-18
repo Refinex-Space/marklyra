@@ -15,14 +15,7 @@ export const demoCommands: readonly { action: string; label: string; command: Ma
     { action: 'math', label: '公式', command: { type: 'mathBlock' } },
     { action: 'source', label: '源码模式', command: { type: 'toggleSource' } },
   ];
-export const themes: readonly RuntimeConfiguration['theme'][] = [
-  'github',
-  'gothic',
-  'night',
-  'newsprint',
-  'pixyll',
-  'whitey',
-];
+export const themes: readonly RuntimeConfiguration['theme'][] = ['marklyra-light', 'marklyra-dark'];
 export function isTheme(value: string): value is RuntimeConfiguration['theme'] {
   return themes.some((theme) => theme === value);
 }

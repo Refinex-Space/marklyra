@@ -94,7 +94,7 @@ describe('Native editor action mapping', () => {
       'new',
       'new-window',
       'close',
-      'theme:night',
+      'theme:marklyra-dark',
       'heading:7',
       'heading:01',
       'format:unknown',

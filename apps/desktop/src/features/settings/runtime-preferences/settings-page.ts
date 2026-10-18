@@ -140,6 +140,16 @@ export function setupSettingsPage(
         row.classList.add('settings-table-toggle');
     }
     for (const select of pane.querySelectorAll('select')) {
+      for (const option of select.options) {
+        const id = option.value.replace(/\.css$/, '');
+        const name =
+          id === 'marklyra-light'
+            ? 'MarkLyra Light'
+            : id === 'marklyra-dark'
+              ? 'MarkLyra Dark'
+              : null;
+        if (name && option.textContent !== name) option.textContent = name;
+      }
       const row = select.parentElement;
       if (!row?.classList.contains('row')) continue;
       row.classList.add('settings-select-row');

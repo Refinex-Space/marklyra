@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { emitLayoutMenu, installLayout, readyLayout } from './layout.helpers.js';
 
-for (const theme of ['github', 'night']) {
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: formula help explains line breaks and numbering with math enabled by default`, async ({
     page,
   }, info) => {

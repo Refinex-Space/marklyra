@@ -15,7 +15,7 @@ describe('restricted original export preferences', () => {
     const value = {
       schemaVersion: 1,
       revision: 3,
-      html: { exportTheme: 'night' },
+      html: { exportTheme: 'marklyra-dark' },
       pdf: {
         paper: 'custom',
         'paper.custom': [148, 210],

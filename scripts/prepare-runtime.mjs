@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
+import { prepareBuiltinThemes } from './lib/builtin-themes.mjs';
 import { preparePreferencesRuntime } from './lib/prepare-preferences-runtime.mjs';
 import { brandHtmlTitle, brandLocale } from './lib/runtime-branding.mjs';
 import { transformRuntimeContextCursor } from './lib/runtime-context-cursor.mjs';
@@ -79,6 +80,11 @@ async function copy(directory) {
         htmlLifecycle: htmlLifecycle.metadata,
         renderLifecycle: renderLifecycle.metadata,
       });
+    } else if (path === 'style/themes/github.css') {
+      actual.push(...(await prepareBuiltinThemes(root, output, bytes.toString('utf8'))));
+      continue;
+    } else if (path.startsWith('style/themes/') && path.endsWith('.css')) {
+      continue;
     } else if (path.startsWith('locales/') && path.endsWith('.json')) {
       const branded = brandLocale(bytes.toString('utf8'));
       await writeFile(target, branded.code);
