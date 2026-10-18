@@ -143,6 +143,39 @@ button[aria-pressed="true"] {
   position: relative;
   overflow: hidden;
 }
+.shell[data-settings-page] > .workspace {
+  visibility: hidden;
+  pointer-events: none;
+}
+.shell[data-settings-page] > .toolbar,
+.shell[data-settings-page] > .statusbar,
+.shell[data-settings-page] > .native-document-notice {
+  visibility: hidden;
+  pointer-events: none;
+}
+.shell > .preferences-page {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  height: auto;
+  background: var(--surface);
+  color: var(--text);
+}
+.shell[data-native-chrome="true"][data-native-overlay="true"]:not([data-fullscreen="true"])
+  > .preferences-page {
+  top: 28px;
+}
+.preferences-loading {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+}
+.preferences-page .preferences-window-error {
+  left: 0;
+  bottom: 0;
+  padding: 10px 20px;
+}
 .preferences-drag-region {
   position: absolute;
   z-index: 2;
@@ -769,4 +802,89 @@ button[aria-pressed="true"] {
   .command-menu-panel section:nth-child(3) {
     border-left: 0;
   }
+}
+
+/* The settings sidebar continues behind the traffic lights. The existing
+   native drag band stays above the paint layer and retains window dragging. */
+.shell[data-native-chrome="true"][data-native-overlay="true"]:not([data-fullscreen="true"])
+> .preferences-page::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: 28px;
+  background: linear-gradient(
+    to right,
+    var(--settings-sidebar-bg) 0 calc(var(--settings-sidebar-width) - 1px),
+    var(--settings-page-line) calc(var(--settings-sidebar-width) - 1px)
+      var(--settings-sidebar-width),
+    var(--settings-page-bg) var(--settings-sidebar-width) 100%
+  );
+  pointer-events: none;
+}
+.shell[data-settings-page] .native-titlebar-drag {
+  z-index: 21;
+}
+.settings-resize-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  z-index: 2;
+  pointer-events: none;
+}
+.settings-resize-track > .sidebar-resize {
+  pointer-events: auto;
+  margin-left: -3px;
+  margin-right: -3px;
+  flex: 0 0 6px;
+}
+.settings-resize-track > .sidebar-resize::before {
+  background: transparent;
+}
+.settings-resize-track > .resize-shield {
+  pointer-events: auto;
+}
+
+.settings-effect-notice {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: calc(100vw - 40px);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 8px #00000014;
+}
+.settings-effect-notice strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.settings-effect-notice p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.settings-effect-notice button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+}
+.settings-effect-notice button:hover {
+  background: var(--hover);
+  color: var(--text);
 }

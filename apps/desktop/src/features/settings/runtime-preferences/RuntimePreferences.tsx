@@ -18,6 +18,7 @@ export function RuntimePreferences(props: RuntimePreferencesProps) {
         runtimeUrl: props.runtimeUrl,
         ...(props.platform ? { platform: props.platform } : {}),
         initialOptions: callbacks.current.initialOptions,
+        presentation: callbacks.current.presentation,
         onPut: (key, value) => callbacks.current.onPut(key, value),
         onAction: async (name, data) => callbacks.current.onAction?.(name, data),
         onClose: () => callbacks.current.onClose(),
@@ -37,6 +38,9 @@ export function RuntimePreferences(props: RuntimePreferencesProps) {
   useEffect(() => {
     if (props.closeRequest) currentHost.current?.requestClose();
   }, [props.closeRequest, props.runtimeUrl, props.platform]);
+  useEffect(() => {
+    currentHost.current?.setPresentation(props.presentation);
+  }, [props.presentation]);
   return (
     <div
       ref={container}

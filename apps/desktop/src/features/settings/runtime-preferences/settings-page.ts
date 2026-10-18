@@ -1,0 +1,267 @@
+import css from './settings-page.css?inline';
+
+const summaries: Record<string, string> = {
+  文件: '启动、保存与文档管理',
+  编辑器: '编辑体验与输入行为',
+  图像: '插入图片与本地存储',
+  Markdown: '语法、排版与文档格式',
+  导出: '输出格式与文档样式',
+  外观: '主题、字体与界面显示',
+  通用: '应用行为与系统集成',
+};
+
+export function presentSettingsPage(value: unknown) {
+  if (
+    !document.documentElement.hasAttribute('data-settings-page') ||
+    !value ||
+    typeof value !== 'object'
+  )
+    return;
+  const input = value as Record<string, unknown>;
+  const root = document.documentElement;
+  root.dataset.settingsDark = String(input.dark === true);
+  if (typeof input.sidebarWidth === 'number' && Number.isFinite(input.sidebarWidth))
+    root.style.setProperty(
+      '--settings-sidebar-width',
+      `${Math.max(200, Math.min(440, input.sidebarWidth))}px`,
+    );
+  if (typeof input.sidebarBackground === 'string' && CSS.supports('color', input.sidebarBackground))
+    root.style.setProperty('--settings-sidebar-bg', input.sidebarBackground);
+}
+
+export function setupSettingsPage(close: () => void) {
+  if (new URL(location.href).searchParams.get('layout') !== 'page') return;
+  document.documentElement.dataset.settingsPage = 'true';
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.append(style);
+  positionHelpTooltips();
+  document.addEventListener('keydown', (event) => {
+    const item =
+      event.target instanceof HTMLElement && event.target.closest<HTMLElement>('.nav-group-item');
+    if (item && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      item.click();
+    }
+  });
+  const observer = new ResizeObserver(() => requestAnimationFrame(() => arrangeHints(document)));
+  const refresh = () => {
+    const sidebar = document.querySelector('.pane-sm.sidebar');
+    const searchRow = sidebar?.querySelector('.list-group-header');
+    const pane = document.querySelector('.pane-group > .pane');
+    if (!sidebar || !searchRow || !pane) return;
+    observer.observe(pane);
+    sidebar.setAttribute('aria-label', '设置导航');
+    sidebar.setAttribute('role', 'navigation');
+    if (!sidebar.querySelector('.settings-back')) {
+      const back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'settings-back';
+      back.title = '返回应用';
+      back.setAttribute('aria-label', '返回应用');
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.classList.add('settings-back-arrow');
+      icon.setAttribute('viewBox', '0 0 20 20');
+      icon.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M10 4 4 10l6 6M4 10h12');
+      icon.append(path);
+      back.append(icon, document.createTextNode('返回应用'));
+      back.addEventListener('click', close);
+      sidebar.prepend(back);
+      const search = searchRow.querySelector<HTMLInputElement>('input');
+      if (search) {
+        search.placeholder = '搜索设置';
+        search.setAttribute('aria-label', '搜索设置');
+        back.focus({ preventScroll: true });
+      }
+    }
+    let heading = pane.querySelector<HTMLElement>('.settings-page-heading');
+    if (!heading) {
+      heading = document.createElement('header');
+      heading.className = 'settings-page-heading';
+      heading.append(document.createElement('h1'), document.createElement('p'));
+      pane.prepend(heading);
+    }
+    const search = sidebar.querySelector<HTMLInputElement>('.search-input')?.value.trim();
+    const title = search
+      ? '搜索结果'
+      : sidebar.querySelector('.nav-group-item.active')?.textContent?.trim() || '设置';
+    const noResults =
+      pane.querySelector('.content:not([data-index])')?.classList.contains('display-none') ===
+      false;
+    const subtitle = search
+      ? noResults
+        ? '没有找到匹配的设置，请尝试其他关键词。'
+        : `与“${search}”相关的设置`
+      : summaries[title] || '';
+    const headingTitle = heading.children[0];
+    const headingSubtitle = heading.children[1];
+    if (headingTitle && headingTitle.textContent !== title) headingTitle.textContent = title;
+    if (headingSubtitle && headingSubtitle.textContent !== subtitle)
+      headingSubtitle.textContent = subtitle;
+    for (const item of sidebar.querySelectorAll<HTMLElement>('.nav-group-item')) {
+      item.setAttribute('role', 'button');
+      item.tabIndex = 0;
+      item.setAttribute('aria-current', item.classList.contains('active') ? 'page' : 'false');
+    }
+    for (const hint of pane.querySelectorAll('.panel-content-hint, .input-group-header-hint')) {
+      hint.classList.toggle(
+        'settings-deferred-hint',
+        /重启|重新启动|restart|relaunch/i.test(hint.textContent || ''),
+      );
+    }
+    arrangeFileGroups(pane);
+    arrangeEditingGroups(pane);
+    pane
+      .querySelector('[data-marklyra-preference="zoomFactor"]')
+      ?.closest('tr')
+      ?.classList.add('settings-zoom-row');
+    pane
+      .querySelector('[data-marklyra-theme-action="open-theme-folder"]')
+      ?.closest('.row')
+      ?.classList.add('settings-theme-actions');
+    for (const row of pane.querySelectorAll('tr')) {
+      if (row.querySelector('td:first-child > .checkbox.row'))
+        row.classList.add('settings-table-toggle');
+    }
+    for (const select of pane.querySelectorAll('select')) {
+      const row = select.parentElement;
+      if (!row?.classList.contains('row')) continue;
+      row.classList.add('settings-select-row');
+      if (!row.querySelector('.settings-select-chevron')) {
+        const arrow = document.createElement('span');
+        arrow.className = 'icon icon-down-open settings-select-chevron';
+        arrow.setAttribute('aria-hidden', 'true');
+        row.append(arrow);
+      }
+    }
+    arrangeHints(pane);
+  };
+  document.addEventListener('input', (event) => {
+    if (event.target instanceof Element && event.target.matches('.search-input'))
+      queueMicrotask(refresh);
+  });
+  observer.observe(document.documentElement);
+  document.fonts.ready.then(refresh);
+  return refresh;
+}
+
+// Keep the original controls in their React-owned parents. Visual grouping uses
+// ordering and adjoining borders, so conditional controls and save handlers survive.
+function arrangeFileGroups(pane: Element) {
+  const startup = pane.querySelector('[data-marklyra-preference="restoreWhenLaunch"]');
+  const content = startup?.closest<HTMLElement>('.content');
+  if (!content) return;
+  content.classList.add('settings-file-content');
+  const sections = [
+    { title: '启动与新建', keys: ['restoreWhenLaunch', 'defaultExtension'] },
+    {
+      title: '文档与记录',
+      keys: ['can_collapse_outline_panel', 'save_file_on_switch', 'noRecentFiles'],
+    },
+    { title: '拖放行为', keys: ['actionWhenDropFolder'] },
+  ];
+  let order = 0;
+  for (const section of sections) {
+    section.keys.forEach((key, index) => {
+      const group = content
+        .querySelector(`[data-marklyra-preference="${key}"]`)
+        ?.closest<HTMLElement>('.input-group');
+      if (!group) return;
+      group.classList.add('settings-card-part');
+      group.classList.toggle('settings-card-start', index === 0);
+      group.classList.toggle('settings-card-end', index === section.keys.length - 1);
+      group.dataset.sectionTitle = section.title;
+      group.style.order = String(order++);
+      if (['restoreWhenLaunch', 'defaultExtension'].includes(key)) {
+        group.classList.add('settings-inline-setting');
+      } else {
+        group.classList.add('settings-labelled-rows');
+      }
+    });
+  }
+}
+
+function arrangeHints(pane: ParentNode) {
+  for (const hint of pane.querySelectorAll<HTMLElement>('.label-hint')) {
+    const row = hint.parentElement;
+    if (!row) continue;
+    const label = row.matches('.checkbox')
+      ? row.querySelector('label')
+      : row.matches('tr')
+        ? row.querySelector('td label') || row.querySelector('td')
+        : row.closest('.input-group')?.querySelector('.input-group-header-title');
+    if (!label || !hint.getClientRects().length) continue;
+    // An inline slot reserves room beside the label, including wrapped labels.
+    let slot = label.querySelector<HTMLElement>(':scope > .settings-hint-slot');
+    if (!slot) {
+      slot = document.createElement('span');
+      slot.className = 'settings-hint-slot';
+      slot.setAttribute('aria-hidden', 'true');
+      label.append(slot);
+    }
+    const group = hint.closest<HTMLElement>('.input-group');
+    if (!group) continue;
+    group.classList.add('settings-has-hints');
+    hint.classList.add('settings-inline-hint');
+    const anchor = slot.getBoundingClientRect();
+    const origin = hint.offsetParent?.getBoundingClientRect();
+    if (!origin) continue;
+    hint.style.left = `${anchor.left - origin.left + 4}px`;
+    hint.style.top = `${anchor.top - origin.top + (anchor.height - 16) / 2}px`;
+    if (!hint.hasAttribute('tabindex')) {
+      hint.tabIndex = 0;
+      hint.setAttribute('aria-label', hint.getAttribute('hint') || '查看说明');
+    }
+  }
+}
+
+function arrangeEditingGroups(pane: Element) {
+  const keys = ['no_pairing_match', 'noEmojiAutoComplete', 'auto_expand_block'];
+  keys.forEach((key, index) => {
+    const group = pane
+      .querySelector(`[data-marklyra-preference="${key}"]`)
+      ?.closest<HTMLElement>('.input-group');
+    if (!group) return;
+    group.classList.add('settings-card-part', 'settings-labelled-rows');
+    group.classList.toggle('settings-card-start', index === 0);
+    group.classList.toggle('settings-card-end', index === keys.length - 1);
+    group.dataset.sectionTitle = '输入与编辑';
+  });
+}
+
+function positionHelpTooltips() {
+  const tooltip = document.getElementById('ty-tooltip');
+  if (!tooltip) return;
+  let anchor: HTMLElement | null = null;
+  let frame = 0;
+  const position = () => {
+    frame = 0;
+    if (!anchor?.isConnected || !tooltip.classList.contains('shown')) return;
+    const target = anchor.getBoundingClientRect();
+    // The original tooltip writes both left and right; clear its old right edge
+    // before measuring, otherwise repositioning can squeeze the text to one column.
+    tooltip.style.right = 'auto';
+    const box = tooltip.getBoundingClientRect();
+    const left = Math.max(8, Math.min(target.left, window.innerWidth - box.width - 8));
+    const below = target.bottom + 8;
+    const top =
+      below + box.height <= window.innerHeight - 8
+        ? below
+        : Math.max(8, target.top - box.height - 8);
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+  const schedule = () => {
+    if (!frame) frame = requestAnimationFrame(position);
+  };
+  document.addEventListener('mouseover', (event) => {
+    if (!(event.target instanceof Element)) return;
+    anchor = event.target.closest<HTMLElement>('.label-hint');
+    if (anchor) schedule();
+  });
+  new MutationObserver(schedule).observe(tooltip, { attributes: true, attributeFilter: ['class'] });
+  document.addEventListener('scroll', schedule, true);
+  window.addEventListener('resize', schedule);
+}

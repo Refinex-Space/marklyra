@@ -18,6 +18,9 @@ export interface RuntimePreferencesOptions {
   runtimeUrl: string;
   platform?: 'macos' | 'windows' | 'browser';
   initialOptions: InitialPreferencesOptions;
+  presentation?:
+    | { sidebarWidth: number; dark: boolean; sidebarBackground?: string | undefined }
+    | undefined;
   onPut: (key: PreferenceKey, value: PreferenceValue) => Promise<void>;
   onAction?: (name: PreferenceAction, data: unknown) => Promise<unknown>;
   onClose: () => void;
@@ -59,10 +62,12 @@ export class RuntimePreferencesHost {
     url.searchParams.set('channel', this.channel);
     url.searchParams.set('parentOrigin', window.location.origin);
     url.searchParams.set('os', options.platform === 'windows' ? 'win' : 'mac');
+    if (options.presentation) url.searchParams.set('layout', 'page');
     this.element = container.ownerDocument.createElement('iframe');
     this.element.title = 'MarkLyra 偏好设置';
     this.element.className = 'runtime-preferences-frame';
     this.element.style.cssText = 'width:100%;height:100%;display:block;border:0;';
+    if (options.presentation) this.element.style.visibility = 'hidden';
     this.element.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     this.element.setAttribute('referrerpolicy', 'no-referrer');
     this.element.src = url.href;
@@ -88,7 +93,24 @@ export class RuntimePreferencesHost {
     if (this.initialized) {
       this.closeRequested = false;
       this.send('close-request', null);
+    } else {
+      // An unopened/failed frame has no editable controls. Retain any previous
+      // document's pending native write, then allow the enclosing page to close.
+      void this.queue
+        .then(async () => {
+          if (this.disposed || !this.closeRequested || this.initialized) return;
+          this.closeRequested = false;
+          await this.options.onClose();
+        })
+        .catch((error: unknown) =>
+          this.options.onError(error instanceof Error ? error : new Error(String(error))),
+        );
     }
+  }
+
+  setPresentation(value: RuntimePreferencesOptions['presentation']): void {
+    this.options.presentation = value;
+    if (this.initialized && value) this.send('presentation', value);
   }
 
   private receive = (event: MessageEvent<unknown>) => {
@@ -117,13 +139,19 @@ export class RuntimePreferencesHost {
       // never from a stale baseline while a Native write is already in progress.
       void this.queue.then(() => {
         if (!this.disposed && this.instance === instance)
-          this.send('initialize', { options: this.initial }, instance);
+          this.send(
+            'initialize',
+            { options: this.initial, presentation: this.options.presentation },
+            instance,
+          );
       });
       return;
     }
     if (typeof instance !== 'string' || instance !== this.instance) return;
     if (kind === 'initialized') {
       this.initialized = true;
+      this.element.style.visibility = 'visible';
+      this.setPresentation(this.options.presentation);
       clearTimeout(this.timer);
       if (this.closeRequested) this.requestClose();
       return;

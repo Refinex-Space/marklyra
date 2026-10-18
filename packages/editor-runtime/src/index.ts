@@ -1328,7 +1328,7 @@ export class MarkLyraEditor {
     this.assertAvailable();
     // Establish the outer browsing-context focus before selecting the current
     // input owner inside the isolated runtime. This does not grant user activation.
-    this.element.focus();
+    this.element.focus({ preventScroll: true });
     await this.request('focus');
   }
   async markSaved(expectedSource = this.source): Promise<boolean> {

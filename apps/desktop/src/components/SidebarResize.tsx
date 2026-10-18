@@ -6,7 +6,11 @@ export function SidebarResize({
   hide,
   trailingWidth = 0,
   onDragWidthChange,
+  minimumWidth,
+  maximumWidth,
 }: {
+  minimumWidth?: number;
+  maximumWidth?: number;
   width: number;
   change: (width: number) => void;
   native?: boolean;
@@ -23,9 +27,12 @@ export function SidebarResize({
     return () => window.removeEventListener('resize', resize);
   }, []);
   useEffect(() => () => onDragWidthChange(null), [onDragWidthChange]);
-  const minimum = native ? 160 : 180;
+  const minimum = minimumWidth ?? (native ? 160 : 180);
   const available = viewport - trailingWidth - (native || trailingWidth ? 220 : 300);
-  const maximum = Math.max(minimum, native ? available : Math.min(440, available));
+  const maximum = Math.max(
+    minimum,
+    Math.min(maximumWidth ?? (native ? available : 440), available),
+  );
   const bounded = (next: number) => Math.round(Math.max(minimum, Math.min(maximum, next)));
   const resize = (next: number) => change(bounded(next));
   const stop = () => {

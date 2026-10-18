@@ -19,13 +19,6 @@ fn host_window(window: &WebviewWindow) -> Result<(), String> {
         editor(window)
     }
 }
-fn preferences(window: &WebviewWindow) -> Result<(), String> {
-    if window.label() == "preferences" {
-        Ok(())
-    } else {
-        Err("请从偏好设置更改启动选项".into())
-    }
-}
 
 #[tauri::command]
 pub async fn get_startup_preferences(
@@ -51,8 +44,9 @@ async fn update(
     mode: Option<u8>,
     choose: bool,
 ) -> Result<Option<StartupPreferences>, String> {
-    preferences(&window)?;
-    let generation = app.state::<PreferencesHost>().generation()?;
+    let generation = app
+        .state::<PreferencesHost>()
+        .generation_for(window.label())?;
     let started = std::time::Instant::now();
     tauri::async_runtime::spawn_blocking(move || {
         let state = host.with(&app, |store| {

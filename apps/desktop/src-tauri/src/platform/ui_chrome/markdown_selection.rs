@@ -285,13 +285,16 @@ pub async fn request_preference_markdown(
     expected_revision: u64,
     change: MarkdownPreferenceChange,
 ) -> Result<MarkdownPreferences, String> {
-    super::require_preferences(window.label())?;
+    super::require_preferences_session(&window)?;
     change.validate()?;
     // Capture the requesting Preferences generation before asynchronous disk IO.
     // A held read must not retarget an old UI change to a newly reopened opener.
     let requested_origin = {
         let preferences = app.state::<PreferencesHost>();
         let origin = preferences.0.lock().map_err(|_| "偏好设置窗口状态不可用")?;
+        if origin.surface_label() != window.label() {
+            return Err(CLOSED_ERROR.into());
+        }
         Origin::current(&origin).ok_or(CLOSED_ERROR)?
     };
     let disk_app = app.clone();
@@ -314,7 +317,7 @@ pub async fn request_preference_markdown(
         if current != requested_origin {
             return Err(CLOSED_ERROR.into());
         }
-        if app.get_webview_window(PREFERENCES_LABEL).is_none()
+        if app.get_webview_window(origin.surface_label()).is_none()
             || app
                 .get_webview_window(&current.opener)
                 .filter(crate::windows::is_editor)
@@ -407,7 +410,7 @@ pub async fn complete_preference_markdown(
             let preferences = app.state::<PreferencesHost>();
             let origin = preferences.0.lock().map_err(|_| "偏好设置窗口状态不可用")?;
             let current = app
-                .get_webview_window(PREFERENCES_LABEL)
+                .get_webview_window(origin.surface_label())
                 .and_then(|_| Origin::current(&origin));
             let error = error.map(|message| {
                 if message.trim().is_empty() {

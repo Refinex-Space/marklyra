@@ -1000,12 +1000,24 @@ window.addEventListener(
               false,
             );
             break;
-          case 'focus':
+          case 'focus': {
             imageLayout?.interaction();
             if (loading || composing()) throw new Error('请先完成当前编辑操作');
+            // Shell navigation restores the existing input owner, without
+            // scrolling the reading viewport back to its retained caret.
+            const scroll = [
+              ...document.querySelectorAll<HTMLElement>('content, .CodeMirror-scroll'),
+            ].map((element) => ({ element, top: element.scrollTop, left: element.scrollLeft }));
             focus.focus();
+            for (const { element, top, left } of scroll) {
+              if (element.isConnected) {
+                element.scrollTop = top;
+                element.scrollLeft = left;
+              }
+            }
             result = true;
             break;
+          }
           case 'mark-saved': {
             const expected = message.payload as { canonical: string; sequence: number };
             const current = state();

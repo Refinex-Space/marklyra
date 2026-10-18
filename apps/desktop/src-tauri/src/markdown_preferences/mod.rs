@@ -212,13 +212,10 @@ pub async fn put_markdown_preferences(
     change: MarkdownPreferenceChange,
     host: State<'_, MarkdownPreferencesHost>,
 ) -> Result<MarkdownPreferences, String> {
-    if window.label() != "preferences" {
-        return Err("请从偏好设置更改Markdown序列化策略".into());
-    }
     change.validate()?;
     let generation = app
         .state::<crate::platform::ui_chrome::PreferencesHost>()
-        .generation()?;
+        .generation_for(window.label())?;
     let host = host.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut current_generation = false;

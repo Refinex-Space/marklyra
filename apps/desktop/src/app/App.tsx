@@ -49,6 +49,7 @@ import { OutlinePanel } from '../features/outline/OutlinePanel.js';
 import { RecentFilesPanel } from '../features/recent-files/RecentFilesPanel.js';
 import { editorSessionPreferences } from '../features/settings/editor-session-preferences.js';
 import { PreferencesPanel } from '../features/settings/PreferencesPanel.js';
+import { PreferencesWindow } from '../features/settings/PreferencesWindow.js';
 import type { StatisticsUnit } from '../features/settings/preferences.js';
 import {
   applicationEditorPreferences,
@@ -130,6 +131,17 @@ export function App() {
   const [fullscreen, setFullscreen] = useState(false);
   const [nativeOverlay, setNativeOverlay] = useState(true);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [settingsEffectNotice, setSettingsEffectNotice] = useState(0);
+  useEffect(() => {
+    if (!settingsEffectNotice) return;
+    const timer = setTimeout(() => setSettingsEffectNotice(0), 6000);
+    return () => clearTimeout(timer);
+  }, [settingsEffectNotice]);
+  const [preferencesEmbedded, setPreferencesEmbedded] = useState(false);
+  const [preferencesCloseRequest, setPreferencesCloseRequest] = useState(0);
+  const preferencesSession = useRef<Promise<boolean> | null>(null);
+  const preferencesQuit = useRef<string | null>(null);
   const [statisticsOpen, setStatisticsOpen] = useState(false);
   const [nativeNotice, setNativeNotice] = useState('');
   const [closingPanel, setClosingPanel] = useState(false);
@@ -391,14 +403,7 @@ export function App() {
       doc.setMessage('请先完成输入法候选');
       return false;
     }
-    if (chrome.preferencesWindow) {
-      nativePreferencesOrigin.current =
-        editorOrigin ?? document.activeElement === editor.current.element;
-      void editorChrome
-        .openPreferences()
-        .catch((error: unknown) => doc.setMessage(`无法打开偏好设置：${String(error)}`));
-      return true;
-    }
+    if (preferencesOpen) return true;
     panelEditorOrigin.current.preferences =
       editorOrigin ??
       (statisticsOpen
@@ -408,6 +413,28 @@ export function App() {
     setRecentOpen(false);
     setStatisticsOpen(false);
     setPreferencesOpen(true);
+    const embedded = desktopAvailable && chrome.preferencesWindow;
+    setPreferencesEmbedded(embedded);
+    if (embedded) {
+      setPreferencesReady(false);
+      setPreferencesCloseRequest(0);
+      const session = editorChrome.openPreferences();
+      preferencesSession.current = session;
+      void session
+        .then((opened) => {
+          if (preferencesSession.current !== session) return;
+          if (opened === false) {
+            preferencesSession.current = null;
+            setPreferencesOpen(false);
+          } else setPreferencesReady(true);
+        })
+        .catch((error: unknown) => {
+          if (preferencesSession.current !== session) return;
+          preferencesSession.current = null;
+          setPreferencesOpen(false);
+          doc.setMessage(`无法打开设置：${String(error)}`);
+        });
+    }
     return true;
   };
   const windowOperation = async (work: () => Promise<unknown>, failure = '窗口操作未确认') => {
@@ -748,6 +775,10 @@ export function App() {
   const dismissAuxiliaryPanel = async () => {
     const current = actions.current;
     if (closingPanelRef.current || (!current.preferencesOpen && !current.statisticsOpen)) return;
+    if (current.preferencesOpen && preferencesSession.current) {
+      setPreferencesCloseRequest((value) => value + 1);
+      return;
+    }
     const kind = current.preferencesOpen ? 'preferences' : 'statistics';
     const instance = editor.current;
     closingPanelRef.current = true;
@@ -764,6 +795,33 @@ export function App() {
       closingPanelRef.current = false;
       setClosingPanel(false);
     }
+  };
+  const finishPreferencesPage = async () => {
+    if (closingPanelRef.current) return;
+    closingPanelRef.current = true;
+    setClosingPanel(true);
+    try {
+      if ((await preferencesSession.current) !== false) await editorChrome.closePreferences();
+      preferencesSession.current = null;
+      flushSync(() => {
+        setPreferencesOpen(false);
+        setPreferencesReady(false);
+      });
+      reloadPreferences();
+      if (panelEditorOrigin.current.preferences && editor.current) await editor.current.focus();
+    } catch (error) {
+      if (preferencesQuit.current) {
+        preferencesQuit.current = null;
+        cancelApplicationQuit();
+      }
+      throw error;
+    } finally {
+      closingPanelRef.current = false;
+      flushSync(() => setClosingPanel(false));
+    }
+    const quit = preferencesQuit.current;
+    preferencesQuit.current = null;
+    if (quit && applicationQuit.current === quit) await actions.current.closeRequested();
   };
   useEffect(() => {
     if (!desktopAvailable) return;
@@ -1158,6 +1216,11 @@ export function App() {
           const current = actions.current;
           if (applicationQuit.current === token) return;
           applicationQuit.current = token;
+          if (current.preferencesOpen && preferencesSession.current) {
+            preferencesQuit.current = token;
+            setPreferencesCloseRequest((value) => value + 1);
+            return;
+          }
           if (current.unavailableForQuit || !editor.current || editor.current.isComposing) {
             current.cancelApplicationQuit();
             current.doc.setMessage(
@@ -1483,6 +1546,7 @@ export function App() {
       data-native-chrome={chrome.native}
       data-native-overlay={nativeOverlay}
       data-fullscreen={fullscreen}
+      data-settings-page={(preferencesOpen && preferencesEmbedded) || undefined}
       data-theme-name={theme}
       data-theme-loading={themeSystem.working || undefined}
       style={themeSystem.appearance as CSSProperties}
@@ -1617,6 +1681,8 @@ export function App() {
       )}
       <div
         className="workspace"
+        inert={preferencesOpen && preferencesEmbedded}
+        aria-hidden={(preferencesOpen && preferencesEmbedded) || undefined}
         data-details-open={detailsLayout.present || undefined}
         style={
           {
@@ -2168,7 +2234,55 @@ export function App() {
           />
         </footer>
       )}
-      {preferencesOpen && !doc.pending && (
+      {settingsEffectNotice > 0 && (
+        <div className="settings-effect-notice" role="status" aria-live="polite">
+          <div>
+            <strong>设置已保存</strong>
+            <p>这些更改将在新建窗口或重启应用后生效。</p>
+          </div>
+          <button
+            type="button"
+            aria-label="关闭设置提示"
+            onClick={() => setSettingsEffectNotice(0)}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {preferencesOpen &&
+        !doc.pending &&
+        preferencesEmbedded &&
+        (preferencesReady ? (
+          <PreferencesWindow
+            embedded
+            sidebarWidth={sidebarWidth}
+            onSidebarWidthChange={(sidebarWidth) =>
+              setPreferences((value) => ({ ...value, sidebarWidth }))
+            }
+            onSidebarDragWidthChange={setSidebarDragWidth}
+            dark={themeSystem.dark}
+            sidebarBackground={themeSystem.appearance?.['--marklyra-sidebar-bg']}
+            closeRequest={preferencesCloseRequest}
+            onClose={finishPreferencesPage}
+            onDeferredChange={() => setSettingsEffectNotice((value) => value + 1)}
+            onFailure={(error) => {
+              doc.setMessage(`设置未完成：${error.message}`);
+              if (preferencesQuit.current) {
+                preferencesQuit.current = null;
+                cancelApplicationQuit();
+              }
+            }}
+          />
+        ) : (
+          <section
+            className="preferences-page preferences-loading"
+            aria-label="设置"
+            aria-busy="true"
+          >
+            <p>正在打开设置…</p>
+          </section>
+        ))}
+      {preferencesOpen && !doc.pending && !preferencesEmbedded && (
         <PreferencesPanel
           value={preferences}
           update={setPreferences}

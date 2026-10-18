@@ -323,7 +323,7 @@ test('native outline action toggles an independent right panel without the legac
     .toBe(raw);
 });
 
-test('independent preferences keep editor commands available and synchronize typed changes without stale writes', async ({
+test('inline preferences synchronize typed changes and restore editor commands on return', async ({
   page,
 }) => {
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('preferences'));
@@ -363,6 +363,11 @@ test('independent preferences keep editor commands available and synchronize typ
       ),
     )
     .toMatchObject({ alwaysShowWordCount: false, statistics: { unit: 'characters' } });
+  await page
+    .frameLocator('.runtime-preferences-frame')
+    .getByRole('button', { name: '返回应用', exact: true })
+    .click();
+  await expect(page.locator('.preferences-page')).toHaveCount(0);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('statistics-unit:lines'));
   await expect
     .poll(() =>
@@ -403,11 +408,10 @@ test('native preferences close restores the existing editor selection and saves 
     )
     .toMatchObject({ statistics: { words: 1 }, statisticsLabel: '1 词' });
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('preferences'));
-  await page.evaluate(() => {
-    document.body.tabIndex = -1;
-    document.body.focus();
-    (window as TestWindow).__desktopMock.emitEvent('preferences-closed', null);
-  });
+  await page
+    .frameLocator('.runtime-preferences-frame')
+    .getByRole('button', { name: '返回应用', exact: true })
+    .click();
   await expect
     .poll(() =>
       paragraph.evaluate(

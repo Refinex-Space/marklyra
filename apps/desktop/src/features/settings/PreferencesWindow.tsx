@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { SidebarResize } from '../../components/SidebarResize.js';
 import { applicationPreferences } from '../../services/application-preferences.js';
 import { exportPreferences } from '../../services/export-preferences.js';
 import { documentExports } from '../../services/exports.js';
@@ -43,7 +44,10 @@ import {
   preferenceThemeFiles,
 } from './runtime-preferences/policy.js';
 import { RuntimePreferences } from './runtime-preferences/RuntimePreferences.js';
-import { startupEditorOptions } from './runtime-preferences/startup-editor-preferences.js';
+import {
+  isStartupEditorKey,
+  startupEditorOptions,
+} from './runtime-preferences/startup-editor-preferences.js';
 import {
   startupPreferenceAction,
   startupPreferencesOptions,
@@ -111,8 +115,38 @@ function options(
   };
 }
 
-/** Trusted native-window host. The original UI remains in a separate, unprivileged origin. */
-export function PreferencesWindow() {
+/** Trusted Shell host. The settings UI stays in a separate, unprivileged origin. */
+export function PreferencesWindow({
+  embedded = false,
+  sidebarWidth = 270,
+  dark = false,
+  sidebarBackground,
+  closeRequest: externalCloseRequest = 0,
+  onClose,
+  onFailure,
+  onDeferredChange,
+  onSidebarWidthChange,
+  onSidebarDragWidthChange,
+}: {
+  embedded?: boolean;
+  sidebarWidth?: number;
+  dark?: boolean;
+  sidebarBackground?: string | undefined;
+  closeRequest?: number;
+  onClose?: () => Promise<void>;
+  onFailure?: (error: Error) => void;
+  onDeferredChange?: () => void;
+  onSidebarWidthChange?: (width: number) => void;
+  onSidebarDragWidthChange?: (width: number | null) => void;
+} = {}) {
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const resize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+  const maximumSidebarWidth = Math.max(200, Math.min(440, viewportWidth - 400));
+  const pageSidebarWidth = Math.max(200, Math.min(maximumSidebarWidth, sidebarWidth));
   const [runtimeUrl, setRuntimeUrl] = useState('');
   const [platform, setPlatform] = useState<'macos' | 'windows' | 'browser'>('macos');
   const [initialOptions, setInitialOptions] = useState<Record<string, unknown> | null>(null);
@@ -166,12 +200,20 @@ export function PreferencesWindow() {
       event.preventDefault();
       event.stopPropagation();
       if (!runtimeUrl || !initialOptions)
-        void editorChrome.closePreferences().catch((e) => setError(String(e)));
+        void (onClose ? onClose() : editorChrome.closePreferences()).catch((e) =>
+          setError(String(e)),
+        );
       else setCloseRequest((n) => n + 1);
     };
     document.addEventListener('keydown', keydown);
     return () => document.removeEventListener('keydown', keydown);
-  }, [runtimeUrl, initialOptions]);
+  }, [runtimeUrl, initialOptions, onClose]);
+  useEffect(() => {
+    if (externalCloseRequest && (!runtimeUrl || !initialOptions))
+      void (onClose ? onClose() : editorChrome.closePreferences()).catch((e) =>
+        setError(String(e)),
+      );
+  }, [externalCloseRequest, runtimeUrl, initialOptions, onClose]);
   const put = async (key: PreferenceKey, value: PreferenceValue) => {
     const change = preferenceChange(key, value, preferenceThemeFiles(initialOptions?.allThemes));
     const current = readPreferences();
@@ -193,11 +235,23 @@ export function PreferencesWindow() {
       const before = confirmedApplication.current;
       if (!before) throw Error('应用偏好尚未初始化。');
       const applicationChange = applicationPreferenceChange(change.key, change.value);
+      const deferred =
+        isStartupEditorKey(change.key) ||
+        change.key === 'show_line_numbers_for_fence' ||
+        change.key === 'no_line_wrapping';
+      const beforeOptions: Record<string, unknown> = {
+        ...editorPreferencesOptions(
+          applicationEditorPreferences(before, current.editorPreferences),
+        ),
+        ...startupEditorOptions(before.values),
+      };
+      const beforeValue = beforeOptions[change.key];
       confirmedApplication.current = await applicationPreferences.put(
         before.revision,
         applicationChange.key,
         applicationChange.value,
       );
+      if (deferred && beforeValue !== applicationChange.value) onDeferredChange?.();
       return;
     }
     if (isMarkdownPreferenceKey(change.key)) {
@@ -272,14 +326,58 @@ export function PreferencesWindow() {
     }
   };
   return (
-    <main className="preferences-window">
-      <div className="preferences-drag-region" data-tauri-drag-region="" />
+    <section
+      className={`preferences-window${embedded ? ' preferences-page' : ''}`}
+      style={
+        embedded
+          ? ({
+              '--settings-sidebar-width': `${pageSidebarWidth}px`,
+              '--settings-sidebar-bg': sidebarBackground || (dark ? '#2e3033' : '#fafafa'),
+              '--settings-page-bg': dark ? '#25272b' : '#fff',
+              '--settings-page-line': dark ? '#3b3e44' : '#e8e9eb',
+            } as CSSProperties)
+          : undefined
+      }
+      aria-label="设置"
+      role={embedded ? 'main' : undefined}
+    >
+      {!embedded && <div className="preferences-drag-region" data-tauri-drag-region="" />}
+      {embedded && onSidebarWidthChange && onSidebarDragWidthChange && (
+        <div className="settings-resize-track">
+          <div style={{ width: pageSidebarWidth, flexShrink: 0 }} />
+          <SidebarResize
+            width={pageSidebarWidth}
+            minimumWidth={200}
+            maximumWidth={maximumSidebarWidth}
+            change={onSidebarWidthChange}
+            onDragWidthChange={onSidebarDragWidthChange}
+          />
+        </div>
+      )}
+      {(!runtimeUrl || !initialOptions) && (
+        <div className="preferences-loading">
+          <button
+            type="button"
+            onClick={() =>
+              void (onClose ? onClose() : editorChrome.closePreferences()).catch((e) =>
+                setError(String(e)),
+              )
+            }
+          >
+            返回应用
+          </button>
+          <p>{error || '正在加载设置…'}</p>
+        </div>
+      )}
       {runtimeUrl && initialOptions && (
         <RuntimePreferences
           runtimeUrl={runtimeUrl}
           platform={platform}
           initialOptions={initialOptions}
-          closeRequest={closeRequest}
+          presentation={
+            embedded ? { sidebarWidth: pageSidebarWidth, dark, sidebarBackground } : undefined
+          }
+          closeRequest={closeRequest + externalCloseRequest}
           onPut={put}
           onAction={async (name, data) => {
             if (name === 'choose-pandoc') {
@@ -313,19 +411,27 @@ export function PreferencesWindow() {
             }
           }}
           onClose={() =>
-            editorChrome.closePreferences().catch((reason: unknown) => {
+            (onClose ? onClose() : editorChrome.closePreferences()).catch((reason: unknown) => {
               setError(String(reason));
               throw reason;
             })
           }
-          onError={(reason) => setError(reason.message)}
+          onError={(reason) => {
+            setError(reason.message);
+            onFailure?.(reason);
+          }}
         />
       )}
       {error && (
         <div role="alert" className="preferences-window-error">
           {error}
+          {embedded && runtimeUrl && initialOptions && (
+            <button type="button" onClick={() => setCloseRequest((value) => value + 1)}>
+              返回应用
+            </button>
+          )}
         </div>
       )}
-    </main>
+    </section>
   );
 }

@@ -13,6 +13,7 @@ import {
   preferencesProtocol,
   preferenceThemeFiles,
 } from './policy.js';
+import { presentSettingsPage, setupSettingsPage } from './settings-page.js';
 import { isStartupEditorKey } from './startup-editor-preferences.js';
 import {
   type StartupPreferenceAction,
@@ -360,7 +361,12 @@ function protectControls() {
       (key === 'restoreWhenLaunch' && runtime._options.marklyraStartupActions === true);
     const dependencyBlocked = originalProperties(element).disabled === true;
     const enabled =
-      available && !failed && !startupPending && !controlActionPending && !dependencyBlocked;
+      available &&
+      !failed &&
+      !closePending &&
+      !startupPending &&
+      !controlActionPending &&
+      !dependencyBlocked;
     element.disabled = !enabled;
     if (key === 'pandocPath' && element instanceof HTMLInputElement) {
       element.readOnly = true;
@@ -442,6 +448,7 @@ function protectControls() {
     // Resetting the two supported numeric/path controls is local, unlike folder selection.
     const enabled =
       !failed &&
+      !closePending &&
       !startupPending &&
       !controlActionPending &&
       (!clear || !fileActionPending) &&
@@ -497,7 +504,13 @@ function restoreConfirmedView(component?: RuntimeComponent) {
 }
 
 function changeStartup(action: StartupPreferenceAction) {
-  if (disposed || failed || startupPending || runtime._options.marklyraStartupActions !== true)
+  if (
+    disposed ||
+    failed ||
+    closePending ||
+    startupPending ||
+    runtime._options.marklyraStartupActions !== true
+  )
     return;
   if (typeof runtime.forceReload !== 'function') {
     report(new Error('当前偏好资源缺少已确认状态刷新能力。'));
@@ -537,7 +550,7 @@ function changeStartup(action: StartupPreferenceAction) {
 }
 
 function changePreference(component: RuntimeComponent | undefined, key: unknown, value: unknown) {
-  if (disposed) return;
+  if (disposed || closePending) return;
   if (failed || typeof key !== 'string' || !supported(key)) {
     report(new Error('此设置暂不支持，不能保存。'));
     return;
@@ -590,12 +603,21 @@ runtime.__MARKLYRA_SETTINGS_CHANGE__ = (component, key, value) =>
   changePreference(component, key, value);
 function closePreferences() {
   if (closePending || disposed) return;
+  const active = document.activeElement;
+  if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) active.blur();
+  if (invalidDraft) {
+    report(new Error(`请先修正设置：${invalidDraft}`));
+    if (active instanceof HTMLElement) active.focus();
+    return;
+  }
   closePending = true;
+  protectControls();
   void sequence
     .then(() => request('close'))
     .catch(report)
     .finally(() => {
       closePending = false;
+      protectControls();
     });
 }
 
@@ -629,12 +651,14 @@ function loadScript(source: string): Promise<void> {
   });
 }
 
-async function initialize(options: Record<string, unknown>) {
+async function initialize(options: Record<string, unknown>, presentation?: unknown) {
   runtime._options = initialPreferencesOptions(options);
   if (document.readyState === 'loading')
     await new Promise<void>((resolve) =>
       document.addEventListener('DOMContentLoaded', () => resolve(), { once: true }),
     );
+  const updatePage = setupSettingsPage(closePreferences);
+  presentSettingsPage(presentation);
   document.addEventListener(
     'change',
     (event) => {
@@ -835,6 +859,7 @@ async function initialize(options: Record<string, unknown>) {
   await new Promise<void>((resolve) => {
     const observer = new MutationObserver(() => {
       protectControls();
+      updatePage?.();
       if (document.querySelector('.nav-group-item')) {
         observer.disconnect();
         resolve();
@@ -855,8 +880,10 @@ async function initialize(options: Record<string, unknown>) {
           record.type === 'childList' ||
           (record.target instanceof Element && record.target.matches('.nav-group-item')),
       )
-    )
+    ) {
       protectControls();
+      updatePage?.();
+    }
   }).observe(document.getElementById('root') ?? document.body, {
     childList: true,
     subtree: true,
@@ -864,6 +891,7 @@ async function initialize(options: Record<string, unknown>) {
     attributeFilter: ['class'],
   });
   protectControls();
+  updatePage?.();
   if (disposed) return;
   ready = true;
   send('initialized');
@@ -893,7 +921,9 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
   ) {
     initialized = true;
     status('');
-    void initialize(payload.options).catch(report);
+    void initialize(payload.options, payload.presentation).catch(report);
+  } else if (kind === 'presentation') {
+    presentSettingsPage(payload);
   } else if (kind === 'close-request' && ready) {
     closePreferences();
   } else if (kind === 'reply' && isRecord(payload) && typeof payload.id === 'number') {

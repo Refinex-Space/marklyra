@@ -122,12 +122,9 @@ pub async fn choose_pandoc_path(
     window: WebviewWindow,
     expected_revision: u64,
 ) -> Result<Option<crate::export_preferences::Snapshot>, String> {
-    if window.label() != "preferences" {
-        return Err("请从偏好设置选择Pandoc".into());
-    }
     let generation = app
         .state::<crate::platform::ui_chrome::PreferencesHost>()
-        .generation()?;
+        .generation_for(window.label())?;
     tauri::async_runtime::spawn_blocking(move || {
         let selected = app
             .dialog()

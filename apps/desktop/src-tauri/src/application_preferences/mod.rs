@@ -260,13 +260,10 @@ pub async fn put_application_preferences(
     expected_revision: u64,
     change: Change,
 ) -> Result<Snapshot, String> {
-    if window.label() != "preferences" {
-        return Err("请从偏好设置更改应用偏好".into());
-    }
     change.validate()?;
     let generation = app
         .state::<crate::platform::ui_chrome::PreferencesHost>()
-        .generation()?;
+        .generation_for(window.label())?;
     let host = host.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let result = app
@@ -472,12 +469,9 @@ pub(crate) fn after_editor_destroyed(app: &AppHandle) {
 }
 #[tauri::command]
 pub async fn reset_dialog_warnings(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
-    if window.label() != "preferences" {
-        return Err("请从偏好设置重设提示".into());
-    }
     let generation = app
         .state::<crate::platform::ui_chrome::PreferencesHost>()
-        .generation()?;
+        .generation_for(window.label())?;
     tauri::async_runtime::spawn_blocking(move || {
         app.state::<crate::platform::ui_chrome::PreferencesHost>()
             .with_generation(generation, || {

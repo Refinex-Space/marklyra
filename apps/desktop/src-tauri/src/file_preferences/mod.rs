@@ -425,12 +425,9 @@ pub async fn ask_clear_recent_history(
     host: State<'_, FilePreferencesHost>,
 ) -> Result<bool, String> {
     require_host(&window)?;
-    if window.label() != "preferences" {
-        return Err("请从偏好设置清除历史记录".into());
-    }
     let generation = app
         .state::<crate::platform::ui_chrome::PreferencesHost>()
-        .generation()?;
+        .generation_for(window.label())?;
     let started = std::time::Instant::now();
     let host = host.inner().clone();
     let lease = host.begin_clear()?;

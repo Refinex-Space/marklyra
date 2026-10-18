@@ -33,6 +33,7 @@ struct ChromeIvars {
     source_mode: Cell<bool>,
     always_show_word_count: Cell<bool>,
     content_layout: Cell<Option<TitlebarLayout>>,
+    preferences_page: Cell<bool>,
 }
 
 define_class!(
@@ -89,6 +90,7 @@ impl MarkLyraTitlebarView {
             source_mode: Cell::new(false),
             always_show_word_count: Cell::new(true),
             content_layout: Cell::new(None),
+            preferences_page: Cell::new(false),
         });
         // SAFETY: NSView's designated initializer receives the allocated subclass and an NSRect.
         unsafe { msg_send![super(object), initWithFrame: rect(0.0, 0.0, 120.0, 22.0)] }
@@ -106,6 +108,20 @@ impl MarkLyraTitlebarView {
     }
 
     fn position_title(&self) {
+        if self.ivars().preferences_page.get() {
+            if let Some(window) = self.window() {
+                window.setTitleVisibility(NSWindowTitleVisibility::Hidden);
+                if let Some(field) = native_title::title_field(&window) {
+                    field.setHidden(true);
+                }
+                if let Some(icon) =
+                    window.standardWindowButton(objc2_app_kit::NSWindowButton::DocumentIconButton)
+                {
+                    icon.setHidden(true);
+                }
+            }
+            return;
+        }
         if let (Some(window), Some(layout)) = (self.window(), self.ivars().content_layout.get()) {
             let accessory_left = self.convertRect_toView(self.bounds(), None).origin.x;
             native_title::position(&window, layout, accessory_left);
@@ -115,16 +131,17 @@ impl MarkLyraTitlebarView {
     fn update_visibility(&self) {
         // Normal editor controls remain discoverable without hovering the titlebar.
         let source_mode = self.ivars().source_mode.get();
+        let settings = self.ivars().preferences_page.get();
         if let Some(button) = self.ivars().statistics_button.get() {
-            button.setHidden(source_mode);
+            button.setHidden(source_mode || settings);
         }
         if let Some(buttons) = self.ivars().actions.get() {
             for button in buttons {
-                button.setHidden(source_mode);
+                button.setHidden(source_mode || settings);
             }
         }
         if let Some(button) = self.ivars().source_button.get() {
-            button.setHidden(!source_mode);
+            button.setHidden(!source_mode || settings);
             button.setState(1);
         }
     }
@@ -488,6 +505,25 @@ pub(super) fn update_title_layout(label: &str, layout: TitlebarLayout) -> Result
         chrome.view.ivars().content_layout.set(Some(layout));
         chrome.view.setNeedsLayout(true);
         chrome.view.position_title();
+        Ok(())
+    })
+}
+
+pub(super) fn set_preferences_page(label: &str, open: bool) -> Result<(), String> {
+    MainThreadMarker::new().ok_or("设置页面需要主线程")?;
+    CHROME.with(|registry| {
+        let registry = registry.borrow();
+        if let Some(chrome) = registry.get(label) {
+            chrome.view.ivars().preferences_page.set(open);
+            chrome.window.setTitleVisibility(if open {
+                NSWindowTitleVisibility::Hidden
+            } else {
+                NSWindowTitleVisibility::Visible
+            });
+            chrome.view.update_visibility();
+            chrome.view.setNeedsLayout(true);
+            chrome.view.position_title();
+        }
         Ok(())
     })
 }

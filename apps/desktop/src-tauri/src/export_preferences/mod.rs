@@ -354,16 +354,13 @@ pub async fn put_export_preferences(
     expected_revision: u64,
     change: Change,
 ) -> Result<Snapshot, String> {
-    if window.label() != "preferences" {
-        return Err("请从偏好设置更改导出设置".into());
-    }
     change.validate()?;
     if matches!(&change, Change::PandocPath(path) if !path.is_empty()) {
         return Err("请选择并验证Pandoc程序，不能直接写入未经验证路径".into());
     }
     let generation = app
         .state::<crate::platform::ui_chrome::PreferencesHost>()
-        .generation()?;
+        .generation_for(window.label())?;
     let host = host.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let result = app

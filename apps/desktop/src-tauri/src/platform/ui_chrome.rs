@@ -14,10 +14,7 @@ pub mod theme_selection;
 
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::Mutex};
-use tauri::{
-    AppHandle, Manager, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Window,
-    WindowEvent,
-};
+use tauri::{AppHandle, Manager, Runtime, WebviewWindow, Window, WindowEvent};
 
 const PREFERENCES_LABEL: &str = "preferences";
 
@@ -25,6 +22,7 @@ const PREFERENCES_LABEL: &str = "preferences";
 struct PreferencesOrigin {
     opener: Option<String>,
     generation: u64,
+    inline: bool,
 }
 
 #[derive(Default)]
@@ -39,10 +37,20 @@ impl PreferencesOrigin {
     fn opened_from(&mut self, label: &str) {
         self.generation = self.generation.wrapping_add(1);
         self.opener = Some(label.to_owned());
+        self.inline = false;
+    }
+
+    fn surface_label(&self) -> &str {
+        if self.inline {
+            self.opener.as_deref().unwrap_or(PREFERENCES_LABEL)
+        } else {
+            PREFERENCES_LABEL
+        }
     }
 
     fn closed(&mut self) -> Option<FocusReturn> {
         let opener = self.opener.take()?;
+        self.inline = false;
         self.generation = self.generation.wrapping_add(1);
         Some(FocusReturn {
             opener,
@@ -64,6 +72,14 @@ impl PreferencesOrigin {
 }
 
 impl PreferencesHost {
+    pub(crate) fn generation_for(&self, label: &str) -> Result<u64, String> {
+        let origin = self.0.lock().map_err(|_| "偏好设置状态不可用")?;
+        if origin.opener.is_none() || origin.surface_label() != label {
+            return Err("设置页面已关闭或不属于当前窗口".into());
+        }
+        Ok(origin.generation)
+    }
+    #[cfg(test)]
     pub(crate) fn generation(&self) -> Result<u64, String> {
         let origin = self.0.lock().map_err(|_| "偏好设置窗口状态不可用")?;
         if origin.opener.is_none() {
@@ -82,6 +98,7 @@ impl PreferencesHost {
         }
         operation()
     }
+    #[cfg(test)]
     fn opened_from(&self, label: &str) -> Result<(), String> {
         self.0
             .lock()
@@ -172,12 +189,21 @@ fn require_editor(window: &WebviewWindow) -> Result<(), String> {
     }
 }
 
+#[cfg(test)]
 fn require_preferences(label: &str) -> Result<(), String> {
     if label == PREFERENCES_LABEL {
         Ok(())
     } else {
         Err("此操作仅允许由偏好设置窗口发起".into())
     }
+}
+
+pub(crate) fn require_preferences_session<R: Runtime>(
+    window: &WebviewWindow<R>,
+) -> Result<u64, String> {
+    window
+        .state::<PreferencesHost>()
+        .generation_for(window.label())
 }
 
 fn document_chrome(
@@ -306,55 +332,67 @@ pub async fn update_editor_chrome(
 }
 
 #[tauri::command]
-pub async fn open_preferences_window(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+pub async fn open_preferences_window(
+    app: AppHandle,
+    window: WebviewWindow,
+) -> Result<bool, String> {
     require_editor(&window)?;
-    if let Some(preferences) = app.get_webview_window(PREFERENCES_LABEL) {
-        preferences.set_focus().map_err(|error| error.to_string())?;
-        app.state::<PreferencesHost>().opened_from(window.label())?;
-        theme_selection::origin_changed(&app);
-        markdown_selection::origin_changed(&app);
-        return Ok(());
-    }
-    let builder = WebviewWindowBuilder::new(
-        &app,
-        PREFERENCES_LABEL,
-        WebviewUrl::App("index.html?view=preferences".into()),
-    )
-    .title("偏好设置")
-    .inner_size(720.0, 480.0)
-    .resizable(false)
-    .minimizable(false)
-    .maximizable(false)
-    .disable_drag_drop_handler()
-    .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny);
-    #[cfg(target_os = "macos")]
-    let builder = builder
-        .title_bar_style(tauri::TitleBarStyle::Overlay)
-        .hidden_title(true);
-    match builder.build() {
-        Ok(_) => {}
-        // Two editors may ask in the same event-loop turn. Focus the existing singleton.
-        Err(error) => app
-            .get_webview_window(PREFERENCES_LABEL)
-            .ok_or_else(|| error.to_string())?
-            .set_focus()
-            .map_err(|error| error.to_string())?,
+    let other = {
+        let host = app.state::<PreferencesHost>();
+        let mut origin = host.0.lock().map_err(|_| "偏好设置状态不可用")?;
+        if origin.inline && origin.opener.as_deref() != Some(window.label()) {
+            origin.opener.clone()
+        } else {
+            if !origin.inline || origin.opener.is_none() {
+                origin.opened_from(window.label());
+                origin.inline = true;
+            }
+            None
+        }
     };
-    app.state::<PreferencesHost>().opened_from(window.label())?;
+    if let Some(label) = other {
+        app.get_webview_window(&label)
+            .ok_or("设置所属窗口已关闭")?
+            .set_focus()
+            .map_err(|error| error.to_string())?;
+        return Ok(false);
+    }
     theme_selection::origin_changed(&app);
     markdown_selection::origin_changed(&app);
+    #[cfg(target_os = "macos")]
+    on_main(window, |window| {
+        macos::set_preferences_page(window.label(), true)
+    })
+    .await?;
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn close_preferences_window(window: WebviewWindow) -> Result<(), String> {
+    if window.label() == PREFERENCES_LABEL {
+        return window.destroy().map_err(|error| error.to_string());
+    }
+    {
+        let host = window.state::<PreferencesHost>();
+        let mut origin = host.0.lock().map_err(|_| "偏好设置状态不可用")?;
+        if !origin.inline || origin.opener.as_deref() != Some(window.label()) {
+            return Err("设置页面已关闭或不属于当前窗口".into());
+        }
+        origin.closed();
+    }
+    theme_selection::origin_changed(window.app_handle());
+    markdown_selection::origin_changed(window.app_handle());
+    #[cfg(target_os = "macos")]
+    on_main(window, |window| {
+        macos::set_preferences_page(window.label(), false)
+    })
+    .await?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn close_preferences_window(window: WebviewWindow) -> Result<(), String> {
-    require_preferences(window.label())?;
-    window.destroy().map_err(|error| error.to_string())
-}
-
-#[tauri::command]
 pub fn preferences_changed(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
-    require_preferences(window.label())?;
+    require_preferences_session(&window)?;
     for (label, editor) in app.webview_windows() {
         if crate::windows::is_editor(&editor) {
             crate::windows::emit_to_editor(&app, &label, "preferences-changed", ())?;
@@ -366,6 +404,14 @@ pub fn preferences_changed(app: AppHandle, window: WebviewWindow) -> Result<(), 
 pub fn handle_window(window: &Window, event: &WindowEvent) {
     theme_selection::handle_window(window, event);
     markdown_selection::handle_window(window, event);
+    if matches!(event, WindowEvent::Destroyed) {
+        let host = window.state::<PreferencesHost>();
+        if let Ok(mut origin) = host.0.lock() {
+            if origin.inline && origin.opener.as_deref() == Some(window.label()) {
+                origin.closed();
+            }
+        };
+    }
     if window.label() == PREFERENCES_LABEL && matches!(event, WindowEvent::Focused(true)) {
         if let Err(error) = crate::menu::themes::schedule_sync(window.app_handle()) {
             eprintln!("Preferences theme menu synchronization failed: {error}");
@@ -456,6 +502,32 @@ pub fn handle_menu<R: Runtime>(app: &AppHandle<R>, event: &tauri::menu::MenuEven
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tauri::WebviewWindowBuilder;
+
+    #[test]
+    fn embedded_settings_authority_belongs_only_to_the_active_page_generation() {
+        let host = PreferencesHost::default();
+        assert!(host.generation_for("main").is_err());
+        {
+            let mut origin = host.0.lock().unwrap();
+            origin.opened_from("main");
+            origin.inline = true;
+        }
+        let generation = host.generation_for("main").unwrap();
+        assert!(host.generation_for("editor-other").is_err());
+        assert!(host.generation_for("preferences").is_err());
+        assert!(host.generation_for("preview-1").is_err());
+        host.0.lock().unwrap().closed();
+        assert!(host.generation_for("main").is_err());
+        assert!(host.with_generation(generation, || Ok(())).is_err());
+        {
+            let mut origin = host.0.lock().unwrap();
+            origin.opened_from("main");
+            origin.inline = true;
+        }
+        assert_ne!(host.generation_for("main").unwrap(), generation);
+        assert!(host.with_generation(generation, || Ok(())).is_err());
+    }
 
     #[test]
     fn a_closed_or_reopened_preferences_generation_cannot_clear_history() {

@@ -244,7 +244,7 @@ pub async fn request_preference_theme(
     theme_id: String,
     target: Option<ThemeTarget>,
 ) -> Result<(), String> {
-    super::require_preferences(window.label())?;
+    super::require_preferences_session(&window)?;
     if !crate::themes::valid_theme_id(&theme_id) {
         return Err("主题名称无效".into());
     }
@@ -255,8 +255,11 @@ pub async fn request_preference_theme(
     } = {
         let preferences = app.state::<PreferencesHost>();
         let origin = preferences.0.lock().map_err(|_| "偏好设置窗口状态不可用")?;
+        if origin.surface_label() != window.label() {
+            return Err(CLOSED_ERROR.into());
+        }
         let current = Origin::current(&origin).ok_or(CLOSED_ERROR)?;
-        if app.get_webview_window(PREFERENCES_LABEL).is_none()
+        if app.get_webview_window(origin.surface_label()).is_none()
             || app
                 .get_webview_window(&current.opener)
                 .filter(crate::windows::is_editor)
@@ -322,7 +325,7 @@ pub fn complete_preference_theme(
         let preferences = app.state::<PreferencesHost>();
         let origin = preferences.0.lock().map_err(|_| "偏好设置窗口状态不可用")?;
         let current = app
-            .get_webview_window(PREFERENCES_LABEL)
+            .get_webview_window(origin.surface_label())
             .and_then(|_| Origin::current(&origin));
         // The display error is bounded; no source text, stack, or filesystem path is generated here.
         let result = error.map_or(Ok(()), |message| {

@@ -74,7 +74,7 @@ export const editorChrome = {
       },
     });
   },
-  openPreferences: () => invoke<void>('open_preferences_window'),
+  openPreferences: () => invoke<boolean>('open_preferences_window'),
   closePreferences: () => invoke<void>('close_preferences_window'),
   preferencesChanged: () => invoke<void>('preferences_changed'),
 };
