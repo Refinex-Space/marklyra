@@ -118,10 +118,30 @@ impl Workspace {
         self.list_documents_filtered(limits, None, &|_| true)
     }
 
+    pub fn list_documents_with_filters(
+        &self,
+        include_entry: impl Fn(&std::fs::File) -> bool,
+        include_document: impl Fn(&str) -> bool,
+    ) -> Result<WorkspaceArticlesReport, IndexError> {
+        self.list_documents_filtered_by_type(Limits::default(), &include_document, &include_entry)
+    }
     fn list_documents_filtered(
         &self,
         limits: Limits,
         extra: Option<&str>,
+        include_entry: &dyn Fn(&std::fs::File) -> bool,
+    ) -> Result<WorkspaceArticlesReport, IndexError> {
+        self.list_documents_filtered_by_type(
+            limits,
+            &|name| is_markdown(Path::new(name), extra),
+            include_entry,
+        )
+    }
+
+    fn list_documents_filtered_by_type(
+        &self,
+        limits: Limits,
+        include_document: &dyn Fn(&str) -> bool,
         include_entry: &dyn Fn(&std::fs::File) -> bool,
     ) -> Result<WorkspaceArticlesReport, IndexError> {
         let display_root = self.display_root_snapshot()?;
@@ -198,7 +218,7 @@ impl Workspace {
                 }
                 continue;
             }
-            if !before.is_file() || !is_markdown(Path::new(name), extra) {
+            if !before.is_file() || !include_document(name) {
                 continue;
             }
             if result.scanned_files >= limits.files {

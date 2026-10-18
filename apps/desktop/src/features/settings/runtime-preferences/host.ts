@@ -1,4 +1,9 @@
 import { isExportPreferenceKey } from './export-preferences.js';
+import {
+  type FilePreferences,
+  filePreferencesOptions,
+  filePreferencesSnapshot,
+} from './file-preferences.js';
 import { isMarkdownPreferenceKey } from './markdown-preferences.js';
 import {
   type InitialPreferencesOptions,
@@ -21,7 +26,7 @@ export interface RuntimePreferencesOptions {
   presentation?:
     | { sidebarWidth: number; dark: boolean; sidebarBackground?: string | undefined }
     | undefined;
-  onPut: (key: PreferenceKey, value: PreferenceValue) => Promise<void>;
+  onPut: (key: PreferenceKey, value: PreferenceValue) => Promise<void | FilePreferences>;
   onAction?: (name: PreferenceAction, data: unknown) => Promise<unknown>;
   onClose: () => void;
   onError: (error: Error) => void;
@@ -191,8 +196,14 @@ export class RuntimePreferencesHost {
               throw new Error('Markdown缩进应用能力尚未就绪。');
             if (isExportPreferenceKey(change.key) && this.initial.marklyraExportActions !== true)
               throw new Error('导出设置应用能力尚未就绪。');
-            await this.options.onPut(change.key, change.value);
-            this.initial[change.key] = change.value;
+            if (change.key === 'disabledFileTypes' && this.initial.marklyraFileTypeActions !== true)
+              throw Error('文件类型设置尚未就绪。');
+            const updated = await this.options.onPut(change.key, change.value);
+            if (updated !== undefined) {
+              result = filePreferencesSnapshot(updated);
+              Object.assign(this.initial, filePreferencesOptions(result as FilePreferences));
+            }
+            if (updated === undefined) this.initial[change.key] = change.value;
             if (change.key === 'wordsPerMinute') this.initial.customWordsPerMinute = true;
             if (change.key === 'customWordsPerMinute' && change.value === false)
               this.initial.wordsPerMinute = 382;
@@ -250,7 +261,9 @@ export class RuntimePreferencesHost {
             {
               id,
               ok: true,
-              ...(['startup-action', 'export-tool-action'].includes(String(request.operation))
+              ...(['put', 'startup-action', 'export-tool-action'].includes(
+                String(request.operation),
+              ) && result !== undefined
                 ? { result }
                 : {}),
             },

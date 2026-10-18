@@ -54,6 +54,8 @@ pub async fn prepare_untitled_close(
             require_window(&window)?;
             tauri::async_runtime::spawn_blocking(move || {
                 require_window(&window)?;
+                app.state::<crate::file_preferences::FilePreferencesHost>()
+                    .require_document_type(&app, &path)?;
                 let document = window.state::<WindowServices>().write_document(
                     window.label(),
                     |documents| {

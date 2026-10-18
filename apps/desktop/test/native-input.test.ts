@@ -122,3 +122,27 @@ describe('native input Shell boundary', () => {
     await rejected;
   });
 });
+
+it('rejects disabled document types even for link drops and compound suffixes', () => {
+  const prefs = {
+    ...preferences,
+    defaultExtension: 'md',
+    supportedFileTypes: ['md', 'foo.md', 'txt', 'apib', ''],
+    disabledFileTypes: ['md', 'foo.md', ''],
+    actionWhenDropFile: 'link' as const,
+  };
+  for (const name of ['note.MD', 'note.FOO.md', 'README']) {
+    expect(nativeDropIntent({ ...payload(), entries: [{ name, kind: 'file' }] }, prefs)).toBe(
+      'disabled-document',
+    );
+  }
+  expect(
+    nativeDropIntent(
+      { ...payload(), entries: [{ name: 'api.apib', kind: 'file' }] },
+      { ...prefs, actionWhenDropFile: '' },
+    ),
+  ).toBe('document');
+  expect(
+    nativeDropIntent({ ...payload(), entries: [{ name: 'image.png', kind: 'image' }] }, prefs),
+  ).toBe('images');
+});

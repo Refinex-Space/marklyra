@@ -143,6 +143,8 @@ pub async fn open_recent_file(
                         }
                         host.with(&app, |store| store.resolve(&id))
                     })?;
+                app.state::<crate::file_preferences::FilePreferencesHost>()
+                    .require_document_type(&app, &target.display_path)?;
                 documents
                     .open_in_directory(target.directory, &target.name, target.display_path)
                     .map_err(|error| {

@@ -19,6 +19,7 @@ import {
   filePreferenceKeys,
   isFilePreferenceKey,
 } from './file-preferences.js';
+import { checkedFileTypeList } from './file-types.js';
 import {
   isMarkdownPreferenceKey,
   markdownPreferenceKeys,
@@ -64,7 +65,7 @@ export const preferenceKeys = [
   ...exportPreferenceKeys,
 ] as const;
 export type PreferenceKey = (typeof preferenceKeys)[number];
-export type PreferenceValue = string | number | boolean | ExportPreferenceValue;
+export type PreferenceValue = string | number | boolean | string[] | ExportPreferenceValue;
 export type InitialPreferencesOptions = Readonly<Record<string, unknown>>;
 export type PreferenceChange = { key: PreferenceKey; value: PreferenceValue };
 export type PreferenceAction =
@@ -174,6 +175,10 @@ export function initialPreferencesOptions(
     marklyraThemeActions: input.marklyraThemeActions === true,
     marklyraReadingSpeedActions: input.marklyraReadingSpeedActions === true,
     marklyraFileActions: input.marklyraFileActions === true,
+    marklyraFileTypeActions: input.marklyraFileTypeActions === true,
+    supportedFileTypes:
+      input.marklyraFileTypeActions === true ? checkedFileTypeList(input.supportedFileTypes) : [],
+    disabledFileTypes: [],
     marklyraMarkdownActions: input.marklyraMarkdownActions === true,
     marklyraExportActions: input.marklyraExportActions === true,
     'export.html': {},

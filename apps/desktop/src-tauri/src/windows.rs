@@ -225,24 +225,20 @@ pub async fn create_editor_window(
         let picker = window.clone();
         Some(
             tauri::async_runtime::spawn_blocking(move || {
-                let extension = picker
+                let filters = picker
                     .state::<crate::file_preferences::FilePreferencesHost>()
-                    .default_extension(picker.app_handle())
-                    .unwrap_or_else(|_| "md".into());
-                let mut filters = file_index::TEXT_EXTENSIONS.to_vec();
-                if !filters
-                    .iter()
-                    .any(|known| extension.eq_ignore_ascii_case(known))
-                {
-                    filters.push(&extension);
-                }
+                    .document_types(picker.app_handle())?
+                    .enabled_extensions();
                 let path = picker
                     .app_handle()
                     .dialog()
                     .file()
                     .set_parent(&picker)
                     .set_title("打开 Markdown 文档")
-                    .add_filter("Markdown / Text", &filters)
+                    .add_filter(
+                        "Markdown / Text",
+                        &filters.iter().map(String::as_str).collect::<Vec<_>>(),
+                    )
                     .add_filter("所有文件", &["*"])
                     .blocking_pick_file()
                     .ok_or("已取消选择文件")?
@@ -251,6 +247,9 @@ pub async fn create_editor_window(
                 if !is_editor(&picker) {
                     return Err("发起窗口已关闭，所选文件未打开".into());
                 }
+                picker
+                    .state::<crate::file_preferences::FilePreferencesHost>()
+                    .require_document_type(picker.app_handle(), &path)?;
                 let mut documents = document_service::DocumentService::new();
                 let opened = documents
                     .open_authorized(&path)

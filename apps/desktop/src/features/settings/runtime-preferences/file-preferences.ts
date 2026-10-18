@@ -1,5 +1,12 @@
+import {
+  baseFileTypes,
+  checkedFileTypeList,
+  fileTypeCatalog,
+  fileTypeEnabled,
+} from './file-types.js';
 export const filePreferenceKeys = [
   'defaultExtension',
+  'disabledFileTypes',
   'save_file_on_switch',
   'noRecentFiles',
   'actionWhenDropFile',
@@ -9,6 +16,7 @@ export const filePreferenceKeys = [
 export type FilePreferenceKey = (typeof filePreferenceKeys)[number];
 export type FilePreferenceChange =
   | { key: 'defaultExtension'; value: string }
+  | { key: 'disabledFileTypes'; value: string[] }
   | {
       key: 'actionWhenDropFile' | 'actionWhenDropFolder' | 'actionWhenDropImport';
       value: '' | 'link';
@@ -17,6 +25,8 @@ export type FilePreferenceChange =
 export interface FilePreferences {
   revision: number;
   defaultExtension: string;
+  disabledFileTypes?: string[];
+  supportedFileTypes?: string[];
   saveFileOnSwitch: boolean;
   noRecentFiles: boolean;
   alwaysConfirmsChanges: boolean;
@@ -39,6 +49,7 @@ export function filePreferenceChange(key: unknown, value: unknown): FilePreferen
     if (value === '' || value === 'link') return { key, value };
     throw new Error('拖入文件设置无效。');
   }
+  if (key === 'disabledFileTypes') return { key, value: checkedFileTypeList(value) };
   if (key === 'defaultExtension') {
     if (
       typeof value === 'string' &&
@@ -81,6 +92,20 @@ export function filePreferencesSnapshot(value: unknown): FilePreferences {
     drops[key] = value;
   }
   if (extension.key !== 'defaultExtension') throw new Error('文件设置响应无效。');
+  const types: Pick<FilePreferences, 'disabledFileTypes' | 'supportedFileTypes'> = {};
+  if (input.supportedFileTypes !== undefined || input.disabledFileTypes !== undefined) {
+    types.supportedFileTypes = checkedFileTypeList(input.supportedFileTypes);
+    types.disabledFileTypes = checkedFileTypeList(input.disabledFileTypes);
+    if (
+      baseFileTypes.some((id) => !types.supportedFileTypes?.includes(id)) ||
+      types.disabledFileTypes.some((id) => !types.supportedFileTypes?.includes(id)) ||
+      !fileTypeEnabled(extension.value.toLowerCase() || 'md', {
+        defaultExtension: extension.value,
+        ...types,
+      })
+    )
+      throw Error('文件类型设置响应无效。');
+  }
   return {
     revision: input.revision,
     defaultExtension: extension.value,
@@ -88,6 +113,7 @@ export function filePreferencesSnapshot(value: unknown): FilePreferences {
     noRecentFiles: input.noRecentFiles,
     alwaysConfirmsChanges: input.alwaysConfirmsChanges,
     ...drops,
+    ...types,
   };
 }
 
@@ -95,9 +121,16 @@ export function effectiveSaveFileOnSwitch(value: FilePreferences): boolean {
   return !value.alwaysConfirmsChanges || value.saveFileOnSwitch;
 }
 
-export function filePreferencesOptions(value: FilePreferences): Record<string, string | boolean> {
+export function filePreferencesOptions(value: FilePreferences): Record<string, unknown> {
   return {
     defaultExtension: value.defaultExtension,
+    ...(value.supportedFileTypes
+      ? {
+          disabledFileTypes: value.disabledFileTypes ?? [],
+          supportedFileTypes: fileTypeCatalog(value),
+          marklyraFileTypeActions: true,
+        }
+      : {}),
     save_file_on_switch: value.saveFileOnSwitch,
     noRecentFiles: value.noRecentFiles,
     NSCloseAlwaysConfirmsChanges: value.alwaysConfirmsChanges,

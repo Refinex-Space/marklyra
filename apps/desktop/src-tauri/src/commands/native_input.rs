@@ -104,6 +104,9 @@ pub(crate) async fn open_native_input_document(
     }
     tauri::async_runtime::spawn_blocking(move || {
         selected.verify_owner(&window)?;
+        window
+            .state::<FilePreferencesHost>()
+            .require_document_type(window.app_handle(), &selected.path)?;
         let opened = images::with_documents(&window, &registry, |documents| {
             let document = open_document_entity(
                 documents,

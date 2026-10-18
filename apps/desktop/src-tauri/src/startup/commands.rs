@@ -151,7 +151,19 @@ pub async fn get_window_startup(
     let claim = claim_startup(&host, &label)?;
     tauri::async_runtime::spawn_blocking(move || {
         let (token, serial, target) = claim;
-        let target = initial_folder_prompt(&app, &window, &host, token, serial, target)?;
+        let mut target = initial_folder_prompt(&app, &window, &host, token, serial, target)?;
+        // A retained unsaved draft belongs to an existing editing session and must remain recoverable.
+        if target.draft.is_none() {
+            if let Some(bookmark) = &target.session.document {
+                let result = app
+                    .state::<crate::file_preferences::FilePreferencesHost>()
+                    .require_document_type(&app, &bookmark.path());
+                if let Err(error) = result {
+                    target.warnings.push(format!("启动文件未恢复：{error}"));
+                    target.session.document = None;
+                }
+            }
+        }
         let services = app.state::<WindowServices>();
         restore_target(&host, &services, &label, (token, serial, target), || {})
     })

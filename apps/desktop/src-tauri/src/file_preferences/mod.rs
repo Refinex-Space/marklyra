@@ -1,5 +1,6 @@
 //! App-owned file behavior and directory-history metadata. No source text or renderer paths.
 pub mod directories;
+pub(crate) mod file_types;
 mod recent_rename;
 pub(crate) mod rename_metadata;
 mod storage;
@@ -36,6 +37,10 @@ struct Stored {
     #[serde(default)]
     remember_epoch: u64,
     default_extension: String,
+    #[serde(default)]
+    disabled_file_types: Vec<String>,
+    #[serde(default)]
+    custom_file_extensions: Vec<String>,
     save_file_on_switch: bool,
     no_recent_files: bool,
     #[serde(default)]
@@ -60,6 +65,8 @@ impl Default for Stored {
             history_epoch: 0,
             remember_epoch: 0,
             default_extension: "md".into(),
+            disabled_file_types: Vec::new(),
+            custom_file_extensions: Vec::new(),
             save_file_on_switch: false,
             no_recent_files: false,
             action_when_drop_file: DropAction::Open,
@@ -102,6 +109,7 @@ impl Stored {
                 }
             }
         }
+        self.validate_file_types()?;
         directories::validate_order(self)?;
         Ok(())
     }
@@ -117,6 +125,8 @@ impl Stored {
         FilePreferences {
             revision: self.revision,
             default_extension: self.default_extension.clone(),
+            disabled_file_types: self.disabled_file_types.clone(),
+            supported_file_types: self.document_types().catalog(),
             save_file_on_switch: self.save_file_on_switch,
             no_recent_files: self.no_recent_files,
             action_when_drop_file: self.action_when_drop_file,
@@ -149,6 +159,8 @@ pub enum DropAction {
 pub struct FilePreferences {
     pub revision: u64,
     pub default_extension: String,
+    pub disabled_file_types: Vec<String>,
+    pub supported_file_types: Vec<String>,
     pub save_file_on_switch: bool,
     pub no_recent_files: bool,
     pub action_when_drop_file: DropAction,
@@ -161,6 +173,8 @@ pub struct FilePreferences {
 pub enum PreferenceChange {
     #[serde(rename = "defaultExtension")]
     DefaultExtension(String),
+    #[serde(rename = "disabledFileTypes")]
+    DisabledFileTypes(Vec<String>),
     #[serde(rename = "save_file_on_switch")]
     SaveFileOnSwitch(bool),
     #[serde(rename = "noRecentFiles")]
@@ -181,8 +195,16 @@ fn change(state: &mut Stored, expected: u64, change: PreferenceChange) -> Result
         PreferenceChange::DropFolder(action) => state.action_when_drop_folder = action,
         PreferenceChange::DropImport(action) => state.action_when_drop_import = action,
         PreferenceChange::DefaultExtension(extension) if valid_extension(&extension) => {
-            state.default_extension = extension
+            state.default_extension = extension;
+            state.remember_custom_type()?;
+            let catalog = state.document_types().catalog();
+            state.disabled_file_types.retain(|id| catalog.contains(id));
+            state.document_types().require(Path::new(&format!(
+                "Untitled.{}",
+                state.document_types().custom_extension
+            )))?;
         }
+        PreferenceChange::DisabledFileTypes(disabled) => state.set_disabled_file_types(disabled)?,
         PreferenceChange::DefaultExtension(_) => return Err("默认扩展名无效".into()),
         PreferenceChange::SaveFileOnSwitch(enabled) => state.save_file_on_switch = enabled,
         PreferenceChange::NoRecentFiles(disabled) => {
@@ -336,6 +358,17 @@ impl FilePreferencesHost {
             store.transaction(|state| Ok((operation(!state.no_recent_files)?, false)))
         })
     }
+    pub(crate) fn document_types(
+        &self,
+        app: &AppHandle,
+    ) -> Result<file_types::DocumentTypes, String> {
+        self.with(app, |store| {
+            store.transaction(|state| Ok((state.document_types(), false)))
+        })
+    }
+    pub(crate) fn require_document_type(&self, app: &AppHandle, path: &Path) -> Result<(), String> {
+        self.document_types(app)?.require(path)
+    }
     pub(crate) fn default_extension(&self, app: &AppHandle) -> Result<String, String> {
         self.with(app, |store| {
             store.transaction(|state| {
@@ -410,6 +443,7 @@ pub async fn put_file_preference(
             })
         })?;
         let _ = app.emit("file-preferences-changed", &result);
+        let _ = app.emit("workspace-files-changed", ());
         let _ = app.emit("recent-files-changed", ());
         let _ = app.emit("directory-history-changed", ());
         crate::commands::recent::refresh_native_menu(&app);

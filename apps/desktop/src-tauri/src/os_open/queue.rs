@@ -28,7 +28,17 @@ pub(super) fn validate_path(path: &Path) -> Result<(), String> {
     Ok(())
 }
 impl Receipt {
+    #[cfg(test)]
     pub fn capture(path: PathBuf) -> Result<Self, String> {
+        Self::capture_with_types(
+            path,
+            &crate::file_preferences::file_types::DocumentTypes::default(),
+        )
+    }
+    pub fn capture_with_types(
+        path: PathBuf,
+        types: &crate::file_preferences::file_types::DocumentTypes,
+    ) -> Result<Self, String> {
         validate_path(&path)?;
         let path = std::fs::canonicalize(path).map_err(|_| "系统打开项目不存在或不可访问")?;
         validate_path(&path)?;
@@ -38,16 +48,7 @@ impl Receipt {
         }
         let directory = metadata.is_dir();
         if !directory {
-            let extension = path
-                .extension()
-                .and_then(|value| value.to_str())
-                .unwrap_or_default();
-            if !file_index::TEXT_EXTENSIONS
-                .iter()
-                .any(|known| extension.eq_ignore_ascii_case(known))
-            {
-                return Err("此系统打开格式尚不支持直接编辑，请使用导入菜单".into());
-            }
+            types.require(&path)?;
         }
         let entity =
             Arc::new(same_file::Handle::from_path(&path).map_err(|_| "无法确认系统打开实体")?);

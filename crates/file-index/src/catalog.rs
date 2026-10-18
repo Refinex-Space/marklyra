@@ -98,9 +98,29 @@ impl Workspace {
         self.catalog_snapshot(extra, &include_entry, Limits::default())
     }
 
+    pub fn catalog_snapshot_with_filters(
+        &self,
+        include_entry: impl Fn(&std::fs::File) -> bool,
+        include_document: impl Fn(&str) -> bool,
+    ) -> Result<WorkspaceCatalogSnapshot, IndexError> {
+        self.catalog_snapshot_by_type(&include_document, &include_entry, Limits::default())
+    }
     fn catalog_snapshot(
         &self,
         extra: Option<&str>,
+        include_entry: &dyn Fn(&std::fs::File) -> bool,
+        limits: Limits,
+    ) -> Result<WorkspaceCatalogSnapshot, IndexError> {
+        self.catalog_snapshot_by_type(
+            &|name| is_markdown(Path::new(name), extra),
+            include_entry,
+            limits,
+        )
+    }
+
+    fn catalog_snapshot_by_type(
+        &self,
+        include_document: &dyn Fn(&str) -> bool,
         include_entry: &dyn Fn(&std::fs::File) -> bool,
         limits: Limits,
     ) -> Result<WorkspaceCatalogSnapshot, IndexError> {
@@ -185,7 +205,7 @@ impl Workspace {
                     Ok(None) => {}
                     Err(_) => result.unreadable += 1,
                 }
-            } else if before.is_file() && is_markdown(Path::new(name), extra) {
+            } else if before.is_file() && include_document(name) {
                 let inspected = (|| -> std::io::Result<Option<u64>> {
                     let file = directory.open(name)?;
                     let opened = file.metadata()?;

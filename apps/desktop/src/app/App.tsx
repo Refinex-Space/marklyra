@@ -665,6 +665,8 @@ export function App() {
         )
           throw new Error('拖放期间文稿或输入已有变化，请重新拖入');
         const intent = nativeDropIntent(drop, preferences);
+        if (intent === 'disabled-document')
+          throw Error('该文件类型已关闭，可在设置 → 文件 → 支持的文件类型中重新启用');
         if (intent === 'unsupported-import')
           throw new Error('暂不支持此格式的导入；可在文件设置中选择插入链接');
         if (intent === 'document') {

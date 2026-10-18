@@ -3,6 +3,7 @@ import {
   isExportPreferenceKey,
   originalImageExportValue,
 } from './export-preferences.js';
+import { filePreferencesOptions, filePreferencesSnapshot } from './file-preferences.js';
 import { isMarkdownPreferenceKey } from './markdown-preferences.js';
 import {
   initialPreferencesOptions,
@@ -49,6 +50,7 @@ const instance = crypto.randomUUID();
 const expectedParentOrigin = query.get('parentOrigin');
 const targetOrigin =
   !expectedParentOrigin || expectedParentOrigin === 'null' ? '*' : expectedParentOrigin;
+let updateSettingsPage: (() => void) | undefined;
 let initialized = false;
 let ready = false;
 let disposed = false;
@@ -156,6 +158,8 @@ function request(operation: string, payload: Record<string, unknown> = {}): Prom
 }
 
 function fieldKey(element: Element): string | undefined {
+  if (element.hasAttribute('data-marklyra-file-default')) return 'defaultExtension';
+  if (element.hasAttribute('data-marklyra-file-type')) return 'disabledFileTypes';
   if (element instanceof HTMLInputElement && element.name === 'useCustomFontSize')
     return 'useCustomFontSize';
   if (element.matches('.custom-font-input input[type="number"]')) return 'customFontSize';
@@ -359,7 +363,8 @@ function protectControls() {
     const available =
       supported(key) ||
       (key === 'restoreWhenLaunch' && runtime._options.marklyraStartupActions === true);
-    const dependencyBlocked = originalProperties(element).disabled === true;
+    const dependencyBlocked =
+      originalProperties(element).disabled === true || element.dataset.marklyraLastType === 'true';
     const enabled =
       available &&
       !failed &&
@@ -568,6 +573,10 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
     return;
   }
   invalidDraft = null;
+  const managedFileTypes =
+    runtime._options.marklyraFileTypeActions === true &&
+    (change.key === 'disabledFileTypes' || change.key === 'defaultExtension');
+  const focus = managedFileTypes ? document.activeElement : null;
   const epoch = generation;
   pending++;
   if (!component) controlActionPending = true;
@@ -577,13 +586,16 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
     .then(async () => {
       if (disposed || failed || epoch !== generation) return;
       try {
-        await request('put', change);
+        const saved = await request('put', change);
         if (disposed || epoch !== generation) return;
-        runtime._options[change.key] = change.value;
+        if (saved !== undefined)
+          Object.assign(runtime._options, filePreferencesOptions(filePreferencesSnapshot(saved)));
+        else runtime._options[change.key] = change.value;
         if (change.key === 'wordsPerMinute') runtime._options.customWordsPerMinute = true;
         if (change.key === 'customWordsPerMinute' && change.value === false)
           runtime._options.wordsPerMinute = 382;
-        if (!component) restoreConfirmedView();
+        if (!component && !managedFileTypes) restoreConfirmedView();
+        updateSettingsPage?.();
       } catch (error) {
         if (disposed || epoch !== generation) return;
         failed = true;
@@ -596,6 +608,15 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
       pending--;
       if (!component) controlActionPending = false;
       protectControls();
+      if (
+        managedFileTypes &&
+        !failed &&
+        focus instanceof HTMLElement &&
+        focus.isConnected &&
+        focus.getClientRects().length > 0 &&
+        document.activeElement === document.body
+      )
+        focus.focus({ preventScroll: true });
       progress();
     });
 }
@@ -657,7 +678,12 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     await new Promise<void>((resolve) =>
       document.addEventListener('DOMContentLoaded', () => resolve(), { once: true }),
     );
-  const updatePage = setupSettingsPage(closePreferences);
+  const updatePage = setupSettingsPage(closePreferences, {
+    state: () => runtime._options,
+    change: (disabled) => changePreference(undefined, 'disabledFileTypes', disabled),
+    defaultExtension: (extension) => changePreference(undefined, 'defaultExtension', extension),
+  });
+  updateSettingsPage = updatePage;
   presentSettingsPage(presentation);
   document.addEventListener(
     'change',

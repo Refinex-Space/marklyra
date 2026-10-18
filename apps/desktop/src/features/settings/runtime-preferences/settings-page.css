@@ -868,3 +868,96 @@ html[data-settings-dark="true"] {
 [data-settings-page] .settings-deferred-hint {
   display: none !important;
 }
+
+[data-settings-page] .settings-managed-default > .input-group-content {
+  display: none;
+}
+[data-settings-page] .settings-default-type .row {
+  min-height: 54px;
+}
+[data-settings-page] .settings-default-type > input {
+  width: 100%;
+  margin: 0 0 12px;
+}
+[data-settings-page] .settings-default-type > input[hidden] {
+  display: none;
+}
+[data-settings-page] .settings-file-types {
+  margin: 28px 0 0;
+  border: 1px solid var(--settings-line);
+  border-radius: 12px;
+  padding: 0 18px;
+  background: var(--settings-bg);
+}
+[data-settings-page] .settings-file-types summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+[data-settings-page] .settings-file-types summary::-webkit-details-marker {
+  display: none;
+}
+[data-settings-page] .settings-file-types summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid var(--settings-muted);
+  border-bottom: 1px solid var(--settings-muted);
+  transform: rotate(45deg);
+  margin: -3px 2px 0 0;
+}
+[data-settings-page] .settings-file-types[open] summary::after {
+  transform: rotate(225deg);
+  margin-top: 3px;
+}
+[data-settings-page] .settings-file-types-count {
+  margin-left: auto;
+  color: var(--settings-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+[data-settings-page] .settings-file-types > p {
+  margin: 0 0 12px;
+  color: var(--settings-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+[data-settings-page] .settings-file-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+  padding-bottom: 8px;
+}
+[data-settings-page] .settings-file-type-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 9px 0;
+  margin: 0;
+  border-top: 1px solid var(--settings-line);
+}
+[data-settings-page] .settings-file-type-row strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+}
+[data-settings-page] .settings-file-type-row small {
+  color: var(--settings-muted);
+  font-size: 11px;
+}
+[data-settings-page] .settings-file-type-row input {
+  flex: 0 0 30px;
+  margin: 0;
+}
+@media (max-width: 800px) {
+  [data-settings-page] .settings-file-type-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

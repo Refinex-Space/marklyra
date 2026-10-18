@@ -359,6 +359,8 @@ pub async fn import_document(
             .map_err(|_| "无法读取Markdown目标")?;
         main_only(&window)?;
         check_extension(&selected, &["md", "markdown"])?;
+        app.state::<crate::file_preferences::FilePreferencesHost>()
+            .require_document_type(&app, &selected)?;
         if selected == source
             || (selected.exists()
                 && identity

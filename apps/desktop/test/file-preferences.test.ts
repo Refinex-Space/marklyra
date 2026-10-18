@@ -165,3 +165,60 @@ describe('native file preference contract', () => {
     await expect(filePreferences.clearRecentHistory()).rejects.toThrow('清除近期记录响应无效');
   });
 });
+
+describe('file type preference contract', () => {
+  const supported = [
+    'md',
+    'markdown',
+    'mkd',
+    'mdown',
+    'mdtext',
+    'mdtxt',
+    'mdwn',
+    'mdx',
+    'mmd',
+    'rmd',
+    'qmd',
+    'rmarkdown',
+    'txt',
+    'text',
+    'apib',
+    '',
+  ];
+  it('carries the native type catalog and disabled set through the isolated settings boundary', () => {
+    const value = filePreferencesSnapshot({
+      ...snapshot(),
+      defaultExtension: 'markdown',
+      supportedFileTypes: supported,
+      disabledFileTypes: ['md'],
+    });
+    expect(initialPreferencesOptions(filePreferencesOptions(value))).toMatchObject({
+      defaultExtension: 'markdown',
+      supportedFileTypes: supported,
+      disabledFileTypes: ['md'],
+      marklyraFileTypeActions: true,
+    });
+    expect(preferenceChange('disabledFileTypes', ['txt', ''])).toEqual({
+      key: 'disabledFileTypes',
+      value: ['txt', ''],
+    });
+    for (const disabledFileTypes of [['unknown'], ['md', 'md'], ['MD']]) {
+      expect(() =>
+        filePreferencesSnapshot({
+          ...snapshot(),
+          supportedFileTypes: supported,
+          disabledFileTypes,
+        }),
+      ).toThrow();
+    }
+    expect(() =>
+      filePreferencesSnapshot({
+        ...snapshot(),
+        supportedFileTypes: supported,
+        disabledFileTypes: ['md'],
+      }),
+    ).toThrow();
+    for (const value of [['../md'], ['md', 'md'], [1], null, {}, ['x'.repeat(129)]])
+      expect(() => filePreferenceChange('disabledFileTypes', value)).toThrow();
+  });
+});

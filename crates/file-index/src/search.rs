@@ -149,10 +149,38 @@ impl Workspace {
         self.search_filtered(options, extra, &include_entry, Limits::default())
     }
 
+    pub fn search_with_filters(
+        &self,
+        options: SearchOptions<'_>,
+        include_entry: impl Fn(&std::fs::File) -> bool,
+        include_document: impl Fn(&str) -> bool,
+    ) -> Result<SearchReport, IndexError> {
+        self.search_filtered_by_type(
+            options,
+            &include_document,
+            &include_entry,
+            Limits::default(),
+        )
+    }
     fn search_filtered(
         &self,
         options: SearchOptions<'_>,
         extra: Option<&str>,
+        include_entry: &dyn Fn(&std::fs::File) -> bool,
+        limits: Limits,
+    ) -> Result<SearchReport, IndexError> {
+        self.search_filtered_by_type(
+            options,
+            &|name| is_markdown(Path::new(name), extra),
+            include_entry,
+            limits,
+        )
+    }
+
+    fn search_filtered_by_type(
+        &self,
+        options: SearchOptions<'_>,
+        include_document: &dyn Fn(&str) -> bool,
         include_entry: &dyn Fn(&std::fs::File) -> bool,
         limits: Limits,
     ) -> Result<SearchReport, IndexError> {
@@ -253,7 +281,7 @@ impl Workspace {
                 }
                 continue;
             }
-            if !before.is_file() || !is_markdown(Path::new(name), extra) {
+            if !before.is_file() || !include_document(name) {
                 continue;
             }
             if result.scanned_files >= limits.files {

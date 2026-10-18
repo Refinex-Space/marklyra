@@ -9,7 +9,6 @@ pub mod themes;
 pub mod untitled_close;
 pub mod workspaces;
 
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use document_service::{validate_text, DocumentPayload, DocumentService};
@@ -48,28 +47,26 @@ pub async fn open_document(
 ) -> Result<DocumentPayload, String> {
     services.get_documents(window.label())?;
     tauri::async_runtime::spawn_blocking(move || {
-        let extension = app
+        let filters = app
             .state::<crate::file_preferences::FilePreferencesHost>()
-            .default_extension(&app)
-            .unwrap_or_else(|_| "md".into());
-        let mut filters = file_index::TEXT_EXTENSIONS.to_vec();
-        if !filters
-            .iter()
-            .any(|known| extension.eq_ignore_ascii_case(known))
-        {
-            filters.push(&extension);
-        }
+            .document_types(&app)?
+            .enabled_extensions();
         let selected = app
             .dialog()
             .file()
             .set_parent(&window)
             .set_title("打开 Markdown 文档")
-            .add_filter("Markdown / Text", &filters)
+            .add_filter(
+                "Markdown / Text",
+                &filters.iter().map(String::as_str).collect::<Vec<_>>(),
+            )
             .add_filter("所有文件", &["*"])
             .blocking_pick_file()
             .ok_or("已取消选择文件")?;
         let path = selected.into_path().map_err(|_| "无法读取所选文件路径")?;
         require_window(&window)?;
+        app.state::<crate::file_preferences::FilePreferencesHost>()
+            .require_document_type(&app, &path)?;
         window
             .state::<WindowServices>()
             .write_document(window.label(), |documents| documents.open_authorized(&path))
@@ -137,23 +134,18 @@ pub async fn save_document_as(
         };
         let suggested_name =
             save_suggestion(previous.as_deref(), &extension, suggested_name.as_deref())?;
-        let suggested_extension = Path::new(&suggested_name)
-            .extension()
-            .and_then(|part| part.to_str())
-            .unwrap_or("md");
+        let filters = app.state::<crate::file_preferences::FilePreferencesHost>().document_types(&app)?.enabled_extensions();
         let selected = app
             .dialog()
             .file()
             .set_parent(&window)
             .set_title("另存为 Markdown 文档")
             .set_file_name(&suggested_name)
-            .add_filter(
-                "Markdown / Text",
-                &[suggested_extension, "md", "markdown", "text", "txt"],
-            )
+            .add_filter("Markdown / Text", &filters.iter().map(String::as_str).collect::<Vec<_>>())
             .blocking_save_file()
             .ok_or("已取消保存")?;
         let path = selected.into_path().map_err(|_| "无法读取保存路径")?;
+        app.state::<crate::file_preferences::FilePreferencesHost>().require_document_type(&app, &path)?;
         let saved = window
             .state::<WindowServices>()
             .write_document(window.label(), |documents| {

@@ -74,35 +74,15 @@ fn read_workspace<T>(
 fn collect_documents(
     registry: &Workspaces,
     id: &str,
-    extension: Option<&str>,
+    types: &crate::file_preferences::file_types::DocumentTypes,
     verify_window: impl Fn() -> Result<(), String>,
 ) -> Result<WorkspaceArticlesReport, String> {
     read_workspace(registry, id, verify_window, |selected| {
-        selected.list_documents_with_extension_and_entry_filter(
-            extension,
-            crate::platform::file_metadata::include_entry,
-        )
+        selected
+            .list_documents_with_filters(crate::platform::file_metadata::include_entry, |name| {
+                types.allows(std::path::Path::new(name))
+            })
     })
-}
-
-fn extra_extension(app: &AppHandle) -> Option<String> {
-    match app
-        .state::<crate::file_preferences::FilePreferencesHost>()
-        .default_extension(app)
-    {
-        Ok(extension)
-            if !file_index::TEXT_EXTENSIONS
-                .iter()
-                .any(|known| extension.eq_ignore_ascii_case(known)) =>
-        {
-            Some(extension)
-        }
-        Ok(_) => None,
-        Err(error) => {
-            eprintln!("Custom document type unavailable; keeping built-in types: {error}");
-            None
-        }
-    }
 }
 
 #[tauri::command]
@@ -172,16 +152,18 @@ pub async fn list_directory(
     let registry = services.get_workspaces(window.label())?;
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let extension = extra_extension(&app);
+        let types = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .document_types(&app)?;
         read_workspace(
             &registry,
             &workspace_id,
             || verify_workspace_window(&window, &registry),
             |selected| {
-                selected.list_directory_with_extension_and_entry_filter(
+                selected.list_directory_with_filters(
                     relative_path.as_deref().unwrap_or(""),
-                    extension.as_deref(),
                     crate::platform::file_metadata::include_entry,
+                    |name| types.allows(std::path::Path::new(name)),
                 )
             },
         )
@@ -199,15 +181,17 @@ pub async fn snapshot_workspace(
     let registry = services.get_workspaces(window.label())?;
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let extension = extra_extension(&app);
+        let types = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .document_types(&app)?;
         read_workspace(
             &registry,
             &workspace_id,
             || verify_workspace_window(&window, &registry),
             |selected| {
-                selected.catalog_snapshot_with_entry_filter(
-                    extension.as_deref(),
+                selected.catalog_snapshot_with_filters(
                     crate::platform::file_metadata::include_entry,
+                    |name| types.allows(std::path::Path::new(name)),
                 )
             },
         )
@@ -225,8 +209,10 @@ pub async fn list_workspace_documents(
     let registry = services.get_workspaces(window.label())?;
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let extension = extra_extension(&app);
-        collect_documents(&registry, &workspace_id, extension.as_deref(), || {
+        let types = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .document_types(&app)?;
+        collect_documents(&registry, &workspace_id, &types, || {
             verify_workspace_window(&window, &registry)
         })
     })
@@ -244,12 +230,26 @@ pub async fn open_workspace_document(
     services.get_documents(window.label())?;
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let extension = extra_extension(&app);
+        let types = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .document_types(&app)?;
+        types.require(std::path::Path::new(&relative_path))?;
+        // Membership was checked by the policy; the index still verifies path capabilities.
+        let suffix = types
+            .catalog()
+            .into_iter()
+            .filter(|id| {
+                !id.is_empty()
+                    && relative_path
+                        .to_ascii_lowercase()
+                        .ends_with(&format!(".{id}"))
+            })
+            .max_by_key(|id| id.len());
         window.state::<WindowServices>().open_workspace_document(
             window.label(),
             &workspace_id,
             &relative_path,
-            extension.as_deref(),
+            suffix.as_deref(),
         )
     })
     .await
@@ -271,13 +271,15 @@ pub async fn search_workspace(
         .get_workspaces(window.label())?;
     let app = window.app_handle().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let extension = extra_extension(&app);
+        let types = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .document_types(&app)?;
         read_workspace(
             &registry,
             &workspace_id,
             || verify_workspace_window(&window, &registry),
             |selected| {
-                selected.search_with_extension_and_entry_filter(
+                selected.search_with_filters(
                     SearchOptions {
                         query: &query,
                         case_sensitive: case_sensitive.unwrap_or(true),
@@ -285,8 +287,8 @@ pub async fn search_workspace(
                         use_regex: use_regex.unwrap_or(false),
                         max_results: max_results.unwrap_or(200),
                     },
-                    extension.as_deref(),
                     crate::platform::file_metadata::include_entry,
+                    |name| types.allows(std::path::Path::new(name)),
                 )
             },
         )
@@ -440,26 +442,29 @@ pub async fn create_workspace_file_with_dialog(
         let extension = app
             .state::<crate::file_preferences::FilePreferencesHost>()
             .default_extension(app)?;
-        let mut filters = file_index::TEXT_EXTENSIONS.to_vec();
-        if !filters
-            .iter()
-            .any(|known| extension.eq_ignore_ascii_case(known))
-        {
-            filters.push(&extension);
-        }
+        let filters = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .document_types(app)?
+            .enabled_extensions();
         let selected = app
             .dialog()
             .file()
             .set_parent(&window)
             .set_title("新建文档")
+            .set_file_name(format!("Untitled.{extension}"))
             .set_directory(bookmark.path())
-            .add_filter("Markdown / Text", &filters)
+            .add_filter(
+                "Markdown / Text",
+                &filters.iter().map(String::as_str).collect::<Vec<_>>(),
+            )
             .add_filter("所有文件", &["*"])
             .blocking_save_file();
         let Some(selected) = selected else {
             return Ok(false);
         };
         let path = selected.into_path().map_err(|_| "无法读取新建文件路径")?;
+        app.state::<crate::file_preferences::FilePreferencesHost>()
+            .require_document_type(app, &path)?;
         window.state::<WindowServices>().mutate_workspace(
             window.label(),
             &workspace_id,
@@ -563,25 +568,46 @@ mod tests {
             .unwrap()
             .select_authorized(root.path())
             .unwrap();
-        assert!(collect_documents(&registry, &selected.id, None, || Ok(()))
-            .unwrap()
-            .entries
-            .is_empty());
+        assert!(collect_documents(
+            &registry,
+            &selected.id,
+            &crate::file_preferences::file_types::DocumentTypes::default(),
+            || Ok(())
+        )
+        .unwrap()
+        .entries
+        .is_empty());
         assert_eq!(
-            collect_documents(&registry, &selected.id, Some("vault"), || Ok(()))
-                .unwrap()
-                .entries[0]
+            collect_documents(
+                &registry,
+                &selected.id,
+                &crate::file_preferences::file_types::DocumentTypes {
+                    custom_extension: "vault".into(),
+                    ..Default::default()
+                },
+                || Ok(())
+            )
+            .unwrap()
+            .entries[0]
                 .summary,
             "custom source"
         );
-        assert!(collect_documents(&registry, &selected.id, None, || Ok(()))
-            .unwrap()
-            .entries
-            .is_empty());
+        assert!(collect_documents(
+            &registry,
+            &selected.id,
+            &crate::file_preferences::file_types::DocumentTypes::default(),
+            || Ok(())
+        )
+        .unwrap()
+        .entries
+        .is_empty());
         assert!(collect_documents(
             &Arc::new(Mutex::new(WorkspaceRegistry::default())),
             &selected.id,
-            Some("vault"),
+            &crate::file_preferences::file_types::DocumentTypes {
+                custom_extension: "vault".into(),
+                ..Default::default()
+            },
             || Ok(())
         )
         .is_err());
@@ -601,22 +627,38 @@ mod tests {
             .unwrap()
             .select_authorized(temporary.path())
             .unwrap();
-        assert!(collect_documents(&foreign, &selected.id, None, || Ok(())).is_err());
+        assert!(collect_documents(
+            &foreign,
+            &selected.id,
+            &crate::file_preferences::file_types::DocumentTypes::default(),
+            || Ok(())
+        )
+        .is_err());
         assert_eq!(
-            collect_documents(&own, &selected.id, None, || Ok(()))
-                .unwrap()
-                .entries[0]
+            collect_documents(
+                &own,
+                &selected.id,
+                &crate::file_preferences::file_types::DocumentTypes::default(),
+                || Ok(())
+            )
+            .unwrap()
+            .entries[0]
                 .summary,
             "read-only article"
         );
         let calls = Cell::new(0);
-        let result = collect_documents(&own, &selected.id, None, || {
-            calls.set(calls.get() + 1);
-            if calls.get() == 2 {
-                own.lock().unwrap().close(&selected.id);
-            }
-            Ok(())
-        });
+        let result = collect_documents(
+            &own,
+            &selected.id,
+            &crate::file_preferences::file_types::DocumentTypes::default(),
+            || {
+                calls.set(calls.get() + 1);
+                if calls.get() == 2 {
+                    own.lock().unwrap().close(&selected.id);
+                }
+                Ok(())
+            },
+        );
         assert!(result.is_err());
         assert_eq!(calls.get(), 2);
         assert_eq!(
@@ -636,13 +678,18 @@ mod tests {
             .select_authorized(temporary.path())
             .unwrap();
         let calls = Cell::new(0);
-        let result = collect_documents(&registry, &selected.id, None, || {
-            calls.set(calls.get() + 1);
-            if calls.get() == 2 {
-                return Err("editor closed".into());
-            }
-            Ok(())
-        });
+        let result = collect_documents(
+            &registry,
+            &selected.id,
+            &crate::file_preferences::file_types::DocumentTypes::default(),
+            || {
+                calls.set(calls.get() + 1);
+                if calls.get() == 2 {
+                    return Err("editor closed".into());
+                }
+                Ok(())
+            },
+        );
         assert_eq!(result.err().as_deref(), Some("editor closed"));
     }
 
@@ -672,7 +719,13 @@ mod tests {
         let registry = Arc::new(Mutex::new(WorkspaceRegistry::default()));
         let selected = registry.lock().unwrap().select_authorized(&root).unwrap();
         let check = || {
-            let report = collect_documents(&registry, &selected.id, None, || Ok(())).unwrap();
+            let report = collect_documents(
+                &registry,
+                &selected.id,
+                &crate::file_preferences::file_types::DocumentTypes::default(),
+                || Ok(()),
+            )
+            .unwrap();
             assert_eq!(report.entries.len(), 1);
             assert_eq!(report.entries[0].relative_path, "visible.md");
             assert_eq!(report.entries[0].summary, "original authorized content");

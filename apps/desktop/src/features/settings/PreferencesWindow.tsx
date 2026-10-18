@@ -270,6 +270,12 @@ export function PreferencesWindow({
         confirmed.revision,
         filePreferenceChange(change.key, change.value),
       );
+      try {
+        await editorChrome.preferencesChanged();
+      } catch (reason) {
+        setError(`设置已保存，窗口同步失败：${String(reason)}`);
+      }
+      return confirmedFiles.current;
     } else
       switch (change.key) {
         case 'theme':

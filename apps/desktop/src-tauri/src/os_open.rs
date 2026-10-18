@@ -50,7 +50,12 @@ fn receive_paths(app: &AppHandle, paths: impl IntoIterator<Item = Result<PathBuf
                 queue.warn("单次系统打开最多处理64个项目，其余项目未打开，请分批重试".into());
                 break;
             }
-            match path.and_then(Receipt::capture) {
+            match path.and_then(|path| {
+                let types = app
+                    .state::<crate::file_preferences::FilePreferencesHost>()
+                    .document_types(app)?;
+                Receipt::capture_with_types(path, &types)
+            }) {
                 Ok(receipt) => queue.push(receipt),
                 Err(error) => queue.warn(error),
             }
@@ -140,6 +145,10 @@ pub(crate) async fn take_os_open(
     let owner = window.label().to_owned();
     let result = async {
         receipt.verify()?;
+        if !receipt.directory {
+            app.state::<crate::file_preferences::FilePreferencesHost>()
+                .require_document_type(&app, &receipt.path)?;
+        }
         if let Some(label) = app
             .state::<crate::startup::StartupHost>()
             .matching_os_target(

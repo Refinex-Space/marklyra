@@ -1,6 +1,11 @@
 import type { NativeImageImporter } from '@marklyra/editor-runtime';
 import { invoke } from '@tauri-apps/api/core';
 import { readPreferences } from '../features/settings/preferences.js';
+import {
+  documentFileType,
+  fileTypeCatalog,
+  fileTypeEnabled,
+} from '../features/settings/runtime-preferences/file-types.js';
 import type { FilePreferences } from './file-preferences.js';
 import { imageEpoch } from './image-epochs.js';
 import { guardImageWrite, setNativeDropAvailable } from './images.js';
@@ -54,22 +59,6 @@ export function nativeFileDrop(value: unknown): NativeFileDrop {
     throw new Error('系统文件拖放响应无效');
   return item as NativeFileDrop;
 }
-const documents = new Set([
-  'md',
-  'markdown',
-  'mkd',
-  'mdown',
-  'mdtext',
-  'mdtxt',
-  'mdwn',
-  'mdx',
-  'mmd',
-  'rmd',
-  'qmd',
-  'rmarkdown',
-  'txt',
-  'text',
-]);
 const imports = new Set([
   'docx',
   'doc',
@@ -89,15 +78,18 @@ const imports = new Set([
 export function nativeDropIntent(
   drop: NativeFileDrop,
   preferences: FilePreferences,
-): 'images' | 'references' | 'document' | 'directory' | 'unsupported-import' {
+): 'images' | 'references' | 'document' | 'directory' | 'unsupported-import' | 'disabled-document' {
   const first = drop.entries[0];
   if (!first) throw new Error('没有可拖入的文件');
   if (first.kind === 'directory')
     return preferences.actionWhenDropFolder === 'link' ? 'references' : 'directory';
   if (first.kind === 'image') return 'images';
   const extension = first.name.split('.').at(-1)?.toLowerCase() ?? '';
-  if (documents.has(extension) || extension === preferences.defaultExtension.toLowerCase())
+  const type = documentFileType(first.name, preferences);
+  if (fileTypeCatalog(preferences).includes(type)) {
+    if (!fileTypeEnabled(type, preferences)) return 'disabled-document';
     return preferences.actionWhenDropFile === 'link' ? 'references' : 'document';
+  }
   if (imports.has(extension))
     return preferences.actionWhenDropImport === 'link' ? 'references' : 'unsupported-import';
   return 'references';

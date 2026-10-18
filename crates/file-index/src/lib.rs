@@ -351,6 +351,18 @@ impl Workspace {
         extra: Option<&str>,
         include_entry: impl Fn(&std::fs::File) -> bool,
     ) -> Result<DirectoryListing, IndexError> {
+        self.list_directory_with_filters(relative, include_entry, |name| {
+            is_markdown(Path::new(name), extra)
+        })
+    }
+
+    /// Filter document names before reading content; directory capabilities remain unchanged.
+    pub fn list_directory_with_filters(
+        &self,
+        relative: &str,
+        include_entry: impl Fn(&std::fs::File) -> bool,
+        include_document: impl Fn(&str) -> bool,
+    ) -> Result<DirectoryListing, IndexError> {
         let path = checked_relative(relative, true)?;
         self.display_root_binding()?;
         let mut directory = self.root.try_clone()?;
@@ -418,7 +430,7 @@ impl Workspace {
             }
             let kind = if metadata.is_dir() {
                 EntryKind::Directory
-            } else if metadata.is_file() && is_markdown(Path::new(name), extra) {
+            } else if metadata.is_file() && include_document(name) {
                 EntryKind::File
             } else {
                 continue;

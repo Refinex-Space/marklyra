@@ -1,3 +1,4 @@
+import { type FileTypePageControls, renderFileTypes } from './file-types-page.js';
 import css from './settings-page.css?inline';
 
 const summaries: Record<string, string> = {
@@ -29,7 +30,7 @@ export function presentSettingsPage(value: unknown) {
     root.style.setProperty('--settings-sidebar-bg', input.sidebarBackground);
 }
 
-export function setupSettingsPage(close: () => void) {
+export function setupSettingsPage(close: () => void, fileTypes?: FileTypePageControls) {
   if (new URL(location.href).searchParams.get('layout') !== 'page') return;
   document.documentElement.dataset.settingsPage = 'true';
   const style = document.createElement('style');
@@ -112,6 +113,7 @@ export function setupSettingsPage(close: () => void) {
       );
     }
     arrangeFileGroups(pane);
+    if (fileTypes) renderFileTypes(pane, fileTypes);
     arrangeEditingGroups(pane);
     pane
       .querySelector('[data-marklyra-preference="zoomFactor"]')
@@ -173,7 +175,7 @@ function arrangeFileGroups(pane: Element) {
       group.classList.toggle('settings-card-start', index === 0);
       group.classList.toggle('settings-card-end', index === section.keys.length - 1);
       group.dataset.sectionTitle = section.title;
-      group.style.order = String(order++);
+      group.style.order = String(order++ * 10);
       if (['restoreWhenLaunch', 'defaultExtension'].includes(key)) {
         group.classList.add('settings-inline-setting');
       } else {
