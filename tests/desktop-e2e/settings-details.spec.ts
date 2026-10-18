@@ -67,23 +67,7 @@ for (const theme of ['github', 'night']) {
     expect(band.line).toBe(theme === 'night' ? '#3b3e44' : '#e8e9eb');
     expect(band.paint).toContain(theme === 'night' ? 'rgb(59, 62, 68)' : 'rgb(232, 233, 235)');
     await ui.getByRole('button', { name: 'Markdown', exact: true }).click();
-    const headingLinks = await ui
-      .locator('.content:not(.display-none) .input-group-header:has(a)')
-      .evaluateAll((elements) =>
-        elements.map((el) => {
-          const title = el.querySelector('.input-group-header-title')?.getBoundingClientRect();
-          const link = el.querySelector('a')?.getBoundingClientRect();
-          if (!title || !link) throw new Error('Heading/link missing');
-          return {
-            dy: Math.abs(title.y + title.height / 2 - link.y - link.height / 2),
-            gap: link.x - title.right,
-          };
-        }),
-      );
-    for (const link of headingLinks) {
-      expect(link.dy).toBeLessThan(4);
-      expect(link.gap).toBeGreaterThan(20);
-    }
+    await expect(ui.locator('.content:not(.display-none) .input-group-header a')).toHaveCount(0);
     await ui.getByRole('button', { name: '外观', exact: true }).click();
     const customRadio = ui.locator('input[name="useCustomFontSize"][value="true"]');
     await customRadio.check();

@@ -34,9 +34,6 @@ for (const theme of ['github', 'night']) {
     await expect(row.getByRole('link')).toHaveCount(0);
     await hint.hover();
     await expect(tooltip).toContainText('#标题 会保留为普通文本');
-    // Other Markdown help links remain visible.
-    await expect(
-      ui.locator('.content:not(.display-none) .input-group-header a').first(),
-    ).toBeVisible();
+    await expect(ui.locator('.content:not(.display-none) .input-group-header a')).toHaveCount(0);
   });
 }

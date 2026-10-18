@@ -3,6 +3,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { parse } from 'acorn';
 import { build } from 'vite';
+import { preferenceHelpLinkEdits } from './preferences-help-links.mjs';
 import { brandHtmlTitle, brandLocale } from './runtime-branding.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
@@ -204,6 +205,7 @@ export function transformPreferencesSource(source) {
     end: diagramRow.table.end,
     text: source.slice(diagramRow.checkbox.start, diagramRow.checkbox.end),
   });
+  edits.push(...preferenceHelpLinkEdits(source, ast));
   const bridge = bridges[0];
   edits.push({ start: bridge.start, end: bridge.end, text: 'window.__MARKLYRA_SETTINGS_BRIDGE__' });
   for (const node of guards) {

@@ -814,15 +814,11 @@ html[data-settings-dark="true"] {
 [data-settings-page] .settings-table-toggle .inline-hint {
   white-space: normal;
 }
-[data-settings-page]
-  .settings-table-toggle:has([data-marklyra-preference="strict_mode"])
-  .inline-hint {
+[data-settings-page] .input-group-header-hint:empty,
+[data-settings-page] .inline-hint:empty {
   display: none;
 }
-[data-settings-page]
-  .settings-table-toggle:has([data-marklyra-preference="strict_mode"])
-  .checkbox.row
-  > label {
+[data-settings-page] .settings-table-toggle:has(.inline-hint:empty) .checkbox.row > label {
   padding-right: 54px;
 }
 [data-settings-page] select:hover:not(:disabled),
@@ -837,11 +833,11 @@ html[data-settings-dark="true"] {
   min-height: 54px;
   align-items: center;
 }
-[data-settings-page] .settings-table-toggle .checkbox.row:has(> .inline-hint) {
+[data-settings-page] .settings-table-toggle .checkbox.row:has(> .inline-hint:not(:empty)) {
   display: block;
   padding: 9px 180px 9px 0;
 }
-[data-settings-page] .settings-table-toggle .checkbox.row:has(> .inline-hint) > label {
+[data-settings-page] .settings-table-toggle .checkbox.row:has(> .inline-hint:not(:empty)) > label {
   padding: 0;
 }
 [data-settings-page] .checkbox.row > .inline-hint {
