@@ -258,6 +258,12 @@ function arrangeIndentControls(pane: Element) {
 }
 
 function settingsHelpText(hint: HTMLElement) {
+  if (hint.closest('.checkbox')?.querySelector('[data-marklyra-preference="noRecentFiles"]'))
+    return (
+      '开启后记录最近使用的文件和文件夹，便于再次打开。\n' +
+      '关闭后停止新增记录，并隐藏最近记录；固定的文件夹仍可访问。\n' +
+      '关闭开关不会清除已有历史。需要清除时，请使用“清除历史文件记录”，原文档不会删除。'
+    );
   if (hint.closest('tr')?.querySelector('[data-marklyra-preference="strict_mode"]'))
     return (
       '开启后按更严格的规则解析标题和列表。\n' +
