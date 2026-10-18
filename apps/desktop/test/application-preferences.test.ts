@@ -8,6 +8,19 @@ import {
 import { preferenceChange } from '../src/features/settings/runtime-preferences/policy.js';
 
 describe('native preference overrides', () => {
+  it('accepts only boolean debug mode without passing it to the editor SDK', () => {
+    expect(preferenceChange('debugMode', true)).toEqual({ key: 'debugMode', value: true });
+    expect(() => applicationPreferenceChange('debugMode', 'true')).toThrow();
+    const snapshot = applicationPreferencesSnapshot({
+      schemaVersion: 1,
+      revision: 1,
+      values: { debugMode: true },
+    });
+    expect(snapshot.values.debugMode).toBe(true);
+    expect(
+      applicationEditorPreferences(snapshot, defaultMarkLyraEditorPreferences),
+    ).not.toHaveProperty('debugMode');
+  });
   it('keeps existing editor configuration when no native setting has been written', () => {
     const legacy = {
       ...defaultMarkLyraEditorPreferences,

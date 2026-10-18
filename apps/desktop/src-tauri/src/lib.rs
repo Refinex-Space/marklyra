@@ -3,6 +3,7 @@ mod application_preferences;
 mod clipboard;
 mod commands;
 mod context_menu;
+mod debug_tools;
 mod editor_commands;
 mod export_preferences;
 mod exports;
@@ -46,6 +47,7 @@ pub fn run() {
         .manage(file_preferences::FilePreferencesHost::default())
         .manage(markdown_preferences::MarkdownPreferencesHost::default())
         .manage(application_preferences::ApplicationPreferencesHost::default())
+        .manage(debug_tools::DebugToolsHost::default())
         .manage(startup::StartupHost::default())
         .register_uri_scheme_protocol("marklyra", |context, request| {
             runtime_assets::handle(context.app_handle(), context.webview_label(), &request)
@@ -188,6 +190,7 @@ pub fn run() {
             export_preferences::put_export_preferences,
         ])
         .setup(|app| {
+            debug_tools::initialise(app.handle());
             windows::register(app.handle(), "main")?;
             let native_menu = menu::build(app.handle())?;
             app.set_menu(native_menu.clone())?;

@@ -1,4 +1,40 @@
 use super::*;
+
+#[test]
+fn debug_mode_is_an_opt_in_boolean_and_persists_without_touching_other_preferences() {
+    let root = tempfile::tempdir().unwrap();
+    let store = Store::<Snapshot>::open(root.path()).unwrap();
+    assert!(!store.get().unwrap().values.contains_key(&Key::DebugMode));
+    for (expected, enabled) in [(0, true), (1, false)] {
+        store
+            .transaction(|state| {
+                state.apply(
+                    expected,
+                    Change {
+                        key: Key::DebugMode,
+                        value: Value::Boolean(enabled),
+                    },
+                )?;
+                Ok(((), true))
+            })
+            .unwrap();
+        assert_eq!(
+            Store::<Snapshot>::open(root.path())
+                .unwrap()
+                .get()
+                .unwrap()
+                .values
+                .get(&Key::DebugMode),
+            Some(&Value::Boolean(enabled))
+        );
+    }
+    assert!(Change {
+        key: Key::DebugMode,
+        value: Value::Text("true".into())
+    }
+    .validate()
+    .is_err());
+}
 use std::fs;
 fn change(key: Key, value: Value) -> Change {
     Change { key, value }

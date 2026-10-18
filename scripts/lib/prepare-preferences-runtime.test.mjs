@@ -35,7 +35,7 @@ test('verified AST edits isolate settings and remove redundant or unsupported co
   const transformed = transformPreferencesSource(source);
   assert.equal(transformed.metadata.capabilityChecks, 26);
   assert.equal(transformed.metadata.bridgeCount, 1);
-  assert.equal(transformed.metadata.edits.length, 45);
+  assert.equal(transformed.metadata.edits.length, 46);
   assert.equal(transformed.metadata.originalSha256, preferencesResources[sourcePath]);
   let expected = source;
   for (const edit of [...transformed.metadata.edits].reverse())
@@ -50,6 +50,13 @@ test('verified AST edits isolate settings and remove redundant or unsupported co
   assert.ok(!transformed.code.includes('keyName:"use_seamless_window"'));
   assert.ok(!transformed.code.includes('keyName:"framelessWindow"'));
   assert.ok(transformed.code.includes('"Font Size"'));
+  assert.ok(!transformed.code.includes('keyName:"autoUpdateToDev"'));
+  assert.ok(!transformed.code.includes('keyName:"send_usage_info"'));
+  assert.ok(!transformed.code.includes('keyName:"useMirrorInCN"'));
+  assert.ok(!transformed.code.includes('title:"Dialogs"'));
+  assert.ok(!transformed.code.includes('settings-third-party-license'));
+  assert.ok(transformed.code.includes('Your Typora is not activated.'));
+  assert.ok(transformed.code.includes('Your Typora has been activated.'));
   assert.ok(!transformed.code.includes('"Turn off Typewriter / Focus Mode"'));
   assert.ok(!transformed.code.includes('onClick:window.Setting.exitFocusAndTypewriterMode'));
   assert.ok(transformed.code.includes('keyName:"no_mid_caret"'));

@@ -254,16 +254,13 @@ function themeAction(element: Element): 'open-theme-folder' | 'theme-gallery' | 
   return undefined;
 }
 
-function fileAction(
-  element: Element,
-): 'clear-recent-history' | 'reset-dialog-warnings' | undefined {
+function fileAction(element: Element): 'clear-recent-history' | undefined {
   if (runtime._options.marklyraFileActions !== true) return undefined;
   const key = Object.keys(element).find((name) => name.startsWith('__reactInternalInstance$'));
   let fiber = key ? (element as unknown as Record<string, ReactFiber>)[key] : undefined;
   for (let index = 0; fiber && index < 18; index++, fiber = fiber.return) {
     if (fiber.memoizedProps?.label === 'Clear Recent Folders and Files')
       return 'clear-recent-history';
-    if (fiber.memoizedProps?.label === 'Reset All Dialog Warnings') return 'reset-dialog-warnings';
   }
   return undefined;
 }
@@ -860,12 +857,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
           sequence = sequence
             .then(() => {
               if (!failed)
-                return request('file-action', { name: clear.dataset.marklyraFileAction }).then(
-                  () => {
-                    if (clear.dataset.marklyraFileAction === 'reset-dialog-warnings')
-                      status('已重置删除确认提示；其它提示暂不支持。');
-                  },
-                );
+                return request('file-action', { name: clear.dataset.marklyraFileAction });
             })
             .catch(report)
             .finally(() => {

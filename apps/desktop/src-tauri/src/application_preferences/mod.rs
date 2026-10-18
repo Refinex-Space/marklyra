@@ -9,6 +9,8 @@ use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Key {
+    #[serde(rename = "debugMode")]
+    DebugMode,
     #[serde(rename = "SmartyPantsOnRendering")]
     ConvertSmartOnRender,
     #[serde(rename = "smartQuote")]
@@ -215,6 +217,9 @@ impl Snapshot {
 #[derive(Clone, Default)]
 pub struct ApplicationPreferencesHost(Arc<Mutex<Option<Store<Snapshot>>>>);
 impl ApplicationPreferencesHost {
+    pub(crate) fn snapshot(&self, app: &AppHandle) -> Result<Snapshot, String> {
+        self.with(app, Store::get)
+    }
     fn with<T>(
         &self,
         app: &AppHandle,
@@ -277,6 +282,7 @@ pub async fn put_application_preferences(
                 })
             })?;
         // A notification failure cannot turn a committed CAS into permission to replay it.
+        crate::debug_tools::preferences_changed(&app, &result);
         if let Err(error) = app.emit("application-preferences-changed", &result) {
             eprintln!("Application preferences committed, notification failed: {error}");
         }

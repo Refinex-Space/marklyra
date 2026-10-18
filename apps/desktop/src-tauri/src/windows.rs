@@ -382,6 +382,7 @@ pub(crate) fn build_reserved_editor_window(
     let label = reserved.label.as_ref().ok_or("新窗口授权已释放")?.clone();
     // Async command: creating a WebView on the synchronous IPC thread can deadlock WebView2.
     let builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
+        .devtools(false)
         .title("未命名 — MarkLyra")
         .inner_size(1180.0, 800.0)
         .min_inner_size(700.0, 480.0)

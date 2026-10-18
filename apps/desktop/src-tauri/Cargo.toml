@@ -27,7 +27,7 @@ document-service = { path = "../../../crates/document-service" }
 export-service = { path = "../../../crates/export-service" }
 recovery-store = { path = "../../../crates/recovery-store" }
 recent-files = { path = "../../../crates/recent-files" }
-tauri = { version = "2.11.2", features = [] }
+tauri = { version = "2.11.2", features = ["devtools"] }
 tauri-plugin-dialog = "2.7.1"
 open = { version = "=5.4.4", default-features = false }
 
@@ -35,7 +35,7 @@ open = { version = "=5.4.4", default-features = false }
 objc2 = "=0.6.5"
 block2 = "=0.6.2"
 objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSPasteboard", "NSPasteboardItem", "NSAppearance", "NSWindow", "NSView", "NSResponder", "NSViewController", "NSTitlebarAccessoryViewController", "NSTextField", "NSButton", "NSControl", "NSCell", "NSButtonCell", "NSActionCell", "NSBezierPath", "NSColor", "NSGraphicsContext", "NSImage", "NSFont", "NSEvent", "NSTrackingArea", "NSLayoutConstraint", "NSLayoutAnchor", "NSAccessibilityProtocols", "NSMenu", "NSMenuItem", "NSAlert", "NSAttributedString", "NSDocument", "NSSavePanel", "NSPrintInfo", "NSPrintOperation", "objc2-core-foundation", "NSBitmapImageRep", "NSImageRep"] }
-objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSString", "NSEnumerator", "NSGeometry", "NSURL", "NSUserDefaults", "NSFileManager", "NSError", "NSLocale", "NSData", "FoundationErrors"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSString", "NSEnumerator", "NSGeometry", "NSURL", "NSUserDefaults", "NSFileManager", "NSError", "NSLocale", "NSValue", "NSData", "FoundationErrors"] }
 
 [target.'cfg(windows)'.dependencies]
 clipboard-win = { version = "=5.4.1", features = ["std"] }
@@ -59,6 +59,11 @@ harness = false
 [[test]]
 name = "titlebar-hover-native"
 path = "tests/titlebar-hover-native.rs"
+harness = false
+
+[[test]]
+name = "debug-tools-native"
+path = "tests/debug-tools-native.rs"
 harness = false
 
 [[test]]

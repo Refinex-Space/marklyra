@@ -3,6 +3,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { parse } from 'acorn';
 import { build } from 'vite';
+import { generalPreferencesEdits } from './general-preferences-source.mjs';
 import { preferenceHelpLinkEdits } from './preferences-help-links.mjs';
 import { brandHtmlTitle, brandLocale } from './runtime-branding.mjs';
 
@@ -279,6 +280,7 @@ export function transformPreferencesSource(source) {
     text: source.slice(diagramRow.checkbox.start, diagramRow.checkbox.end),
   });
   edits.push(...preferenceHelpLinkEdits(source, ast));
+  edits.push(...generalPreferencesEdits(source, ast));
   // Keep the original controls and their handlers, but give the visibility toggle
   // its own standard row instead of stacking it inside the writing select's cell.
   const whitespaceTable = whitespaceTables[0];

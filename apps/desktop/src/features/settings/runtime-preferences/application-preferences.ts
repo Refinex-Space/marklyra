@@ -17,6 +17,7 @@ export const applicationPreferenceKeys = [
   'darkTheme',
   'useSeparateDarkTheme',
   'quitAfterWindowClose',
+  'debugMode',
   'can_collapse_outline_panel',
   'wordsPerMinute',
   'customWordsPerMinute',
@@ -46,7 +47,8 @@ export function applicationPreferenceChange(
   )
     return { key, value };
   if (
-    (key === 'quitAfterWindowClose' ||
+    (key === 'debugMode' ||
+      key === 'quitAfterWindowClose' ||
       key === 'useSeparateDarkTheme' ||
       key === 'can_collapse_outline_panel') &&
     typeof value === 'boolean'

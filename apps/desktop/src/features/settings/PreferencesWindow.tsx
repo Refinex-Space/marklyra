@@ -104,6 +104,7 @@ function options(
     enableAutoSave: application.values.enableAutoSave ?? readAutoSavePreference(),
     zoomFactor: application.values.zoomFactor ?? 1,
     quitAfterWindowClose: application.values.quitAfterWindowClose ?? false,
+    debugMode: application.values.debugMode ?? false,
     darkTheme: `${resolveThemeId(String(application.values.darkTheme ?? 'marklyra-dark.css').replace(/\.css$/, ''), catalog)}.css`,
     useSeparateDarkTheme: application.values.useSeparateDarkTheme ?? false,
     can_collapse_outline_panel: application.values.can_collapse_outline_panel ?? true,
@@ -395,7 +396,6 @@ export function PreferencesWindow({
             }
             if (name === 'open-theme-folder') await themeFiles.openFolder();
             else if (name === 'theme-gallery') await themeFiles.openGallery();
-            else if (name === 'reset-dialog-warnings') await applicationPreferences.resetWarnings();
             else if (name === 'clear-recent-history') return filePreferences.clearRecentHistory();
             else if (name === 'startup') {
               const action = startupPreferenceAction(data);

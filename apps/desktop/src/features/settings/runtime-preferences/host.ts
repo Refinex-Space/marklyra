@@ -235,13 +235,10 @@ export class RuntimePreferencesHost {
             if (
               this.initial.marklyraFileActions !== true ||
               !this.options.onAction ||
-              !['clear-recent-history', 'reset-dialog-warnings'].includes(String(request.name))
+              request.name !== 'clear-recent-history'
             )
               throw new Error('文件设置操作不可用。');
-            await this.options.onAction(
-              request.name as 'clear-recent-history' | 'reset-dialog-warnings',
-              null,
-            );
+            await this.options.onAction('clear-recent-history', null);
           } else if (request.operation === 'startup-action') {
             if (this.initial.marklyraStartupActions !== true || !this.options.onAction)
               throw new Error('启动设置操作不可用。');

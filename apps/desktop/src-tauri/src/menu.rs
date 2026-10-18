@@ -213,6 +213,11 @@ fn submenu<R: Runtime>(
             Separator => builder.separator(),
         };
     }
+    if label == "显示" {
+        builder = builder
+            .separator()
+            .item(&crate::debug_tools::menu_item(app)?);
+    }
     builder.build()
 }
 
@@ -318,6 +323,10 @@ fn action_for_id(id: &str) -> Option<&str> {
 }
 
 pub fn handle<R: Runtime>(app: &AppHandle<R>, event: tauri::menu::MenuEvent) {
+    if event.id().as_ref() == crate::debug_tools::MENU_ID {
+        crate::debug_tools::open_focused(app);
+        return;
+    }
     if let Some(action) = action_for_id(event.id().as_ref()) {
         let Some(window) = crate::windows::focused_editor(app) else {
             return;
@@ -351,6 +360,7 @@ pub fn set_preview_context<R: Runtime>(app: &AppHandle<R>, preview: bool) -> tau
         state::update(menu.items()?, &state::current(app), preview)?;
     }
     themes::sync(app, preview || state::current(app).active().is_none())?;
+    crate::debug_tools::sync_menu(app, preview)?;
     Ok(())
 }
 fn update_items<R: Runtime>(items: Vec<MenuItemKind<R>>, preview: bool) -> tauri::Result<()> {
@@ -396,6 +406,18 @@ fn action_enabled(id: &str, preview: bool) -> bool {
 mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    #[test]
+    fn developer_tools_shortcut_does_not_shadow_document_commands() {
+        let debug = crate::debug_tools::shortcut();
+        for group in GROUPS {
+            for entry in *group {
+                if let MenuEntry::Action(id, _, shortcut) = entry {
+                    assert_ne!(shortcuts::resolve(id, *shortcut), Some(debug));
+                }
+            }
+        }
+    }
 
     #[test]
     fn theme_check_actions_use_the_same_preview_disablement_as_other_editor_actions() {

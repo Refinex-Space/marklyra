@@ -50,6 +50,7 @@ export const preferenceKeys = [
   'darkTheme',
   'useSeparateDarkTheme',
   'quitAfterWindowClose',
+  'debugMode',
   'can_collapse_outline_panel',
   ...editorPreferenceKeys,
   ...startupEditorKeys,
@@ -67,7 +68,6 @@ export type PreferenceAction =
   | 'open-theme-folder'
   | 'theme-gallery'
   | 'clear-recent-history'
-  | 'reset-dialog-warnings'
   | 'startup';
 
 export function preferenceThemeFiles(value: unknown): readonly string[] {
@@ -97,6 +97,7 @@ export function preferenceChange(
   if (isStartupEditorKey(key)) return applicationPreferenceChange(key, value);
   if (isExportPreferenceKey(key)) return exportPreferenceChange(key, value);
   if (
+    key === 'debugMode' ||
     key === 'quitAfterWindowClose' ||
     key === 'zoomFactor' ||
     key === 'useSeparateDarkTheme' ||
@@ -199,6 +200,7 @@ export function initialPreferencesOptions(
     darkTheme: 'marklyra-dark.css',
     can_collapse_outline_panel: true,
     quitAfterWindowClose: false,
+    debugMode: false,
     use_seamless_window: true,
     theme: 'marklyra-light.css',
     image_save_location: 'assert',

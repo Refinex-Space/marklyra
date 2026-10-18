@@ -23,6 +23,71 @@ html[data-settings-dark="true"] {
   --settings-focus: #858b94;
   color-scheme: dark;
 }
+
+.settings-general-preferences .input-group-content > .label-input-group + .row {
+  border-top: 1px solid var(--settings-line);
+}
+.settings-general-preferences .label-input-group td:nth-of-type(2) > .btn {
+  float: right;
+}
+.settings-about-brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 0 20px;
+}
+.settings-about-eyebrow {
+  color: var(--settings-muted);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.settings-about-brand h2 {
+  margin: 5px 0 7px;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.7px;
+}
+.settings-about-tagline {
+  margin: 0;
+  color: var(--settings-accent);
+  font-size: 14px;
+  font-weight: 500;
+}
+.settings-about-license {
+  flex: none;
+  margin-top: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--settings-line);
+  border-radius: 999px;
+  background: var(--settings-input);
+  color: var(--settings-muted);
+  font-size: 11px;
+}
+[data-settings-page] .settings-about-version {
+  justify-content: space-between;
+  border-top: 1px solid var(--settings-line);
+  color: var(--settings-muted);
+}
+.settings-about-version strong {
+  margin-left: 4px;
+  color: var(--settings-text);
+  font-weight: 500;
+}
+.settings-about-legal {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--settings-muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+@media (max-width: 700px) {
+  .settings-about-brand {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
 [data-settings-page] body,
 [data-settings-page] #root,
 [data-settings-page] .window,

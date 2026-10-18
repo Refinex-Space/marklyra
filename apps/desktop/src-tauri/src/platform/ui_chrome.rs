@@ -263,6 +263,7 @@ async fn on_main<T: Send + 'static>(
 #[tauri::command]
 pub async fn initialise_editor_chrome(window: WebviewWindow) -> Result<ChromeCapabilities, String> {
     require_editor(&window)?;
+    crate::debug_tools::window_ready(&window);
     #[cfg(target_os = "macos")]
     let native = on_main(window, macos::initialise).await?;
     #[cfg(not(target_os = "macos"))]
