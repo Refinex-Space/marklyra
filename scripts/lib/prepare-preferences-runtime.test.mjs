@@ -30,12 +30,12 @@ test('unknown or already transformed Preferences cannot acquire the settings bri
   );
 });
 
-test('verified AST edits isolate settings and remove the redundant outline group', async () => {
+test('verified AST edits isolate settings and remove redundant or unsupported controls', async () => {
   const source = await readFile(resolve(input, sourcePath), 'utf8');
   const transformed = transformPreferencesSource(source);
   assert.equal(transformed.metadata.capabilityChecks, 26);
   assert.equal(transformed.metadata.bridgeCount, 1);
-  assert.equal(transformed.metadata.edits.length, 34);
+  assert.equal(transformed.metadata.edits.length, 35);
   assert.equal(transformed.metadata.originalSha256, preferencesResources[sourcePath]);
   let expected = source;
   for (const edit of [...transformed.metadata.edits].reverse())
@@ -46,6 +46,9 @@ test('verified AST edits isolate settings and remove the redundant outline group
   assert.ok(!transformed.code.includes('../locales/'));
   assert.ok(!transformed.code.includes('keyName:"can_collapse_outline_panel"'));
   assert.ok(!transformed.code.includes('"Collapsible Outline on Left Panel"'));
+  assert.ok(!transformed.code.includes('"Turn off Typewriter / Focus Mode"'));
+  assert.ok(!transformed.code.includes('onClick:window.Setting.exitFocusAndTypewriterMode'));
+  assert.ok(transformed.code.includes('keyName:"no_mid_caret"'));
   assert.ok(transformed.code.includes('keyName:"save_file_on_switch"'));
   assert.doesNotThrow(() => new Script(transformed.code));
   assert.equal(

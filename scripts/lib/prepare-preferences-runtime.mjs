@@ -70,8 +70,23 @@ export function transformPreferencesSource(source) {
     changes = [],
     dictionaries = [],
     debugDictionaries = [],
-    outlineGroups = [];
+    outlineGroups = [],
+    exitModeRows = [];
   walk(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      member(node.callee) === 'p.a.createElement' &&
+      member(node.arguments[0]) === 'b.q' &&
+      node.arguments[2]?.type === 'CallExpression' &&
+      member(node.arguments[2].arguments[0]) === 'b.b' &&
+      node.arguments[2].arguments[1]?.type === 'ObjectExpression' &&
+      node.arguments[2].arguments[1].properties.some(
+        (property) =>
+          property.key?.name === 'onClick' &&
+          member(property.value) === 'window.Setting.exitFocusAndTypewriterMode',
+      )
+    )
+      exitModeRows.push(node);
     if (
       node.type === 'CallExpression' &&
       member(node.callee) === 'p.a.createElement' &&
@@ -135,6 +150,7 @@ export function transformPreferencesSource(source) {
     dictionaries.length !== 1 ||
     debugDictionaries.length !== 1 ||
     outlineGroups.length !== 1 ||
+    exitModeRows.length !== 1 ||
     edits.length !== 4
   )
     throw new Error('Unexpected original Preferences bridge/layout structure');
@@ -142,6 +158,10 @@ export function transformPreferencesSource(source) {
   // original group so it leaves neither an empty card nor a settings search hit.
   const outlineGroup = outlineGroups[0];
   edits.push({ start: outlineGroup.start, end: outlineGroup.end, text: 'null' });
+  // The legacy exit action has no Shell bridge. Keep the supported caret
+  // preference above it while omitting this disabled row and its search keywords.
+  const exitModeRow = exitModeRows[0];
+  edits.push({ start: exitModeRow.start, end: exitModeRow.end, text: 'null' });
   const bridge = bridges[0];
   edits.push({ start: bridge.start, end: bridge.end, text: 'window.__MARKLYRA_SETTINGS_BRIDGE__' });
   for (const node of guards) {

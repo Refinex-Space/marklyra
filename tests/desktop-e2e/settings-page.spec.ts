@@ -202,6 +202,66 @@ for (const theme of ['github', 'night']) {
   });
 }
 
+test('editor settings omit the unsupported exit-mode row and preserve caret preferences and active modes', async ({
+  page,
+}, info) => {
+  await installLayout(page);
+  await readyLayout(page, 'github');
+  await openLayoutDocument(page, source);
+  const editor = page.frameLocator('.runtime-area iframe');
+  const iframe = await page.locator('.runtime-area iframe').elementHandle();
+  const history = await layoutHistory(page);
+  await emitLayoutMenu(page, 'view:focus');
+  await expect(editor.locator('body')).toHaveClass(/on-focus-mode/);
+  await emitLayoutMenu(page, 'view:typewriter');
+  await expect(editor.locator('body')).toHaveClass(/ty-on-typewriter-mode/);
+  await emitLayoutMenu(page, 'preferences');
+  const ui = settings(page);
+  await ui.getByRole('button', { name: '编辑器', exact: true }).click();
+  const caret = ui.locator('[data-marklyra-preference="no_mid_caret"]');
+  await expect(caret).toBeEnabled();
+  await expect(
+    ui.getByRole('button', { name: '关闭 打字机模式 / 专注模式', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    ui.locator('.input-group:has([data-marklyra-preference="no_mid_caret"]) .btn'),
+  ).toHaveCount(0);
+  await caret.check();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as TestWindow).__desktopMock.applicationPreferences.values.no_mid_caret,
+      ),
+    )
+    .toBe(false);
+  await page.screenshot({ path: info.outputPath('editor-without-exit-mode-row.png') });
+  const search = ui.getByRole('searchbox', { name: '搜索设置', exact: true });
+  await search.fill('关闭 打字机模式');
+  await expect(ui.locator('.settings-page-heading p')).toHaveText(
+    '没有找到匹配的设置，请尝试其他关键词。',
+  );
+  await ui.getByRole('button', { name: '返回应用', exact: true }).click();
+  await expect(page.locator('.preferences-page')).toHaveCount(0);
+  await expect(editor.locator('body')).toHaveClass(/on-focus-mode/);
+  await expect(editor.locator('body')).toHaveClass(/ty-on-typewriter-mode/);
+  await expect
+    .poll(() =>
+      editor.locator('body').evaluate(() => {
+        const file = Reflect.get(window, 'File') as unknown as {
+          option: { scrollWithCursor: boolean };
+        };
+        return file.option.scrollWithCursor;
+      }),
+    )
+    .toBe(true);
+  expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
+  expect(await layoutHistory(page)).toBe(history);
+  await saveLayoutSource(page, info, 'caret-preference-preserves-document', source);
+  await emitLayoutMenu(page, 'preferences');
+  await ui.getByRole('button', { name: '编辑器', exact: true }).click();
+  await expect(caret).toBeChecked();
+});
+
 test('return waits for the in-flight preference before restoring the document', async ({
   page,
 }) => {
