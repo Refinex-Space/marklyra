@@ -334,14 +334,8 @@
 .sidebar-header-action .shell-glyph[data-shell-glyph="search"] {
   font-size: 18px;
 }
-.sidebar-current-title {
-  flex: 1;
-  text-align: center;
-  font-size: var(--marklyra-sidebar-font-size, 14px);
-  font-weight: var(--marklyra-sidebar-font-weight, 400);
-  line-height: 40px;
-}
-.sidebar-current-title[hidden],
+.marklyra-sidebar-header[hidden],
+.workspace-navigation-header[hidden],
 .sidebar-search-target[hidden],
 .marklyra-sidebar-header .sidebar-header-action[hidden] {
   display: none;
@@ -351,7 +345,7 @@
   transition: none;
   position: relative;
 }
-/* 搜索模式返回按钮 hover 为图标周围的小底色块，不是整格 40px；文件/大纲切换保持透明悬停。 */
+/* The search back button uses a small fill around its icon. */
 .marklyra-sidebar-header[data-mode="search"] .sidebar-header-action > * {
   position: relative;
 }
@@ -599,6 +593,67 @@
   max-width: calc(100% - 17px);
   height: 22px;
   overflow: hidden;
+}
+.workspace-navigation-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  flex: 0 0 40px;
+  min-width: 0;
+  gap: 12px;
+  padding: 0 6px 0 16px;
+  position: relative;
+  z-index: 4;
+}
+.shell[data-native-chrome="true"] .workspace-navigation-header {
+  /* Align the folder icon with the macOS overlay titlebar's leading window control. */
+  padding-left: 8px;
+}
+.workspace-navigation-header .workspace-root-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  width: auto;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+}
+.workspace-navigation-header .workspace-root-row > .workspace-glyph {
+  float: none;
+  flex-shrink: 0;
+  justify-self: start;
+  margin: 0;
+}
+.workspace-navigation-header .workspace-root-row > span.workspace-root-name {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.workspace-navigation-spacer {
+  flex: 1;
+}
+.workspace-navigation-header .sidebar-header-action {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  position: relative;
+  z-index: 1;
+  color: var(--marklyra-control-text, var(--muted));
+}
+.workspace-navigation-header .sidebar-header-action:hover:not(:disabled) {
+  background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
+  color: var(--marklyra-control-hover-text, var(--text));
 }
 .workspace-sidebar-compact .workspace-tree-row-editing {
   display: flex;

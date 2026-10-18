@@ -104,7 +104,7 @@ for (const theme of layoutThemes) {
     await emitLayoutMenu(page, 'open-folder');
     await expect(page.locator('[data-article-path]')).toHaveCount(2);
     await emitLayoutMenu(page, 'view:files');
-    await expect(page.locator('.sidebar-current-title')).toHaveText('文件');
+    await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
     const root = await page
       .getByRole('navigation', { name: 'Layout Fixtures 文件目录' })
       .elementHandle();

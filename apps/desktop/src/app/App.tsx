@@ -1619,7 +1619,6 @@ export function App() {
           {chrome.native ? (
             <SidebarHeader
               mode={tab}
-              fileView={preferences.fileSidebar.view}
               change={(mode) => {
                 setTab(mode);
                 if (mode !== 'search')

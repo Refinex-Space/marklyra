@@ -123,7 +123,7 @@ async function check(type, name) {
       true,
     );
     await page.getByRole('button', { name: '切换到文档列表', exact: true }).click();
-    assert.equal(await page.locator('.sidebar-current-title').textContent(), '文档');
+    assert.equal(await page.locator('.sidebar-current-title').count(), 0);
     assert.deepEqual(errors, []);
     return { browser: name, fonts, cases: 4, errors };
   } finally {

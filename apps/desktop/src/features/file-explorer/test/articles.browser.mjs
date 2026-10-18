@@ -149,7 +149,7 @@ async function check(browser, name) {
     );
     await page.goto(`${baseURL}/__articles-probe`);
     await page.locator('.sidebar').hover();
-    assert.equal(await page.locator('.sidebar-current-title').textContent(), '文档');
+    assert.equal(await page.locator('.sidebar-current-title').count(), 0);
     await page.getByRole('button', { name: '目录菜单', exact: true }).click();
     await page.getByRole('menuitem', { name: '打开文件夹…', exact: true }).click();
     await page.waitForFunction(() => window.probe.pending.length === 1);
@@ -325,7 +325,7 @@ async function check(browser, name) {
     assert.equal(await page.evaluate(() => window.probe.preferences.treeSort), 0);
     assert.equal(await page.evaluate(() => window.probe.preferences.articleSort), -1);
     assert.equal(await page.getByRole('button', { name: '切换侧栏视图', exact: true }).count(), 0);
-    assert.equal(await page.locator('.sidebar-current-title').textContent(), '文件');
+    assert.equal(await page.locator('.sidebar-current-title').count(), 0);
     await page.getByRole('button', { name: '切换到文档列表', exact: true }).click();
     const calls = await page.evaluate(
       () => window.probe.calls.filter((c) => c.command === 'list_workspace_documents').length,

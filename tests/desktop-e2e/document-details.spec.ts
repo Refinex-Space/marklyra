@@ -90,7 +90,7 @@ for (const theme of ['github', 'night']) {
     await expect(details(page)).toBeVisible();
     await expect(details(page).getByRole('treeitem')).toHaveCount(3);
     await expect(frame.locator('#toc-dropmenu')).toBeHidden();
-    await expect(page.locator('.sidebar-current-title')).toHaveText('文档');
+    await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
     await expectAligned(page);
     const panel = await details(page).boundingBox();
     const area = await editingArea(page);

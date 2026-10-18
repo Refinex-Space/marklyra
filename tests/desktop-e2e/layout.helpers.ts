@@ -37,7 +37,11 @@ function installLayoutMock() {
       return Reflect.get(window, '__marklyraLayoutFullscreen') === true;
     }
     if (command === 'select_workspace')
-      return { id: 'layout-workspace', name: 'Layout Fixtures', path: '/mock/layout' };
+      return {
+        id: 'layout-workspace',
+        name: Reflect.get(window, '__marklyraLayoutWorkspaceName') ?? 'Layout Fixtures',
+        path: '/mock/layout',
+      };
     if (command === 'close_workspace') return null;
     if (command === 'list_directory') {
       return {
@@ -107,10 +111,14 @@ function installLayoutMock() {
   };
 }
 
-export async function installLayout(page: Page) {
+export async function installLayout(page: Page, workspaceName?: string) {
   await page.addInitScript(installMock, { nativeChrome: true });
   await page.addInitScript(installRecoveryMock);
   await page.addInitScript(installLayoutMock);
+  if (workspaceName)
+    await page.addInitScript((name) => {
+      if (window === window.top) Reflect.set(window, '__marklyraLayoutWorkspaceName', name);
+    }, workspaceName);
 }
 
 export async function emitLayoutMenu(page: Page, action: string) {

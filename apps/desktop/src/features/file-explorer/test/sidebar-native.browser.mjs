@@ -96,7 +96,7 @@ async function check(browser, name) {
     );
     assert.equal(
       await page
-        .locator('.marklyra-sidebar-header')
+        .locator('.workspace-navigation-header')
         .evaluate((el) => el.getBoundingClientRect().height),
       40,
     );

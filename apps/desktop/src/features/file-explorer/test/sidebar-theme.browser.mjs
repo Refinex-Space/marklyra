@@ -274,7 +274,12 @@ async function check(browser, name) {
           return Object.fromEntries(properties.map((property) => [property, style[property]]));
         };
         return {
-          header: read('.sidebar-current-title', ['fontFamily', 'fontSize', 'fontWeight', 'color']),
+          header: read('.workspace-navigation-header', [
+            'fontFamily',
+            'fontSize',
+            'fontWeight',
+            'color',
+          ]),
           sidebar: read('.sidebar', [
             'fontFamily',
             'fontSize',

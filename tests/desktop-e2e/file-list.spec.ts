@@ -105,7 +105,7 @@ async function start(page: Page) {
   await page.addInitScript(installLibrary);
   await page.goto('/');
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
-  await expect(page.locator('.sidebar-current-title')).toHaveText('文档');
+  await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
   await page.locator('.sidebar').hover();
   await page.getByRole('button', { name: '目录菜单', exact: true }).click();
   await page.getByRole('menuitem', { name: '打开文件夹…', exact: true }).click();
@@ -174,7 +174,7 @@ test('real editor updates the active card through input and one Undo/Redo withou
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));
   await expect(page.getByRole('complementary', { name: '文档目录' })).toBeVisible();
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));
-  await expect(page.locator('.sidebar-current-title')).toHaveText('文档');
+  await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -193,7 +193,7 @@ test('article/tree sorting persists independently and native menu actions keep t
       .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-article-path'))),
   ).toEqual(['Chapter10.md', 'Chapter2.md', 'Project/notes.md']);
   await page.getByRole('button', { name: '切换到文件树', exact: true }).click();
-  await expect(page.locator('.sidebar-current-title')).toHaveText('文件');
+  await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
   await page.getByRole('button', { name: '目录菜单', exact: true }).click();
   await page.getByRole('menuitemradio', { name: '名称', exact: true }).click();
   await page.keyboard.press('Escape');
@@ -206,13 +206,13 @@ test('article/tree sorting persists independently and native menu actions keep t
     )
     .toMatchObject({ view: 'articles', articleSort: -10, treeSort: 1 });
   await menu(page, 'view:files');
-  await expect(page.locator('.sidebar-current-title')).toHaveText('文件');
+  await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
   await menu(page, 'view:articles');
-  await expect(page.locator('.sidebar-current-title')).toHaveText('文档');
+  await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
   await page.reload();
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
-  await expect(page.locator('.sidebar-current-title')).toHaveText('文档');
+  await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
   expect(
     await page.evaluate(
       () => JSON.parse(localStorage.getItem('marklyra-preferences-v1') ?? '{}').fileSidebar,

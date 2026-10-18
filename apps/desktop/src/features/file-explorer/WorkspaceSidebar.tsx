@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { Icon } from '../../components/Icon.js';
+import { ShellGlyph } from '../../components/ShellGlyph.js';
 import { type DirectoryHistoryEntry, directoryHistory } from '../../services/directory-history.js';
 import { desktopAvailable, type SavedDocumentPreview } from '../../services/documents.js';
 import type { EntryEditorSnapshot } from '../../services/entry-actions.js';
@@ -756,7 +757,10 @@ export function WorkspaceSidebar({
       onDrop={move.drop}
       onKeyDown={(event) => {
         if (!compact || !workspace || activeTab !== 'files' || controlsDisabled) return;
-        if (event.target instanceof Element && event.target.closest('.workspace-creation-input'))
+        if (
+          event.target instanceof Element &&
+          event.target.closest('.workspace-creation-input, .workspace-navigation-header button')
+        )
           return;
         if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
         event.preventDefault();
@@ -766,7 +770,10 @@ export function WorkspaceSidebar({
       }}
       onContextMenu={(event) => {
         if (!compact || !workspace || activeTab !== 'files' || controlsDisabled) return;
-        if (event.target instanceof Element && event.target.closest('.workspace-creation-input'))
+        if (
+          event.target instanceof Element &&
+          event.target.closest('.workspace-creation-input, .workspace-navigation-header button')
+        )
           return;
         event.preventDefault();
         if (!showEntryMenu(event.target, event.clientX, event.clientY))
@@ -833,6 +840,41 @@ export function WorkspaceSidebar({
             </div>
           )}
         </header>
+      )}
+      {compact && (
+        <nav
+          className="workspace-navigation-header"
+          aria-label="侧栏导航"
+          hidden={activeTab !== 'files'}
+        >
+          {workspace ? (
+            <div
+              className="workspace-root-row"
+              title={workspace.path}
+              data-entry-path=""
+              data-entry-kind="directory"
+            >
+              <WorkspaceGlyph name="folder" />
+              <span className="workspace-root-name" title={workspace.name}>
+                {workspace.name}
+              </span>
+            </div>
+          ) : (
+            <span className="workspace-navigation-spacer" aria-hidden="true" />
+          )}
+          <button
+            id={`${searchTargetId}-trigger`}
+            type="button"
+            className="sidebar-header-action"
+            aria-label="全文搜索"
+            aria-controls={`${tabsId}-search-panel`}
+            title="全文搜索"
+            disabled={controlsDisabled}
+            onClick={() => changeTab('search')}
+          >
+            <ShellGlyph className="ui-icon" name="search" />
+          </button>
+        </nav>
       )}
       {error && (
         <p className="workspace-error" role="alert">
@@ -967,7 +1009,6 @@ export function WorkspaceSidebar({
                 disabled={mutationDisabled}
                 refresh={refresh}
                 onOpen={open}
-                rootRow={compact}
                 platform={filePlatform}
                 sort={preferences.treeSort}
                 noGroup={preferences.treeNoGroup}

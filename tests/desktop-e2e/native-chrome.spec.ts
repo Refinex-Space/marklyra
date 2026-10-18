@@ -68,7 +68,8 @@ test('native chrome uses one sidebar header and full viewport theme geometry wit
   await page.setViewportSize({ width: 1640, height: 900 });
   await expect(page.locator('.toolbar')).toHaveCount(0);
   await expect(page.locator('.statusbar')).toHaveCount(0);
-  await expect(page.locator('.marklyra-sidebar-header')).toHaveText('文档', { useInnerText: true });
+  await expect(page.locator('.marklyra-sidebar-header')).toBeHidden();
+  await expect(page.locator('.workspace-navigation-header')).toBeVisible();
   await expect(page.locator('.sidebar-search-target')).toBeHidden();
   const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
   await expect
@@ -220,7 +221,7 @@ test('native outline action toggles an independent right panel without the legac
   await expect(panel.getByRole('button', { name: '关闭目录' })).toHaveCount(0);
   await toggle();
   await expect(panel).toBeHidden();
-  await expect(page.locator('.sidebar-current-title')).toHaveText('文档');
+  await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
   expect(await history()).toBe(originalHistory);
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('save'));
