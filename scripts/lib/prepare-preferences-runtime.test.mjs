@@ -35,7 +35,7 @@ test('verified AST edits isolate settings and remove redundant or unsupported co
   const transformed = transformPreferencesSource(source);
   assert.equal(transformed.metadata.capabilityChecks, 26);
   assert.equal(transformed.metadata.bridgeCount, 1);
-  assert.equal(transformed.metadata.edits.length, 35);
+  assert.equal(transformed.metadata.edits.length, 36);
   assert.equal(transformed.metadata.originalSha256, preferencesResources[sourcePath]);
   let expected = source;
   for (const edit of [...transformed.metadata.edits].reverse())
@@ -49,6 +49,9 @@ test('verified AST edits isolate settings and remove redundant or unsupported co
   assert.ok(!transformed.code.includes('"Turn off Typewriter / Focus Mode"'));
   assert.ok(!transformed.code.includes('onClick:window.Setting.exitFocusAndTypewriterMode'));
   assert.ok(transformed.code.includes('keyName:"no_mid_caret"'));
+  assert.ok(!transformed.code.includes('"Diagram Options"'));
+  assert.ok(transformed.code.includes('keyName:"enable_diagram"'));
+  assert.ok(transformed.code.includes('hint:"(Sequence, Flowchart and Mermaid)"'));
   assert.ok(transformed.code.includes('keyName:"save_file_on_switch"'));
   assert.doesNotThrow(() => new Script(transformed.code));
   assert.equal(

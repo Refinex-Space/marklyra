@@ -71,8 +71,41 @@ export function transformPreferencesSource(source) {
     dictionaries = [],
     debugDictionaries = [],
     outlineGroups = [],
-    exitModeRows = [];
+    exitModeRows = [],
+    diagramRows = [];
   walk(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      member(node.callee) === 'p.a.createElement' &&
+      member(node.arguments[0]) === 'b.v' &&
+      node.arguments[1]?.type === 'ObjectExpression'
+    ) {
+      const rows = node.arguments[1].properties.find(
+        (property) => property.key?.name === 'rows',
+      )?.value;
+      const row =
+        rows?.type === 'ArrayExpression' && rows.elements.length === 1 ? rows.elements[0] : null;
+      if (row?.type === 'ArrayExpression' && row.elements.length === 2) {
+        const [checkbox, button] = row.elements;
+        if (
+          checkbox?.type === 'CallExpression' &&
+          member(checkbox.arguments[0]) === 'b.c' &&
+          checkbox.arguments[1]?.type === 'ObjectExpression' &&
+          checkbox.arguments[1].properties.some(
+            (property) =>
+              property.key?.name === 'keyName' && property.value?.value === 'enable_diagram',
+          ) &&
+          button?.type === 'CallExpression' &&
+          member(button.arguments[0]) === 'b.b' &&
+          button.arguments[1]?.type === 'ObjectExpression' &&
+          button.arguments[1].properties.some(
+            (property) =>
+              property.key?.name === 'label' && property.value?.value === 'Diagram Options',
+          )
+        )
+          diagramRows.push({ table: node, checkbox });
+      }
+    }
     if (
       node.type === 'CallExpression' &&
       member(node.callee) === 'p.a.createElement' &&
@@ -151,6 +184,7 @@ export function transformPreferencesSource(source) {
     debugDictionaries.length !== 1 ||
     outlineGroups.length !== 1 ||
     exitModeRows.length !== 1 ||
+    diagramRows.length !== 1 ||
     edits.length !== 4
   )
     throw new Error('Unexpected original Preferences bridge/layout structure');
@@ -162,6 +196,14 @@ export function transformPreferencesSource(source) {
   // preference above it while omitting this disabled row and its search keywords.
   const exitModeRow = exitModeRows[0];
   edits.push({ start: exitModeRow.start, end: exitModeRow.end, text: 'null' });
+  // Keep the original diagram checkbox and hint without the unsupported button
+  // or its two-column table, matching the surrounding syntax toggles.
+  const diagramRow = diagramRows[0];
+  edits.push({
+    start: diagramRow.table.start,
+    end: diagramRow.table.end,
+    text: source.slice(diagramRow.checkbox.start, diagramRow.checkbox.end),
+  });
   const bridge = bridges[0];
   edits.push({ start: bridge.start, end: bridge.end, text: 'window.__MARKLYRA_SETTINGS_BRIDGE__' });
   for (const node of guards) {

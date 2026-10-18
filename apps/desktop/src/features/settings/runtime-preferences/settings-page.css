@@ -247,6 +247,22 @@ html[data-settings-dark="true"] {
   white-space: normal;
   overflow: visible;
 }
+[data-settings-page] .checkbox.row:has([data-marklyra-preference="enable_diagram"]) {
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding-right: 54px;
+}
+[data-settings-page] .checkbox.row:has([data-marklyra-preference="enable_diagram"]) > label {
+  flex: 0 0 auto;
+  padding-right: 0;
+}
+[data-settings-page] .checkbox.row:has([data-marklyra-preference="enable_diagram"]) > .inline-hint {
+  min-width: 0;
+  margin: 0;
+  color: var(--settings-muted);
+  font-size: 12px;
+  line-height: 22px;
+}
 [data-settings-page] .checkbox input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
