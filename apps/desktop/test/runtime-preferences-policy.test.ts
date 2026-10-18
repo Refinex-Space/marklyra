@@ -65,6 +65,17 @@ describe('runtime preferences policy', () => {
     expect(options.allow_image_upload).toBe(false);
   });
 
+  it('keeps the host window style fixed and rejects obsolete window-style preferences', () => {
+    const options = initialPreferencesOptions({
+      use_seamless_window: false,
+      framelessWindow: true,
+    });
+    expect(options.use_seamless_window).toBe(true);
+    expect(options).not.toHaveProperty('framelessWindow');
+    for (const key of ['use_seamless_window', 'framelessWindow'])
+      expect(() => preferenceChange(key, false)).toThrow();
+  });
+
   it('accepts catalogued user themes and refuses unlisted choices or unsafe catalog names', () => {
     const themes = preferenceThemeFiles(['github.css', 'custom.css', 'custom.css']);
     expect(themes).toEqual(['github.css', 'custom.css']);

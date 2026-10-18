@@ -35,7 +35,7 @@ test('verified AST edits isolate settings and remove redundant or unsupported co
   const transformed = transformPreferencesSource(source);
   assert.equal(transformed.metadata.capabilityChecks, 26);
   assert.equal(transformed.metadata.bridgeCount, 1);
-  assert.equal(transformed.metadata.edits.length, 42);
+  assert.equal(transformed.metadata.edits.length, 44);
   assert.equal(transformed.metadata.originalSha256, preferencesResources[sourcePath]);
   let expected = source;
   for (const edit of [...transformed.metadata.edits].reverse())
@@ -46,6 +46,10 @@ test('verified AST edits isolate settings and remove redundant or unsupported co
   assert.ok(!transformed.code.includes('../locales/'));
   assert.ok(!transformed.code.includes('keyName:"can_collapse_outline_panel"'));
   assert.ok(!transformed.code.includes('"Collapsible Outline on Left Panel"'));
+  assert.ok(!transformed.code.includes('"Window Style"'));
+  assert.ok(!transformed.code.includes('keyName:"use_seamless_window"'));
+  assert.ok(!transformed.code.includes('keyName:"framelessWindow"'));
+  assert.ok(transformed.code.includes('"Font Size"'));
   assert.ok(!transformed.code.includes('"Turn off Typewriter / Focus Mode"'));
   assert.ok(!transformed.code.includes('onClick:window.Setting.exitFocusAndTypewriterMode'));
   assert.ok(transformed.code.includes('keyName:"no_mid_caret"'));

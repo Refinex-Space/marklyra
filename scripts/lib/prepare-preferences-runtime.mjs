@@ -77,7 +77,18 @@ export function transformPreferencesSource(source) {
     codeLanguageHints = [],
     codeLanguageControls = [];
   const mathEnableRows = [];
+  const windowStyleGroups = [];
   walk(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      member(node.callee) === 'p.a.createElement' &&
+      member(node.arguments[0]) === 'b.k' &&
+      node.arguments[1]?.type === 'ObjectExpression' &&
+      node.arguments[1].properties.some(
+        (property) => property.key?.name === 'title' && property.value?.value === 'Window Style',
+      )
+    )
+      windowStyleGroups.push(node);
     if (
       node.type === 'CallExpression' &&
       member(node.callee) === 'p.a.createElement' &&
@@ -226,6 +237,7 @@ export function transformPreferencesSource(source) {
     codeLanguageHints.length !== 1 ||
     codeLanguageControls.length !== 1 ||
     mathEnableRows.length !== 1 ||
+    windowStyleGroups.length !== 2 ||
     edits.length !== 4
   )
     throw new Error('Unexpected original Preferences bridge/layout structure');
@@ -233,6 +245,10 @@ export function transformPreferencesSource(source) {
   // original group so it leaves neither an empty card nor a settings search hit.
   const outlineGroup = outlineGroups[0];
   edits.push({ start: outlineGroup.start, end: outlineGroup.end, text: 'null' });
+  // The host owns one fixed window layout. Omit both obsolete platform groups,
+  // including their search keywords, rather than leaving disabled style choices.
+  for (const group of windowStyleGroups)
+    edits.push({ start: group.start, end: group.end, text: 'null' });
   // The legacy exit action has no Shell bridge. Keep the supported caret
   // preference above it while omitting this disabled row and its search keywords.
   const exitModeRow = exitModeRows[0];
