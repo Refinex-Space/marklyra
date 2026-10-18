@@ -798,6 +798,17 @@ html[data-settings-dark="true"] {
 [data-settings-page] .settings-table-toggle .inline-hint {
   white-space: normal;
 }
+[data-settings-page]
+  .settings-table-toggle:has([data-marklyra-preference="strict_mode"])
+  .inline-hint {
+  display: none;
+}
+[data-settings-page]
+  .settings-table-toggle:has([data-marklyra-preference="strict_mode"])
+  .checkbox.row
+  > label {
+  padding-right: 54px;
+}
 [data-settings-page] select:hover:not(:disabled),
 [data-settings-page] .icon-button:hover:not([aria-disabled="true"]) {
   background-color: var(--settings-input);

@@ -217,7 +217,7 @@ function arrangeHints(pane: ParentNode) {
       hint.tabIndex = 0;
       hint.setAttribute(
         'aria-label',
-        imageUrlHelp(hint) || hint.getAttribute('hint') || '查看说明',
+        settingsHelpText(hint) || hint.getAttribute('hint') || '查看说明',
       );
     }
   }
@@ -257,7 +257,14 @@ function arrangeIndentControls(pane: Element) {
   }
 }
 
-function imageUrlHelp(hint: HTMLElement) {
+function settingsHelpText(hint: HTMLElement) {
+  if (hint.closest('tr')?.querySelector('[data-marklyra-preference="strict_mode"]'))
+    return (
+      '开启后按更严格的规则解析标题和列表。\n' +
+      '例如，# 标题 会识别为标题，#标题 会保留为普通文本；列表的嵌套和续行会按标记宽度检查缩进。\n' +
+      '关闭后兼容较宽松的标题与列表写法。\n' +
+      '修改后在新建窗口或重启应用后生效。'
+    );
   if (!hint.closest('.checkbox')?.querySelector('[data-marklyra-preference="autoEscapeImageURL"]'))
     return null;
   return (
@@ -275,7 +282,7 @@ function positionHelpTooltips() {
   const position = () => {
     frame = 0;
     if (!anchor?.isConnected || !tooltip.classList.contains('shown')) return;
-    const description = imageUrlHelp(anchor);
+    const description = settingsHelpText(anchor);
     if (description && tooltip.textContent !== description) tooltip.textContent = description;
     const target = anchor.getBoundingClientRect();
     // The original tooltip writes both left and right; clear its old right edge
