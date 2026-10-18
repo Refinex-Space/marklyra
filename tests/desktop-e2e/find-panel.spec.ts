@@ -73,6 +73,72 @@ for (const theme of ['github', 'night']) {
       path: testInfo.outputPath('sidebar-search-options.png'),
     });
   });
+
+  test(`${theme}: find close button shows a hover background`, async ({ page }, testInfo) => {
+    await installLayout(page);
+    await readyLayout(page, theme);
+    await openLayoutDocument(page, source);
+    await emitLayoutMenu(page, 'find');
+    const frame = page.frameLocator('.marklyra-editor-frame');
+    const panel = frame.locator('#md-searchpanel');
+    const close = panel.locator('.close-btn');
+    const expectCentered = async () => {
+      const offset = await close.evaluate((element) => {
+        const button = element.getBoundingClientRect();
+        const glyph = element.querySelector('.ion-close-round')?.getBoundingClientRect();
+        if (!glyph) throw Error('Missing close glyph');
+        return {
+          x: Math.abs(glyph.left + glyph.width / 2 - button.left - button.width / 2),
+          y: Math.abs(glyph.top + glyph.height / 2 - button.top - button.height / 2),
+          width: button.width,
+          height: button.height,
+        };
+      });
+      expect(offset.x).toBeLessThanOrEqual(0.5);
+      expect(offset.y).toBeLessThanOrEqual(0.5);
+      expect(offset.width).toBe(26);
+      expect(offset.height).toBe(26);
+    };
+    await frame.locator('#search-panel-input').hover();
+    await expectCentered();
+    const background = await close.evaluate((element) => getComputedStyle(element).backgroundColor);
+    const bounds = await close.boundingBox();
+    const inputBounds = await frame.locator('#search-panel-input').boundingBox();
+    if (!bounds || !inputBounds) throw Error('Missing find controls');
+    expect(Math.abs(bounds.y - inputBounds.y)).toBeLessThanOrEqual(2);
+    expect(bounds.x).toBeGreaterThan(inputBounds.x + inputBounds.width);
+    await close.locator('.ion-close-round').hover();
+    await expect
+      .poll(() => close.evaluate((element) => getComputedStyle(element).backgroundColor))
+      .not.toBe(background);
+    await expect(close).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(close).toHaveCSS('border-radius', '4px');
+    await expect(close).toHaveCSS('opacity', '1');
+    await expectCentered();
+    expect(await close.boundingBox()).toEqual(bounds);
+    const hoverBackground = await close.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
+    await panel.screenshot({ path: testInfo.outputPath('find-close-hover.png') });
+    await page.mouse.down();
+    try {
+      expect(await close.evaluate((element) => element.matches(':active'))).toBe(true);
+      await expect(close).toHaveCSS('box-shadow', 'none');
+      await expect(close).toHaveCSS('background-color', hoverBackground);
+      await expect(close).toHaveCSS('border-radius', '4px');
+      await expectCentered();
+      expect(await close.boundingBox()).toEqual(bounds);
+      await panel.screenshot({ path: testInfo.outputPath('find-close-pressed.png') });
+      await frame.locator('#search-panel-input').hover();
+    } finally {
+      await page.mouse.up();
+    }
+    await expect(panel).toBeVisible();
+    await frame.locator('#search-panel-input').hover();
+    await expect(close).toHaveCSS('background-color', background);
+    await close.click();
+    await expect(panel).toBeHidden();
+  });
 }
 
 async function presentation(page: Page) {

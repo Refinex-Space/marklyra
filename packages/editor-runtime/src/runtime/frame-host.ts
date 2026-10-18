@@ -1188,7 +1188,10 @@ async function ready() {
   });
   const style = document.createElement('style');
   style.textContent =
-    ':root{--sidebar-width:var(--marklyra-content-inset,0px)!important}#typora-sidebar,#footer-word-count,#top-titlebar{display:none!important}body{padding:0!important}content{left:var(--marklyra-content-inset,0px)!important;margin-top:var(--marklyra-content-top,0px)!important;bottom:0!important}#write{--sidebar-width:var(--marklyra-content-inset,0px);min-height:calc(100vh - var(--marklyra-content-top,0px))}#typora-source{left:var(--marklyra-content-inset,0px)!important;top:var(--marklyra-content-top,0px)!important}#md-searchpanel{top:var(--marklyra-content-top,0px)!important}';
+    ':root{--sidebar-width:var(--marklyra-content-inset,0px)!important}#typora-sidebar,#footer-word-count,#top-titlebar{display:none!important}body{padding:0!important}content{left:var(--marklyra-content-inset,0px)!important;margin-top:var(--marklyra-content-top,0px)!important;bottom:0!important}#write{--sidebar-width:var(--marklyra-content-inset,0px);min-height:calc(100vh - var(--marklyra-content-top,0px))}#typora-source{left:var(--marklyra-content-inset,0px)!important;top:var(--marklyra-content-top,0px)!important}#md-searchpanel{top:var(--marklyra-content-top,0px)!important}' +
+    '#md-searchpanel .input-group-addon.close-btn{display:table-cell;width:26px;min-width:26px;height:26px;padding:0;text-align:center;vertical-align:middle;line-height:0;border-radius:4px;box-shadow:none;-webkit-tap-highlight-color:transparent}' +
+    '#md-searchpanel .input-group-addon.close-btn .ion-close-round{padding:0;line-height:1;vertical-align:middle}' +
+    '#md-searchpanel .input-group-addon.close-btn:hover{background:color-mix(in srgb,var(--bg-color,#fff) 80%,var(--text-color,#333));opacity:1}';
   document.head.append(style);
   // Install query guards outside tracking's Source replace-all proof wrapper.
   // Unsupported/no-result queries retain their own diagnostics before proof.
