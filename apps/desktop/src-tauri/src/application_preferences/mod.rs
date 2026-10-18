@@ -223,10 +223,7 @@ impl ApplicationPreferencesHost {
         let mut store = self.0.lock().map_err(|_| "应用偏好状态不可用")?;
         if store.is_none() {
             *store = Some(Store::open(
-                &app.path()
-                    .app_data_dir()
-                    .map_err(|e| e.to_string())?
-                    .join("application-preferences-v1"),
+                &crate::app_paths::data_dir(app)?.join("application-preferences"),
             )?);
         }
         work(store.as_ref().ok_or("应用偏好尚未初始化")?)

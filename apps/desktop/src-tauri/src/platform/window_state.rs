@@ -480,11 +480,7 @@ pub fn setup(app: &AppHandle) -> Result<(), String> {
         .get_webview_window("main")
         .ok_or("Main window is unavailable")?;
     let window = main.as_ref().window();
-    let path = app
-        .path()
-        .app_config_dir()
-        .map_err(|error| error.to_string())?
-        .join("window-state-v1");
+    let path = crate::app_paths::config_dir(app)?.join("window-state");
     let store = Store::open(&path).map_err(|error| error.to_string())?;
     let (saved, writable) = match store.read() {
         Ok(saved) => (saved, true),

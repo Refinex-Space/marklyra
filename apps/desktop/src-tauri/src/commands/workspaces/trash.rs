@@ -127,11 +127,9 @@ struct EntryPresence {
 
 pub(super) fn publish_trash(app: &AppHandle, result: &TrashResult) {
     if let Some(diagnostic) = &result.diagnostic {
-        let saved = app
-            .path()
-            .app_data_dir()
+        let saved = crate::app_paths::data_dir(app)
             .map_err(std::io::Error::other)
-            .and_then(|directory| diagnostic.write(&directory.join("file-operation-evidence-v1")));
+            .and_then(|directory| diagnostic.write(&directory.join("file-operation-evidence")));
         if let Err(error) = saved {
             eprintln!("File operation evidence could not be persisted; native receipt still retains it: {error}");
         }

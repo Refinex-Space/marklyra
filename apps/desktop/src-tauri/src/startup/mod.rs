@@ -513,10 +513,7 @@ impl StartupHost {
         let mut store = self.store.lock().map_err(|_| "启动服务不可用")?;
         if store.is_none() {
             *store = Some(Store::open(
-                &app.path()
-                    .app_data_dir()
-                    .map_err(|e| e.to_string())?
-                    .join("startup-v1"),
+                &crate::app_paths::data_dir(app)?.join("startup"),
             )?);
         }
         operation(store.as_ref().ok_or("启动存储尚未初始化")?)

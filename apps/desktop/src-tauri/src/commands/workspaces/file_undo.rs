@@ -72,8 +72,8 @@ pub async fn perform_workspace_file_undo(
             |plan,publications|plan.commit_moves(app,publications),
         )?;
         if let Some(diagnostic) = &result.diagnostic {
-            let saved = app.path().app_data_dir().map_err(std::io::Error::other)
-                .and_then(|directory| diagnostic.write(&directory.join("file-operation-evidence-v1")));
+            let saved = crate::app_paths::data_dir(app).map_err(std::io::Error::other)
+                .and_then(|directory| diagnostic.write(&directory.join("file-operation-evidence")));
             if let Err(error) = saved {
                 eprintln!("File Undo evidence could not be persisted; native receipt still retains it: {error}");
             }

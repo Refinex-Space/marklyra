@@ -8,7 +8,7 @@ use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
 };
-use tauri::{AppHandle, Manager, State, WebviewWindow};
+use tauri::{AppHandle, State, WebviewWindow};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -208,11 +208,7 @@ async fn run<T: Send + 'static>(
             .map_err(|_| "恢复存储状态不可用，请重新启动应用")?;
         state.require_window(&label)?;
         if state.store.is_none() {
-            let root = app
-                .path()
-                .app_data_dir()
-                .map_err(|error| error.to_string())?
-                .join("recovery-v1");
+            let root = crate::app_paths::data_dir(&app)?.join("recovery");
             state.store = Some(RecoveryStore::open(&root).map_err(|error| error.to_string())?);
         }
         operation(&mut state, &label)

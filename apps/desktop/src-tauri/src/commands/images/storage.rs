@@ -9,17 +9,14 @@ use std::{
     path::PathBuf,
     sync::Arc,
 };
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 mod location;
 pub(crate) use location::ImageBindingLocationPlan;
 
 const MAX_RECORD_BYTES: u64 = 2 * 1024 * 1024;
 
 pub(super) fn root(app: &AppHandle) -> Result<(Arc<Dir>, PathBuf), String> {
-    let parent = app
-        .path()
-        .app_data_dir()
-        .map_err(|_| "图片存储位置不可用")?;
+    let parent = crate::app_paths::data_dir(app)?;
     std::fs::create_dir_all(&parent).map_err(|error| error.to_string())?;
     let parent = std::fs::canonicalize(parent).map_err(|error| error.to_string())?;
     let directory = Dir::open_ambient_dir(&parent, cap_std::ambient_authority())

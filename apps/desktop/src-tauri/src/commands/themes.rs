@@ -1,5 +1,5 @@
 use crate::themes::{PreparedThemeStyles, ThemeCatalog, ThemeHost};
-use tauri::{AppHandle, Manager, State, WebviewWindow};
+use tauri::{AppHandle, State, WebviewWindow};
 const THEME_GALLERY: &str = "https://theme.typora.io";
 
 fn editor_only(window: &WebviewWindow) -> Result<(), String> {
@@ -26,10 +26,7 @@ pub async fn list_theme_catalog(
     host: State<'_, ThemeHost>,
 ) -> Result<ThemeCatalog, String> {
     catalog_window(&window)?;
-    let directory = app
-        .path()
-        .app_config_dir()
-        .map_err(|_| "无法获取应用配置目录")?;
+    let directory = crate::app_paths::config_dir(&app)?;
     let host = host.inner().clone();
     let catalog = tauri::async_runtime::spawn_blocking(move || {
         catalog_window(&window)?;
@@ -52,10 +49,7 @@ pub async fn load_theme_styles(
 ) -> Result<PreparedThemeStyles, String> {
     editor_only(&window)?;
     let request = host.begin_load(window.label(), request_id)?;
-    let directory = app
-        .path()
-        .app_config_dir()
-        .map_err(|_| "无法获取应用配置目录")?;
+    let directory = crate::app_paths::config_dir(&app)?;
     let host = host.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         editor_only(&window)?;
@@ -92,10 +86,7 @@ pub async fn open_theme_folder(
     host: State<'_, ThemeHost>,
 ) -> Result<(), String> {
     catalog_window(&window)?;
-    let directory = app
-        .path()
-        .app_config_dir()
-        .map_err(|_| "无法获取应用配置目录")?;
+    let directory = crate::app_paths::config_dir(&app)?;
     let host = host.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let folder = host.folder_path(&directory)?;

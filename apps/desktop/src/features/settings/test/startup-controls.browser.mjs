@@ -103,6 +103,10 @@ function installMock(runtimeUrl) {
       probe.calls.push({ command, args });
       if (command === 'editor_runtime_url') return runtimeUrl;
       if (command === 'host_platform') return 'macos';
+      if (command === 'get_application_preferences')
+        return { schemaVersion: 1, revision: 0, values: {} };
+      if (command === 'get_export_preferences')
+        return { schemaVersion: 1, revision: 0, html: {}, pdf: {}, image: {} };
       if (command === 'list_theme_catalog')
         return {
           folderPath: '/mock/themes',

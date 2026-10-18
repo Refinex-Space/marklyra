@@ -267,60 +267,85 @@ pub async fn track_window_session(
         slot.serial = slot.serial.checked_add(1).ok_or("窗口版本已达上限")?;
         (slot.token, slot.serial)
     };
-    let documents = app.state::<WindowServices>().get_documents(&label)?;
-    let workspaces = app.state::<WindowServices>().get_workspaces(&label)?;
     tauri::async_runtime::spawn_blocking(move || {
-        app.state::<WindowServices>().with_file_lane(|| {
-            let current_document_id = document_id.clone();
-            let document = document_id
-                .map(|id| {
-                    let documents = documents.lock().map_err(|_| "文档状态不可用".to_owned())?;
-                    if documents
-                        .get_metadata(&id)
-                        .map_err(|e| e.to_string())?
-                        .location_state
-                        == document_service::DocumentLocationState::Trashed
-                    {
-                        return Ok(None);
-                    }
-                    documents.bookmark(&id).map(Some).map_err(|e| e.to_string())
-                })
-                .transpose()?
-                .flatten();
-            let workspace = workspace_id
-                .map(|id| {
-                    workspaces
-                        .lock()
-                        .map_err(|_| "目录状态不可用".to_owned())?
-                        .get(&id)
-                        .map_err(|e| e.to_string())?
-                        .bookmark()
-                        .map_err(|e| e.to_string())
-                })
-                .transpose()?;
-            let mut slots = host.slots.lock().map_err(|_| "启动窗口状态不可用")?;
-            if !app.state::<WindowServices>().contains(&label) {
-                return Err("编辑窗口已关闭".into());
-            }
-            let slot = slots
-                .get_mut(&label)
-                .filter(|slot| slot.token == token && slot.serial == serial)
-                .ok_or("会话记录已由新操作替代")?;
-            slot.pending = None;
-            slot.claimed = None;
-            slot.loading = false;
-            slot.consumed = true;
-            slot.current_document_id = current_document_id.filter(|_| document.is_some());
-            slot.session = Session {
-                document,
-                workspace,
-                native_tab: slot.session.native_tab,
-            };
-            Ok(())
-        })
+        track_session(
+            &host,
+            &app.state::<WindowServices>(),
+            &label,
+            (token, serial),
+            document_id,
+            workspace_id,
+            |entries| host.with(&app, |store| write_archive(store, entries)),
+        )
     })
     .await
     .map_err(|_| "记录窗口会话任务未完成")?
+}
+
+/// Persist every accepted location change, including before an abrupt process
+/// restart. Source text and unsaved changes remain owned by the recovery store.
+pub(super) fn track_session(
+    host: &StartupHost,
+    services: &WindowServices,
+    label: &str,
+    (token, serial): (uuid::Uuid, u64),
+    document_id: Option<String>,
+    workspace_id: Option<String>,
+    persist: impl FnOnce(Vec<Session>) -> Result<(), String>,
+) -> Result<(), String> {
+    let documents = services.get_documents(label)?;
+    let workspaces = services.get_workspaces(label)?;
+    services.with_file_lane(|| {
+        let current_document_id = document_id.clone();
+        let document = document_id
+            .map(|id| {
+                let documents = documents.lock().map_err(|_| "文档状态不可用".to_owned())?;
+                if documents
+                    .get_metadata(&id)
+                    .map_err(|e| e.to_string())?
+                    .location_state
+                    == document_service::DocumentLocationState::Trashed
+                {
+                    return Ok(None);
+                }
+                documents.bookmark(&id).map(Some).map_err(|e| e.to_string())
+            })
+            .transpose()?
+            .flatten();
+        let workspace = workspace_id
+            .map(|id| {
+                workspaces
+                    .lock()
+                    .map_err(|_| "目录状态不可用".to_owned())?
+                    .get(&id)
+                    .map_err(|e| e.to_string())?
+                    .bookmark()
+                    .map_err(|e| e.to_string())
+            })
+            .transpose()?;
+        let mut slots = host.slots.lock().map_err(|_| "启动窗口状态不可用")?;
+        if !services.contains(label) {
+            return Err("编辑窗口已关闭".into());
+        }
+        let slot = slots
+            .get_mut(label)
+            .filter(|slot| slot.token == token && slot.serial == serial)
+            .ok_or("会话记录已由新操作替代")?;
+        slot.pending = None;
+        slot.claimed = None;
+        slot.loading = false;
+        slot.consumed = true;
+        slot.current_document_id = current_document_id.filter(|_| document.is_some());
+        slot.session = Session {
+            document,
+            workspace,
+            native_tab: slot.session.native_tab,
+        };
+        Ok(())
+    })?;
+    // Release the file-operation lane before taking the archive/store locks.
+    // The checkpoint snapshots the latest slots under the shared backup gate.
+    host.checkpoint(persist)
 }
 
 pub(super) fn claim_startup(

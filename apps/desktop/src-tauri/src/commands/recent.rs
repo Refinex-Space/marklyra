@@ -23,11 +23,7 @@ impl RecentFilesHost {
     ) -> Result<T, String> {
         let mut store = self.store.lock().map_err(|_| "最近文件状态不可用")?;
         if store.is_none() {
-            let root = app
-                .path()
-                .app_data_dir()
-                .map_err(|error| error.to_string())?
-                .join("recent-files-v1");
+            let root = crate::app_paths::data_dir(app)?.join("recent-files");
             *store = Some(RecentFiles::open(&root).map_err(|error| error.to_string())?);
         }
         operation(store.as_ref().ok_or("最近文件存储初始化失败")?)

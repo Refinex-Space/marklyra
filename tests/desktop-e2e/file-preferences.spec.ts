@@ -76,8 +76,8 @@ function installFileFlow(options: { save: boolean; system: boolean; failure?: bo
         truncated: false,
         skipped: 0,
       };
-    if (command === 'open_workspace_document') {
-      const name = String(args.relativePath);
+    if (command === 'open_workspace_document' || command === 'open_recent_file') {
+      const name = command === 'open_recent_file' ? 'B.md' : String(args.relativePath);
       host.fileFlow.events.push(`open:${name}`);
       const file = {
         id: name,
@@ -163,6 +163,39 @@ for (const policy of [
     ]);
     await expect(page.getByRole('dialog', { name: '保存更改' })).toHaveCount(0);
     expect(await instance?.evaluate((element) => element.isConnected)).toBe(true);
+  });
+for (const policy of [
+  { save: true, system: true, automatic: true },
+  { save: false, system: false, automatic: true },
+  { save: false, system: true, automatic: false },
+])
+  test(`recent-file switching honors the same save policy (stored=${policy.save}, system confirms=${policy.system})`, async ({
+    page,
+  }) => {
+    await start(page, policy.save, policy.system);
+    await edit(page);
+    await page.evaluate(() =>
+      (window as TestWindow).__desktopMock.emitMenu(
+        'recent-open:00000000-0000-4000-8000-00000000000b',
+      ),
+    );
+    if (policy.automatic) {
+      await expect(write(page)).toHaveText('Beta');
+      expect((await flow(page)).disk['A.md']).toBe(raw.replace('Alpha', 'AlphaX'));
+      expect((await flow(page)).events).toEqual([
+        'open:A.md',
+        'save-start:A.md',
+        'save-finish:A.md',
+        'open:B.md',
+      ]);
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+    } else {
+      await expect(page.getByRole('dialog')).toBeVisible();
+      expect((await flow(page)).events).toEqual(['open:A.md']);
+      expect((await flow(page)).disk['A.md']).toBe(raw);
+      await page.getByRole('button', { name: '取消', exact: true }).click();
+      await expect(write(page)).toContainText('AlphaX');
+    }
   });
 for (const failure of [false, true])
   test(`switch confirmation retains unsaved source when automatic writes are ${failure ? 'unavailable' : 'disabled'}`, async ({

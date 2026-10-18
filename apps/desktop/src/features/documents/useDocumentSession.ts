@@ -1018,7 +1018,10 @@ export function useDocumentSession(
           });
           return;
         }
-        if (action.kind === 'workspace' && current.current) {
+        if (
+          current.current &&
+          ['workspace', 'recent', 'open', 'native-input'].includes(action.kind)
+        ) {
           const id = current.current.id;
           const success = await run(async () => {
             let automatic = false;

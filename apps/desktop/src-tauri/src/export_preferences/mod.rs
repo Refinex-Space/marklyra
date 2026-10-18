@@ -299,10 +299,7 @@ impl ExportPreferencesHost {
         let mut store = self.0.lock().map_err(|_| "导出设置状态不可用")?;
         if store.is_none() {
             *store = Some(Store::open(
-                &app.path()
-                    .app_data_dir()
-                    .map_err(|e| e.to_string())?
-                    .join("export-preferences-v1"),
+                &crate::app_paths::data_dir(app)?.join("export-preferences"),
             )?);
         }
         work(store.as_ref().ok_or("导出设置尚未初始化")?)

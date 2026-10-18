@@ -87,6 +87,206 @@ fn startup_modes_keep_original_order_sensitive_directory_rules() {
     assert!(reverse[0].session.document.is_some());
     assert_eq!(plan(&state(2, vec![file.clone(), file])).len(), 2);
 }
+
+#[test]
+fn tracked_locations_survive_a_process_restart_without_any_close_or_quit_backup() {
+    for mode in 0..=3 {
+        let (root, expected, _) = fixture();
+        let original = fs::read(root.path().join("a.md")).unwrap();
+        let metadata = tempfile::tempdir().unwrap();
+        {
+            let store = Store::open(metadata.path()).unwrap();
+            store
+                .transaction(|state| {
+                    state.change(0, mode, expected.workspace.clone())?;
+                    Ok(((), true))
+                })
+                .unwrap();
+            let host = StartupHost::default();
+            let services = crate::window_services::WindowServices::default();
+            services.register("main").unwrap();
+            host.set_bootstrap("main", StartupTarget::default())
+                .unwrap();
+            let file = services
+                .get_documents("main")
+                .unwrap()
+                .lock()
+                .unwrap()
+                .open_bookmark(expected.document.as_ref().unwrap())
+                .unwrap();
+            let workspace = services
+                .get_workspaces("main")
+                .unwrap()
+                .lock()
+                .unwrap()
+                .restore_bookmark(expected.workspace.as_ref().unwrap())
+                .unwrap();
+            let claim = {
+                let slots = host.slots.lock().unwrap();
+                (slots["main"].token, slots["main"].serial)
+            };
+            commands::track_session(
+                &host,
+                &services,
+                "main",
+                claim,
+                Some(file.id),
+                Some(workspace.id),
+                |entries| write_archive(&store, entries),
+            )
+            .unwrap();
+            // Drop every process-owned registry without a close/quit callback.
+        }
+        let reopened = Store::open(metadata.path()).unwrap();
+        let state = reopened
+            .transaction(|state| Ok((state.clone(), false)))
+            .unwrap();
+        assert_eq!(state.restore_when_launch, mode);
+        assert_eq!(state.archive.len(), 1);
+        let target = plan(&state).remove(0);
+        assert_eq!(target.session.document.is_some(), mode == 2);
+        assert_eq!(target.session.workspace.is_some(), mode != 0);
+        let host = StartupHost::default();
+        let services = crate::window_services::WindowServices::default();
+        services.register("main").unwrap();
+        host.set_bootstrap("main", target).unwrap();
+        let claim = commands::claim_startup(&host, "main").unwrap();
+        let restored = commands::restore_target(&host, &services, "main", claim, || {}).unwrap();
+        assert!(restored.warnings.is_empty());
+        assert_eq!(restored.document.is_some(), mode == 2);
+        assert_eq!(restored.workspace.is_some(), mode != 0);
+        if let Some(file) = restored.document {
+            assert_eq!(file.text, "Alpha\r\nTail");
+        }
+        assert_eq!(fs::read(root.path().join("a.md")).unwrap(), original);
+    }
+}
+
+#[test]
+fn session_checkpoints_keep_the_latest_location_and_reject_foreign_window_ids() {
+    let (root, expected, _) = fixture();
+    fs::write(root.path().join("b.md"), "Bravo").unwrap();
+    let metadata = tempfile::tempdir().unwrap();
+    let store = Store::open(metadata.path()).unwrap();
+    let host = StartupHost::default();
+    let services = crate::window_services::WindowServices::default();
+    for label in ["main", "other"] {
+        services.register(label).unwrap();
+        host.set_bootstrap(label, StartupTarget::default()).unwrap();
+    }
+    let workspace = services
+        .get_workspaces("main")
+        .unwrap()
+        .lock()
+        .unwrap()
+        .restore_bookmark(expected.workspace.as_ref().unwrap())
+        .unwrap();
+    let claim = {
+        let slots = host.slots.lock().unwrap();
+        (slots["main"].token, slots["main"].serial)
+    };
+    // Opening only a directory must already be durable.
+    commands::track_session(
+        &host,
+        &services,
+        "main",
+        claim,
+        None,
+        Some(workspace.id.clone()),
+        |entries| write_archive(&store, entries),
+    )
+    .unwrap();
+    assert!(store
+        .transaction(|state| Ok((state.archive[0].document.is_none(), false)))
+        .unwrap());
+    for name in ["a.md", "b.md"] {
+        let file = services
+            .get_documents("main")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .open_authorized(&root.path().join(name))
+            .unwrap();
+        commands::track_session(
+            &host,
+            &services,
+            "main",
+            claim,
+            Some(file.id),
+            Some(workspace.id.clone()),
+            |entries| write_archive(&store, entries),
+        )
+        .unwrap();
+    }
+    let stored = fs::read(metadata.path().join("state.json")).unwrap();
+    let other = services
+        .get_documents("other")
+        .unwrap()
+        .lock()
+        .unwrap()
+        .open_authorized(&root.path().join("a.md"))
+        .unwrap();
+    assert!(commands::track_session(
+        &host,
+        &services,
+        "main",
+        claim,
+        Some(other.id),
+        Some(workspace.id),
+        |_| panic!("A rejected session must never reach persistence")
+    )
+    .is_err());
+    assert_eq!(
+        fs::read(metadata.path().join("state.json")).unwrap(),
+        stored
+    );
+    let state = Store::open(metadata.path())
+        .unwrap()
+        .transaction(|state| Ok((state.clone(), false)))
+        .unwrap();
+    assert_eq!(state.archive.len(), 1);
+    assert_eq!(
+        state.archive[0].document.as_ref().unwrap().path(),
+        root.path().canonicalize().unwrap().join("b.md")
+    );
+}
+
+#[test]
+fn checkpoint_failure_is_reported_without_revoking_the_current_document() {
+    let (_root, expected, _) = fixture();
+    let host = StartupHost::default();
+    let services = crate::window_services::WindowServices::default();
+    services.register("main").unwrap();
+    host.set_bootstrap("main", StartupTarget::default())
+        .unwrap();
+    let documents = services.get_documents("main").unwrap();
+    let file = documents
+        .lock()
+        .unwrap()
+        .open_bookmark(expected.document.as_ref().unwrap())
+        .unwrap();
+    let claim = {
+        let slots = host.slots.lock().unwrap();
+        (slots["main"].token, slots["main"].serial)
+    };
+    let result = commands::track_session(
+        &host,
+        &services,
+        "main",
+        claim,
+        Some(file.id.clone()),
+        None,
+        |_| Err("Archive storage unavailable".into()),
+    );
+    assert_eq!(result.unwrap_err(), "Archive storage unavailable");
+    assert_eq!(
+        host.slots.lock().unwrap()["main"]
+            .current_document_id
+            .as_deref(),
+        Some(file.id.as_str())
+    );
+    assert!(documents.lock().unwrap().bookmark(&file.id).is_ok());
+}
 #[test]
 fn missing_file_retains_folder_but_existing_invalid_encoding_does_not() {
     let (root, file, _) = fixture();

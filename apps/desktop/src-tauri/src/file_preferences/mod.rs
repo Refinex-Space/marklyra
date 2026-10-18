@@ -322,11 +322,7 @@ impl FilePreferencesHost {
     ) -> Result<T, String> {
         let mut store = self.store.lock().map_err(|_| "文件偏好状态不可用")?;
         if store.is_none() {
-            let root = app
-                .path()
-                .app_data_dir()
-                .map_err(|error| error.to_string())?
-                .join("file-preferences-v1");
+            let root = crate::app_paths::data_dir(app)?.join("file-preferences");
             *store = Some(Store::open(&root)?);
         }
         operation(store.as_ref().ok_or("文件偏好尚未初始化")?)
