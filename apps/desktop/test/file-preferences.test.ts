@@ -63,16 +63,16 @@ describe('native file preference contract', () => {
     }
   });
 
-  it('keeps stored switch choice separate from the system-forced effective value', () => {
+  it('keeps switch saving controlled by the app independently of the system preference', () => {
     for (const alwaysConfirmsChanges of [false, true])
       for (const saveFileOnSwitch of [false, true]) {
         const value = { ...snapshot(), alwaysConfirmsChanges, saveFileOnSwitch };
-        expect(effectiveSaveFileOnSwitch(value)).toBe(!alwaysConfirmsChanges || saveFileOnSwitch);
+        expect(effectiveSaveFileOnSwitch(value)).toBe(saveFileOnSwitch);
         expect(filePreferencesOptions(value)).toEqual({
           defaultExtension: 'md',
           save_file_on_switch: saveFileOnSwitch,
           noRecentFiles: false,
-          NSCloseAlwaysConfirmsChanges: alwaysConfirmsChanges,
+          NSCloseAlwaysConfirmsChanges: true,
           marklyraFileActions: true,
           actionWhenDropFile: '',
           actionWhenDropFolder: '',
@@ -104,7 +104,7 @@ describe('native file preference contract', () => {
   it('adds the real file and drop UI keys and read-only system metadata to the isolated policy', () => {
     expect(initialPreferencesOptions({})).toMatchObject({
       defaultExtension: 'md',
-      save_file_on_switch: false,
+      save_file_on_switch: true,
       noRecentFiles: false,
       NSCloseAlwaysConfirmsChanges: true,
       marklyraFileActions: false,
@@ -113,7 +113,7 @@ describe('native file preference contract', () => {
       filePreferencesOptions({ ...snapshot(), alwaysConfirmsChanges: false }),
     );
     expect(options).toMatchObject({
-      NSCloseAlwaysConfirmsChanges: false,
+      NSCloseAlwaysConfirmsChanges: true,
       save_file_on_switch: false,
       marklyraFileActions: true,
     });

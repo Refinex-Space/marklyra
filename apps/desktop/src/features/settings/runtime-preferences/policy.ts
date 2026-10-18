@@ -195,7 +195,8 @@ export function initialPreferencesOptions(
         ? input.NSCloseAlwaysConfirmsChanges
         : true,
     defaultExtension: 'md',
-    save_file_on_switch: false,
+    save_file_on_switch: true,
+    enableAutoSave: true,
     noRecentFiles: false,
     actionWhenDropFile: '',
     actionWhenDropFolder: '',

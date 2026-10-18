@@ -63,7 +63,7 @@ fn suppression_is_idempotent_and_does_not_change_revision_or_history_epochs() {
                 (7, 11, 13)
             );
             assert_eq!(state.default_extension, "custom");
-            assert!(!state.save_file_on_switch);
+            assert!(state.save_file_on_switch);
             assert!(!state.no_recent_files);
             Ok(((), false))
         })

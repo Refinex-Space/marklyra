@@ -158,6 +158,7 @@ function request(operation: string, payload: Record<string, unknown> = {}): Prom
 }
 
 function fieldKey(element: Element): string | undefined {
+  if (element.hasAttribute('data-marklyra-background-save')) return 'enableAutoSave';
   if (element.hasAttribute('data-marklyra-file-remove')) return 'removeCustomFileType';
   if (element.hasAttribute('data-marklyra-file-default')) return 'defaultExtension';
   if (element.hasAttribute('data-marklyra-file-type')) return 'disabledFileTypes';
@@ -365,7 +366,8 @@ function protectControls() {
       supported(key) ||
       (key === 'restoreWhenLaunch' && runtime._options.marklyraStartupActions === true);
     const dependencyBlocked =
-      originalProperties(element).disabled === true || element.dataset.marklyraLastType === 'true';
+      (key !== 'save_file_on_switch' && originalProperties(element).disabled === true) ||
+      element.dataset.marklyraLastType === 'true';
     const enabled =
       available &&
       !failed &&
@@ -374,6 +376,12 @@ function protectControls() {
       !controlActionPending &&
       !dependencyBlocked;
     element.disabled = !enabled;
+    if (
+      key === 'save_file_on_switch' &&
+      element instanceof HTMLInputElement &&
+      !controlActionPending
+    )
+      element.checked = runtime._options.save_file_on_switch === true;
     if (key === 'pandocPath' && element instanceof HTMLInputElement) {
       element.readOnly = true;
       element.title = '通过右侧选择按钮验证已安装的Pandoc程序；清空可恢复自动探测。';
@@ -574,12 +582,14 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
     return;
   }
   invalidDraft = null;
-  const managedFileTypes =
-    runtime._options.marklyraFileTypeActions === true &&
-    (change.key === 'disabledFileTypes' ||
-      change.key === 'defaultExtension' ||
-      change.key === 'removeCustomFileType');
-  const focus = managedFileTypes ? document.activeElement : null;
+  const managedControl =
+    (runtime._options.marklyraFileTypeActions === true &&
+      (change.key === 'disabledFileTypes' ||
+        change.key === 'defaultExtension' ||
+        change.key === 'removeCustomFileType')) ||
+    (runtime._options.marklyraFileActions === true &&
+      (change.key === 'save_file_on_switch' || change.key === 'enableAutoSave'));
+  const focus = managedControl ? document.activeElement : null;
   const row =
     change.key === 'removeCustomFileType' ? focus?.closest('.settings-file-type-row') : null;
   const nextFocus =
@@ -603,7 +613,7 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
         if (change.key === 'wordsPerMinute') runtime._options.customWordsPerMinute = true;
         if (change.key === 'customWordsPerMinute' && change.value === false)
           runtime._options.wordsPerMinute = 382;
-        if (!component && !managedFileTypes) restoreConfirmedView();
+        if (!component && !managedControl) restoreConfirmedView();
         updateSettingsPage?.();
       } catch (error) {
         if (disposed || epoch !== generation) return;
@@ -619,7 +629,7 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
       protectControls();
       const restoreFocus = focus?.isConnected ? focus : nextFocus;
       if (
-        managedFileTypes &&
+        managedControl &&
         !failed &&
         restoreFocus instanceof HTMLElement &&
         restoreFocus.isConnected &&
@@ -693,13 +703,31 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     change: (disabled) => changePreference(undefined, 'disabledFileTypes', disabled),
     defaultExtension: (extension) => changePreference(undefined, 'defaultExtension', extension),
     remove: (extension) => changePreference(undefined, 'removeCustomFileType', extension),
+    save: (key, enabled) => changePreference(undefined, key, enabled),
   });
   updateSettingsPage = updatePage;
   presentSettingsPage(presentation);
+  // Own this checkbox before React's legacy click-to-change plugin can restore
+  // the macOS/system-forced checked prop. Keep the native toggle's default action.
+  document.addEventListener(
+    'click',
+    (event) => {
+      const element = event.target;
+      if (!(element instanceof HTMLInputElement) || fieldKey(element) !== 'save_file_on_switch')
+        return;
+      event.stopImmediatePropagation();
+      if (!element.disabled) changePreference(undefined, 'save_file_on_switch', element.checked);
+    },
+    true,
+  );
   document.addEventListener(
     'change',
     (event) => {
       const element = event.target;
+      if (element instanceof HTMLInputElement && fieldKey(element) === 'save_file_on_switch') {
+        event.stopImmediatePropagation();
+        return;
+      }
       if (!(element instanceof HTMLSelectElement) || fieldKey(element) !== 'restoreWhenLaunch')
         return;
       event.preventDefault();

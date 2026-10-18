@@ -41,6 +41,7 @@ struct Stored {
     disabled_file_types: Vec<String>,
     #[serde(default)]
     custom_file_extensions: Vec<String>,
+    #[serde(default = "default_save_on_switch")]
     save_file_on_switch: bool,
     no_recent_files: bool,
     #[serde(default)]
@@ -57,6 +58,9 @@ struct Stored {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     directory_history: Option<directories::DirectoryOrder>,
 }
+fn default_save_on_switch() -> bool {
+    true
+}
 impl Default for Stored {
     fn default() -> Self {
         Self {
@@ -67,7 +71,7 @@ impl Default for Stored {
             default_extension: "md".into(),
             disabled_file_types: Vec::new(),
             custom_file_extensions: Vec::new(),
-            save_file_on_switch: false,
+            save_file_on_switch: true,
             no_recent_files: false,
             action_when_drop_file: DropAction::Open,
             action_when_drop_folder: DropAction::Open,

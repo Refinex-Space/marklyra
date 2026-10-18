@@ -131,7 +131,7 @@ export function filePreferencesSnapshot(value: unknown): FilePreferences {
 }
 
 export function effectiveSaveFileOnSwitch(value: FilePreferences): boolean {
-  return !value.alwaysConfirmsChanges || value.saveFileOnSwitch;
+  return value.saveFileOnSwitch;
 }
 
 export function filePreferencesOptions(value: FilePreferences): Record<string, unknown> {
@@ -146,7 +146,8 @@ export function filePreferencesOptions(value: FilePreferences): Record<string, u
       : {}),
     save_file_on_switch: value.saveFileOnSwitch,
     noRecentFiles: value.noRecentFiles,
-    NSCloseAlwaysConfirmsChanges: value.alwaysConfirmsChanges,
+    // Adapt the legacy control: MarkLyra owns this choice independently of macOS.
+    NSCloseAlwaysConfirmsChanges: true,
     marklyraFileActions: true,
     actionWhenDropFile: value.actionWhenDropFile ?? '',
     actionWhenDropFolder: value.actionWhenDropFolder ?? '',

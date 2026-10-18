@@ -153,14 +153,26 @@ fn put(store: &Store, revision: u64, value: PreferenceChange) -> Result<FilePref
     })
 }
 #[test]
-fn defaults_separate_stored_switch_preference_from_system_behavior() {
+fn switch_saving_defaults_on_and_explicit_values_survive_deserialization() {
     let state = Stored::default();
     let value = state.snapshot(false);
     assert_eq!(value.default_extension, "md");
-    assert!(!value.save_file_on_switch);
+    assert!(value.save_file_on_switch);
     assert!(!value.always_confirms_changes);
     assert!(!value.no_recent_files);
-    assert!(!value.always_confirms_changes || value.save_file_on_switch);
+    let mut record = serde_json::to_value(&state).unwrap();
+    record["saveFileOnSwitch"] = false.into();
+    assert!(
+        !serde_json::from_value::<Stored>(record.clone())
+            .unwrap()
+            .save_file_on_switch
+    );
+    record.as_object_mut().unwrap().remove("saveFileOnSwitch");
+    assert!(
+        serde_json::from_value::<Stored>(record)
+            .unwrap()
+            .save_file_on_switch
+    );
 }
 
 #[test]

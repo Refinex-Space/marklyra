@@ -15,12 +15,20 @@ type FileWindow = TestWindow & {
   };
 };
 const raw = 'Alpha\r\n\r\nTail';
-function installFileFlow(options: { save: boolean; system: boolean; failure?: boolean }) {
+function installFileFlow(options: {
+  save: boolean;
+  system: boolean;
+  failure?: boolean;
+  autoSave: boolean | null;
+}) {
   if (window !== window.top) return;
   const host = window as FileWindow,
     previous = host.__TAURI_INTERNALS__.invoke;
   host.__desktopMock.filePreferences.saveFileOnSwitch = options.save;
   host.__desktopMock.filePreferences.alwaysConfirmsChanges = options.system;
+  // Switch-save scenarios isolate their policy; null exercises the product default.
+  if (options.autoSave !== null)
+    host.__desktopMock.applicationPreferences.values.enableAutoSave = options.autoSave;
   host.fileFlow = {
     disk: { 'A.md': 'Alpha\r\n\r\nTail', 'B.md': 'Beta' },
     events: [],
@@ -106,10 +114,16 @@ function installFileFlow(options: { save: boolean; system: boolean; failure?: bo
   };
 }
 const write = (page: Page) => page.frameLocator('.marklyra-editor-frame').locator('#write');
-async function start(page: Page, save: boolean, system = true, failure = false) {
+async function start(
+  page: Page,
+  save: boolean,
+  system = true,
+  failure = false,
+  autoSave: boolean | null = false,
+) {
   await page.addInitScript(installMock, { nativeChrome: true });
   await page.addInitScript(installRecoveryMock);
-  await page.addInitScript(installFileFlow, { save, system, failure });
+  await page.addInitScript(installFileFlow, { save, system, failure, autoSave });
   await page.goto('/');
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
   await page.locator('.sidebar').hover();
@@ -119,7 +133,8 @@ async function start(page: Page, save: boolean, system = true, failure = false) 
   await page.locator('[data-article-path="A.md"]').click();
   await expect(write(page)).toHaveText('AlphaTail');
 }
-async function edit(page: Page, text = 'X') {
+async function edit(page: Page, text = 'X', prefix = 'Alpha') {
+  await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
   await write(page)
     .locator('p')
     .first()
@@ -135,13 +150,13 @@ async function edit(page: Page, text = 'X') {
       );
     });
   await page.keyboard.type(text);
-  await expect(write(page)).toContainText(`Alpha${text}`);
+  await expect(write(page)).toContainText(`${prefix}${text}`);
 }
 const flow = (page: Page) => page.evaluate(() => structuredClone((window as FileWindow).fileFlow));
 
 for (const policy of [
   { save: true, system: true },
-  { save: false, system: false },
+  { save: true, system: false },
 ])
   test(`workspace switching saves named dirty source before load (stored=${policy.save}, system confirms=${policy.system})`, async ({
     page,
@@ -166,7 +181,7 @@ for (const policy of [
   });
 for (const policy of [
   { save: true, system: true, automatic: true },
-  { save: false, system: false, automatic: true },
+  { save: false, system: false, automatic: false },
   { save: false, system: true, automatic: false },
 ])
   test(`recent-file switching honors the same save policy (stored=${policy.save}, system confirms=${policy.system})`, async ({
@@ -353,4 +368,137 @@ test('a newer catalog supersedes the previous save receipt without touching the 
   await expect(write(page)).toHaveText('Beta');
   expect((await flow(page)).events).toEqual(before.events);
   expect(await instance?.evaluate((element) => element.isConnected)).toBe(true);
+});
+
+async function editAgain(page: Page) {
+  await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
+  await write(page).locator('p').first().click();
+  await page.keyboard.press('Meta+ArrowRight');
+  await page.keyboard.type('Y');
+  await expect(write(page)).toContainText('AlphaXY');
+}
+
+async function settingsForSave(page: Page) {
+  await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
+  await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('preferences'));
+  const ui = page.frameLocator('.runtime-preferences-frame');
+  await expect(ui.getByRole('checkbox', { name: '切换文件时自动保存', exact: true })).toBeEnabled();
+  return ui;
+}
+async function returnFromSettings(page: Page) {
+  await page
+    .frameLocator('.runtime-preferences-frame')
+    .getByRole('button', { name: '返回应用', exact: true })
+    .click();
+  await expect(page.locator('.preferences-page')).toHaveCount(0);
+}
+
+test('the switch-save setting is editable despite macOS defaults and supports save, discard and cancel', async ({
+  page,
+}, info) => {
+  await start(page, true, false);
+  const ui = await settingsForSave(page);
+  const setting = ui.getByRole('checkbox', { name: '切换文件时自动保存', exact: true });
+  await expect(setting).toBeChecked();
+  await expect(ui.getByRole('checkbox', { name: '编辑时自动保存', exact: true })).not.toBeChecked();
+  await expect(ui.locator('.settings-save-shortcut')).toContainText('Cmd + S');
+  await setting.uncheck();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as TestWindow).__desktopMock.filePreferences.saveFileOnSwitch),
+    )
+    .toBe(false);
+  expect(
+    await page.evaluate(
+      () =>
+        (window as TestWindow).__desktopMock.calls.filter(
+          (call) =>
+            call.command === 'put_file_preference' &&
+            (call.args.change as { key: string }).key === 'save_file_on_switch',
+        ).length,
+    ),
+  ).toBe(1);
+  await page.screenshot({ path: info.outputPath('save-preferences.png') });
+  await returnFromSettings(page);
+  await edit(page);
+  await page.locator('[data-article-path="B.md"]').click();
+  await expect(page.getByRole('dialog', { name: '保存当前更改？' })).toBeVisible();
+  await page.getByRole('button', { name: '取消', exact: true }).click();
+  await expect(write(page)).toContainText('AlphaX');
+  expect((await flow(page)).disk['A.md']).toBe(raw);
+  await page.locator('[data-article-path="B.md"]').click();
+  await page.getByRole('button', { name: '保存后继续', exact: true }).click();
+  await expect(write(page)).toHaveText('Beta');
+  expect((await flow(page)).disk['A.md']).toBe(raw.replace('Alpha', 'AlphaX'));
+  await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
+  await page.locator('[data-article-path="A.md"]').click();
+  await expect(write(page)).toContainText('AlphaX');
+  await editAgain(page);
+  await page.locator('[data-article-path="B.md"]').click();
+  await page.getByRole('button', { name: '放弃修改', exact: true }).click();
+  await expect(write(page)).toHaveText('Beta');
+  expect((await flow(page)).disk['A.md']).toBe(raw.replace('Alpha', 'AlphaX'));
+  await settingsForSave(page);
+  await expect(setting).not.toBeChecked();
+});
+
+test('editing auto save defaults to enabled and saves named documents without configuration', async ({
+  page,
+}) => {
+  await start(page, false, true, false, null);
+  expect(
+    await page.evaluate(
+      () => (window as TestWindow).__desktopMock.applicationPreferences.values.enableAutoSave,
+    ),
+  ).toBeUndefined();
+  const ui = await settingsForSave(page);
+  await expect(ui.getByRole('checkbox', { name: '编辑时自动保存', exact: true })).toBeChecked();
+  await returnFromSettings(page);
+  await edit(page);
+  await expect
+    .poll(async () => (await flow(page)).disk['A.md'], { timeout: 6000 })
+    .toBe(raw.replace('Alpha', 'AlphaX'));
+});
+
+test('background auto save is independent and manual Cmd+S still saves when both options are off', async ({
+  page,
+}) => {
+  await start(page, false, false);
+  const ui = await settingsForSave(page);
+  const background = ui.getByRole('checkbox', { name: '编辑时自动保存', exact: true });
+  await background.check();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as TestWindow).__desktopMock.applicationPreferences.values.enableAutoSave,
+      ),
+    )
+    .toBe(true);
+  await expect(
+    ui.getByRole('checkbox', { name: '切换文件时自动保存', exact: true }),
+  ).not.toBeChecked();
+  await returnFromSettings(page);
+  await edit(page);
+  await expect
+    .poll(async () => (await flow(page)).disk['A.md'], { timeout: 6000 })
+    .toBe(raw.replace('Alpha', 'AlphaX'));
+  await settingsForSave(page);
+  await expect(background).toBeChecked();
+  await background.uncheck();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as TestWindow).__desktopMock.applicationPreferences.values.enableAutoSave,
+      ),
+    )
+    .toBe(false);
+  await returnFromSettings(page);
+  await editAgain(page);
+  // Observe longer than the documented idle-save delay with real runtime timers.
+  await page.waitForTimeout(3000);
+  expect((await flow(page)).disk['A.md']).toBe(raw.replace('Alpha', 'AlphaX'));
+  await page.keyboard.press('Meta+s');
+  await expect
+    .poll(async () => (await flow(page)).disk['A.md'])
+    .toBe(raw.replace('Alpha', 'AlphaXY'));
 });

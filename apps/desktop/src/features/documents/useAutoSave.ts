@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { readAutoSavePreference } from '../settings/auto-save-preference.js';
 import type { useDocumentSession } from './useDocumentSession.js';
 
-function preference() {
-  try {
-    return localStorage.getItem('marklyra-autosave') === 'true';
-  } catch {
-    return false;
-  }
-}
 /** Native file saves are separate from crash drafts. Never opens a picker. */
 export function useAutoSave(
   session: ReturnType<typeof useDocumentSession>,
   conflict: boolean,
   nativeEnabled?: boolean,
 ) {
-  const [localEnabled, setEnabled] = useState(preference);
+  const [localEnabled, setEnabled] = useState(readAutoSavePreference);
   const enabled = nativeEnabled ?? localEnabled;
   const latest = useRef({ session, enabled, conflict });
   latest.current = { session, enabled, conflict };

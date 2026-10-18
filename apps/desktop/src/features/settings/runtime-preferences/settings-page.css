@@ -1113,3 +1113,24 @@ html[data-settings-dark="true"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+[data-settings-page] .settings-save-switch .label-hint,
+[data-settings-page] .settings-save-switch .settings-hint-slot,
+[data-settings-page] .settings-original-background-save {
+  display: none;
+}
+[data-settings-page] .settings-save-description {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--settings-muted);
+}
+[data-settings-page] .settings-save-shortcut {
+  margin: 0;
+  padding: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--settings-muted);
+}

@@ -16,6 +16,7 @@ import { type StartupPreferences, startupPreferences } from '../../services/star
 import { themeFiles } from '../../services/themes.js';
 import { editorChrome } from '../../services/ui-chrome.js';
 import { storedTheme, type ThemeCatalog } from '../themes/model.js';
+import { readAutoSavePreference } from './auto-save-preference.js';
 import { filenameImageStorageFolder } from './image-storage.js';
 import { readPreferences, savePreferences } from './preferences.js';
 import {
@@ -100,8 +101,7 @@ function options(
     customWordsPerMinute: statistics.customWordsPerMinute,
     always_show_wordcount: statistics.alwaysShowWordCount,
     ...editorPreferencesOptions(applicationEditorPreferences(application, value.editorPreferences)),
-    enableAutoSave:
-      application.values.enableAutoSave ?? localStorage.getItem('marklyra-autosave') === 'true',
+    enableAutoSave: application.values.enableAutoSave ?? readAutoSavePreference(),
     zoomFactor: application.values.zoomFactor ?? 1,
     quitAfterWindowClose: application.values.quitAfterWindowClose ?? false,
     darkTheme: application.values.darkTheme ?? 'night.css',

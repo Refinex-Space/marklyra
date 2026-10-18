@@ -268,8 +268,13 @@ try {
               0,
             );
           } else {
-            assert.equal(await save.isChecked(), true);
-            assert.equal(await save.isDisabled(), true);
+            assert.equal(await save.isChecked(), false);
+            assert.equal(await save.isDisabled(), false);
+            await save.check();
+            await status.waitFor({ state: 'hidden' });
+            assert.equal(await page.evaluate(() => probe.value.saveFileOnSwitch), true);
+            await save.uncheck();
+            await status.waitFor({ state: 'hidden' });
             assert.equal(await page.evaluate(() => probe.value.saveFileOnSwitch), false);
             await recent.uncheck();
             await status.waitFor({ state: 'hidden' });

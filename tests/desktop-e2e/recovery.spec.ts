@@ -107,10 +107,11 @@ async function composition(page: Page, phase: 'start' | 'end') {
   await page.waitForTimeout(60);
 }
 
-test('mocked persistence: autosave defaults off while crash drafts still protect dirty text', async ({
+test('mocked persistence: explicitly disabled autosave still retains crash drafts for dirty text', async ({
   page,
 }) => {
   await boot(page);
+  await setAutosave(page, false);
   await page.getByRole('button', { name: '偏好设置', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: '自动保存文件' })).not.toBeChecked();
   await page.getByRole('button', { name: '完成', exact: true }).click();
@@ -124,11 +125,13 @@ test('mocked persistence: autosave defaults off while crash drafts still protect
   await expect(page.locator('.document-title')).toHaveText('A.md •');
 });
 
-test('mocked autosave: a saved file is written after idle and its clean recovery checkpoint is retained', async ({
+test('mocked autosave: enabled by default, idle save retains a clean recovery checkpoint', async ({
   page,
 }) => {
   await boot(page);
-  await setAutosave(page, true);
+  await page.getByRole('button', { name: '偏好设置', exact: true }).click();
+  await expect(page.getByRole('checkbox', { name: '自动保存文件' })).toBeChecked();
+  await page.getByRole('button', { name: '完成', exact: true }).click();
   await type(page, 'X');
   await expect
     .poll(async () => (await calls(page, 'save_document')).map((call) => call.args.text))

@@ -1,4 +1,5 @@
 import { type FileTypePageControls, renderFileTypes } from './file-types-page.js';
+import { renderSavePreferences, type SavePageControls } from './save-preferences-page.js';
 import css from './settings-page.css?inline';
 
 const summaries: Record<string, string> = {
@@ -30,7 +31,10 @@ export function presentSettingsPage(value: unknown) {
     root.style.setProperty('--settings-sidebar-bg', input.sidebarBackground);
 }
 
-export function setupSettingsPage(close: () => void, fileTypes?: FileTypePageControls) {
+export function setupSettingsPage(
+  close: () => void,
+  fileTypes?: FileTypePageControls & SavePageControls,
+) {
   if (new URL(location.href).searchParams.get('layout') !== 'page') return;
   document.documentElement.dataset.settingsPage = 'true';
   const style = document.createElement('style');
@@ -113,7 +117,10 @@ export function setupSettingsPage(close: () => void, fileTypes?: FileTypePageCon
       );
     }
     arrangeFileGroups(pane);
-    if (fileTypes) renderFileTypes(pane, fileTypes);
+    if (fileTypes) {
+      renderFileTypes(pane, fileTypes);
+      renderSavePreferences(pane, fileTypes);
+    }
     arrangeEditingGroups(pane);
     arrangeIndentControls(pane);
     pane

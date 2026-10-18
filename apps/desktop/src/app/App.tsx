@@ -2377,7 +2377,7 @@ export function App() {
             aria-labelledby="unsaved-title"
           >
             <h2 id="unsaved-title">保存当前更改？</h2>
-            <p>继续之前，可以保存当前文档。</p>
+            <p>当前文稿有未保存的修改。保存后继续，或放弃修改；取消会保留当前文稿。</p>
             <div>
               <button
                 type="button"
