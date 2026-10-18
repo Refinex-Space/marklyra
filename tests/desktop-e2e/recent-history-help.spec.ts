@@ -17,6 +17,12 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const tooltip = ui.locator('#ty-tooltip');
     await expect(toggle).toBeChecked();
     await expect(hint).toHaveAttribute('aria-label', /关闭开关不会清除已有历史/);
+    const icon = hint.locator('a');
+    await expect(icon).not.toHaveAttribute('href');
+    await expect(icon).not.toHaveAttribute('aria-disabled');
+    await expect(hint.locator('[title*="不支持"]')).toHaveCount(0);
+    await icon.click();
+    await expect(toggle).toBeChecked();
     for (const width of [1280, 700]) {
       await page.setViewportSize({ width, height: 900 });
       await hint.hover();
@@ -61,6 +67,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await ui.getByRole('button', { name: '文件', exact: true }).click();
     await hint.hover();
     await expect(tooltip).toContainText('固定的文件夹仍可访问');
+    await expect(hint.locator('[title*="不支持"]')).toHaveCount(0);
+    await expect(icon).not.toHaveAttribute('href');
     expect(
       await page.evaluate(() =>
         (window as TestWindow).__desktopMock.calls.filter(

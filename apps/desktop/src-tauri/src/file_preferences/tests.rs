@@ -1,6 +1,32 @@
 use super::*;
 
 #[test]
+fn confirmed_history_clear_removes_persisted_recent_targets_and_preserves_document_bytes() {
+    let root = tempfile::tempdir().unwrap();
+    let preferences = root.path().join("preferences");
+    let history = root.path().join("recent");
+    let path = root.path().join("README.md");
+    let source = b"\xef\xbb\xbf# Original\r\n\r\nKeep  \n";
+    fs::write(&path, source).unwrap();
+    let path = fs::canonicalize(path).unwrap();
+    let recent = recent_files::RecentFiles::open(&history).unwrap();
+    let entry = recent.remember_authorized(&path).unwrap();
+    let store = Store::open(&preferences).unwrap();
+    assert_eq!(recent.list().unwrap().entries.len(), 1);
+    FilePreferencesHost::default()
+        .clear_history(&store, false, || {
+            recent.clear().map_err(|error| error.to_string())?;
+            Ok(())
+        })
+        .unwrap();
+    assert!(recent.list().unwrap().entries.is_empty());
+    let reopened = recent_files::RecentFiles::open(&history).unwrap();
+    assert!(reopened.list().unwrap().entries.is_empty());
+    assert!(reopened.resolve(&entry.id).is_err());
+    assert_eq!(fs::read(path).unwrap(), source);
+}
+
+#[test]
 fn failed_invalidation_does_not_call_the_history_clear() {
     let root = tempfile::tempdir().unwrap();
     let store = Store::open(root.path()).unwrap();
