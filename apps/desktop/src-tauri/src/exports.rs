@@ -184,6 +184,9 @@ pub async fn open_print_preview(
                 }
             }
         });
+    // One WebView2 environment per app: every window must pass the same arguments.
+    #[cfg(windows)]
+    let builder = builder.additional_browser_args(crate::windows::WEBVIEW_BROWSER_ARGS);
     match builder.build() {
         Ok(preview) => {
             if !crate::windows::is_editor(&window) {
@@ -199,7 +202,7 @@ pub async fn open_print_preview(
                 }
                 return Err("编辑窗口已关闭".to_owned());
             }
-            if preview.is_focused().unwrap_or(false) {
+            if crate::windows::is_focused(&preview).unwrap_or(false) {
                 if let Err(error) = crate::menu::set_preview_context(&app, true) {
                     eprintln!("Preview menu update failed: {error}");
                 }
@@ -338,7 +341,7 @@ pub fn handle_menu(app: &AppHandle, event: &tauri::menu::MenuEvent) -> bool {
     let mut focused = app
         .webview_windows()
         .into_values()
-        .filter(|window| window.is_focused().unwrap_or(false));
+        .filter(|window| crate::windows::is_focused(&window).unwrap_or(false));
     let window = focused.next();
     if focused.next().is_some() {
         return true;

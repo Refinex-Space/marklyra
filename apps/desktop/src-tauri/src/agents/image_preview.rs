@@ -100,7 +100,7 @@ pub async fn agent_preview_image(
     action: String,
 ) -> Result<bool, String> {
     if !crate::windows::is_editor(&window)
-        || !window.is_focused().map_err(|error| error.to_string())?
+        || !crate::windows::is_focused(&window).map_err(|error| error.to_string())?
     {
         return Err("图片操作仅允许由当前编辑窗口发起".into());
     }

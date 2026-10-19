@@ -1214,3 +1214,7 @@ html[data-settings-page] {
   line-height: 1.6;
   color: var(--settings-muted);
 }
+
+[data-settings-page] .settings-platform-hidden {
+  display: none !important;
+}

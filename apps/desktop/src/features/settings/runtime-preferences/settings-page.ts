@@ -121,6 +121,7 @@ export function setupSettingsPage(
         /重启|重新启动|restart|relaunch/i.test(hint.textContent || ''),
       );
     }
+    adaptHostPlatform(pane);
     arrangeFileGroups(pane);
     if (fileTypes) {
       renderFileTypes(pane, fileTypes);
@@ -171,6 +172,27 @@ export function setupSettingsPage(
   observer.observe(document.documentElement);
   document.fonts.ready.then(refresh);
   return refresh;
+}
+
+const windowsText: readonly [string, string][] = [
+  ['( ⌘C )', '(Ctrl+C)'],
+  ['按住 Command', '按住 Ctrl'],
+];
+
+/** The page is always the cocoa personality; only genuine Windows differences are adapted. */
+function adaptHostPlatform(pane: Element) {
+  if (new URL(location.href).searchParams.get('hostOs') !== 'win') return;
+  // Windows closes the application with its last window; that macOS policy has no meaning here.
+  pane
+    .querySelector('[data-marklyra-preference="quitAfterWindowClose"]')
+    ?.closest<HTMLElement>('.checkbox.row')
+    ?.classList.add('settings-platform-hidden');
+  const walker = document.createTreeWalker(pane, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    let text = node.nodeValue ?? '';
+    for (const [from, to] of windowsText) text = text.replace(from, to);
+    if (text !== node.nodeValue) node.nodeValue = text;
+  }
 }
 
 // Keep the original controls in their React-owned parents. Visual grouping uses

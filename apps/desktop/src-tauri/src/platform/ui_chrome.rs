@@ -4,6 +4,8 @@ mod macos;
 #[cfg(target_os = "macos")]
 mod native_title;
 mod title_layout;
+#[cfg(windows)]
+mod windows;
 use title_layout::TitlebarLayout;
 pub mod markdown_selection;
 #[cfg(target_os = "macos")]
@@ -112,6 +114,8 @@ impl PreferencesHost {
 #[serde(rename_all = "camelCase")]
 pub struct ChromeCapabilities {
     native: bool,
+    /// Who draws the unified titlebar: AppKit accessories, or the WebView itself.
+    titlebar: &'static str,
     preferences_window: bool,
 }
 
@@ -269,13 +273,86 @@ pub async fn initialise_editor_chrome(window: WebviewWindow) -> Result<ChromeCap
     require_editor(&window)?;
     crate::debug_tools::window_ready(&window);
     #[cfg(target_os = "macos")]
-    let native = on_main(window, macos::initialise).await?;
-    #[cfg(not(target_os = "macos"))]
-    let native = false;
+    let (native, titlebar) = (on_main(window, macos::initialise).await?, "appkit");
+    #[cfg(windows)]
+    let (native, titlebar) = {
+        windows::initialise(window.app_handle(), &window)?;
+        (true, "web")
+    };
+    #[cfg(not(any(target_os = "macos", windows)))]
+    let (native, titlebar) = (false, "none");
     Ok(ChromeCapabilities {
         native,
+        titlebar,
         preferences_window: true,
     })
+}
+
+/// Top-level native menu titles for the WebView-hosted titlebar.
+#[tauri::command]
+pub async fn list_app_menu(app: AppHandle, window: WebviewWindow) -> Result<Vec<String>, String> {
+    require_editor(&window)?;
+    #[cfg(windows)]
+    return windows::titles(&app);
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        Err("此平台使用系统菜单栏".into())
+    }
+}
+
+/// Pops up an existing native menu below a titlebar control. `index` selects one
+/// top-level menu; no index pops the complete menu tree for compact windows.
+#[tauri::command]
+pub async fn popup_app_menu(
+    app: AppHandle,
+    window: WebviewWindow,
+    index: Option<usize>,
+    x: f64,
+    y: f64,
+    viewport_width: f64,
+) -> Result<(), String> {
+    require_editor(&window)?;
+    let valid = |value: f64| value.is_finite() && (0.0..=65_536.0).contains(&value);
+    if !valid(x)
+        || !valid(y)
+        || !viewport_width.is_finite()
+        || !(1.0..=131_072.0).contains(&viewport_width)
+    {
+        return Err("菜单坐标无效".into());
+    }
+    #[cfg(windows)]
+    {
+        // CSS pixels follow the webview zoom; native popups are positioned in logical pixels.
+        let scale = window
+            .inner_size()
+            .map_err(|error| error.to_string())?
+            .to_logical::<f64>(window.scale_factor().map_err(|error| error.to_string())?)
+            .width
+            / viewport_width;
+        let (x, y) = (x * scale, y * scale);
+        let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+        let dispatcher = app.clone();
+        dispatcher
+            .run_on_main_thread(move || {
+                let result =
+                    windows::popup(&app, &window, index, tauri::LogicalPosition::new(x, y));
+                let _ = sender.send(result);
+            })
+            .map_err(|error| error.to_string())?;
+        tauri::async_runtime::spawn_blocking(move || {
+            receiver
+                .recv()
+                .map_err(|_| "原生菜单任务未完成".to_owned())?
+        })
+        .await
+        .map_err(|_| "原生菜单任务未完成".to_owned())?
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (app, index);
+        Err("此平台使用系统菜单栏".into())
+    }
 }
 
 #[tauri::command]
@@ -320,6 +397,8 @@ pub async fn update_editor_chrome(
             window.label(),
             payload,
         )?;
+        #[cfg(windows)]
+        windows::update(&window, &update)?;
         // Keep validation and ownership identical even where native chrome is unavailable.
         let _ = (
             update.path,
@@ -491,7 +570,7 @@ pub fn handle_menu<R: Runtime>(app: &AppHandle<R>, event: &tauri::menu::MenuEven
     let Some(preferences) = app.get_webview_window(PREFERENCES_LABEL) else {
         return false;
     };
-    if !preferences.is_focused().unwrap_or(false) {
+    if !crate::windows::is_focused(&preferences).unwrap_or(false) {
         return false;
     }
     let result = match event.id().as_ref() {

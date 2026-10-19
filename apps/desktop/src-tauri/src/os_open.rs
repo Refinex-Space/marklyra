@@ -70,9 +70,21 @@ pub(crate) fn receive_urls(app: &AppHandle, urls: Vec<Url>) {
 /// macOS supplies Apple events; interpreting argv there would duplicate them.
 pub(crate) fn capture_process_arguments(app: &AppHandle) {
     #[cfg(not(target_os = "macos"))]
+    receive_arguments(app, std::env::args_os().skip(1));
+    #[cfg(target_os = "macos")]
+    let _ = app;
+}
+
+/// Launch arguments of this process, or of a second launch forwarded to it, are OS data:
+/// each becomes an OS-owned receipt exactly like a macOS open event.
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn receive_arguments(
+    app: &AppHandle,
+    arguments: impl IntoIterator<Item = std::ffi::OsString>,
+) {
     receive_paths(
         app,
-        std::env::args_os().skip(1).map(|value| {
+        arguments.into_iter().map(|value| {
             let path = PathBuf::from(value);
             if path
                 .to_str()
@@ -85,8 +97,6 @@ pub(crate) fn capture_process_arguments(app: &AppHandle) {
             queue::validate_path(&path).map(|()| path)
         }),
     );
-    #[cfg(target_os = "macos")]
-    let _ = app;
 }
 fn wake(app: &AppHandle) {
     let mut editors: Vec<_> = app
@@ -126,7 +136,7 @@ pub(crate) async fn take_os_open(
     {
         return Ok(None);
     }
-    if !window.is_focused().map_err(|error| error.to_string())? {
+    if !crate::windows::is_focused(&window).map_err(|error| error.to_string())? {
         return Ok(None);
     }
     let receipt = {

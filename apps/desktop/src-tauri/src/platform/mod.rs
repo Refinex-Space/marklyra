@@ -1,6 +1,7 @@
 pub(crate) mod entry_actions;
 pub mod file_metadata;
 pub(crate) mod native_drop;
+pub mod single_instance;
 pub(crate) mod trash;
 pub(crate) mod trash_confirmation;
 pub mod ui_chrome;

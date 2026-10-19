@@ -78,12 +78,17 @@ export type TestWindow = Window & typeof globalThis & { __desktopMock: DesktopMo
 // Runs the actual React App against an in-memory Tauri IPC double.
 // These tests do not validate native dialogs, filesystem writes, WKWebView or system IME.
 export function installMock(
-  configuration: string | { label?: string; nativeChrome?: boolean } = 'main',
+  configuration:
+    | string
+    | { label?: string; nativeChrome?: boolean; titlebar?: 'appkit' | 'web' } = 'main',
 ) {
   if (window !== window.top) return;
   const windowLabel =
     typeof configuration === 'string' ? configuration : (configuration.label ?? 'main');
   const nativeChrome = typeof configuration === 'object' && configuration.nativeChrome === true;
+  // 'web' models the Windows host: the WebView draws titlebar, menu entry points and caption buttons.
+  const titlebar = typeof configuration === 'object' ? (configuration.titlebar ?? 'appkit') : 'appkit';
+  const menuTitles = ['MarkLyra', '文件', '编辑', '段落', '格式', '显示', '主题', '窗口'];
   let serial = 1;
   const callbacks = new Map<number, (event: unknown) => void>();
   const listeners = new Map<
@@ -300,12 +305,14 @@ export function installMock(
       return { revision: 0, noRecentFiles: false, entries: [] };
     if (command === 'reveal_workspace_directory') return null;
     if (command === 'initialise_editor_chrome')
-      return { native: nativeChrome, preferencesWindow: nativeChrome };
+      return { native: nativeChrome, titlebar, preferencesWindow: nativeChrome };
+    if (command === 'list_app_menu') return menuTitles;
+    if (command === 'plugin:window|is_maximized') return Reflect.get(window, '__testMaximized') === true;
     if (command === 'editor_runtime_url') return 'http://127.0.0.1:4174/index.html';
     if (command === 'reset_dialog_warnings') return null;
     if (command === 'system_appearance_dark')
       return Reflect.get(window, '__testSystemDark') === true;
-    if (command === 'host_platform') return 'macos';
+    if (command === 'host_platform') return titlebar === 'web' ? 'windows' : 'macos';
     // Legacy browser vectors retain the explicitly unsupported host route.
     if (command === 'prepare_untitled_close') return { kind: 'unsupported' };
     if (command === 'list_theme_catalog')

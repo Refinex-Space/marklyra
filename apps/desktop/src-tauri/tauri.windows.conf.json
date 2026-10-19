@@ -1,4 +1,21 @@
 {
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "MarkLyra",
+        "width": 1180,
+        "height": 800,
+        "minWidth": 700,
+        "minHeight": 480,
+        "decorations": false,
+        "shadow": true,
+        "devtools": false,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --enable-features=OverlayScrollbar,FluentOverlayScrollbar,FluentScrollbar",
+        "dragDropEnabled": false
+      }
+    ]
+  },
   "bundle": {
     "targets": ["nsis", "msi"]
   }

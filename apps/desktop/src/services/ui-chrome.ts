@@ -3,8 +3,11 @@ import { invoke } from '@tauri-apps/api/core';
 import type { StatisticsUnit } from '../features/settings/preferences.js';
 import { desktopAvailable } from './documents.js';
 
+/** Who draws the unified titlebar: AppKit accessories on macOS, the WebView on Windows. */
+export type TitlebarHost = 'appkit' | 'web' | 'none';
 export interface EditorChrome {
   native: boolean;
+  titlebar: TitlebarHost;
   preferencesWindow: boolean;
 }
 interface TitlebarLayout {
@@ -34,15 +37,22 @@ export const editorChrome = {
     return titleLayoutWork;
   },
   async initialize(): Promise<EditorChrome> {
-    if (!desktopAvailable) return { native: false, preferencesWindow: false };
-    const result = await invoke<EditorChrome | null>('initialise_editor_chrome');
+    if (!desktopAvailable) return { native: false, titlebar: 'none', preferencesWindow: false };
+    const result = await invoke<Partial<EditorChrome> | null>('initialise_editor_chrome');
     // Browser tests/older hosts do not provide AppKit. Only confirmed native
     // installation may replace the fallback HTML controls.
+    const native = result?.native === true;
     return {
-      native: result?.native === true,
+      native,
+      titlebar: !native ? 'none' : result?.titlebar === 'web' ? 'web' : 'appkit',
       preferencesWindow: result?.preferencesWindow === true,
     };
   },
+  /** Top-level native menu titles, in order, for the WebView-hosted titlebar. */
+  menuTitles: () => invoke<string[]>('list_app_menu'),
+  /** Pops up a native menu below the titlebar control; no index pops the whole menu tree. */
+  popupMenu: (index: number | null, x: number, y: number, viewportWidth: number) =>
+    invoke<void>('popup_app_menu', { index, x, y, viewportWidth }),
   update(
     documentId: string | null,
     dirty: boolean,

@@ -82,6 +82,7 @@ import { discoverRecovery } from '../services/recovery.js';
 import { type EditorRuntime, editorRuntime } from '../services/runtime.js';
 import { completePreferenceTheme } from '../services/theme-preferences.js';
 import { type EditorChrome, editorChrome } from '../services/ui-chrome.js';
+import { Titlebar } from '../components/Titlebar.js';
 import { windowStartup } from '../services/window-startup.js';
 import { editorWindowIdentity, editorWindows } from '../services/windows.js';
 import { type WorkspaceFolder, workspaces } from '../services/workspaces.js';
@@ -126,12 +127,20 @@ export function App() {
     () => editorSessionPreferences(storedEditorPreferences, startupEditorPreferences),
     [storedEditorPreferences, startupEditorPreferences],
   );
-  const [chrome, setChrome] = useState<EditorChrome>({ native: false, preferencesWindow: false });
+  const [chrome, setChrome] = useState<EditorChrome>({
+    native: false,
+    titlebar: 'none',
+    preferencesWindow: false,
+  });
   const [viewMode, setViewMode] = useState<'wysiwyg' | 'source'>();
   const [scrolledDown, setScrolledDown] = useState(false);
   const [osOpenReady, setOsOpenReady] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [nativeOverlay, setNativeOverlay] = useState(true);
+  const [titleBounds, setTitleBounds] = useState({ left: 0, right: 0 });
+  const webTitlebar = chrome.native && chrome.titlebar === 'web';
+  // AppKit's titlebar is 28pt; the Windows caption band is the standard 32px.
+  const titlebarHeight = webTitlebar ? 32 : 28;
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [settingsEffectNotice, setSettingsEffectNotice] = useState(0);
@@ -1489,7 +1498,14 @@ export function App() {
         : 0;
       const left =
         chrome.native && sidebar ? (sidebarElement.current?.getBoundingClientRect().width ?? 0) : 0;
-      if (chrome.native && documentAreaElement.current) {
+      if (webTitlebar && documentAreaElement.current) {
+        const area = documentAreaElement.current.getBoundingClientRect();
+        setTitleBounds((previous) =>
+          previous.left === area.left && previous.right === area.right
+            ? previous
+            : { left: area.left, right: area.right },
+        );
+      } else if (chrome.native && documentAreaElement.current) {
         const area = documentAreaElement.current.getBoundingClientRect();
         const payload = {
           contentLeft: area.left,
@@ -1507,7 +1523,7 @@ export function App() {
       void instance
         .setContentInset(
           left,
-          chrome.native && nativeOverlay && !fullscreen ? 28 : 0,
+          chrome.native && nativeOverlay && !fullscreen ? titlebarHeight : 0,
           chrome.native ? 28 : 0,
           right,
         )
@@ -1546,6 +1562,8 @@ export function App() {
     };
   }, [
     chrome.native,
+    webTitlebar,
+    titlebarHeight,
     sidebar,
     ready,
     fullscreen,
@@ -1583,14 +1601,47 @@ export function App() {
       className="shell"
       data-native-chrome={chrome.native}
       data-native-overlay={nativeOverlay}
+      data-titlebar={chrome.native ? chrome.titlebar : undefined}
       data-fullscreen={fullscreen}
       data-settings-page={(preferencesOpen && preferencesEmbedded) || undefined}
       data-theme-name={theme}
       data-theme-loading={themeSystem.working || undefined}
       style={themeSystem.appearance as CSSProperties}
     >
-      {chrome.native && nativeOverlay && !fullscreen && (
+      {chrome.native && nativeOverlay && !fullscreen && !webTitlebar && (
         <div className="native-titlebar-drag" data-tauri-drag-region="" />
+      )}
+      {webTitlebar && (
+        <Titlebar
+          title={doc.file ? filename(doc.file.path) : '未命名'}
+          dirty={doc.dirty}
+          hasFile={!!doc.file}
+          statistics={statistics.value}
+          statisticsUnit={preferences.statisticsUnit}
+          onStatisticsUnit={(unit) =>
+            setPreferences((current) => ({ ...current, statisticsUnit: unit }))
+          }
+          alwaysShowWordCount={preferences.alwaysShowWordCount}
+          sidebarOpen={sidebar}
+          outlineOpen={outlinePanelOpen}
+          aiOpen={aiPanelOpen}
+          onSidebar={() => setSidebar((visible) => !visible)}
+          onOutline={() => {
+            setDetailsMode('outline');
+            setAiPanelOpen(false);
+            setOutlinePanelOpen((open) => !open);
+          }}
+          onAi={toggleAiPanel}
+          sourceMode={viewMode === 'source'}
+          onExitSource={() => void command({ type: 'toggleSource' })}
+          settingsOpen={preferencesOpen && preferencesEmbedded}
+          fullscreen={fullscreen}
+          contentLeft={titleBounds.left}
+          contentRight={titleBounds.right}
+          sidebarWidth={sidebar ? sidebarWidth : 0}
+          disabled={doc.working || !ready}
+          onError={doc.setMessage}
+        />
       )}
       {!chrome.native && (
         <header className="toolbar">

@@ -22,7 +22,7 @@ fn validate(value: &str) -> Result<Url, String> {
 #[tauri::command]
 pub async fn open_external_link(window: WebviewWindow, url: String) -> Result<(), String> {
     if !crate::windows::is_editor(&window)
-        || !window.is_focused().map_err(|error| error.to_string())?
+        || !crate::windows::is_focused(&window).map_err(|error| error.to_string())?
     {
         return Err("外部链接仅允许由当前编辑窗口打开".to_owned());
     }

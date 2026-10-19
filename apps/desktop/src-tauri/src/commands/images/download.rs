@@ -1,17 +1,17 @@
 use std::sync::{atomic::AtomicBool, Arc};
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", windows))]
 const MAX_IMAGE_BYTES: usize = 8 * 1024 * 1024;
 
 /// Downloads only the URL already approved by the host's image action.
 /// Document ownership, destination authorization and image validation stay with the caller.
 pub(super) fn download_image(url: &str, cancelled: Arc<AtomicBool>) -> Result<Vec<u8>, String> {
     let url = checked_url(url)?;
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", windows))]
     {
-        macos::download(&url, cancelled)
+        curl::download(&url, cancelled)
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         let _ = (url, cancelled);
         Err("此平台尚不支持受控图片下载".into())
@@ -38,8 +38,10 @@ fn checked_url(input: &str) -> Result<tauri::Url, String> {
     Ok(url)
 }
 
-#[cfg(target_os = "macos")]
-mod macos {
+/// One audited transport per desktop host: the system curl, run directly without a shell.
+/// macOS ships /usr/bin/curl; Windows 10+ ships %SystemRoot%System32curl.exe.
+#[cfg(any(target_os = "macos", windows))]
+mod curl {
     use super::MAX_IMAGE_BYTES;
     use std::{
         io::Read,
@@ -124,7 +126,23 @@ mod macos {
         if cancelled.load(Ordering::Acquire) {
             return Err(CANCELLED.into());
         }
+        #[cfg(target_os = "macos")]
         let mut command = Command::new("/usr/bin/curl");
+        #[cfg(windows)]
+        let mut command = {
+            let root = std::env::var_os("SystemRoot").ok_or(FAILED)?;
+            Command::new(
+                std::path::Path::new(&root)
+                    .join("System32")
+                    .join("curl.exe"),
+            )
+        };
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            // CREATE_NO_WINDOW: a console must never flash while downloading.
+            command.creation_flags(0x0800_0000);
+        }
         command
             .env_clear()
             .args([
@@ -160,6 +178,9 @@ mod macos {
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        // Schannel and name resolution need SystemRoot even in a cleared environment.
+        #[cfg(windows)]
+        command.env("SystemRoot", std::env::var_os("SystemRoot").ok_or(FAILED)?);
         let mut child = OwnedDownload {
             child: command.spawn().map_err(|_| FAILED.to_owned())?,
             reaped: false,

@@ -57,7 +57,7 @@ export function renderSavePreferences(pane: Element, controls: SavePageControls)
     const shortcut = document.createElement('p');
     shortcut.className = 'settings-save-shortcut';
     const keys =
-      new URL(location.href).searchParams.get('os') === 'mac' ? '⌘S（Cmd + S）' : 'Ctrl + S';
+      new URL(location.href).searchParams.get('hostOs') === 'win' ? 'Ctrl + S' : '⌘S（Cmd + S）';
     shortcut.textContent = `随时可按 ${keys} 手动保存。未保存的修改会在切换、关闭前受到保护。`;
     content.append(shortcut);
   }

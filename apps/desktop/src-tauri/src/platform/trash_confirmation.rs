@@ -179,24 +179,27 @@ async fn confirm_kind(
             DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult,
         };
         let queued = Arc::clone(&pending);
+        // Same wording as the macOS sheet in a Simplified Chinese locale.
         let (message, title, buttons) = match kind {
             PromptKind::Trash => (
-                format!("Are you sure you want to delete {name}?\nYou can restore from the Trash."),
-                "Delete",
-                MessageDialogButtons::OkCancel,
+                format!("确定要删除 {name} 吗？\n可以从回收站恢复。"),
+                "删除",
+                MessageDialogButtons::OkCancelCustom("删除".into(), "取消".into()),
             ),
             PromptKind::Move => (
-                format!("Are you sure you want to move {name}?"),
-                "Move",
-                MessageDialogButtons::OkCancel,
+                format!("确定要移动 {name} 吗？"),
+                "移动",
+                MessageDialogButtons::OkCancelCustom("是".into(), "取消".into()),
             ),
             PromptKind::MoveConflict => (
-                format!("An item named {name} already exists at the destination."),
-                "Move",
+                format!(
+                    "目标位置已存在名为“{name}”的项目。\n替换会保留原项目，供文件操作撤销恢复。"
+                ),
+                "移动",
                 MessageDialogButtons::YesNoCancelCustom(
-                    "Keep Both".into(),
-                    "Replace".into(),
-                    "Cancel".into(),
+                    "保留两者".into(),
+                    "替换".into(),
+                    "取消".into(),
                 ),
             ),
         };
@@ -209,11 +212,13 @@ async fn confirm_kind(
             .show_with_result(move |answer| {
                 let selection = if matches!(kind, PromptKind::MoveConflict) {
                     match answer {
-                        MessageDialogResult::Custom(value) if value == "Keep Both" => 0,
-                        MessageDialogResult::Custom(value) if value == "Replace" => 1,
+                        MessageDialogResult::Custom(value) if value == "保留两者" => 0,
+                        MessageDialogResult::Custom(value) if value == "替换" => 1,
                         _ => 2,
                     }
-                } else if matches!(answer, MessageDialogResult::Ok | MessageDialogResult::Yes) {
+                } else if matches!(&answer, MessageDialogResult::Ok | MessageDialogResult::Yes)
+                    || matches!(&answer, MessageDialogResult::Custom(value) if value == "删除" || value == "是")
+                {
                     0
                 } else {
                     1

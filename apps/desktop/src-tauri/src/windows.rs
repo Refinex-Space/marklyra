@@ -136,11 +136,38 @@ pub fn emit_to_editor<R: Runtime, S: Serialize + Clone>(
     app.emit_to(label, event, payload)
         .map_err(|error| error.to_string())
 }
+/// Every WebView2 window of one app shares an environment, so all must pass identical
+/// arguments (see `tauri.windows.conf.json`). Fluent overlay scrollbars match the
+/// overlay scrollbars of macOS; the first set is Tauri's own default.
+#[cfg(windows)]
+pub(crate) const WEBVIEW_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --enable-features=OverlayScrollbar,FluentOverlayScrollbar,FluentScrollbar";
+
+/// Whether this window is the active application window.
+///
+/// `WebviewWindow::is_focused` only reports the top-level HWND's keyboard focus, which
+/// WebView2 takes for its child window as soon as the page has focus; every focus-gated
+/// authorization would then fail on Windows while the user is typing in the editor.
+/// Windows therefore also accepts the foreground window.
+#[cfg(windows)]
+pub fn is_focused<R: Runtime>(window: &WebviewWindow<R>) -> tauri::Result<bool> {
+    if window.is_focused()? {
+        return Ok(true);
+    }
+    let hwnd = window.hwnd()?;
+    // SAFETY: GetForegroundWindow has no preconditions and only returns a handle value.
+    let foreground = unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow() };
+    // Tauri and this crate may link different `windows` versions; compare the raw handles.
+    Ok(std::ptr::eq(foreground.0, hwnd.0 as *mut _))
+}
+#[cfg(not(windows))]
+pub fn is_focused<R: Runtime>(window: &WebviewWindow<R>) -> tauri::Result<bool> {
+    window.is_focused()
+}
 pub fn focused_editor<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
     let mut windows = app
         .webview_windows()
         .into_values()
-        .filter(|window| window.is_focused().unwrap_or(false));
+        .filter(|window| crate::windows::is_focused(window).unwrap_or(false));
     let window = windows.next()?;
     if windows.next().is_some() || !is_editor(&window) {
         None
@@ -392,7 +419,18 @@ pub(crate) fn build_reserved_editor_window(
     let builder = builder
         .title_bar_style(tauri::TitleBarStyle::Overlay)
         .hidden_title(false);
+    // The WebView draws the unified titlebar, caption buttons and menu on Windows.
+    #[cfg(windows)]
+    let builder = builder
+        .decorations(false)
+        .shadow(true)
+        .additional_browser_args(WEBVIEW_BROWSER_ARGS);
     let result = builder.build();
+    #[cfg(windows)]
+    if let Ok(window) = &result {
+        // Never let the system menu bar flash before the titlebar takes over.
+        let _ = window.hide_menu();
+    }
     match result {
         Ok(_) => {
             let published = app
@@ -469,7 +507,7 @@ pub fn editor_window_focused(window: WebviewWindow) -> Result<bool, String> {
     if !is_editor(&window) {
         return Err("编辑窗口已关闭".into());
     }
-    window.is_focused().map_err(|error| error.to_string())
+    crate::windows::is_focused(&window).map_err(|error| error.to_string())
 }
 #[tauri::command]
 pub async fn editor_window_ready(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
@@ -580,7 +618,7 @@ fn advance_quit<R: Runtime>(app: &AppHandle<R>) {
             .get_webview_window(&label)
             .ok_or_else(|| "编辑窗口不存在".to_owned())
             .and_then(|window| {
-                if !window.is_focused().map_err(|e| e.to_string())? {
+                if !crate::windows::is_focused(&window).map_err(|e| e.to_string())? {
                     window.set_focus().map_err(|e| e.to_string())?;
                 }
                 emit_to_editor(app, &label, "application-quit-request", request.clone())

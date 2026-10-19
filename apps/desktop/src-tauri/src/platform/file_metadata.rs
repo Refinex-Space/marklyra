@@ -7,7 +7,15 @@ pub fn include_entry(file: &File) -> bool {
     {
         macos::include_entry(file)
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        // Explorer hides the same entries: FILE_ATTRIBUTE_HIDDEN (0x2) and FILE_ATTRIBUTE_SYSTEM (0x4).
+        file.metadata()
+            .map(|metadata| metadata.file_attributes() & 0x6 == 0)
+            .unwrap_or(true)
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         let _ = file;
         true

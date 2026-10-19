@@ -1167,7 +1167,7 @@ pub(crate) fn import_native_images(
         images
             .into_iter()
             .map(|(name, bytes)| {
-                if !window.is_focused().map_err(|error| error.to_string())? {
+                if !crate::windows::is_focused(&window).map_err(|error| error.to_string())? {
                     return Err("原生输入窗口已失去焦点".into());
                 }
                 if cancelled.load(Ordering::Acquire) {

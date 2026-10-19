@@ -75,6 +75,13 @@ button[aria-pressed="true"] {
   background: var(--surface);
   color: var(--text);
 }
+.shell {
+  /* AppKit's unified titlebar; the Windows WebView titlebar overrides this to 32px. */
+  --titlebar-height: 28px;
+}
+.shell[data-titlebar="web"] {
+  --titlebar-height: 32px;
+}
 .shell[data-native-chrome="true"] {
   --surface: var(--marklyra-body-bg, #fff);
   --sidebar: var(--marklyra-sidebar-bg, #fafafa);
@@ -163,7 +170,7 @@ button[aria-pressed="true"] {
 }
 .shell[data-native-chrome="true"][data-native-overlay="true"]:not([data-fullscreen="true"])
   > .preferences-page {
-  top: 28px;
+  top: var(--titlebar-height);
 }
 .preferences-loading {
   display: flex;
@@ -881,7 +888,7 @@ button[aria-pressed="true"] {
   content: "";
   position: fixed;
   inset: 0 0 auto;
-  height: 28px;
+  height: var(--titlebar-height);
   background: linear-gradient(
     to right,
     var(--settings-sidebar-bg) 0 calc(var(--settings-sidebar-width) - 1px),

@@ -115,7 +115,7 @@ pub(crate) fn open_focused<R: Runtime>(app: &AppHandle<R>) {
     let mut focused = app
         .webview_windows()
         .into_values()
-        .filter(|window| window.is_focused().unwrap_or(false));
+        .filter(|window| crate::windows::is_focused(&window).unwrap_or(false));
     if let (Some(window), None) = (focused.next(), focused.next()) {
         configure(window, true);
     }

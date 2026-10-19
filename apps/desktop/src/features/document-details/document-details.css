@@ -54,8 +54,8 @@
 }
 .shell[data-native-chrome="true"][data-native-overlay="true"]:not([data-fullscreen="true"])
   .document-details-panel {
-  /* Separate the trailing pane from the 28px native titlebar band. */
-  margin-top: 32px;
+  /* Separate the trailing pane from the native titlebar band. */
+  margin-top: calc(var(--titlebar-height, 28px) + 4px);
 }
 .document-details-header {
   display: flex;

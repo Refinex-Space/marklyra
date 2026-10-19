@@ -468,7 +468,32 @@ pub fn system_appearance_dark(window: WebviewWindow) -> Result<bool, String> {
             .stringForKey(&NSString::from_str("AppleInterfaceStyle"))
             .is_some_and(|s| s.to_string() == "Dark"))
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        // The titlebar forces the window theme to the document theme, so `window.theme()`
+        // is not the system choice; Windows keeps that in the personalization registry key.
+        use windows::{
+            core::w,
+            Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_DWORD},
+        };
+        let mut light = 1u32;
+        let mut size = std::mem::size_of::<u32>() as u32;
+        // SAFETY: the value buffer is a live u32 and `size` states its exact length.
+        let status = unsafe {
+            RegGetValueW(
+                HKEY_CURRENT_USER,
+                w!(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"),
+                w!("AppsUseLightTheme"),
+                RRF_RT_REG_DWORD,
+                None,
+                Some((&mut light as *mut u32).cast()),
+                Some(&mut size),
+            )
+        };
+        let _ = window;
+        Ok(status.is_ok() && light == 0)
+    }
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         Ok(window.theme().map_err(|e| e.to_string())? == tauri::Theme::Dark)
     }

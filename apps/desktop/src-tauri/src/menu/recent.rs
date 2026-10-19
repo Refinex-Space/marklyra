@@ -77,7 +77,7 @@ pub(crate) fn update<R: Runtime>(
     };
     let enabled = app
         .get_webview_window("main")
-        .is_some_and(|window| window.is_focused().unwrap_or(false));
+        .is_some_and(|window| crate::windows::is_focused(&window).unwrap_or(false));
     fill(app, &menu, listing, enabled)
 }
 

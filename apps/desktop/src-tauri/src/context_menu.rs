@@ -159,7 +159,7 @@ pub async fn show_editor_context_menu(
 ) -> Result<(), String> {
     main_only(&window)?;
     request.validate()?;
-    if !window.is_focused().map_err(|error| error.to_string())? {
+    if !crate::windows::is_focused(&window).map_err(|error| error.to_string())? {
         return Err("编辑窗口当前未聚焦".to_owned());
     }
     let size = window
@@ -261,7 +261,7 @@ pub fn handle_menu(app: &AppHandle, event: &tauri::menu::MenuEvent) -> bool {
     if let Some((label, selection)) = selected {
         if let Some(window) = app
             .get_webview_window(&label)
-            .filter(|window| window.is_focused().unwrap_or(false))
+            .filter(|window| crate::windows::is_focused(window).unwrap_or(false))
         {
             if let Err(error) = crate::windows::emit_to_editor(
                 app,

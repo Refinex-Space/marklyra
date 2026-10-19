@@ -24,7 +24,29 @@ mod window_services;
 mod windows;
 use tauri::Manager;
 
+/// One route for native menu commands, whether they come from a menu click or, on Windows,
+/// from an accelerator the WebView would otherwise swallow.
+pub(crate) fn route_menu_event(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
+    if event.id().as_ref() == "quit" {
+        windows::request_quit(app);
+        return;
+    }
+    if platform::ui_chrome::handle_menu(app, &event) {
+        return;
+    }
+    if context_menu::handle_menu(app, &event) {
+        return;
+    }
+    if !exports::handle_menu(app, &event) {
+        menu::handle(app, event);
+    }
+}
+
 pub fn run() {
+    // A second launch forwards its arguments to the running instance (Windows) and ends here.
+    if !platform::single_instance::acquire_or_forward() {
+        return;
+    }
     tauri::Builder::default()
         .invoke_system(runtime_assets::ipc_initialization_script())
         .manage(runtime_assets::RuntimeAssets::default())
@@ -111,6 +133,8 @@ pub fn run() {
             platform::ui_chrome::initialise_editor_chrome,
             platform::ui_chrome::update_editor_chrome,
             platform::ui_chrome::update_editor_title_layout,
+            platform::ui_chrome::list_app_menu,
+            platform::ui_chrome::popup_app_menu,
             platform::ui_chrome::open_preferences_window,
             platform::ui_chrome::close_preferences_window,
             platform::ui_chrome::preferences_changed,
@@ -226,29 +250,21 @@ pub fn run() {
             app.set_menu(native_menu.clone())?;
             #[cfg(target_os = "macos")]
             menu::register_window_menu(&native_menu)?;
+            // The configured main window predates the app menu; its titlebar is WebView-owned.
+            #[cfg(windows)]
+            if let Some(main) = app.get_webview_window("main") {
+                let _ = main.hide_menu();
+            }
             commands::recent::refresh_native_menu(app.handle());
             if let Err(error) = platform::window_state::setup(app.handle()) {
                 eprintln!("Window preferences were not restored: {error}");
             }
             windows::restore_initial(app.handle());
             os_open::capture_process_arguments(app.handle());
+            platform::single_instance::listen(app.handle());
             Ok(())
         })
-        .on_menu_event(|app, event| {
-            if event.id().as_ref() == "quit" {
-                windows::request_quit(app);
-                return;
-            }
-            if platform::ui_chrome::handle_menu(app, &event) {
-                return;
-            }
-            if context_menu::handle_menu(app, &event) {
-                return;
-            }
-            if !exports::handle_menu(app, &event) {
-                menu::handle(app, event);
-            }
-        })
+        .on_menu_event(route_menu_event)
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 window

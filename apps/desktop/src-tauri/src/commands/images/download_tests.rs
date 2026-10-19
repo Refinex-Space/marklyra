@@ -16,8 +16,8 @@ fn rejects_non_http_and_credentials_before_starting_a_process() {
     }
 }
 
-#[cfg(target_os = "macos")]
-mod macos {
+#[cfg(any(target_os = "macos", windows))]
+mod curl {
     use super::*;
     use std::{
         io::{Read, Write},
@@ -156,8 +156,12 @@ mod macos {
                 .unwrap();
             trigger.store(true, Ordering::Release);
             let mut byte = [0_u8; 1];
-            // The function waits for its own child and closes its connection.
-            assert_eq!(socket.read(&mut byte).unwrap(), 0);
+            // The function waits for its own child, which closes its connection: a clean FIN
+            // on macOS, an abortive reset when Windows terminates curl.exe.
+            match socket.read(&mut byte) {
+                Ok(count) => assert_eq!(count, 0),
+                Err(error) => assert_eq!(error.kind(), std::io::ErrorKind::ConnectionReset),
+            }
         });
         let started = Instant::now();
         let error = download_image(&url, cancelled).unwrap_err();

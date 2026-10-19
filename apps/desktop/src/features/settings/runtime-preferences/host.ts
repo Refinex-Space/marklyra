@@ -67,7 +67,10 @@ export class RuntimePreferencesHost {
     this.targetOrigin = this.origin === 'null' ? '*' : this.origin;
     url.searchParams.set('channel', this.channel);
     url.searchParams.set('parentOrigin', window.location.origin);
-    url.searchParams.set('os', options.platform === 'windows' ? 'win' : 'mac');
+    // One legacy page personality on every host: the cocoa layout and control set is the
+    // product design. `hostOs` carries only the genuine OS differences (key names, quit policy).
+    url.searchParams.set('os', 'mac');
+    url.searchParams.set('hostOs', options.platform === 'windows' ? 'win' : 'mac');
     if (options.presentation) url.searchParams.set('layout', 'page');
     this.element = container.ownerDocument.createElement('iframe');
     this.element.title = 'MarkLyra 偏好设置';

@@ -401,7 +401,7 @@ pub(super) fn origin_changed(app: &AppHandle) {
 /// enabling editor actions or granting Preferences the opener's resources.
 pub(crate) fn focused_preferences_opener<R: Runtime>(app: &AppHandle<R>) -> Option<String> {
     let preferences = app.get_webview_window(PREFERENCES_LABEL)?;
-    if !preferences.is_focused().unwrap_or(false) {
+    if !crate::windows::is_focused(&preferences).unwrap_or(false) {
         return None;
     }
     let host = app.try_state::<PreferencesHost>()?;

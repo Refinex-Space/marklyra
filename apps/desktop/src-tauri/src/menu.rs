@@ -5,6 +5,8 @@ use tauri::{
     },
     AppHandle, Runtime,
 };
+#[cfg(any(windows, test))]
+pub(crate) mod accelerator;
 pub(crate) mod recent;
 mod shortcuts;
 pub(crate) mod state;
@@ -395,6 +397,51 @@ fn update_items<R: Runtime>(items: Vec<MenuItemKind<R>>, preview: bool) -> tauri
     }
     Ok(())
 }
+/// Every menu accelerator as a (chord, menu id) pair, for hosts whose WebView takes keyboard
+/// focus away from the native menu.
+#[cfg(any(windows, test))]
+pub(crate) fn chords() -> Vec<(accelerator::Chord, &'static str)> {
+    GROUPS
+        .iter()
+        .flat_map(|entries| entries.iter())
+        .filter_map(|entry| {
+            let Action(id, _, shortcut) = entry else {
+                return None;
+            };
+            let chord = accelerator::parse(shortcuts::resolve(id, *shortcut)?)?;
+            Some((chord, *id))
+        })
+        .collect()
+}
+
+/// Whether the native item behind `id` currently accepts its accelerator.
+#[cfg(windows)]
+pub(crate) fn item_enabled<R: Runtime>(app: &AppHandle<R>, id: &str) -> bool {
+    fn find<R: Runtime>(items: Vec<MenuItemKind<R>>, id: &str) -> Option<bool> {
+        for item in items {
+            match item {
+                MenuItemKind::Submenu(menu) => {
+                    if let Some(found) = menu.items().ok().and_then(|items| find(items, id)) {
+                        return Some(found);
+                    }
+                }
+                MenuItemKind::MenuItem(item) if item.id().as_ref() == id => {
+                    return item.is_enabled().ok();
+                }
+                MenuItemKind::Check(item) if item.id().as_ref() == id => {
+                    return item.is_enabled().ok();
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+    app.menu()
+        .and_then(|menu| menu.items().ok())
+        .and_then(|items| find(items, id))
+        .unwrap_or(false)
+}
+
 fn action_enabled(id: &str, preview: bool) -> bool {
     !preview
         || id == "quit"
@@ -406,6 +453,33 @@ fn action_enabled(id: &str, preview: bool) -> bool {
 mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    #[test]
+    fn every_displayed_windows_accelerator_is_a_unique_matchable_chord() {
+        let chords = chords();
+        let mut seen = HashSet::new();
+        for (chord, id) in &chords {
+            assert!(
+                seen.insert((chord.ctrl, chord.shift, chord.alt, chord.key)),
+                "duplicate chord for {id}"
+            );
+        }
+        // Mac-only Cmd chords have no Windows form; everything else must parse.
+        for group in GROUPS {
+            for entry in *group {
+                if let MenuEntry::Action(id, _, shortcut) = entry {
+                    if let Some(text) = shortcuts::resolve(id, *shortcut) {
+                        if !text.starts_with("Cmd+") {
+                            assert!(accelerator::parse(text).is_some(), "{id}: {text}");
+                        }
+                    }
+                }
+            }
+        }
+        assert!(chords
+            .iter()
+            .any(|(chord, id)| *id == "view:sidebar" && chord.shift));
+    }
 
     #[test]
     fn developer_tools_shortcut_does_not_shadow_document_commands() {

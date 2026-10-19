@@ -63,7 +63,7 @@ pub(crate) async fn show_info(
         .run_on_main_thread(move || {
             let result = (|| {
                 if !crate::windows::is_editor(&target)
-                    || !target.is_focused().map_err(|e| e.to_string())?
+                    || !crate::windows::is_focused(&target).map_err(|e| e.to_string())?
                 {
                     return Err("简介操作窗口已关闭或失去焦点".into());
                 }
@@ -133,7 +133,9 @@ pub(crate) async fn show_info(
             },
         },
     };
-    if !crate::windows::is_editor(&window) || !window.is_focused().map_err(|e| e.to_string())? {
+    if !crate::windows::is_editor(&window)
+        || !crate::windows::is_focused(&window).map_err(|e| e.to_string())?
+    {
         return Err("属性操作窗口已关闭或失去焦点".into());
     }
     let owner = window.hwnd().map_err(|e| e.to_string())?.0 as usize;

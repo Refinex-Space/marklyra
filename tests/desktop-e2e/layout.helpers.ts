@@ -111,8 +111,12 @@ function installLayoutMock() {
   };
 }
 
-export async function installLayout(page: Page, workspaceName?: string) {
-  await page.addInitScript(installMock, { nativeChrome: true });
+export async function installLayout(
+  page: Page,
+  workspaceName?: string,
+  titlebar: 'appkit' | 'web' = 'appkit',
+) {
+  await page.addInitScript(installMock, { nativeChrome: true, titlebar });
   await page.addInitScript(installRecoveryMock);
   await page.addInitScript(installLayoutMock);
   if (workspaceName)
