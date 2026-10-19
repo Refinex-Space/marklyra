@@ -1312,3 +1312,94 @@
 .sidebar-header-spacer {
   flex: 0 0 40px;
 }
+
+/* Loading placeholders: no text, one slow sweep, and nothing at all for a fast read. */
+.sidebar-skeleton {
+  --skeleton-base: color-mix(in srgb, var(--marklyra-sidebar-text, var(--text)) 8%, transparent);
+  --skeleton-glow: color-mix(in srgb, var(--marklyra-sidebar-text, var(--text)) 15%, transparent);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  opacity: 0;
+  animation: sidebar-skeleton-in 220ms ease-out 140ms forwards;
+  pointer-events: none;
+  user-select: none;
+}
+.sidebar-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--marklyra-tree-row-height, 28px);
+  padding: 0 12px 0 22px;
+}
+.sidebar-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 14px 8px 14px 24px;
+}
+.sidebar-skeleton-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+.sidebar-skeleton-bar,
+.sidebar-skeleton-icon {
+  display: block;
+  height: 9px;
+  width: var(--skeleton-width, 60%);
+  border-radius: 5px;
+  background: linear-gradient(
+      100deg,
+      transparent 30%,
+      var(--skeleton-glow) 50%,
+      transparent 70%
+    )
+    0 0 / 220% 100% no-repeat,
+    var(--skeleton-base);
+  animation: sidebar-skeleton-sweep 1.8s ease-in-out infinite;
+}
+.sidebar-skeleton-icon {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+.sidebar-skeleton-row .sidebar-skeleton-bar {
+  flex: 0 1 var(--skeleton-width, 60%);
+}
+@keyframes sidebar-skeleton-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sidebar-skeleton-sweep {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -30% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-skeleton {
+    animation-duration: 1ms;
+  }
+  .sidebar-skeleton-bar,
+  .sidebar-skeleton-icon {
+    animation: none;
+  }
+}
+
+/* A scan that cannot finish is one quiet line; the full explanation lives in its tooltip. */
+.workspace-limit.workspace-limit-compact {
+  display: block;
+  margin: 6px 8px;
+  padding: 0 0 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 18px;
+  opacity: 0.7;
+}

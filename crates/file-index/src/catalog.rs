@@ -1,7 +1,7 @@
 //! Bounded metadata-only change hints. A fingerprint is never filesystem authority.
 use crate::{
-    articles::same_metadata, checked_relative, ignored_name, is_markdown, join_relative,
-    open_filtered_directory, IndexError, Workspace,
+    checked_relative, directory_visible, file_visible, ignored_name, is_markdown, join_relative,
+    IndexError, Workspace,
 };
 use cap_std::fs::{Dir, Metadata, ReadDir};
 use serde::Serialize;
@@ -59,7 +59,7 @@ impl Default for Limits {
         Self {
             entries: 20_000,
             depth: 64,
-            time: Duration::from_millis(250),
+            time: Duration::from_millis(400),
         }
     }
 }
@@ -174,7 +174,9 @@ impl Workspace {
             if checked_relative(&path, false).is_err() {
                 continue;
             }
-            let before = match directory.symlink_metadata(name) {
+            // A change hint never grants access: the enumeration's own metadata is enough, so a
+            // scan costs no per-entry call on Windows and the full tree fits the time budget.
+            let before = match entry.metadata() {
                 Ok(metadata) => metadata,
                 Err(_) => {
                     result.unreadable += 1;
@@ -185,7 +187,7 @@ impl Workspace {
                 continue;
             }
             if before.is_dir() {
-                match open_filtered_directory(directory, name, &before, include_entry) {
+                match directory_visible(directory, name, &before, include_entry) {
                     Ok(Some(child)) => {
                         observations.push((path.clone(), metadata_hash(&before)));
                         if depth >= limits.depth {
@@ -206,23 +208,9 @@ impl Workspace {
                     Err(_) => result.unreadable += 1,
                 }
             } else if before.is_file() && include_document(name) {
-                let inspected = (|| -> std::io::Result<Option<u64>> {
-                    let file = directory.open(name)?;
-                    let opened = file.metadata()?;
-                    let after = directory.symlink_metadata(name)?;
-                    if after.file_type().is_symlink()
-                        || !opened.is_file()
-                        || !same_metadata(&before, &opened)
-                        || !same_metadata(&before, &after)
-                    {
-                        return Err(std::io::Error::other("Entry changed during metadata scan"));
-                    }
-                    let handle = file.into_std();
-                    Ok(include_entry(&handle).then(|| metadata_hash(&opened)))
-                })();
-                match inspected {
-                    Ok(Some(digest)) => observations.push((path, digest)),
-                    Ok(None) => {}
+                match file_visible(directory, name, &before, include_entry) {
+                    Ok(true) => observations.push((path, metadata_hash(&before))),
+                    Ok(false) => {}
                     Err(_) => result.unreadable += 1,
                 }
             }

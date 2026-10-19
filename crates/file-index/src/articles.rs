@@ -1,5 +1,5 @@
 use crate::{
-    checked_relative, ignored_name, is_markdown, join_relative, open_filtered_directory,
+    checked_relative, directory_visible, file_visible, ignored_name, is_markdown, join_relative,
     IndexError, Workspace,
 };
 use cap_std::fs::{Dir, Metadata, ReadDir};
@@ -8,6 +8,11 @@ use serde::Serialize;
 use std::{io::Read, path::Path};
 
 const MAX_DOCUMENTS: usize = 400;
+/// The metadata index reads no content, so it can list far more documents than a full read.
+const MAX_INDEX_DOCUMENTS: usize = 5_000;
+const MAX_INDEX_ENTRIES: usize = 100_000;
+/// Summaries are requested for the rows being shown, never for the whole workspace.
+pub const MAX_SUMMARY_BATCH: usize = 64;
 const MAX_SCANNED_FILES: usize = 2_000;
 const MAX_SCANNED_ENTRIES: usize = 20_000;
 const MAX_DEPTH: usize = 64;
@@ -26,6 +31,30 @@ pub struct WorkspaceDocument {
     pub modified_at: Option<i64>,
     pub created_at: Option<i64>,
     /// Strictly decoded raw Markdown prefix, never HTML and never a lossy replacement string.
+    pub summary: String,
+    pub summary_truncated: bool,
+}
+
+/// Outcome of reading one document's summary for a row that became visible.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SummaryState {
+    Ready,
+    /// The host hides this entry or it is not an eligible document.
+    Ignored,
+    /// Missing, replaced, a symlink or unreadable now.
+    Unavailable,
+    Unsupported,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentSummary {
+    pub relative_path: String,
+    pub state: SummaryState,
+    pub size: u64,
+    pub modified_at: Option<i64>,
+    pub created_at: Option<i64>,
     pub summary: String,
     pub summary_truncated: bool,
 }
@@ -118,12 +147,148 @@ impl Workspace {
         self.list_documents_filtered(limits, None, &|_| true)
     }
 
+    /// Reads the strictly decoded prefix of at most `MAX_SUMMARY_BATCH` named documents. Every
+    /// path is re-resolved through the workspace capability and read exactly like a listing read:
+    /// the renderer only chooses which already-listed documents it wants previews for.
+    pub fn read_document_summaries_with_filters(
+        &self,
+        paths: &[String],
+        include_entry: impl Fn(&std::fs::File) -> bool,
+        include_document: impl Fn(&str) -> bool,
+    ) -> Result<Vec<DocumentSummary>, IndexError> {
+        if paths.len() > MAX_SUMMARY_BATCH {
+            return Err(IndexError::InvalidPath);
+        }
+        let binding = self.display_root_binding()?;
+        let mut budget = MAX_SUMMARY_BATCH * (PREFIX_BYTES + 1);
+        let mut folder: Option<(String, Dir)> = None;
+        let mut result = Vec::with_capacity(paths.len());
+        for path in paths {
+            let unavailable = |state| DocumentSummary {
+                relative_path: path.clone(),
+                state,
+                size: 0,
+                modified_at: None,
+                created_at: None,
+                summary: String::new(),
+                summary_truncated: false,
+            };
+            let Ok(checked) = checked_relative(path, false) else {
+                result.push(unavailable(SummaryState::Unavailable));
+                continue;
+            };
+            let name = path.rsplit('/').next().unwrap_or("");
+            let parent = path.rsplit_once('/').map_or("", |(parent, _)| parent);
+            if !include_document(name) {
+                result.push(unavailable(SummaryState::Unsupported));
+                continue;
+            }
+            if folder.as_ref().is_none_or(|(known, _)| known != parent) {
+                folder = None;
+                let mut directory = self.root.try_clone()?;
+                let mut hidden = false;
+                let mut broken = false;
+                for part in checked.parent().into_iter().flat_map(Path::components) {
+                    let std::path::Component::Normal(part) = part else {
+                        continue;
+                    };
+                    let Some(part) = part.to_str() else {
+                        broken = true;
+                        break;
+                    };
+                    if ignored_name(part) {
+                        hidden = true;
+                        break;
+                    }
+                    let opened = directory.symlink_metadata(part).and_then(|metadata| {
+                        directory_visible(&directory, part, &metadata, &include_entry)
+                    });
+                    match opened {
+                        Ok(Some(next)) => directory = next,
+                        Ok(None) => {
+                            hidden = true;
+                            break;
+                        }
+                        Err(_) => {
+                            broken = true;
+                            break;
+                        }
+                    }
+                }
+                if hidden || broken {
+                    result.push(unavailable(if hidden {
+                        SummaryState::Ignored
+                    } else {
+                        SummaryState::Unavailable
+                    }));
+                    continue;
+                }
+                folder = Some((parent.to_owned(), directory));
+            }
+            let Some((_, directory)) = folder.as_ref() else {
+                continue;
+            };
+            let Ok(before) = directory.symlink_metadata(name) else {
+                result.push(unavailable(SummaryState::Unavailable));
+                continue;
+            };
+            if !before.is_file() || before.file_type().is_symlink() || ignored_name(name) {
+                result.push(unavailable(SummaryState::Unavailable));
+                continue;
+            }
+            let read = read_prefix(directory, name, &before, budget, &include_entry);
+            budget = budget.saturating_sub(read.bytes_read);
+            result.push(match read.result {
+                Ok(sample) => DocumentSummary {
+                    relative_path: path.clone(),
+                    state: SummaryState::Ready,
+                    size: sample.metadata.len(),
+                    modified_at: epoch_millis(sample.metadata.modified().ok()),
+                    created_at: epoch_millis(sample.metadata.created().ok()),
+                    summary: sample.text,
+                    summary_truncated: sample.truncated,
+                },
+                Err(ReadError::Ignored) => unavailable(SummaryState::Ignored),
+                Err(ReadError::Encoding) => unavailable(SummaryState::Unsupported),
+                Err(_) => unavailable(SummaryState::Unavailable),
+            });
+        }
+        if binding != self.display_root_binding()? {
+            return Err(IndexError::Io(std::io::Error::other(
+                "Workspace moved during summary read",
+            )));
+        }
+        Ok(result)
+    }
+
     pub fn list_documents_with_filters(
         &self,
         include_entry: impl Fn(&std::fs::File) -> bool,
         include_document: impl Fn(&str) -> bool,
     ) -> Result<WorkspaceArticlesReport, IndexError> {
-        self.list_documents_filtered_by_type(Limits::default(), &include_document, &include_entry)
+        self.list_documents_filtered_by_type(
+            Limits::default(),
+            Mode::Full,
+            &include_document,
+            &include_entry,
+        )
+    }
+
+    /// Names, sizes and times of every eligible document without reading any content. The
+    /// enumeration's own metadata classifies entries (no per-file call on Windows), and
+    /// `summary` stays empty until `read_document_summaries_with_filters` fills it for
+    /// the rows actually shown.
+    pub fn list_document_index_with_filters(
+        &self,
+        include_entry: impl Fn(&std::fs::File) -> bool,
+        include_document: impl Fn(&str) -> bool,
+    ) -> Result<WorkspaceArticlesReport, IndexError> {
+        self.list_documents_filtered_by_type(
+            Limits::index(),
+            Mode::Index,
+            &include_document,
+            &include_entry,
+        )
     }
     fn list_documents_filtered(
         &self,
@@ -133,6 +298,7 @@ impl Workspace {
     ) -> Result<WorkspaceArticlesReport, IndexError> {
         self.list_documents_filtered_by_type(
             limits,
+            Mode::Full,
             &|name| is_markdown(Path::new(name), extra),
             include_entry,
         )
@@ -141,6 +307,7 @@ impl Workspace {
     fn list_documents_filtered_by_type(
         &self,
         limits: Limits,
+        mode: Mode,
         include_document: &dyn Fn(&str) -> bool,
         include_entry: &dyn Fn(&std::fs::File) -> bool,
     ) -> Result<WorkspaceArticlesReport, IndexError> {
@@ -177,8 +344,9 @@ impl Workspace {
                 result.skipped.ignored += 1;
                 continue;
             }
-            // Re-query via the retained parent capability; dirent types may have become stale.
-            let before = match frame.directory.symlink_metadata(name) {
+            // The enumeration's own metadata: classification costs no extra call per entry on
+            // Windows. Every later open re-verifies the entry through its retained parent.
+            let before = match entry.metadata() {
                 Ok(value) => value,
                 Err(_) => {
                     result.skipped.unreadable += 1;
@@ -195,8 +363,7 @@ impl Workspace {
                 continue;
             }
             if before.is_dir() {
-                let opened =
-                    open_filtered_directory(&frame.directory, name, &before, include_entry);
+                let opened = directory_visible(&frame.directory, name, &before, include_entry);
                 let directory = match opened {
                     Ok(None) => {
                         result.skipped.ignored += 1;
@@ -226,6 +393,35 @@ impl Workspace {
                 break;
             }
             result.scanned_files += 1;
+            if mode == Mode::Index {
+                match file_visible(&frame.directory, name, &before, include_entry) {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        result.skipped.ignored += 1;
+                        continue;
+                    }
+                    Err(_) => {
+                        result.skipped.unreadable += 1;
+                        continue;
+                    }
+                }
+                if result.entries.len() >= limits.documents {
+                    result.truncate(ArticleTruncation::Documents);
+                    break;
+                }
+                result.entries.push(WorkspaceDocument {
+                    name: name.to_owned(),
+                    relative_path: relative,
+                    folder_name: folder_label(&frame.relative, &display_root),
+                    folder_relative_path: frame.relative.clone(),
+                    size: before.len(),
+                    modified_at: epoch_millis(before.modified().ok()),
+                    created_at: epoch_millis(before.created().ok()),
+                    summary: String::new(),
+                    summary_truncated: false,
+                });
+                continue;
+            }
             let read = read_prefix(
                 &frame.directory,
                 name,
@@ -262,19 +458,10 @@ impl Workspace {
                 result.truncate(ArticleTruncation::Documents);
                 break;
             }
-            let folder_name = if frame.relative.is_empty() {
-                display_root
-                    .file_name()
-                    .unwrap_or(display_root.as_os_str())
-                    .to_string_lossy()
-                    .into_owned()
-            } else {
-                frame.relative.rsplit('/').next().unwrap_or("").to_owned()
-            };
             result.entries.push(WorkspaceDocument {
                 name: name.to_owned(),
                 relative_path: relative,
-                folder_name,
+                folder_name: folder_label(&frame.relative, &display_root),
                 folder_relative_path: frame.relative.clone(),
                 size: sample.metadata.len(),
                 modified_at: epoch_millis(sample.metadata.modified().ok()),
@@ -290,12 +477,43 @@ impl Workspace {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    /// Reads a bounded prefix of every document while enumerating.
+    Full,
+    /// Enumerates metadata only.
+    Index,
+}
+
+fn folder_label(relative: &str, display_root: &Path) -> String {
+    if relative.is_empty() {
+        display_root
+            .file_name()
+            .unwrap_or(display_root.as_os_str())
+            .to_string_lossy()
+            .into_owned()
+    } else {
+        relative.rsplit('/').next().unwrap_or("").to_owned()
+    }
+}
+
 struct Limits {
     documents: usize,
     files: usize,
     entries: usize,
     depth: usize,
     bytes: usize,
+}
+impl Limits {
+    fn index() -> Self {
+        Self {
+            documents: MAX_INDEX_DOCUMENTS,
+            files: MAX_INDEX_ENTRIES,
+            entries: MAX_INDEX_ENTRIES,
+            depth: MAX_DEPTH,
+            bytes: MAX_READ_BYTES,
+        }
+    }
 }
 impl Default for Limits {
     fn default() -> Self {
@@ -511,6 +729,9 @@ mod tests {
         );
     }
 
+    // Windows classifies directories and files by attributes without a handle (see `file_visible`),
+    // so the handle callback is a non-Windows host contract.
+    #[cfg(not(windows))]
     #[test]
     fn host_directory_filter_prevents_reading_package_descendants() {
         use std::cell::RefCell;
@@ -883,5 +1104,157 @@ mod tests {
             ))),
             Some(-1500)
         );
+    }
+
+    fn markdown(name: &str) -> bool {
+        is_markdown(Path::new(name), None)
+    }
+
+    #[test]
+    fn index_lists_the_same_documents_without_content_and_summaries_fill_on_demand() {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir_all(root.path().join("中文/子目录")).unwrap();
+        fs::create_dir_all(root.path().join(".cache")).unwrap();
+        fs::create_dir_all(root.path().join("node_modules/pkg")).unwrap();
+        fs::write(root.path().join("Root.MD"), "# Title\r\nBody").unwrap();
+        fs::write(root.path().join("中文/子目录/学习🙂.markdown"), "中文").unwrap();
+        fs::write(root.path().join(".cache/hidden.md"), "hidden").unwrap();
+        fs::write(root.path().join("node_modules/pkg/dependency.md"), "x").unwrap();
+        fs::write(root.path().join("ignored.bin"), "not markdown").unwrap();
+        let workspace = setup(root.path());
+        let full = workspace.list_documents().unwrap();
+        let index = workspace
+            .list_document_index_with_filters(|_| true, markdown)
+            .unwrap();
+        assert!(!index.truncated);
+        assert_eq!(index.read_bytes, 0);
+        assert_eq!(index.entries.len(), full.entries.len());
+        for (listed, read) in index.entries.iter().zip(&full.entries) {
+            assert_eq!(listed.relative_path, read.relative_path);
+            assert_eq!(listed.folder_relative_path, read.folder_relative_path);
+            assert_eq!(listed.folder_name, read.folder_name);
+            assert_eq!(listed.size, read.size);
+            assert!(listed.summary.is_empty() && !listed.summary_truncated);
+        }
+        let paths: Vec<String> = index
+            .entries
+            .iter()
+            .map(|e| e.relative_path.clone())
+            .collect();
+        let summaries = workspace
+            .read_document_summaries_with_filters(&paths, |_| true, markdown)
+            .unwrap();
+        assert_eq!(summaries.len(), full.entries.len());
+        for (summary, read) in summaries.iter().zip(&full.entries) {
+            assert_eq!(summary.state, SummaryState::Ready);
+            assert_eq!(summary.relative_path, read.relative_path);
+            assert_eq!(summary.summary, read.summary);
+            assert_eq!(summary.size, read.size);
+            assert_eq!(summary.modified_at, read.modified_at);
+        }
+    }
+
+    #[test]
+    fn summaries_resolve_each_path_through_the_capability_and_never_trust_the_renderer() {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir_all(root.path().join("a/.private")).unwrap();
+        fs::create_dir(root.path().join("a/b")).unwrap();
+        fs::write(root.path().join("a/b/ok.md"), "ok").unwrap();
+        fs::write(root.path().join("a/.private/secret.md"), "secret").unwrap();
+        fs::write(root.path().join("a/.dot.md"), "dot").unwrap();
+        fs::write(root.path().join("a/data.bin"), "bin").unwrap();
+        fs::write(root.path().join("a/binary.md"), [0xff, 0xfe, 0xfd]).unwrap();
+        let workspace = setup(root.path());
+        let ask = |paths: &[&str]| {
+            let paths: Vec<String> = paths.iter().map(|path| (*path).to_owned()).collect();
+            workspace
+                .read_document_summaries_with_filters(&paths, |_| true, markdown)
+                .unwrap()
+                .into_iter()
+                .map(|item| (item.state, item.summary))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            ask(&[
+                "a/b/ok.md",
+                "a/b/ok.md",
+                "../outside.md",
+                "a//b/ok.md",
+                "a\\b\\ok.md",
+                "a/missing.md",
+                "a/.private/secret.md",
+                "a/.dot.md",
+                "a/data.bin",
+                "a/binary.md",
+                "a/b",
+            ]),
+            vec![
+                (SummaryState::Ready, "ok".to_owned()),
+                (SummaryState::Ready, "ok".to_owned()),
+                (SummaryState::Unavailable, String::new()),
+                (SummaryState::Unavailable, String::new()),
+                (SummaryState::Unavailable, String::new()),
+                (SummaryState::Unavailable, String::new()),
+                (SummaryState::Ignored, String::new()),
+                (SummaryState::Unsupported, String::new()),
+                (SummaryState::Unsupported, String::new()),
+                (SummaryState::Unsupported, String::new()),
+                (SummaryState::Unavailable, String::new()),
+            ]
+        );
+        let too_many = vec!["a/b/ok.md".to_owned(); MAX_SUMMARY_BATCH + 1];
+        assert!(workspace
+            .read_document_summaries_with_filters(&too_many, |_| true, markdown)
+            .is_err());
+    }
+
+    #[test]
+    fn index_keeps_far_more_documents_than_a_full_read_and_reports_its_own_limit() {
+        let root = tempfile::tempdir().unwrap();
+        for index in 0..(MAX_DOCUMENTS + 50) {
+            fs::write(root.path().join(format!("n{index:04}.md")), "x").unwrap();
+        }
+        let workspace = setup(root.path());
+        let full = workspace.list_documents().unwrap();
+        assert_eq!(full.entries.len(), MAX_DOCUMENTS);
+        assert!(full.truncated);
+        let index = workspace
+            .list_document_index_with_filters(|_| true, markdown)
+            .unwrap();
+        assert_eq!(index.entries.len(), MAX_DOCUMENTS + 50);
+        assert!(!index.truncated);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_hidden_and_system_attributes_hide_entries_in_every_listing_without_a_handle() {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir(root.path().join("shown")).unwrap();
+        fs::create_dir(root.path().join("hidden-folder")).unwrap();
+        fs::write(root.path().join("shown/ok.md"), "ok").unwrap();
+        fs::write(root.path().join("hidden.md"), "hidden").unwrap();
+        fs::write(root.path().join("visible.md"), "visible").unwrap();
+        fs::write(root.path().join("hidden-folder/inner.md"), "inner").unwrap();
+        for name in ["hidden.md", "hidden-folder"] {
+            assert!(std::process::Command::new("attrib")
+                .arg("+h")
+                .arg(root.path().join(name))
+                .status()
+                .unwrap()
+                .success());
+        }
+        let workspace = setup(root.path());
+        let listing = workspace.list_directory("").unwrap();
+        let names: Vec<_> = listing.entries.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, ["shown", "visible.md"]);
+        let index = workspace
+            .list_document_index_with_filters(|_| panic!("Windows needs no handle"), markdown)
+            .unwrap();
+        let paths: Vec<_> = index
+            .entries
+            .iter()
+            .map(|e| e.relative_path.as_str())
+            .collect();
+        assert_eq!(paths, ["shown/ok.md", "visible.md"]);
     }
 }

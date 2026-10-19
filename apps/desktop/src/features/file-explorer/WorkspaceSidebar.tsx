@@ -40,6 +40,7 @@ import {
   type RelativeEntryRename,
   relativeEventPath,
 } from './entry-projection.js';
+import { SidebarSkeleton } from './SidebarSkeleton.js';
 import { useWorkspaceCatalog } from './useWorkspaceCatalog.js';
 import { useWorkspaceCreation } from './useWorkspaceCreation.js';
 import { useWorkspaceEntryActions } from './useWorkspaceEntryActions.js';
@@ -885,7 +886,7 @@ export function WorkspaceSidebar({
         </p>
       )}
       {catalogStatus && (
-        <p className="workspace-limit" role="status">
+        <p className="workspace-limit workspace-limit-compact" role="status" title={catalogStatus}>
           {catalogStatus}
         </p>
       )}
@@ -946,11 +947,7 @@ export function WorkspaceSidebar({
           {rename.message}
         </p>
       )}
-      {rename.state?.phase === 'inspecting' && (
-        <p className="workspace-hint" role="status">
-          读取项目…
-        </p>
-      )}
+      {rename.state?.phase === 'inspecting' && <SidebarSkeleton variant="tree" rows={1} />}
       {creation.message && (
         <p className="workspace-error" role="alert">
           {creation.message}

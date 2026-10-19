@@ -26,6 +26,7 @@ import {
   type RelativeEntryRename,
 } from './entry-projection.js';
 import type { FileSidebarPlatform, FileSortType } from './file-preferences.js';
+import { SidebarSkeleton } from './SidebarSkeleton.js';
 import { WorkspaceGlyph } from './WorkspaceGlyph.js';
 
 interface TreeProps {
@@ -256,10 +257,8 @@ function DirectoryBranch({ relativePath, ...props }: TreeState & { relativePath:
 
   return (
     <div className="workspace-branch" aria-busy={loading}>
-      {loading && (
-        <p className="workspace-hint" role="status">
-          读取目录…
-        </p>
+      {loading && entries.length === 0 && (
+        <SidebarSkeleton variant="tree" rows={props.rootRow || relativePath === '' ? 6 : 2} />
       )}
       {error && (
         <div className="workspace-error" role="alert">

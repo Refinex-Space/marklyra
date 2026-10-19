@@ -12,6 +12,7 @@ import type { SavedDocumentPreview } from '../../services/documents.js';
 import {
   type WorkspaceArticlesReport,
   type WorkspaceDocument,
+  type WorkspaceDocumentSummary,
   type WorkspaceFolder,
   workspaces,
 } from '../../services/workspaces.js';
@@ -33,6 +34,11 @@ import {
   type RelativeEntryRename,
 } from './entry-projection.js';
 import type { FileSidebarPlatform, FileSortType } from './file-preferences.js';
+import { SidebarSkeleton, SummarySkeleton } from './SidebarSkeleton.js';
+
+/** Rows drawn per step while scrolling, and previews requested per call. */
+const PAGE_SIZE = 120;
+const SUMMARY_BATCH = 48;
 
 interface Props {
   compact?: boolean;
@@ -93,6 +99,9 @@ interface CardProps {
   tabIndex: 0 | -1;
   disabled: boolean;
   now: Date;
+  /** The preview has not been read yet: draw placeholder lines and ask to be loaded. */
+  summaryPending: boolean;
+  register: (path: string, element: HTMLLIElement | null) => void;
   onFocusPath: (path: string) => void;
   onOpen: (path: string) => void;
   creation?: CreationEditor | undefined;
@@ -106,12 +115,19 @@ const ArticleCard = memo(function ArticleCard({
   tabIndex,
   disabled,
   now,
+  summaryPending,
+  register,
   onFocusPath,
   onOpen,
   creation,
   highlighted = false,
 }: CardProps) {
   const extension = entry.name.lastIndexOf('.');
+  const path = entry.relativePath;
+  const attach = useCallback(
+    (element: HTMLLIElement | null) => register(path, element),
+    [register, path],
+  );
   const diskSummary = useMemo(() => articleSummary(entry.summary), [entry.summary]);
   const liveSummary = useMemo(
     () => (activeSource === undefined ? undefined : articleSummary(activeSource.slice(0, 500))),
@@ -144,11 +160,13 @@ const ArticleCard = memo(function ArticleCard({
           entry.name
         )}
       </span>
-      <span className="workspace-article-summary">{liveSummary ?? diskSummary}</span>
+      <span className="workspace-article-summary">
+        {liveSummary ?? (summaryPending ? <SummarySkeleton /> : diskSummary)}
+      </span>
     </>
   );
   return (
-    <li>
+    <li ref={summaryPending ? attach : undefined}>
       {editing ? (
         <div
           className="workspace-article workspace-article-editing"
@@ -236,6 +254,26 @@ export function WorkspaceArticles({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const [summaries, setSummaries] = useState<ReadonlyMap<string, WorkspaceDocumentSummary>>(
+    () => new Map(),
+  );
+  const navigation = useRef<HTMLElement | null>(null);
+  const sentinel = useRef<HTMLLIElement | null>(null);
+  const previewRows = useRef(new Map<string, HTMLLIElement>());
+  const preview = useRef<{
+    generation: unknown;
+    requested: Set<string>;
+    wanted: Set<string>;
+    timer: number | undefined;
+    observer: IntersectionObserver | null;
+  }>({
+    generation: null,
+    requested: new Set(),
+    wanted: new Set(),
+    timer: undefined,
+    observer: null,
+  });
   const [focusPath, setFocusPath] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const cached = useRef('');
@@ -307,6 +345,95 @@ export function WorkspaceArticles({
     }
     observedSaved.current = { id, path, prefix };
   }, [id, requestKey, activePath, activeSavedSource, disabled, pathKey]);
+  // A new listing owns new previews and starts again from the first page of rows.
+  useEffect(() => {
+    window.clearTimeout(preview.current.timer);
+    preview.current = {
+      generation: report,
+      requested: new Set(),
+      wanted: new Set(),
+      timer: undefined,
+      observer: preview.current.observer,
+    };
+    setSummaries(new Map());
+    setShown(PAGE_SIZE);
+  }, [report]);
+  const flushPreviews = useCallback(() => {
+    const state = preview.current;
+    state.timer = undefined;
+    const generation = state.generation;
+    const batch = [...state.wanted].slice(0, SUMMARY_BATCH);
+    for (const path of batch) {
+      state.wanted.delete(path);
+      state.requested.add(path);
+    }
+    if (state.wanted.size > 0) state.timer = window.setTimeout(flushPreviews, 30);
+    if (batch.length === 0) return;
+    const blank = (path: string, state: WorkspaceDocumentSummary['state']) => ({
+      relativePath: path,
+      state,
+      size: 0,
+      modifiedAt: null,
+      createdAt: null,
+      summary: '',
+      summaryTruncated: false,
+    });
+    const publish = (read: (path: string) => WorkspaceDocumentSummary) => {
+      if (preview.current.generation !== generation) return;
+      setSummaries((current) => {
+        const next = new Map(current);
+        for (const path of batch) next.set(path, read(path));
+        return next;
+      });
+    };
+    void workspaces.articleSummaries(id, batch).then(
+      (result) => {
+        // Older hosts and test doubles have no preview command: keep rows as listed.
+        const byPath = new Map((result ?? []).map((item) => [item.relativePath, item]));
+        publish((path) => byPath.get(path) ?? blank(path, result ? 'unavailable' : 'ready'));
+      },
+      // A failed read leaves the row without a preview instead of placeholders forever.
+      () => publish((path) => blank(path, 'ready')),
+    );
+  }, [id]);
+  const registerRow = useCallback((path: string, element: HTMLLIElement | null) => {
+    const rows = previewRows.current;
+    const known = rows.get(path);
+    if (known && known !== element) preview.current.observer?.unobserve(known);
+    if (!element) {
+      rows.delete(path);
+      return;
+    }
+    element.dataset.summaryPath = path;
+    rows.set(path, element);
+    preview.current.observer?.observe(element);
+  }, []);
+  useEffect(() => {
+    if (!active || !report) return;
+    const state = preview.current;
+    const observer = new IntersectionObserver(
+      (records) => {
+        for (const record of records) {
+          const path = (record.target as HTMLElement).dataset.summaryPath;
+          if (!record.isIntersecting || !path || state.requested.has(path)) continue;
+          state.wanted.add(path);
+          if (state.timer === undefined) state.timer = window.setTimeout(flushPreviews, 30);
+        }
+      },
+      {
+        root: navigation.current?.closest('.workspace-panel, .sidebar-panel') ?? null,
+        rootMargin: '360px 0px',
+      },
+    );
+    state.observer = observer;
+    for (const row of previewRows.current.values()) observer.observe(row);
+    return () => {
+      observer.disconnect();
+      if (state.observer === observer) state.observer = null;
+      window.clearTimeout(state.timer);
+      state.timer = undefined;
+    };
+  }, [active, report, flushPreviews]);
   const openLatest = useRef(onOpen);
   openLatest.current = onOpen;
   const open = useCallback((path: string) => openLatest.current(path), []);
@@ -371,7 +498,12 @@ export function WorkspaceArticles({
   useLayoutEffect(() => {
     onNestedContent?.(showFolders);
   }, [onNestedContent, showFolders]);
-  const visibleEntries = [...entries];
+  // Previews are read for the rows being shown. A document the host reports as hidden,
+  // unsupported or gone leaves the list, exactly as the former full read skipped it.
+  const visibleEntries = entries.filter((entry) => {
+    const known = summaries.get(entry.relativePath);
+    return !known || known.state === 'ready';
+  });
   const created = creation?.state?.view === 'articles' ? creation.state.entry : undefined;
   if (created?.kind === 'file') {
     const folderRelativePath = parentPath(created.relativePath);
@@ -390,6 +522,40 @@ export function WorkspaceArticles({
     if (index < 0) visibleEntries.push(item);
     else visibleEntries[index] = item;
   }
+  const withPreview = (entry: WorkspaceDocument): WorkspaceDocument => {
+    const known = summaries.get(entry.relativePath);
+    return known?.state === 'ready' && known.summary !== ''
+      ? { ...entry, summary: known.summary, summaryTruncated: known.summaryTruncated }
+      : entry;
+  };
+  // Rows are drawn a page at a time while scrolling; a row that must stay reachable
+  // (the one being created, highlighted or focused) is always included.
+  const required = new Set(
+    [created?.relativePath, highlightPath, focusPath].filter(
+      (path): path is string => path !== undefined && path !== null,
+    ),
+  );
+  const renderedEntries = visibleEntries.filter(
+    (entry, index) => index < shown || required.has(entry.relativePath),
+  );
+  const total = visibleEntries.length;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a fresh observer reports the sentinel again after every page.
+  useEffect(() => {
+    const target = sentinel.current;
+    if (!target || !active) return;
+    const observer = new IntersectionObserver(
+      (records) => {
+        if (records.some((record) => record.isIntersecting))
+          setShown((current) => Math.min(current + PAGE_SIZE, total));
+      },
+      {
+        root: navigation.current?.closest('.workspace-panel, .sidebar-panel') ?? null,
+        rootMargin: '480px 0px',
+      },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [active, shown, total]);
   const skipped = report
     ? report.skipped.symlinks +
       report.skipped.unsupportedNames +
@@ -398,16 +564,13 @@ export function WorkspaceArticles({
     : 0;
   return (
     <nav
+      ref={navigation}
       className={`workspace-articles${showFolders ? ' workspace-articles-folders' : ''}`}
       aria-label={`${workspace.name} 文档列表`}
       aria-busy={loading}
       onKeyDown={(event) => articleKey(event, typing.current)}
     >
-      {loading && (
-        <p className="workspace-hint" role="status">
-          读取文档…
-        </p>
-      )}
+      {loading && !report && <SidebarSkeleton variant="articles" />}
       {error && (
         <div className="workspace-error" role="alert">
           <span>{error}</span>
@@ -420,7 +583,7 @@ export function WorkspaceArticles({
         <p className="workspace-hint">没有支持的文档</p>
       )}
       <ul className="workspace-article-list">
-        {visibleEntries.map((entry, index) => {
+        {renderedEntries.map((entry, index) => {
           const path = `${pathKey(workspace.path).replace(/\/+$/, '')}/${entry.relativePath}`;
           const selected = workspacePathIsActive(
             workspace.path,
@@ -431,7 +594,7 @@ export function WorkspaceArticles({
           return (
             <ArticleCard
               key={entryKey?.(entry.relativePath) ?? entry.relativePath}
-              entry={entry}
+              entry={withPreview(entry)}
               workspaceName={workspace.name}
               selected={selected}
               activeSource={
@@ -446,6 +609,8 @@ export function WorkspaceArticles({
               }
               disabled={disabled}
               now={now}
+              summaryPending={entry.summary === '' && !summaries.has(entry.relativePath)}
+              register={registerRow}
               onFocusPath={setFocusPath}
               onOpen={open}
               creation={creation}
@@ -453,6 +618,9 @@ export function WorkspaceArticles({
             />
           );
         })}
+        {renderedEntries.length < visibleEntries.length && (
+          <li ref={sentinel} className="workspace-article-sentinel" aria-hidden="true" />
+        )}
       </ul>
       {report && skipped > 0 && (
         <p className="workspace-hint">已跳过 {skipped} 个符号链接、不可读或不支持的条目。</p>

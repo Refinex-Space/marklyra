@@ -2,8 +2,8 @@ use super::require_window;
 use crate::window_services::WindowServices;
 use document_service::DocumentPayload;
 use file_index::{
-    DirectoryListing, SearchOptions, SearchReport, Workspace, WorkspaceArticlesReport,
-    WorkspaceCatalogSnapshot, WorkspacePayload, WorkspaceRegistry,
+    DirectoryListing, DocumentSummary, SearchOptions, SearchReport, Workspace,
+    WorkspaceArticlesReport, WorkspaceCatalogSnapshot, WorkspacePayload, WorkspaceRegistry,
 };
 use std::sync::{Arc, Mutex};
 use tauri::WebviewWindow;
@@ -71,6 +71,39 @@ fn read_workspace<T>(
     Ok(report)
 }
 
+/// Every eligible document by metadata only; previews arrive per visible row.
+fn collect_document_index(
+    registry: &Workspaces,
+    id: &str,
+    types: &crate::file_preferences::file_types::DocumentTypes,
+    verify_window: impl Fn() -> Result<(), String>,
+) -> Result<WorkspaceArticlesReport, String> {
+    read_workspace(registry, id, verify_window, |selected| {
+        selected.list_document_index_with_filters(
+            crate::platform::file_metadata::include_entry,
+            |name| types.allows(std::path::Path::new(name)),
+        )
+    })
+}
+
+fn collect_document_summaries(
+    registry: &Workspaces,
+    id: &str,
+    paths: &[String],
+    types: &crate::file_preferences::file_types::DocumentTypes,
+    verify_window: impl Fn() -> Result<(), String>,
+) -> Result<Vec<DocumentSummary>, String> {
+    read_workspace(registry, id, verify_window, |selected| {
+        selected.read_document_summaries_with_filters(
+            paths,
+            crate::platform::file_metadata::include_entry,
+            |name| types.allows(std::path::Path::new(name)),
+        )
+    })
+}
+
+/// Full read of every document's prefix; kept as the reference the lazy path must agree with.
+#[cfg(test)]
 fn collect_documents(
     registry: &Workspaces,
     id: &str,
@@ -212,12 +245,35 @@ pub async fn list_workspace_documents(
         let types = app
             .state::<crate::file_preferences::FilePreferencesHost>()
             .document_types(&app)?;
-        collect_documents(&registry, &workspace_id, &types, || {
+        collect_document_index(&registry, &workspace_id, &types, || {
             verify_workspace_window(&window, &registry)
         })
     })
     .await
     .map_err(|_| "读取文章列表任务未能完成".to_owned())?
+}
+
+/// Previews for the rows being shown: at most `MAX_SUMMARY_BATCH` already-listed paths, each
+/// re-resolved through the workspace capability.
+#[tauri::command]
+pub async fn read_workspace_document_summaries(
+    workspace_id: String,
+    relative_paths: Vec<String>,
+    window: WebviewWindow,
+    services: State<'_, WindowServices>,
+) -> Result<Vec<DocumentSummary>, String> {
+    let registry = services.get_workspaces(window.label())?;
+    let app = window.app_handle().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let types = app
+            .state::<crate::file_preferences::FilePreferencesHost>()
+            .document_types(&app)?;
+        collect_document_summaries(&registry, &workspace_id, &relative_paths, &types, || {
+            verify_workspace_window(&window, &registry)
+        })
+    })
+    .await
+    .map_err(|_| "读取文档预览任务未能完成".to_owned())?
 }
 
 #[tauri::command]
@@ -665,6 +721,60 @@ mod tests {
             std::fs::read_to_string(temporary.path().join("article.md")).unwrap(),
             "read-only article"
         );
+    }
+
+    #[test]
+    fn index_and_summaries_use_the_same_window_registry_and_type_policy() {
+        let temporary = tempfile::tempdir().unwrap();
+        std::fs::write(temporary.path().join("article.md"), "lazy article").unwrap();
+        std::fs::write(temporary.path().join("custom.vault"), "custom source").unwrap();
+        let services = WindowServices::default();
+        services.register("main").unwrap();
+        services.register("editor-other").unwrap();
+        let own = services.get_workspaces("main").unwrap();
+        let foreign = services.get_workspaces("editor-other").unwrap();
+        let selected = own
+            .lock()
+            .unwrap()
+            .select_authorized(temporary.path())
+            .unwrap();
+        let types = crate::file_preferences::file_types::DocumentTypes::default();
+        let custom = crate::file_preferences::file_types::DocumentTypes {
+            custom_extension: "vault".into(),
+            ..Default::default()
+        };
+        assert!(collect_document_index(&foreign, &selected.id, &types, || Ok(())).is_err());
+        let index = collect_document_index(&own, &selected.id, &types, || Ok(())).unwrap();
+        assert_eq!(index.entries.len(), 1);
+        assert!(index.entries[0].summary.is_empty());
+        assert_eq!(index.read_bytes, 0);
+        let paths = vec!["article.md".to_owned(), "custom.vault".to_owned()];
+        assert!(
+            collect_document_summaries(&foreign, &selected.id, &paths, &types, || Ok(())).is_err()
+        );
+        let read =
+            collect_document_summaries(&own, &selected.id, &paths, &types, || Ok(())).unwrap();
+        assert_eq!(read[0].summary, "lazy article");
+        assert_eq!(read[1].summary, "");
+        let with_custom =
+            collect_document_summaries(&own, &selected.id, &paths, &custom, || Ok(())).unwrap();
+        assert_eq!(with_custom[1].summary, "custom source");
+        assert_eq!(
+            collect_document_index(&own, &selected.id, &custom, || Ok(()))
+                .unwrap()
+                .entries
+                .len(),
+            2
+        );
+        let calls = Cell::new(0);
+        let late = collect_document_summaries(&own, &selected.id, &paths, &types, || {
+            calls.set(calls.get() + 1);
+            if calls.get() == 2 {
+                own.lock().unwrap().close(&selected.id);
+            }
+            Ok(())
+        });
+        assert!(late.is_err());
     }
 
     #[test]

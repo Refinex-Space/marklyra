@@ -217,6 +217,7 @@ pub fn run() {
             commands::workspaces::list_directory,
             commands::workspaces::snapshot_workspace,
             commands::workspaces::list_workspace_documents,
+            commands::workspaces::read_workspace_document_summaries,
             commands::workspaces::open_workspace_document,
             commands::workspaces::search_workspace,
             commands::workspaces::close_workspace,

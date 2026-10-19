@@ -95,6 +95,16 @@ export interface WorkspaceDocument {
   summary: string;
   summaryTruncated: boolean;
 }
+/** One preview read for a row that became visible; `ignored` rows are hidden by the host. */
+export interface WorkspaceDocumentSummary {
+  relativePath: string;
+  state: 'ready' | 'ignored' | 'unavailable' | 'unsupported';
+  size: number;
+  modifiedAt: number | null;
+  createdAt: number | null;
+  summary: string;
+  summaryTruncated: boolean;
+}
 export interface WorkspaceArticlesReport {
   entries: WorkspaceDocument[];
   truncated: boolean;
@@ -229,6 +239,12 @@ export const workspaces = {
     invoke<WorkspaceCatalogSnapshot | null>('snapshot_workspace', { workspaceId }),
   articles: (workspaceId: string) =>
     invoke<WorkspaceArticlesReport>('list_workspace_documents', { workspaceId }),
+  /** Previews for at most 64 already-listed documents; the listing itself carries no content. */
+  articleSummaries: (workspaceId: string, relativePaths: string[]) =>
+    invoke<WorkspaceDocumentSummary[] | null>('read_workspace_document_summaries', {
+      workspaceId,
+      relativePaths,
+    }),
   open: (workspaceId: string, relativePath: string) =>
     invoke<DocumentFile>('open_workspace_document', { workspaceId, relativePath }),
   search: (

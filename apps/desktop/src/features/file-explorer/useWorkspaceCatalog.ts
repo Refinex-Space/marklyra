@@ -6,6 +6,8 @@ import {
   workspaces,
 } from '../../services/workspaces.js';
 
+const POLL_MS = 2000;
+
 /** Metadata-only, bounded checks. Each generation owns at most one pending invocation. */
 export function useWorkspaceCatalog(workspace: WorkspaceFolder | null, changed: () => void) {
   const notify = useRef(changed);
@@ -22,8 +24,16 @@ export function useWorkspaceCatalog(workspace: WorkspaceFolder | null, changed: 
     let timer: ReturnType<typeof setTimeout> | undefined;
     let fingerprint: string | undefined;
     let previousTruncated: boolean | undefined;
+    let delay = POLL_MS;
     const check = async () => {
+      timer = undefined;
       let supported = true;
+      // A hidden window has nobody to refresh for; the next visible moment checks at once.
+      if (document.hidden) {
+        timer = setTimeout(() => void check(), delay);
+        return;
+      }
+      const started = performance.now();
       try {
         const snapshot: WorkspaceCatalogSnapshot | null = await workspaces.catalogSnapshot(id);
         if (!live) return;
@@ -46,10 +56,12 @@ export function useWorkspaceCatalog(workspace: WorkspaceFolder | null, changed: 
         fingerprint = snapshot.fingerprint;
         previousTruncated = snapshot.truncated;
         const messages: string[] = [];
-        if (snapshot.truncated) {
-          const reasons = snapshot.truncationReasons.map((reason) =>
-            reason === 'entries' ? '条目数' : reason === 'depth' ? '目录深度' : '扫描时间',
-          );
+        // Running out of time only means a very large tree; the next pass covers it again, so
+        // it is never worth a message. Entry and depth ceilings are permanent and are reported.
+        const reasons = snapshot.truncationReasons
+          .filter((reason) => reason !== 'time')
+          .map((reason) => (reason === 'entries' ? '条目数' : '目录深度'));
+        if (snapshot.truncated && reasons.length > 0) {
           messages.push(
             `目录变化检查已达到${reasons.join('、') || '扫描'}上限，已检查 ${snapshot.scannedEntries} 个条目。自动刷新已暂停；请手动刷新或选择更小的目录。`,
           );
@@ -62,12 +74,22 @@ export function useWorkspaceCatalog(workspace: WorkspaceFolder | null, changed: 
       } catch (reason) {
         if (live) setStatus(`目录变化检查失败：${String(reason)}。稍后重试；可手动刷新目录。`);
       } finally {
-        if (live && supported) timer = setTimeout(() => void check(), 2000);
+        // The poll never costs more than a third of the host: slow trees wait longer.
+        delay = Math.max(POLL_MS, Math.round((performance.now() - started) * 2));
+        if (live && supported) timer = setTimeout(() => void check(), delay);
       }
     };
     void check();
+    const visible = () => {
+      // Only a waiting poll is brought forward; a scan in flight is never doubled.
+      if (document.hidden || !live || timer === undefined) return;
+      clearTimeout(timer);
+      void check();
+    };
+    document.addEventListener('visibilitychange', visible);
     return () => {
       live = false;
+      document.removeEventListener('visibilitychange', visible);
       if (timer !== undefined) clearTimeout(timer);
     };
   }, [id, path, revision]);

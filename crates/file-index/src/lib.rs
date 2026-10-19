@@ -15,7 +15,10 @@ mod relocation;
 mod relocation_tests;
 mod removal;
 mod search;
-pub use articles::{ArticleSkipped, ArticleTruncation, WorkspaceArticlesReport, WorkspaceDocument};
+pub use articles::{
+    ArticleSkipped, ArticleTruncation, DocumentSummary, SummaryState, WorkspaceArticlesReport,
+    WorkspaceDocument, MAX_SUMMARY_BATCH,
+};
 pub use catalog::WorkspaceCatalogSnapshot;
 pub use creation::{CreatedWorkspaceEntry, CreationRenamePlan};
 pub use duplicate::{EntryDuplicateReceipt, EntryDuplicateResolution};
@@ -415,7 +418,8 @@ impl Workspace {
                 result.ignored += 1;
                 continue;
             }
-            let Ok(metadata) = directory.symlink_metadata(name) else {
+            // The enumeration's own metadata: classification costs no extra call per entry.
+            let Ok(metadata) = entry.metadata() else {
                 result.skipped += 1;
                 continue;
             };
@@ -436,20 +440,9 @@ impl Workspace {
                 continue;
             };
             let included = if kind == EntryKind::Directory {
-                open_filtered_directory(&directory, name, &metadata, &include_entry)
-                    .map(|opened| opened.is_some())
+                directory_shown(&directory, name, &metadata, &include_entry)
             } else {
-                directory.open(name).and_then(|file| {
-                    let opened = file.metadata()?;
-                    let after = directory.symlink_metadata(name)?;
-                    if after.file_type().is_symlink()
-                        || !articles::same_metadata(&metadata, &opened)
-                        || !articles::same_metadata(&metadata, &after)
-                    {
-                        return Err(std::io::Error::other("File changed during enumeration"));
-                    }
-                    Ok(include_entry(&file.into_std()))
-                })
+                file_visible(&directory, name, &metadata, &include_entry)
             };
             match included {
                 Ok(true) => {}
@@ -534,6 +527,89 @@ impl Workspace {
 
 pub(crate) fn ignored_name(name: &str) -> bool {
     name.starts_with('.') || name == "node_modules"
+}
+
+/// Windows hides entries by file attributes, which the enumeration already carries.
+#[cfg(windows)]
+fn hidden_by_attributes(metadata: &cap_std::fs::Metadata) -> bool {
+    use cap_std::fs::MetadataExt;
+    // FILE_ATTRIBUTE_HIDDEN (0x2) | FILE_ATTRIBUTE_SYSTEM (0x4), as Explorer treats them.
+    metadata.file_attributes() & 0x6 != 0
+}
+
+/// Whether a file found by enumeration is shown. Windows decides from the attributes of the
+/// directory entry itself, so classifying a name costs no system call per file. Other hosts
+/// open the entry through its retained parent and ask the host filter, which needs a handle.
+pub(crate) fn file_visible(
+    directory: &Dir,
+    name: &str,
+    metadata: &cap_std::fs::Metadata,
+    include_entry: &dyn Fn(&std::fs::File) -> bool,
+) -> std::io::Result<bool> {
+    #[cfg(windows)]
+    {
+        let _ = (directory, name, include_entry);
+        Ok(!hidden_by_attributes(metadata))
+    }
+    #[cfg(not(windows))]
+    {
+        let file = directory.open(name)?;
+        let opened = file.metadata()?;
+        let after = directory.symlink_metadata(name)?;
+        if after.file_type().is_symlink()
+            || !articles::same_metadata(metadata, &opened)
+            || !articles::same_metadata(metadata, &after)
+        {
+            return Err(std::io::Error::other("File changed during enumeration"));
+        }
+        Ok(include_entry(&file.into_std()))
+    }
+}
+
+/// Whether a listed subdirectory is shown, without keeping a handle to it.
+pub(crate) fn directory_shown(
+    parent: &Dir,
+    name: &str,
+    metadata: &cap_std::fs::Metadata,
+    include_entry: &dyn Fn(&std::fs::File) -> bool,
+) -> std::io::Result<bool> {
+    #[cfg(windows)]
+    {
+        let _ = (parent, name, include_entry);
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return Err(std::io::Error::other("Expected a non-symlink directory"));
+        }
+        Ok(!hidden_by_attributes(metadata))
+    }
+    #[cfg(not(windows))]
+    {
+        open_filtered_directory(parent, name, metadata, include_entry)
+            .map(|opened| opened.is_some())
+    }
+}
+
+/// Opens a subdirectory for descent, or reports that the host hides it.
+pub(crate) fn directory_visible(
+    parent: &Dir,
+    name: &str,
+    metadata: &cap_std::fs::Metadata,
+    include_entry: &dyn Fn(&std::fs::File) -> bool,
+) -> std::io::Result<Option<Dir>> {
+    #[cfg(windows)]
+    {
+        let _ = include_entry;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return Err(std::io::Error::other("Expected a non-symlink directory"));
+        }
+        if hidden_by_attributes(metadata) {
+            return Ok(None);
+        }
+        parent.open_dir(name).map(Some)
+    }
+    #[cfg(not(windows))]
+    {
+        open_filtered_directory(parent, name, metadata, include_entry)
+    }
 }
 
 /// Open relative to the retained parent, verify the same object, then consult host metadata.
