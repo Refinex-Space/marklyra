@@ -54,9 +54,26 @@ function escaped(source: string, offset: number): boolean {
   while (offset > 0 && source[--offset] === '\\') count++;
   return count % 2 === 1;
 }
+/** CommonMark underscore delimiters cannot open or close inside words. */
+function underscoreEdges(source: string, start: number, end: number, from: number, to: number) {
+  // Read code points without changing the parser's UTF-16 source coordinates.
+  const before = Array.from(source.slice(Math.max(from, start - 2), start)).at(-1) ?? '';
+  const after = end < to ? String.fromCodePoint(source.codePointAt(end) ?? 32) : '';
+  const beforeSpace = !before || /\s/u.test(before);
+  const afterSpace = !after || /\s/u.test(after);
+  const beforePunctuation = /[\p{P}\p{S}]/u.test(before);
+  const afterPunctuation = /[\p{P}\p{S}]/u.test(after);
+  const left = !afterSpace && (!afterPunctuation || beforeSpace || beforePunctuation);
+  const right = !beforeSpace && (!beforePunctuation || afterSpace || afterPunctuation);
+  return {
+    open: left && (!right || beforePunctuation),
+    close: right && (!left || afterPunctuation),
+  };
+}
 /** A deliberately bounded inline parser. Unsupported syntax stays exact source text. */
 export function parseInline(source: string, from: number, to: number, depth = 0): Inline[] {
   const nodes: Inline[] = [];
+  const underscoreCloses = new Map<string, { from: number; close: number }>();
   let textStart = from;
   const plain = (end: number) => {
     if (end > textStart)
@@ -73,6 +90,14 @@ export function parseInline(source: string, from: number, to: number, depth = 0)
     return [{ kind: 'text', from, to, contentFrom: from, contentTo: to, children: [] }];
   for (let i = from; i < to; i++) {
     if (escaped(source, i)) continue;
+    let underscoreEnd = i;
+    if (source[i] === '_') {
+      while (underscoreEnd < to && source[underscoreEnd] === '_') underscoreEnd++;
+      if (!underscoreEdges(source, i, underscoreEnd, from, to).open) {
+        i = underscoreEnd - 1;
+        continue;
+      }
+    }
     let kind: InlineKind | undefined;
     let marker = '';
     if (source.startsWith('**', i) || source.startsWith('__', i)) {
@@ -89,9 +114,25 @@ export function parseInline(source: string, from: number, to: number, depth = 0)
       marker = source[i] ?? '*';
     }
     if (kind && !/\s/.test(source[i + marker.length] ?? ' ')) {
-      let close = source.indexOf(marker, i + marker.length);
-      while (close >= 0 && escaped(source, close))
-        close = source.indexOf(marker, close + marker.length);
+      const searchFrom = Math.max(i + marker.length, underscoreEnd);
+      const cached = marker[0] === '_' ? underscoreCloses.get(marker) : undefined;
+      // Reuse failed searches so a long list of unmatched identifiers stays linear.
+      let close =
+        cached && searchFrom >= cached.from && (cached.close < 0 || cached.close >= searchFrom)
+          ? cached.close
+          : source.indexOf(marker, searchFrom);
+      while (close >= 0 && close + marker.length <= to) {
+        if (escaped(source, close)) {
+          close = source.indexOf(marker, close + marker.length);
+          continue;
+        }
+        if (marker[0] !== '_') break;
+        let end = close + marker.length;
+        while (end < to && source[end] === '_') end++;
+        if (underscoreEdges(source, close, end, from, to).close) break;
+        close = source.indexOf(marker, end);
+      }
+      if (marker[0] === '_') underscoreCloses.set(marker, { from: searchFrom, close });
       if (
         close > i + marker.length &&
         close + marker.length <= to &&

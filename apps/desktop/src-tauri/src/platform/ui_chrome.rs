@@ -128,6 +128,8 @@ pub struct ChromeUpdate {
     #[serde(default)]
     outline_panel_open: bool,
     #[serde(default)]
+    ai_panel_open: bool,
+    #[serde(default)]
     source_mode: Option<bool>,
 }
 
@@ -178,6 +180,7 @@ pub(super) struct DocumentChrome {
     always_show_word_count: bool,
     dark: bool,
     outline_panel_open: bool,
+    ai_panel_open: bool,
     source_mode: Option<bool>,
 }
 
@@ -237,6 +240,7 @@ fn document_chrome(
         always_show_word_count: update.always_show_word_count,
         dark: update.dark,
         outline_panel_open: update.outline_panel_open,
+        ai_panel_open: update.ai_panel_open,
         source_mode: update.source_mode,
     })
 }
@@ -326,6 +330,7 @@ pub async fn update_editor_chrome(
             update.always_show_word_count,
             update.dark,
             update.outline_panel_open,
+            update.ai_panel_open,
             update.source_mode,
         );
         Ok(())
@@ -645,6 +650,7 @@ mod tests {
             always_show_word_count: true,
             dark: false,
             outline_panel_open: false,
+            ai_panel_open: false,
             source_mode: None,
         };
         let value = document_chrome(&services, "main", payload()).unwrap();
@@ -703,6 +709,7 @@ mod tests {
                     always_show_word_count: true,
                     dark: false,
                     outline_panel_open: false,
+                    ai_panel_open: false,
                     source_mode: None,
                 }
             )
@@ -755,6 +762,7 @@ mod tests {
             always_show_word_count: true,
             dark: false,
             outline_panel_open: false,
+            ai_panel_open: false,
             source_mode: Some(false),
         };
         let chrome = document_chrome(&services, "main", payload())

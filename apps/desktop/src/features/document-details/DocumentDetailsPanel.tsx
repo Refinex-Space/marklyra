@@ -11,6 +11,7 @@ export function DocumentDetailsPanel({
   finishTransition,
   elementRef,
   children,
+  mode = 'outline',
 }: {
   open: boolean;
   width: number;
@@ -20,6 +21,7 @@ export function DocumentDetailsPanel({
   finishTransition: () => void;
   elementRef: Ref<HTMLElement>;
   children: ReactNode;
+  mode?: 'outline' | 'ai';
 }) {
   const [dragging, setDragging] = useState(false);
   useEffect(() => {
@@ -28,7 +30,8 @@ export function DocumentDetailsPanel({
   return (
     <aside
       className="document-details-panel"
-      aria-label="文档目录"
+      aria-label={mode === 'ai' ? 'AI 助手侧栏' : '文档目录'}
+      data-mode={mode}
       aria-hidden={!open}
       inert={!open}
       data-open={open || undefined}
@@ -40,15 +43,27 @@ export function DocumentDetailsPanel({
       }}
     >
       <div className="document-details-body">
-        <header className="document-details-header">目录</header>
-        <div className="document-details-scroll-mask">
-          <div id="document-details-content" className="document-details-content sidebar-panel">
+        <header className="document-details-header" hidden={mode === 'ai'}>
+          目录
+        </header>
+        <div
+          className={mode === 'ai' ? 'document-details-ai-mask' : 'document-details-scroll-mask'}
+        >
+          <div
+            id="document-details-content"
+            className={
+              mode === 'ai'
+                ? 'document-details-ai-content'
+                : 'document-details-content sidebar-panel'
+            }
+          >
             {children}
           </div>
         </div>
       </div>
       {open && (
         <DocumentDetailsResize
+          label={mode === 'ai' ? '调整 AI 面板宽度' : '调整目录宽度'}
           width={width}
           minimum={minimum}
           maximum={maximum}

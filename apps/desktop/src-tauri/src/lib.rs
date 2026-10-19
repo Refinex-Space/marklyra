@@ -1,3 +1,4 @@
+pub mod agents;
 mod app_paths;
 mod application_preferences;
 mod clipboard;
@@ -53,7 +54,36 @@ pub fn run() {
             runtime_assets::handle(context.app_handle(), context.webview_label(), &request)
         })
         .plugin(tauri_plugin_dialog::init())
+        .manage(agents::AgentHostState::default())
         .invoke_handler(tauri::generate_handler![
+            agents::auth::agent_auth_start,
+            agents::auth::agent_auth_io,
+            agents::agent_prepare_scope,
+            agents::image_preview::agent_preview_image,
+            agents::attachments::agent_discard_attachments,
+            agents::attachments::agent_import_dropped_attachments,
+            agents::attachments::agent_store_attachments,
+            agents::attachments::agent_read_attachment,
+            agents::attachments::agent_clipboard_attachments,
+            agents::agent_catalog,
+            agents::agent_install,
+            agents::agent_use_local,
+            agents::agent_select_program,
+            agents::agent_save_profile,
+            agents::agent_set_secret,
+            agents::agent_uninstall,
+            agents::agent_connect,
+            agents::agent_send,
+            agents::agent_disconnect,
+            agents::agent_client_operation,
+            agents::agent_history,
+            agents::agent_manage_session,
+            agents::agent_read_session,
+            agents::agent_save_session,
+            agents::agent_cancel_install,
+            agents::agent_install_status,
+            agents::process::agent_context,
+            agents::mcp::agent_tool_respond,
             editor_commands::register_editor_command_context,
             editor_commands::editor_command_fence,
             menu::state::sync_editor_menu_state,
@@ -222,6 +252,9 @@ pub fn run() {
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 window
+                    .state::<agents::AgentHostState>()
+                    .shutdown_window(window.label());
+                window
                     .state::<menu::state::MenuStates>()
                     .release(window.label());
             }
@@ -253,7 +286,10 @@ pub fn run() {
                 api.prevent_exit();
                 windows::request_quit(app);
             }
-            tauri::RunEvent::Exit => platform::window_state::handle_exit(app),
+            tauri::RunEvent::Exit => {
+                app.state::<agents::AgentHostState>().shutdown();
+                platform::window_state::handle_exit(app);
+            }
             _ => {}
         });
 }

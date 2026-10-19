@@ -1,0 +1,70 @@
+/** Navigation only. The isolated settings page never receives agent IPC or credentials. */
+export function setupAiPage(select: (active: boolean) => void, initiallySelected: boolean) {
+  let active = initiallySelected;
+  const syncSelection = () => {
+    for (const item of document.querySelectorAll<HTMLElement>('.nav-group-item')) {
+      const selected = item.hasAttribute('data-ai-settings-navigation')
+        ? active
+        : !active && item.classList.contains('active');
+      item.setAttribute('aria-current', selected ? 'page' : 'false');
+    }
+  };
+  const set = (value: boolean) => {
+    active = value;
+    document.documentElement.toggleAttribute('data-ai-settings', active);
+    const button = document.querySelector<HTMLElement>('[data-ai-settings-navigation]');
+    button?.classList.toggle('active', active);
+    syncSelection();
+    select(active);
+  };
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest('[data-ai-settings-navigation]')) {
+        event.preventDefault();
+        set(true);
+      } else if (event.target.closest('.nav-group-item,.settings-back')) set(false);
+    },
+    true,
+  );
+  document.addEventListener('input', (event) => {
+    if (event.target instanceof Element && event.target.matches('.search-input')) set(false);
+  });
+  const style = document.createElement('style');
+  // Standalone legacy preferences do not use the shared page stylesheet.
+  style.textContent =
+    '[data-ai-settings-navigation]{appearance:none;background:transparent;width:100%;text-align:left;cursor:pointer;border:0;box-shadow:none;font:inherit;}' +
+    'html:not([data-settings-page])[data-ai-settings] .nav-group-item.active:not([data-ai-settings-navigation]){background:transparent!important;color:inherit!important;font-weight:400}';
+  document.head.append(style);
+  return () => {
+    const sidebar = document.querySelector('.pane-sm.sidebar');
+    if (!sidebar) return;
+    syncSelection();
+    if (sidebar.querySelector('[data-ai-settings-navigation]')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'nav-group-item';
+    button.dataset.aiSettingsNavigation = 'true';
+    const icon = document.createElement('span');
+    icon.className = 'icon';
+    icon.setAttribute('aria-hidden', 'true');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.style.fill = 'none';
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.6');
+    svg.setAttribute('stroke-linejoin', 'round');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute(
+      'd',
+      'M12 3l2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4z M20 2v4 M18 4h4',
+    );
+    svg.append(path);
+    icon.append(svg);
+    button.append(icon, document.createTextNode('智能体'));
+    button.setAttribute('aria-label', '智能体');
+    sidebar.append(button);
+    set(active);
+  };
+}

@@ -1,0 +1,55 @@
+{
+  "source": "@thesvg/react",
+  "version": "3.2.8",
+  "license": "MIT",
+  "files": [
+    {
+      "file": "claude-acp.svg",
+      "sha256": "dc5d1d4371859336fa19e96584e79660aad1b224b7c3c11fec4089577470b9d0"
+    },
+    {
+      "file": "codebuddy-code.svg",
+      "sha256": "2b3a61d1aab7e7e063f0a0c33e0902bf90205fb0c99f7706e10bd8a6f4f66f5a"
+    },
+    {
+      "file": "codex-acp.svg",
+      "sha256": "44bb342092bbf5a9c4de6f5d3f4d6ab2e4a99aa8eca889c975e39fdd386cc9ea"
+    },
+    {
+      "file": "cursor.svg",
+      "sha256": "8254d249a06915d3b3922d3b1ad76444954b19c792eb73f14127742611444eba"
+    },
+    {
+      "file": "github-copilot-cli.svg",
+      "sha256": "9031240939e4b5062e57da3472dd146954cd6d511b02804d6d4573ca4e1b20c3",
+      "sourceSha256": "3bdba04d7b7255d90aee4e088181c4963fae4a36b9679f1d2c9107fcd401d860",
+      "modification": "Monochrome fill changed from white to #111 for the shared white icon tile; original path geometry retained."
+    },
+    {
+      "file": "glm-acp-agent.svg",
+      "sha256": "7fd5f5f6e49535fe687dba37d91a506f6333ccaf1cbbcb056d1629ec28112962"
+    },
+    {
+      "file": "grok-build.svg",
+      "sha256": "33cc1e0ef7971963e3e0bd13ff03200987e0ff74969f1c61eb6f9dae5b0e1de7",
+      "sourceSha256": "ef5bf11e360eb5dadaca8881f23b1b4ef8348ff98bbc79bacb86f19a7fd021f6",
+      "modification": "Monochrome fill changed from white to #111 for the shared white icon tile; original path geometry retained."
+    },
+    {
+      "file": "kimi.svg",
+      "sha256": "6518e22d27a647c00df6419e7c7c9a9b8d5dac2d6000a2eaddbda6e06c170187"
+    },
+    {
+      "file": "minimax-code.svg",
+      "sha256": "c2d592f5476febe1e7d352d87921cc5b6e61da477aa2fb46a61f497324e62b3f"
+    },
+    {
+      "file": "opencode.svg",
+      "sha256": "c9bf4e7fab404cb8bb0fc188d0c1430bcad3f1639ef8e21d9a12cec1b5a5a791"
+    },
+    {
+      "file": "qoder.svg",
+      "sha256": "ad0a142b1b3dad486a66c4ea7eb6b0e5afea28043dff50faf8af1cd71de0abbe"
+    }
+  ]
+}

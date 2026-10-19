@@ -156,6 +156,22 @@ impl SelectedPath {
         }
         Ok(())
     }
+    pub(crate) fn attachment_bytes(&self) -> Result<(String, Vec<u8>), String> {
+        if self.kind == InputKind::Directory {
+            return Err("请添加文件，暂不支持目录附件".into());
+        }
+        let name = self
+            .path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .ok_or("附件名称无效")?
+            .to_string();
+        Ok((
+            name,
+            self.read_image()
+                .map_err(|error| error.replace("图片", "附件"))?,
+        ))
+    }
     fn read_image(&self) -> Result<Vec<u8>, String> {
         self.verify()?;
         let directory = cap_std::fs::Dir::from_std_file(
@@ -499,6 +515,37 @@ pub(crate) async fn complete_drop(
         modifiers,
     })
 }
+pub(crate) async fn attachment_drop(
+    window: WebviewWindow,
+    ticket: String,
+) -> Result<Vec<(String, Vec<u8>)>, String> {
+    super::authorize(&window)?;
+    let batch = window
+        .state::<NativeInputHost>()
+        .take(window.label(), &ticket)?;
+    images::require_native_input_owner(&window, &batch.owner)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        if batch.selected.len() > 8 {
+            return Err("最多添加 8 个附件".into());
+        }
+        let mut total = 0;
+        batch
+            .selected
+            .into_iter()
+            .map(|file| {
+                let item = file.attachment_bytes()?;
+                total += item.1.len();
+                if total > 4 * 1024 * 1024 {
+                    return Err("单次附件总量不能超过 4 MiB".into());
+                }
+                Ok(item)
+            })
+            .collect()
+    })
+    .await
+    .map_err(|_| "读取拖入附件失败".to_string())?
+}
+
 #[tauri::command]
 pub(crate) async fn native_input_clipboard(window: WebviewWindow) -> Result<NativePaste, String> {
     super::authorize(&window)?;
@@ -836,6 +883,24 @@ pub(crate) fn forget_window(app: &tauri::AppHandle, label: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn attachment_files_use_retained_entities_and_reject_replacement_and_directories() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+        let path = root.join("notes.txt");
+        fs::write(&path, b"attachment text").unwrap();
+        let selected = SelectedPath::capture(path.clone()).unwrap();
+        let (name, bytes) = selected.attachment_bytes().unwrap();
+        assert_eq!(name, "notes.txt");
+        assert_eq!(bytes, b"attachment text");
+        fs::rename(&path, root.join("original.txt")).unwrap();
+        fs::write(&path, b"replacement").unwrap();
+        assert!(selected.attachment_bytes().is_err());
+        assert!(SelectedPath::capture(root)
+            .unwrap()
+            .attachment_bytes()
+            .is_err());
+    }
     fn owner() -> NativeInputOwner {
         NativeInputOwner {
             registry: Arc::new(Mutex::new(document_service::DocumentService::new())),

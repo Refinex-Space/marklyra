@@ -58,6 +58,9 @@ define_class!(
         #[unsafe(method(toggleOutline:))]
         fn toggle_outline(&self, _sender: &AnyObject) { self.emit("view:outline"); }
 
+        #[unsafe(method(toggleAi:))]
+        fn toggle_ai(&self, _sender: &AnyObject) { self.emit("view:ai"); }
+
         #[unsafe(method(toggleSource:))]
         fn toggle_source(&self, _sender: &AnyObject) { self.emit("view:source"); }
 
@@ -184,6 +187,7 @@ struct EditorChrome {
     view: Retained<MarkLyraTitlebarView>,
     statistics: Retained<NSButton>,
     outline: Retained<NSButton>,
+    ai: Retained<NSButton>,
     images: TitlebarImages,
     fullscreen_constraints: Option<Retained<NSArray<NSLayoutConstraint>>>,
     dark: Option<bool>,
@@ -233,18 +237,21 @@ impl EditorChrome {
     }
 
     fn layout_controls(&self) {
-        // Observed role order/spacing; AppKit measures the current label, so
-        // growing counts never depend on the old fixed 104px statistics frame.
+        // AppKit measures the current label; the three action columns stay fixed
+        // relative to the right edge as word counts grow.
         let width = self.statistics.intrinsicContentSize().width.max(0.0);
-        // Retain those window-relative positions while keeping every visible
-        // button inside its hit-test parent, including the short-count Source label.
-        let leading = if self.view.ivars().source_mode.get() {
+        let source_mode = self.view.ivars().source_mode.get();
+        let leading = if source_mode {
             (55.0 - width).max(8.0)
         } else {
             8.0
         };
+        // Match ai.css: 28px buttons, 4px gaps, 8px padding and a 20px
+        // scrollbar gutter put the centers 106 / 74 / 42px from the edge.
+        // Source mode keeps its existing label placement; these icons are hidden there.
+        let trailing = if source_mode { 70.0 } else { 110.0 };
         self.view
-            .setFrameSize(NSSize::new(width + 44.0 + leading, 22.0));
+            .setFrameSize(NSSize::new(width + trailing + leading, 22.0));
         if self.fullscreen_constraints.is_none() {
             native_hover::set_frame(
                 &self.statistics,
@@ -252,10 +259,14 @@ impl EditorChrome {
             );
         }
         if let Some(actions) = self.view.ivars().actions.get() {
+            native_hover::set_frame(
+                &actions[2],
+                titlebar_icon_rect(leading + width + 60.0, 13.0),
+            );
             native_hover::set_frame(&actions[0], titlebar_icon_rect(leading + width - 4.0, 10.0));
             native_hover::set_frame(
                 &actions[1],
-                titlebar_icon_rect(leading + width + 20.0, 13.0),
+                titlebar_icon_rect(leading + width + 28.0, 13.0),
             );
         }
         if let Some(source) = self.view.ivars().source_button.get() {
@@ -357,6 +368,24 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         );
         sidebar.setImage(Some(&images.sidebar));
         sidebar.setTitle(&NSString::from_str(""));
+        let ai = button(
+            &view,
+            "AI 助手",
+            sel!(toggleAi:),
+            titlebar_icon_rect(0.0, 13.0),
+            true,
+        );
+        if let Some(image) =
+            objc2_app_kit::NSImage::imageWithSystemSymbolName_accessibilityDescription(
+                &NSString::from_str("sparkles"),
+                Some(&NSString::from_str("AI 助手")),
+            )
+        {
+            image.setSize(NSSize::new(14.0, 14.0));
+            ai.setImage(Some(&image));
+            ai.setTitle(&NSString::from_str(""));
+        }
+        ai.setButtonType(NSButtonType::Toggle);
         let source = button(
             &view,
             "Source Mode ×",
@@ -371,7 +400,10 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         source.setState(1);
         source.setAlphaValue(0.8);
         let _ = view.ivars().source_button.set(source);
-        let _ = view.ivars().actions.set(vec![outline.clone(), sidebar]);
+        let _ = view
+            .ivars()
+            .actions
+            .set(vec![outline.clone(), sidebar, ai.clone()]);
         view.update_visibility();
         let controller = NSTitlebarAccessoryViewController::new(mtm);
         controller.setView(&view);
@@ -384,6 +416,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             view,
             statistics,
             outline,
+            ai,
             images,
             fullscreen_constraints: None,
             dark: None,
@@ -437,6 +470,7 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
         chrome.window.setRepresentedURL(url.as_deref());
         chrome.window.setTitle(&NSString::from_str(&title));
         chrome.window.setDocumentEdited(update.dirty);
+        chrome.ai.setState(if update.ai_panel_open { 1 } else { 0 });
         chrome
             .outline
             .setState(if update.outline_panel_open { 1 } else { 0 });
@@ -549,20 +583,26 @@ mod tests {
         for label_width in [24.0, 80.0, 140.0] {
             let statistics = titlebar_statistics_rect(0.0, label_width);
             let outline = titlebar_icon_rect(label_width + 4.0, 10.0);
-            let sidebar = titlebar_icon_rect(label_width + 28.0, 13.0);
+            let sidebar = titlebar_icon_rect(label_width + 36.0, 13.0);
+            let ai = titlebar_icon_rect(label_width + 68.0, 13.0);
+            let view_width = label_width + 118.0;
             assert_eq!(statistics.origin.y, 8.0);
             assert_eq!(statistics.size.width, label_width);
             assert_eq!(statistics.size.height, 13.0);
-            for frame in [statistics, outline, sidebar] {
+            for frame in [statistics, outline, sidebar, ai] {
                 assert!(frame.origin.y >= 0.0);
                 assert!(frame.origin.y + frame.size.height <= 22.0);
             }
-            for frame in [outline, sidebar] {
+            for (frame, distance_from_right) in [(outline, 106.0), (sidebar, 74.0), (ai, 42.0)] {
                 assert_eq!(frame.origin.y + frame.size.height / 2.0, 15.0);
                 assert_eq!(frame.size.width, 16.0);
+                assert_eq!(
+                    view_width - frame.origin.x - frame.size.width / 2.0,
+                    distance_from_right
+                );
             }
             assert_eq!(outline.origin.x, label_width + 4.0);
-            assert_eq!(sidebar.origin.x, label_width + 28.0);
+            assert_eq!(sidebar.origin.x, label_width + 36.0);
         }
     }
 }

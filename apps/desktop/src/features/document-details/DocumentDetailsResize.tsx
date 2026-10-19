@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 
 export function DocumentDetailsResize({
+  label = '调整目录宽度',
   width,
   minimum,
   maximum,
@@ -8,6 +9,7 @@ export function DocumentDetailsResize({
   dragging,
   setDragging,
 }: {
+  label?: string;
   width: number;
   minimum: number;
   maximum: number;
@@ -26,7 +28,7 @@ export function DocumentDetailsResize({
       <hr
         className="document-details-resize pane-resize-handle"
         data-resizing={dragging || undefined}
-        aria-label="调整目录宽度"
+        aria-label={label}
         aria-orientation="vertical"
         aria-controls="document-details-content"
         aria-valuemin={minimum}

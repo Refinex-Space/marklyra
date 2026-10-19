@@ -52,6 +52,7 @@ export const editorChrome = {
     dark: boolean,
     outlinePanelOpen: boolean,
     viewMode?: MarkLyraViewMode,
+    aiPanelOpen = false,
   ) {
     const values = statistics ?? { words: 0, characters: 0, lines: 0, readingMinutes: 0 };
     const labels = { words: '词', characters: '字符', lines: '行', readingMinutes: '分钟' };
@@ -62,6 +63,7 @@ export const editorChrome = {
         alwaysShowWordCount,
         dark,
         outlinePanelOpen,
+        aiPanelOpen,
         sourceMode: viewMode === undefined ? undefined : viewMode === 'source',
         statisticsLabel: `${values[unit].toLocaleString()} ${labels[unit]}`,
         statistics: {

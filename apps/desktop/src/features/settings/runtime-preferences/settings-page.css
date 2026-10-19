@@ -1,27 +1,5 @@
 html[data-settings-page] {
   --settings-sidebar-width: 270px;
-  --settings-sidebar-bg: #fafafa;
-  --settings-bg: #fff;
-  --settings-text: #292b2f;
-  --settings-muted: #777b83;
-  --settings-line: #e8e9eb;
-  --settings-hover: #eeeff1;
-  --settings-input: #f7f7f8;
-  --settings-accent: #387ff0;
-  --settings-focus: #a5a9b1;
-  color-scheme: light;
-}
-html[data-settings-dark="true"] {
-  --settings-sidebar-bg: #161b22;
-  --settings-bg: #0d1117;
-  --settings-text: #e6edf3;
-  --settings-muted: #8b949e;
-  --settings-line: #30363d;
-  --settings-hover: #30363d;
-  --settings-input: #161b22;
-  --settings-accent: #58a6ff;
-  --settings-focus: #858b94;
-  color-scheme: dark;
 }
 
 .settings-general-preferences .input-group-content > .label-input-group + .row {
@@ -101,11 +79,7 @@ html[data-settings-dark="true"] {
   padding: 0;
   background: var(--settings-bg);
   color: var(--settings-text);
-  font:
-    14px / 1.5 -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font: var(--settings-font);
   text-align: left;
 }
 [data-settings-page] .pane-group {
@@ -190,15 +164,23 @@ html[data-settings-dark="true"] {
   padding: 0;
 }
 [data-settings-page] .nav-group-item {
+  appearance: none;
+  -webkit-appearance: none;
   display: flex;
   align-items: center;
   gap: 11px;
   min-height: 38px;
+  width: 100%;
   margin: 3px 0;
   padding: 7px 12px;
   border-radius: 7px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
   font-size: 14px;
   color: var(--settings-text);
+  text-align: left;
   cursor: pointer;
 }
 [data-settings-page] .nav-group-item .icon {
@@ -215,6 +197,10 @@ html[data-settings-dark="true"] {
   fill: currentColor;
 }
 [data-settings-page] .nav-group-item.active {
+  background: transparent;
+  font-weight: 400;
+}
+[data-settings-page] .nav-group-item[aria-current="page"] {
   background: var(--settings-hover);
   font-weight: 600;
 }
@@ -225,15 +211,19 @@ html[data-settings-dark="true"] {
   flex: 1;
   min-width: 0;
   margin: 0;
-  padding: 48px 40px 64px;
+  padding: var(--settings-content-padding);
   border: 0;
   background: var(--settings-bg);
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+}
+[data-settings-page][data-ai-settings] .pane-group > .pane {
+  visibility: hidden;
 }
 [data-settings-page] .settings-page-heading,
 [data-settings-page] .pane > .content {
   width: 100%;
-  max-width: 760px;
+  max-width: var(--settings-content-width);
   min-height: 0;
   margin: 0 auto;
   padding: 0;
@@ -510,9 +500,6 @@ html[data-settings-dark="true"] {
   padding: 10px 24px !important;
 }
 @media (max-width: 900px) {
-  [data-settings-page] .pane-group > .pane {
-    padding: 28px 22px 48px;
-  }
   [data-settings-page] .label-input-group td:first-child {
     padding-right: 10px;
   }
@@ -670,9 +657,6 @@ html[data-settings-dark="true"] {
   [data-settings-page] .settings-inline-setting {
     grid-template-columns: minmax(100px, 1fr) minmax(0, 55%);
     gap: 12px;
-  }
-  [data-settings-page] .pane-group > .pane {
-    padding: 32px 20px 48px;
   }
 }
 

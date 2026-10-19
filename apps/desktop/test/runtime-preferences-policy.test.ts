@@ -129,6 +129,7 @@ describe('runtime preferences policy', () => {
       no_pairing_match: true,
       match_pari_markdown: false,
       noEmojiAutoComplete: false,
+      noHintForOpenLink: false,
       auto_expand_block: false,
       codeIndentSize: 4,
       shiftTabAutoIndent: false,

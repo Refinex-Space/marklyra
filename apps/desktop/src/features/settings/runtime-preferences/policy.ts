@@ -167,6 +167,7 @@ export function initialPreferencesOptions(
         : '11.0',
     allThemes: [...themes],
     marklyraThemeActions: input.marklyraThemeActions === true,
+    marklyraAiSelected: input.marklyraAiSelected === true,
     marklyraReadingSpeedActions: input.marklyraReadingSpeedActions === true,
     marklyraFileActions: input.marklyraFileActions === true,
     marklyraFileTypeActions: input.marklyraFileTypeActions === true,

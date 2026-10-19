@@ -8,7 +8,8 @@ export function hostTextInputFocused(editor: MarkLyraEditor | null): boolean {
   return (
     target instanceof HTMLElement &&
     target !== editor?.element &&
-    target.matches('input,textarea,select,[contenteditable="true"],[contenteditable=""]')
+    (target.matches('input,textarea,select,[contenteditable="true"],[contenteditable=""]') ||
+      target.closest('.ai-settings-dialog[open]') !== null)
   );
 }
 

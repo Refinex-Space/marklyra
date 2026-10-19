@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import './runtime-preferences/settings-theme.css';
 import { SidebarResize } from '../../components/SidebarResize.js';
 import { applicationPreferences } from '../../services/application-preferences.js';
 import { exportPreferences } from '../../services/export-preferences.js';
@@ -15,6 +16,7 @@ import { editorRuntime } from '../../services/runtime.js';
 import { type StartupPreferences, startupPreferences } from '../../services/startup.js';
 import { themeFiles } from '../../services/themes.js';
 import { editorChrome } from '../../services/ui-chrome.js';
+import { AgentSettings } from '../ai/AgentSettings.js';
 import { resolveThemeId, storedTheme, type ThemeCatalog } from '../themes/model.js';
 import { readAutoSavePreference } from './auto-save-preference.js';
 import { filenameImageStorageFolder } from './image-storage.js';
@@ -74,6 +76,7 @@ function options(
   }
   return {
     locale: 'zh-Hans',
+    marklyraAiSelected: sessionStorage.getItem('marklyra.settings.ai') === 'true',
     allThemes: catalog.themes.map((entry) => `${entry.id}.css`),
     marklyraThemeActions: true,
     marklyraReadingSpeedActions: true,
@@ -140,6 +143,7 @@ export function PreferencesWindow({
   onSidebarWidthChange?: (width: number) => void;
   onSidebarDragWidthChange?: (width: number | null) => void;
 } = {}) {
+  const [aiPage, setAiPage] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   useEffect(() => {
     const resize = () => setViewportWidth(window.innerWidth);
@@ -385,6 +389,10 @@ export function PreferencesWindow({
             embedded ? { sidebarWidth: pageSidebarWidth, dark, sidebarBackground } : undefined
           }
           closeRequest={closeRequest + externalCloseRequest}
+          onAiPage={(active) => {
+            setAiPage(active);
+            sessionStorage.removeItem('marklyra.settings.ai');
+          }}
           onPut={put}
           onAction={async (name, data) => {
             if (name === 'choose-pandoc') {
@@ -427,6 +435,11 @@ export function PreferencesWindow({
             onFailure?.(reason);
           }}
         />
+      )}
+      {aiPage && (
+        <div className="preferences-ai-overlay" data-settings-dark={dark}>
+          <AgentSettings />
+        </div>
       )}
       {error && (
         <div role="alert" className="preferences-window-error">

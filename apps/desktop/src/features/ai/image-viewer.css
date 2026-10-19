@@ -1,0 +1,311 @@
+/* Image viewing uses a flat, almost full-window layer, independent of form dialogs. */
+.ai-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.ai-settings-dialog.ai-image-viewer {
+  inset: 8px;
+  width: calc(100vw - 16px);
+  height: calc(100dvh - 16px);
+  max-height: none;
+  margin: 0;
+  border: 1px solid var(--ai-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ai-bg) 60%, transparent);
+  backdrop-filter: blur(3px);
+  box-shadow: none;
+  font-family: inherit;
+}
+.ai-settings-dialog.ai-image-viewer::backdrop {
+  background: color-mix(in srgb, var(--ai-bg, #fff) 25%, transparent);
+}
+.ai-image-viewer > .ai-dialog-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.ai-viewer-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 8px 10px;
+  flex: 0 0 44px;
+  box-sizing: border-box;
+}
+.ai-viewer-file {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+}
+.ai-viewer-file > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-viewer-symbol {
+  display: inline-block;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  background: currentColor;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+}
+.ai-viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.ai-settings-dialog.ai-image-viewer button,
+.ai-viewer-zoom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--ai-line);
+  border-radius: 16px;
+  background: var(--ai-bg);
+  box-shadow: none;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.ai-settings-dialog.ai-image-viewer .ai-viewer-icon-button {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 5px;
+}
+.ai-settings-dialog.ai-image-viewer button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ai-text) 7%, var(--ai-bg));
+}
+.ai-viewer-zoom {
+  position: relative;
+  padding: 0;
+}
+.ai-panel .ai-viewer-zoom select {
+  width: 58px;
+  height: 28px;
+  margin: 0;
+  padding: 4px 18px 4px 8px;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 16px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ai-viewer-zoom > .ai-viewer-symbol {
+  position: absolute;
+  pointer-events: none;
+  right: 5px;
+  width: 10px;
+  height: 10px;
+}
+.ai-viewer-stage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  overflow: auto;
+  padding: 24px;
+  overscroll-behavior: contain;
+}
+.ai-viewer-surface {
+  position: relative;
+  margin: auto;
+  flex-shrink: 0;
+}
+.ai-viewer-surface > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  user-select: none;
+}
+.ai-viewer-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.ai-viewer-editing .ai-viewer-overlay {
+  cursor: crosshair;
+}
+.ai-viewer-bottom {
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px 10px;
+  flex-shrink: 0;
+}
+.ai-viewer-tools {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #ffffff26;
+  border-radius: 10px;
+  background: #29292b;
+  color: #f1f1f2;
+}
+.ai-settings-dialog.ai-image-viewer .ai-viewer-tools button {
+  background: transparent;
+  color: inherit;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  min-height: 24px;
+  padding: 3px 6px;
+  gap: 4px;
+}
+.ai-settings-dialog.ai-image-viewer .ai-viewer-tools button:hover:not(:disabled),
+.ai-settings-dialog.ai-image-viewer .ai-viewer-tools button[aria-pressed="true"] {
+  background: #ffffff1f;
+}
+.ai-viewer-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  max-width: min(600px, calc(100% - 48px));
+  margin: 0;
+  padding: 6px 12px;
+  background: var(--ai-bg);
+  border: 1px solid var(--ai-line);
+  border-radius: 6px;
+  font-size: 12px;
+  text-align: center;
+}
+.ai-viewer-tool-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--ai-bg);
+  border-top: 1px solid var(--ai-line);
+  font-size: 12px;
+}
+.ai-viewer-tool-options form,
+.ai-viewer-resize label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-viewer-tool-options input {
+  min-width: 0;
+  max-width: 240px;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.ai-viewer-resize input[type="number"] {
+  width: 80px;
+}
+@media (max-width: 600px) {
+  .ai-viewer-file > span:last-child {
+    max-width: 100px;
+  }
+  .ai-viewer-topbar {
+    gap: 8px;
+  }
+  .ai-viewer-stage {
+    padding: 12px;
+  }
+}
+.ai-viewer-stage:not(.ai-viewer-editing) {
+  cursor: grab;
+}
+.ai-viewer-stage:not(.ai-viewer-editing):active {
+  cursor: grabbing;
+}
+.shell[data-native-chrome="true"][data-native-overlay="true"]:not([data-fullscreen="true"])
+  .ai-image-viewer
+  .ai-viewer-file {
+  margin-left: 72px;
+}
+.ai-viewer-open-combo {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--ai-line);
+  border-radius: 16px;
+  background: var(--ai-bg);
+}
+.ai-settings-dialog.ai-image-viewer .ai-viewer-open-combo > button {
+  border: 0;
+  border-radius: 16px 0 0 16px;
+  min-height: 28px;
+  padding: 5px 6px;
+  gap: 4px;
+}
+.ai-viewer-open-combo label {
+  position: relative;
+  display: flex;
+  height: 20px;
+  border-left: 1px solid var(--ai-line);
+  width: 18px;
+}
+.ai-panel .ai-viewer-open-combo select {
+  appearance: none;
+  width: 18px;
+  height: 28px;
+  padding: 0;
+  margin-top: -4px;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+}
+.ai-viewer-open-combo option {
+  color: var(--ai-text);
+}
+.ai-viewer-open-combo .ai-viewer-symbol:last-child {
+  position: absolute;
+  pointer-events: none;
+  width: 10px;
+  height: 10px;
+  left: 3px;
+  top: 5px;
+}
+
+.ai-settings-dialog.ai-image-viewer :focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ai-text) 55%, var(--ai-bg));
+  outline-offset: 2px;
+}
+.ai-settings-dialog.ai-image-viewer .ai-viewer-stage:focus-visible {
+  outline: 1px solid var(--ai-line);
+  outline-offset: -1px;
+}
+
+.ai-settings-dialog.ai-image-viewer:focus {
+  outline: none;
+}
+
+.ai-viewer-open-combo > button .ai-viewer-symbol,
+.ai-viewer-tools .ai-viewer-symbol {
+  width: 14px;
+  height: 14px;
+  flex-basis: 14px;
+}
+
+.ai-dialog-fallback-backdrop.ai-viewer-fallback-backdrop {
+  background: color-mix(in srgb, var(--ai-bg, #fff) 25%, transparent);
+}

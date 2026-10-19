@@ -14,3 +14,6 @@ __pycache__/
 *.pyc
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+
+# Generated local design QA (references private, ignored screenshots)
+/design-qa.md

@@ -67,12 +67,11 @@ function installMock(runtimeUrl) {
       if (command === 'list_theme_catalog')
         return {
           folderPath: '/mock/themes',
-          themes: [
-            'marklyra-light',
-            'marklyra-dark',
-            'dark',
-            'ocean',
-          ].map((id) => ({ id, name: id, builtin: !['dark', 'ocean'].includes(id) })),
+          themes: ['marklyra-light', 'marklyra-dark', 'dark', 'ocean'].map((id) => ({
+            id,
+            name: id,
+            builtin: !['dark', 'ocean'].includes(id),
+          })),
         };
       if (command === 'request_preference_theme')
         return new Promise((resolve, reject) => {

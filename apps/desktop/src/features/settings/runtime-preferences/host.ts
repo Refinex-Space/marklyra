@@ -29,6 +29,7 @@ export interface RuntimePreferencesOptions {
   onPut: (key: PreferenceKey, value: PreferenceValue) => Promise<void | FilePreferences>;
   onAction?: (name: PreferenceAction, data: unknown) => Promise<unknown>;
   onClose: () => void;
+  onAiPage?: (active: boolean) => void;
   onError: (error: Error) => void;
 }
 
@@ -159,6 +160,10 @@ export class RuntimePreferencesHost {
       this.setPresentation(this.options.presentation);
       clearTimeout(this.timer);
       if (this.closeRequested) this.requestClose();
+      return;
+    }
+    if (kind === 'ai-page' && typeof payload === 'boolean') {
+      this.options.onAiPage?.(payload);
       return;
     }
     if (kind === 'error') {

@@ -60,3 +60,56 @@ describe('source-preserving parse', () => {
     ]);
   });
 });
+
+describe('underscore emphasis boundaries', () => {
+  it.each([
+    'Z_AI_API_KEY',
+    'OPENAI_API_KEY',
+    'snake_case_name',
+    'prefix__name__suffix',
+    '中文_标识_字段',
+    '𝒜_AI_𝒵',
+  ])('retains intraword underscores in %s', (source) => {
+    expect(parseInline(source, 0, source.length)).toEqual([
+      {
+        kind: 'text',
+        from: 0,
+        to: source.length,
+        contentFrom: 0,
+        contentTo: source.length,
+        children: [],
+      },
+    ]);
+  });
+  it.each([
+    ['_AI_', 'emphasis', 'AI'],
+    ['__bold__', 'strong', 'bold'],
+    ['(_AI_)', 'emphasis', 'AI'],
+    ['_foo_bar_baz_', 'emphasis', 'foo_bar_baz'],
+    ['__foo__bar__', 'strong', 'foo__bar'],
+    ['_foo__bar_', 'emphasis', 'foo__bar'],
+    ['foo-_(bar)_', 'emphasis', '(bar)'],
+  ])('keeps valid underscore formatting in %s', (source, kind, value) => {
+    const node = parseInline(source, 0, source.length).find((node) => node.kind === kind);
+    expect(node).toBeDefined();
+    expect(source.slice(node?.contentFrom, node?.contentTo)).toBe(value);
+  });
+  it.each(['_foo_bar', '__foo__bar', 'foo_bar_', 'aa_"bb"_cc'])(
+    'does not close underscore emphasis inside a word in %s',
+    (source) => {
+      expect(parseInline(source, 0, source.length).every((node) => node.kind === 'text')).toBe(
+        true,
+      );
+    },
+  );
+});
+
+it('keeps long unmatched underscore identifier lists literal without repeated suffix scans', () => {
+  const source = '_value '.repeat(5000);
+  const start = performance.now();
+  const nodes = parseInline(source, 0, source.length);
+  expect(nodes).toHaveLength(1);
+  expect(nodes[0]?.kind).toBe('text');
+  expect(source.slice(nodes[0]?.contentFrom, nodes[0]?.contentTo)).toBe(source);
+  expect(performance.now() - start).toBeLessThan(1000);
+});

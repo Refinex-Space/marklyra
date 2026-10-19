@@ -16,6 +16,11 @@ use std::{
 use thiserror::Error;
 use uuid::Uuid;
 
+/// Validate bounded image data without registering it as a document resource.
+pub fn inspect_image(bytes: &[u8]) -> Result<&'static str, ImageError> {
+    validation::validate(bytes).map(|kind| kind.mime)
+}
+
 pub const MAX_IMAGE_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_BASE64_BYTES: usize = MAX_IMAGE_BYTES.div_ceil(3) * 4;
 pub const MAX_DOCUMENT_IMAGES: usize = 128;

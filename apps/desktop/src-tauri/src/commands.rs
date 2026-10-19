@@ -212,7 +212,7 @@ pub fn close_document(
     Ok(())
 }
 
-fn require_window(window: &WebviewWindow) -> Result<(), String> {
+pub(crate) fn require_window(window: &WebviewWindow) -> Result<(), String> {
     if window.state::<WindowServices>().contains(window.label()) {
         Ok(())
     } else {

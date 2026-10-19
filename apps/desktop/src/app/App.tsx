@@ -22,6 +22,7 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { ShellGlyph } from '../components/ShellGlyph.js';
 import { SidebarResize } from '../components/SidebarResize.js';
 import { useModalFocus } from '../components/useModalFocus.js';
+import { AiPanel } from '../features/ai/AiPanel.js';
 import { DocumentDetailsPanel } from '../features/document-details/DocumentDetailsPanel.js';
 import {
   documentDetailsTransitionMs,
@@ -303,7 +304,9 @@ export function App() {
   } = themeSystem;
   const [currentHeading, setCurrentHeading] = useState<string | null>(null);
   const [outlinePanelOpen, setOutlinePanelOpen] = useState(false);
-  const detailsLayout = useDocumentDetailsLayout(outlinePanelOpen);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [detailsMode, setDetailsMode] = useState<'outline' | 'ai'>('outline');
+  const detailsLayout = useDocumentDetailsLayout(outlinePanelOpen || aiPanelOpen, detailsMode);
   const [chooseRequest, setChooseRequest] = useState(0);
   const exporter = useDocumentExport(editor, {
     title: doc.file ? filename(doc.file.path) : '未命名',
@@ -530,8 +533,15 @@ export function App() {
       }
     }
   };
+  const toggleAiPanel = () => {
+    setDetailsMode('ai');
+    setAiPanelOpen((open) => !open);
+    setOutlinePanelOpen(false);
+    if (aiPanelOpen) void editor.current?.focus().catch((error) => doc.setMessage(String(error)));
+  };
   const actions = useRef({
     action,
+    toggleAiPanel,
     command,
     doc,
     exporter,
@@ -569,6 +579,7 @@ export function App() {
   });
   actions.current = {
     action,
+    toggleAiPanel,
     command,
     doc,
     exporter,
@@ -633,6 +644,21 @@ export function App() {
       if (seen.has(drop.ticket)) return;
       seen.add(drop.ticket);
       if (seen.size > 128) seen.delete(seen.values().next().value ?? '');
+      const dropPoint = {
+        x: (drop.position.x * globalThis.window.innerWidth) / drop.viewport.width,
+        y: (drop.position.y * globalThis.window.innerHeight) / drop.viewport.height,
+      };
+      const dropTarget = document.elementFromPoint(dropPoint.x, dropPoint.y);
+      if (dropTarget?.closest('.ai-settings-dialog[open]')) {
+        await cancelNativeInput(drop.ticket);
+        return;
+      }
+      if (dropTarget?.closest('.ai-composer')) {
+        globalThis.window.dispatchEvent(
+          new CustomEvent('marklyra-ai-native-drop', { detail: { ticket: drop.ticket } }),
+        );
+        return;
+      }
       const active = editor.current;
       const origin = actions.current.doc;
       let leased = false;
@@ -1018,7 +1044,13 @@ export function App() {
         setSidebar((visible) => !visible);
         return;
       }
+      if (value === 'view:ai') {
+        actions.current.toggleAiPanel();
+        return;
+      }
       if (value === 'view:outline' || value === 'view:outline-popover') {
+        setDetailsMode('outline');
+        setAiPanelOpen(false);
         setOutlinePanelOpen((open) => !open);
         return;
       }
@@ -1381,6 +1413,7 @@ export function App() {
         themeSystem.dark,
         outlinePanelOpen,
         viewMode,
+        aiPanelOpen,
       )
       .catch((error: unknown) =>
         actions.current.doc.setMessage(`标题栏更新失败：${String(error)}`),
@@ -1396,6 +1429,7 @@ export function App() {
     themeSystem.dark,
     outlinePanelOpen,
     viewMode,
+    aiPanelOpen,
   ]);
   useEffect(() => {
     if (!ready || !editor.current) return;
@@ -1659,12 +1693,26 @@ export function App() {
           <button
             type="button"
             className="icon-button"
+            title="AI 助手"
+            aria-label="AI 助手"
+            aria-pressed={aiPanelOpen}
+            onClick={toggleAiPanel}
+          >
+            <Icon name="ai" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
             aria-label="文档目录"
             title="显示/隐藏文档目录"
             aria-pressed={outlinePanelOpen}
             disabled={!ready || doc.working}
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => setOutlinePanelOpen((open) => !open)}
+            onClick={() => {
+              setDetailsMode('outline');
+              setAiPanelOpen(false);
+              setOutlinePanelOpen((open) => !open);
+            }}
           >
             <ShellGlyph name="outline" />
           </button>
@@ -2131,7 +2179,8 @@ export function App() {
           )}
         </main>
         <DocumentDetailsPanel
-          open={outlinePanelOpen}
+          open={outlinePanelOpen || aiPanelOpen}
+          mode={detailsMode}
           elementRef={detailsElement}
           width={detailsLayout.width}
           minimum={detailsLayout.minimum}
@@ -2139,28 +2188,127 @@ export function App() {
           resize={detailsLayout.resize}
           finishTransition={detailsLayout.finishTransition}
         >
-          <OutlinePanel
-            key={doc.file?.id ?? 'untitled'}
-            entries={outline}
-            collapsible={applicationSystem.value?.values.can_collapse_outline_panel !== false}
-            onCollapsibleChange={async (value) => {
-              try {
-                await applicationPreferences.putFromEditor('can_collapse_outline_panel', value);
-              } catch (error) {
-                doc.setMessage(`大纲偏好保存结果未确认：${String(error)}`);
-              }
-            }}
-            currentId={currentHeading}
-            disabled={!outlinePanelOpen || !ready || doc.working}
-            jump={async (id) => {
-              await command({ type: 'jumpToBlock', id, preserveSelection: true });
-              try {
-                await editor.current?.focus();
-              } catch (error) {
-                doc.setMessage(`恢复编辑焦点失败：${String(error)}`);
-              }
-            }}
-          />
+          <div hidden={detailsMode !== 'ai'} style={{ height: '100%', minHeight: 0 }}>
+            <AiPanel
+              open={aiPanelOpen}
+              requestAttention={() => {
+                setDetailsMode('ai');
+                setAiPanelOpen(true);
+                setOutlinePanelOpen(false);
+              }}
+              workspace={workspaceIdentity.current}
+              currentPath={doc.file?.path ?? null}
+              openDocument={(relativePath, scopeId) => {
+                const workspaceId = scopeId ?? workspaceIdentity.current?.id;
+                if (workspaceId)
+                  void actions.current.doc.request({
+                    kind: 'workspace',
+                    workspaceId,
+                    relativePath,
+                  });
+              }}
+              snapshot={async () => {
+                const active = editor.current,
+                  current = actions.current.doc,
+                  owner = current.getOwner();
+                if (!active || active.isComposing || current.working || current.pending)
+                  throw new Error('请先完成当前输入或文档操作');
+                await nativeCommandBridge.current?.synchronize();
+                await editorCommandWork.current;
+                const text = await active.flush();
+                if (
+                  editor.current !== active ||
+                  actions.current.doc.getOwner() !== owner ||
+                  actions.current.doc.working ||
+                  actions.current.doc.pending ||
+                  active.isComposing
+                )
+                  throw new Error('当前文档已变化，请重新发送');
+                const file = actions.current.doc.getFile();
+                const dirty = actions.current.doc.hasUnsavedChanges();
+                const oversized = new TextEncoder().encode(text).length > 96 * 1024;
+                if (oversized && (!file || dirty))
+                  throw new Error('当前正文较大，请先保存文档，或移除当前正文上下文后发送');
+                return {
+                  documentId: file?.id ?? null,
+                  path: file?.path ?? null,
+                  dirty,
+                  text: oversized
+                    ? '[正文较大，未直接嵌入。请调用 editor_read_document 读取完整文档。]'
+                    : text,
+                };
+              }}
+              beforeWrite={async (targetPath) => {
+                const active = editor.current,
+                  current = actions.current.doc,
+                  owner = current.getOwner();
+                if (!active || active.isComposing || current.working || current.pending)
+                  throw new Error('请先完成当前输入或文档操作');
+                await nativeCommandBridge.current?.synchronize();
+                await editorCommandWork.current;
+                await active.flush();
+                if (
+                  editor.current !== active ||
+                  actions.current.doc.getOwner() !== owner ||
+                  actions.current.doc.working ||
+                  actions.current.doc.pending ||
+                  active.isComposing
+                )
+                  throw new Error('当前输入或文档已变化，请重新批准操作');
+                const normalize = (path: string) =>
+                  path
+                    .replaceAll('\\', '/')
+                    .normalize('NFC')
+                    .split('/')
+                    .filter((part) => part !== '.')
+                    .join('/')
+                    .replace(/\/$/, '')
+                    .toLowerCase();
+                const currentPath = actions.current.doc.getFile()?.path;
+                const touchesCurrent =
+                  !targetPath ||
+                  (currentPath &&
+                    (normalize(currentPath) === normalize(targetPath) ||
+                      normalize(currentPath).startsWith(`${normalize(targetPath)}/`)));
+                if (touchesCurrent && actions.current.doc.hasUnsavedChanges())
+                  throw new Error('请先保存当前文档，再批准 AI 对它的修改');
+              }}
+              changed={() => window.dispatchEvent(new Event('marklyra-ai-files-changed'))}
+              settings={() => {
+                sessionStorage.setItem('marklyra.settings.ai', 'true');
+                actions.current.openPreferences();
+              }}
+              chooseFolder={() => {
+                setSidebar(true);
+                setTab('files');
+                setChooseRequest((n) => n + 1);
+              }}
+            />
+          </div>
+          {detailsMode === 'outline' && (
+            <OutlinePanel
+              key={doc.file?.id ?? 'untitled'}
+              entries={outline}
+              collapsible={applicationSystem.value?.values.can_collapse_outline_panel !== false}
+              onCollapsibleChange={async (value) => {
+                try {
+                  await applicationPreferences.putFromEditor('can_collapse_outline_panel', value);
+                } catch (error) {
+                  doc.setMessage(`大纲偏好保存结果未确认：${String(error)}`);
+                }
+              }}
+              currentId={currentHeading}
+              disabled={!outlinePanelOpen || !ready || doc.working}
+              jump={async (id) => {
+                await command({ type: 'jumpToBlock', id, preserveSelection: true });
+                try {
+                  await editor.current?.focus();
+                } catch (error) {
+                  doc.setMessage(`恢复编辑焦点失败：${String(error)}`);
+                }
+              }}
+            />
+          )}
         </DocumentDetailsPanel>
       </div>
       {chrome.native && nativeNotice && (

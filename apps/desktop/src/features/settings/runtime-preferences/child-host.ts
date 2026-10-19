@@ -1,3 +1,4 @@
+import { setupAiPage } from './ai-page.js';
 import {
   exportPreferenceControlSupported,
   isExportPreferenceKey,
@@ -910,6 +911,10 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     true,
   );
   document.addEventListener('submit', (event) => event.preventDefault(), true);
+  const updateAiPage = setupAiPage(
+    (active) => send('ai-page', active),
+    runtime._options.marklyraAiSelected === true,
+  );
   await loadScript('./static/js/0.99879679.chunk.js');
   await loadScript('./static/js/Preferences.962926a4.d7f6a912.chunk.js');
   if (!runtime.Setting) throw new Error('原偏好设置未初始化。');
@@ -918,6 +923,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     const observer = new MutationObserver(() => {
       protectControls();
       updatePage?.();
+      updateAiPage();
       if (document.querySelector('.nav-group-item')) {
         observer.disconnect();
         resolve();
@@ -941,6 +947,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     ) {
       protectControls();
       updatePage?.();
+      updateAiPage();
     }
   }).observe(document.getElementById('root') ?? document.body, {
     childList: true,
@@ -950,6 +957,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
   });
   protectControls();
   updatePage?.();
+  updateAiPage();
   if (disposed) return;
   ready = true;
   send('initialized');

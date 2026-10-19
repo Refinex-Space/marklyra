@@ -379,7 +379,7 @@ test('both side panels resize live within their limits and keep thin dividers wi
 });
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
-  test(`${theme}: both pane dividers stay equally thin and unchanged on hover`, async ({
+  test(`${theme}: trailing pane uses an inset rounded solid frame that stays subtle on hover`, async ({
     page,
   }) => {
     await installLayout(page);
@@ -390,20 +390,26 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const read = () =>
       page.evaluate(() => {
         const left = document.querySelector('.sidebar');
-        const right = document.querySelector('.document-details-resize');
+        const right = document.querySelector('.document-details-body');
         if (!left || !right) throw Error('Missing pane divider');
         const leading = getComputedStyle(left);
-        const trailing = getComputedStyle(right, '::before');
+        const trailing = getComputedStyle(right);
         return {
           left: [leading.borderRightWidth, leading.borderRightColor],
           right: [trailing.borderLeftWidth, trailing.borderLeftColor],
-          background: trailing.backgroundColor,
+          lineStyle: trailing.borderLeftStyle,
+          radius: trailing.borderTopLeftRadius,
+          top: right.getBoundingClientRect().top,
+          bottomGap: innerHeight - right.getBoundingClientRect().bottom,
         };
       });
     const idle = await read();
     expect(Number.parseFloat(idle.left[0] ?? '0')).toBeLessThanOrEqual(1);
-    expect(idle.right).toEqual(idle.left);
-    expect(idle.background).toBe('rgba(0, 0, 0, 0)');
+    expect(idle.right[0]).toBe('1px');
+    expect(idle.lineStyle).toBe('solid');
+    expect(idle.radius).toBe('8px');
+    expect(idle.top).toBeGreaterThanOrEqual(32);
+    expect(idle.bottomGap).toBeGreaterThanOrEqual(6);
     await page
       .getByRole('separator', { name: '调整侧栏宽度' })
       .hover({ position: { x: 1, y: 100 } });
@@ -412,6 +418,21 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       .getByRole('separator', { name: '调整目录宽度' })
       .hover({ position: { x: 2, y: 100 } });
     expect(await read()).toEqual(idle);
+    for (const fullscreen of [true, false]) {
+      await page.evaluate((value) => {
+        Reflect.set(window, '__marklyraLayoutFullscreen', value);
+        (window as TestWindow).__desktopMock.emitEvent('tauri://resize', {
+          width: innerWidth,
+          height: innerHeight,
+        });
+      }, fullscreen);
+      await expect(page.locator('.shell')).toHaveAttribute('data-fullscreen', String(fullscreen));
+      await expect(page.locator('.document-details-panel')).toHaveCSS(
+        'margin-top',
+        fullscreen ? '6px' : '32px',
+      );
+      expect((await read()).bottomGap).toBeGreaterThanOrEqual(6);
+    }
   });
 }
 

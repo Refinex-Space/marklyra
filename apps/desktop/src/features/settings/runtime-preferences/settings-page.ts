@@ -2,6 +2,7 @@ import { setupBoundedSelect } from './bounded-select.js';
 import { type FileTypePageControls, renderFileTypes } from './file-types-page.js';
 import { renderSavePreferences, type SavePageControls } from './save-preferences-page.js';
 import css from './settings-page.css?inline';
+import themeCss from './settings-theme.css?inline';
 
 const summaries: Record<string, string> = {
   文件: '启动、保存与文档管理',
@@ -39,7 +40,7 @@ export function setupSettingsPage(
   if (new URL(location.href).searchParams.get('layout') !== 'page') return;
   document.documentElement.dataset.settingsPage = 'true';
   const style = document.createElement('style');
-  style.textContent = css;
+  style.textContent = themeCss + css;
   document.head.append(style);
   positionHelpTooltips();
   const refreshBoundedSelect = setupBoundedSelect(
