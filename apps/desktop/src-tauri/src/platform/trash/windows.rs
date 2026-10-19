@@ -1,11 +1,6 @@
 //! Windows source implementation. Requires real Windows build/runtime validation.
 use super::*;
-use std::{
-    ffi::c_void,
-    os::windows::{ffi::OsStrExt, io::AsRawHandle},
-    sync::Mutex,
-};
-use windows::{
+use ::windows::{
     core::{implement, Error, Ref, Result as WinResult, HRESULT, PCWSTR},
     Win32::{
         Foundation::HANDLE,
@@ -20,6 +15,11 @@ use windows::{
             FOFX_EARLYFAILURE, FOFX_RECYCLEONDELETE, FOF_NOERRORUI, FOF_SILENT, SIGDN_FILESYSPATH,
         },
     },
+};
+use std::{
+    ffi::c_void,
+    os::windows::{ffi::OsStrExt, io::AsRawHandle},
+    sync::Mutex,
 };
 
 const ABORT: HRESULT = HRESULT(0x80004004_u32 as i32);
@@ -212,7 +212,7 @@ fn shell_path(item: &IShellItem) -> WinResult<PathBuf> {
     let value = unsafe { item.GetDisplayName(SIGDN_FILESYSPATH)? };
     let path = unsafe { value.to_string() };
     unsafe { CoTaskMemFree(Some(value.0.cast::<c_void>())) };
-    path.map(normalize_path)
+    Ok(normalize_path(path?))
 }
 
 pub(super) fn trash(source: &AuthorizedTrashSource) -> Result<TrashPlacement, TrashFailure> {
