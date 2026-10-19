@@ -150,7 +150,11 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
         const text = label.getBoundingClientRect();
         const action = button.getBoundingClientRect();
         return {
-          inset: folder.getBoundingClientRect().left - sidebar.getBoundingClientRect().left,
+          // Measured from the pane's inner edge: the sidebar is a bordered card.
+          inset:
+            folder.getBoundingClientRect().left -
+            sidebar.getBoundingClientRect().left -
+            sidebar.clientLeft,
           gap: action.left - text.right,
           width: action.width,
           clipped: label.scrollWidth > label.clientWidth,

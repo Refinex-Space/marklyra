@@ -6,9 +6,13 @@ export function SidebarResize({
   hide,
   trailingWidth = 0,
   onDragWidthChange,
+  direct = false,
   minimumWidth,
   maximumWidth,
 }: {
+  /** Move the sibling pane in the DOM while dragging and commit once on release, instead of
+   * re-rendering the shell for every frame. */
+  direct?: boolean;
   minimumWidth?: number;
   maximumWidth?: number;
   width: number;
@@ -19,6 +23,27 @@ export function SidebarResize({
   onDragWidthChange: (width: number | null) => void;
 }) {
   const origin = useRef<{ x: number; width: number; latest: number } | null>(null);
+  // Pointer events can outnumber frames; publishing the width once per frame keeps a drag
+  // from re-rendering the shell faster than it can paint.
+  const frame = useRef(0);
+  const handle = useRef<HTMLHRElement | null>(null);
+  const publish = useRef(onDragWidthChange);
+  publish.current = onDragWidthChange;
+  const paint = (value: number) => {
+    const sidebar = handle.current?.previousElementSibling;
+    if (sidebar instanceof HTMLElement) sidebar.style.width = `${value}px`;
+    handle.current?.setAttribute('aria-valuenow', String(value));
+  };
+  const schedule = () => {
+    if (frame.current) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = 0;
+      if (!origin.current) return;
+      if (direct) paint(origin.current.latest);
+      else publish.current(origin.current.latest);
+    });
+  };
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
   const [dragging, setDragging] = useState(false);
   const [viewport, setViewport] = useState(window.innerWidth);
   useEffect(() => {
@@ -36,9 +61,11 @@ export function SidebarResize({
   const bounded = (next: number) => Math.round(Math.max(minimum, Math.min(maximum, next)));
   const resize = (next: number) => change(bounded(next));
   const stop = () => {
+    cancelAnimationFrame(frame.current);
+    frame.current = 0;
     origin.current = null;
     setDragging(false);
-    onDragWidthChange(null);
+    if (!direct) onDragWidthChange(null);
   };
   const cancel = () => {
     if (origin.current) resize(origin.current.latest);
@@ -47,6 +74,7 @@ export function SidebarResize({
   return (
     <>
       <hr
+        ref={handle}
         className="sidebar-resize pane-resize-handle"
         data-resizing={dragging || undefined}
         aria-label="调整侧栏宽度"
@@ -62,19 +90,27 @@ export function SidebarResize({
             event.currentTarget.previousElementSibling?.getBoundingClientRect().width ?? width;
           origin.current = { x: event.clientX, width: actual, latest: bounded(actual) };
           event.currentTarget.setPointerCapture(event.pointerId);
-          onDragWidthChange(origin.current.latest);
+          if (!direct) onDragWidthChange(origin.current.latest);
           setDragging(true);
         }}
         onPointerMove={(event) => {
           if (!origin.current) return;
           const next = origin.current.width + event.clientX - origin.current.x;
           origin.current.latest = bounded(next);
-          onDragWidthChange(origin.current.latest);
+          schedule();
         }}
         onPointerUp={(event) => {
           if (origin.current) {
-            if (native && event.clientX < 100 && hide) hide();
-            else resize(origin.current.width + event.clientX - origin.current.x);
+            if (native && event.clientX < 100 && hide) {
+              // The pane is about to disappear; leave React's width as the one to restore.
+              if (direct) paint(width);
+              hide();
+            } else {
+              const final = bounded(origin.current.width + event.clientX - origin.current.x);
+              // The last frame may not have painted yet; React only rewrites a changed width.
+              if (direct) paint(final);
+              resize(final);
+            }
           }
           stop();
           if (event.currentTarget.hasPointerCapture(event.pointerId))

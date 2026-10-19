@@ -61,13 +61,13 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     expect(tipBox.height).toBeLessThan(100);
     await page.screenshot({ path: info.outputPath('file-focus-tooltip.png') });
     const band = await page.locator('.preferences-page').evaluate((el) => ({
-      paint: getComputedStyle(el, '::before').backgroundImage,
+      paint: getComputedStyle(el, '::before').backgroundColor,
+      canvas: getComputedStyle(el).backgroundColor,
       line: getComputedStyle(el).getPropertyValue('--settings-page-line').trim(),
     }));
     expect(band.line).toBe(theme === 'marklyra-dark' ? '#30363d' : '#e8e9eb');
-    expect(band.paint).toContain(
-      theme === 'marklyra-dark' ? 'rgb(48, 54, 61)' : 'rgb(232, 233, 235)',
-    );
+    // The band behind the titlebar is the same canvas the two settings cards sit on.
+    expect(band.paint).toBe(band.canvas);
     await ui.getByRole('button', { name: 'Markdown', exact: true }).click();
     await expect(ui.locator('.content:not(.display-none) .input-group-header a')).toHaveCount(0);
     await ui.getByRole('button', { name: '外观', exact: true }).click();
@@ -134,7 +134,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await page.setViewportSize({ width: 700, height: 650 });
     expect(await ui.locator('.pane').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await page.screenshot({ path: info.outputPath('appearance-narrow.png') });
-    await page.setViewportSize({ width: 1280, height: 900 });
+    // The two settings cards add a 4px top inset, an 8px bottom inset and their borders.
+    await page.setViewportSize({ width: 1280, height: 920 });
     for (const category of ['文件', '编辑器', '图像', 'Markdown', '导出', '外观', '通用']) {
       await ui.getByRole('button', { name: category, exact: true }).click();
       const pane = ui.locator('.pane');

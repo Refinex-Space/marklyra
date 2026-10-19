@@ -173,6 +173,9 @@ async function presentation(page: Page) {
     });
 }
 
+// The document pane starts 4px under the 28pt titlebar and has a 1px border.
+const FIND_TOP = 33;
+
 async function expectWindowWideFind(page: Page) {
   const panel = page.frameLocator('.marklyra-editor-frame').locator('#md-searchpanel');
   await expect(panel).toBeVisible();
@@ -181,7 +184,7 @@ async function expectWindowWideFind(page: Page) {
       const rect = await panel.boundingBox();
       return rect && { x: rect.x, y: rect.y, width: rect.width };
     })
-    .toEqual({ x: 0, y: 28, width: page.viewportSize()?.width });
+    .toEqual({ x: 0, y: FIND_TOP, width: page.viewportSize()?.width });
   // A DOM rectangle alone would miss clipping by the host or its sidebar header.
   await expect
     .poll(() =>
@@ -236,7 +239,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       const state = await presentation(page);
       expect(state).toMatchObject({
         left: 0,
-        top: 28,
+        // Inside the frame, whose top edge is the document pane's inner top.
+        top: 0,
         height: 39,
         inputLeft: 98,
         inputHeight: 26,
@@ -244,9 +248,9 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
         padding: '5px 8px 0px 16px',
       });
       // Night's original row line-height and browser subpixel rounding differ.
-      expect(Math.abs(state.inputTop - 35)).toBeLessThan(2);
+      expect(Math.abs(state.inputTop - 7)).toBeLessThan(2);
       expect(state.background).toBe(state.bodyBackground);
-      expect(Math.abs(state.contentTop - 28 - state.originalContentTop)).toBeLessThan(1);
+      expect(Math.abs(state.contentTop - state.originalContentTop)).toBeLessThan(1);
       await expect(page.locator('.marklyra-find-panel-shadow').first()).toHaveCSS(
         'box-shadow',
         state.shadow,
@@ -308,7 +312,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
         const rect = await panel.boundingBox();
         return rect && { x: rect.x, y: rect.y, width: rect.width };
       })
-      .toEqual({ x: 0, y: 0, width: 960 });
+      // Fullscreen has no titlebar: the document pane sits one gap (8px) plus its border down.
+      .toEqual({ x: 0, y: 9, width: 960 });
     await input.click();
     await expect(input).toBeFocused();
     await input.press('Escape');

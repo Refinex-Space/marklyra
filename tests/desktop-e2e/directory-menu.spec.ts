@@ -270,7 +270,8 @@ test('original one Recent Locations group, pinned order, six plus current, geome
     const sidebar = sidebarElement.getBoundingClientRect(),
       r = element.getBoundingClientRect();
     return {
-      left: r.left - sidebar.left,
+      // From the sidebar card's inner edge (the card has a 1px border).
+      left: r.left - sidebar.left - sidebarElement.clientLeft,
       right: sidebar.right - r.right,
       borderRight: Number.parseFloat(getComputedStyle(sidebarElement).borderRightWidth),
       width: r.width,

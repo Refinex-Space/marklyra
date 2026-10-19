@@ -66,6 +66,9 @@ html[data-settings-page] {
     gap: 10px;
   }
 }
+html[data-settings-page] {
+  background: var(--settings-canvas);
+}
 [data-settings-page] body,
 [data-settings-page] #root,
 [data-settings-page] .window,
@@ -77,24 +80,30 @@ html[data-settings-page] {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: var(--settings-bg);
+  background: var(--settings-canvas);
   color: var(--settings-text);
   font: var(--settings-font);
   text-align: left;
 }
+/* Navigation and content are two cards on the canvas, like the file sidebar and the document. */
 [data-settings-page] .pane-group {
   display: flex;
+  box-sizing: border-box;
+  gap: var(--settings-gap);
+  padding: 4px var(--settings-gap) var(--settings-gap);
   overflow: hidden;
 }
 [data-settings-page] .pane-sm.sidebar {
   flex: 0 0 var(--settings-sidebar-width);
+  box-sizing: border-box;
   width: var(--settings-sidebar-width);
   max-width: none;
   min-width: 200px;
   height: 100%;
-  padding: 18px 12px;
-  border-right: 1px solid var(--settings-line);
-  background: var(--settings-sidebar-bg);
+  padding: 14px 12px;
+  border: 1px solid var(--settings-pane-border);
+  border-radius: var(--settings-radius);
+  background: var(--settings-bg);
   overflow-y: auto;
 }
 [data-settings-page] .list-group {
@@ -211,8 +220,10 @@ html[data-settings-page] {
   flex: 1;
   min-width: 0;
   margin: 0;
+  box-sizing: border-box;
   padding: var(--settings-content-padding);
-  border: 0;
+  border: 1px solid var(--settings-pane-border);
+  border-radius: var(--settings-radius);
   background: var(--settings-bg);
   overflow-y: auto;
   scrollbar-gutter: stable both-edges;
@@ -494,9 +505,12 @@ html[data-settings-page] {
   box-shadow: none;
 }
 [data-settings-page] #marklyra-preferences-status {
-  left: var(--settings-sidebar-width) !important;
+  left: calc(var(--settings-sidebar-width) + var(--settings-gap) * 2 + 1px) !important;
+  right: calc(var(--settings-gap) + 1px) !important;
+  bottom: calc(var(--settings-gap) + 1px) !important;
   background: var(--settings-bg) !important;
   border-top: 1px solid var(--settings-line);
+  border-radius: 0 0 calc(var(--settings-radius) - 1px) calc(var(--settings-radius) - 1px);
   padding: 10px 24px !important;
 }
 @media (max-width: 900px) {

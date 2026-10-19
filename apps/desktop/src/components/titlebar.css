@@ -27,6 +27,10 @@
   -webkit-user-select: none;
   user-select: none;
 }
+/* The panes below are cards on the shell canvas; the band above them is that same canvas. */
+.shell[data-native-chrome="true"] .titlebar:not([data-settings]) {
+  background: var(--shell-canvas);
+}
 .titlebar[data-settings] {
   /* The settings page paints its own sidebar/page band underneath. */
   background: transparent;
@@ -144,6 +148,17 @@
   align-items: center;
   gap: 4px;
   padding-right: 8px;
+}
+/* A short hairline between the document actions and the system caption buttons. It stays well
+   clear of the band's top and bottom edges. */
+.titlebar-actions::after {
+  content: "";
+  flex: 0 0 1px;
+  width: 1px;
+  height: 16px;
+  margin-left: 4px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--titlebar-control) 38%, transparent);
 }
 .titlebar-statistics {
   position: relative;

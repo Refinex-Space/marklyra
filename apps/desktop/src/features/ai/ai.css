@@ -1012,8 +1012,12 @@
 }
 .preferences-ai-overlay {
   position: absolute;
-  inset: 0 0 0 var(--settings-sidebar-width, 200px);
+  inset: 4px var(--settings-gap, 8px) var(--settings-gap, 8px)
+    calc(var(--settings-sidebar-width, 200px) + var(--settings-gap, 8px) * 2);
   z-index: 10;
+  overflow: hidden;
+  border: 1px solid var(--settings-pane-border, var(--settings-line));
+  border-radius: var(--settings-radius, 8px);
   background: var(--settings-bg);
 }
 @media (max-width: 850px) {

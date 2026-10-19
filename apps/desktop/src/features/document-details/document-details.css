@@ -52,10 +52,17 @@
 .document-details-panel[data-open] .document-details-body {
   opacity: 1;
 }
-.shell[data-native-chrome="true"][data-native-overlay="true"]:not([data-fullscreen="true"])
-  .document-details-panel {
-  /* Separate the trailing pane from the native titlebar band. */
-  margin-top: calc(var(--titlebar-height, 28px) + 4px);
+/* Native shells: the workspace padding supplies the window gap and the resize handle supplies the
+   gap to the document pane. The document's own scrollbar lives on the document pane. */
+.shell[data-native-chrome="true"] .document-details-panel,
+.shell[data-native-chrome="true"] .document-details-panel[data-open] {
+  margin: 0;
+  background: transparent;
+}
+.shell[data-native-chrome="true"] .document-details-body {
+  border-color: var(--pane-border);
+  border-radius: var(--pane-radius);
+  background: var(--marklyra-body-bg, var(--surface));
 }
 .document-details-header {
   display: flex;
@@ -99,19 +106,44 @@
 .workspace[data-details-open] > .document-area {
   min-width: 220px;
 }
+/* The handle sits between the document and the pane. It has no width of its own in the legacy
+   layout (the ::after reach straddles the seam) and owns the whole gap in native shells. */
 .document-details-resize {
-  position: absolute;
-  inset: 0 auto 0 0;
+  position: relative;
+  flex: 0 0 0px;
+  align-self: stretch;
   z-index: 6;
-  width: 6px;
+  width: 0;
+  min-width: 0;
+  height: auto;
   margin: 0;
   padding: 0;
   border: 0;
   cursor: col-resize;
   touch-action: none;
+  visibility: hidden;
+  transition:
+    flex-basis var(--document-details-transition, 220ms) cubic-bezier(0.2, 0.7, 0.2, 1),
+    visibility 0s var(--document-details-transition, 220ms);
+}
+.document-details-resize::after {
+  content: "";
+  position: absolute;
+  inset: 0 -3px;
+}
+.document-details-resize[data-open] {
+  visibility: visible;
+  transition-delay: 0s;
+}
+.document-details-resize[data-resizing] {
+  transition: none;
+}
+.shell[data-native-chrome="true"] .document-details-resize[data-open] {
+  flex-basis: var(--pane-gap);
 }
 @media (prefers-reduced-motion: reduce) {
   .document-details-panel,
+  .document-details-resize,
   .document-details-body {
     transition: none;
   }

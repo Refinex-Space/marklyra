@@ -704,16 +704,14 @@ export class MarkLyraEditor {
     const { left, top, right } = this.contentInset;
     const panel = this.findPanelBounds;
     const trailing = right ? `calc(100% - ${right}px)` : '100%';
-    // Expose the original scrollbar beyond the panel without exposing its covered content.
-    const scrollbar = `calc(100% - ${Math.min(right, 20)}px)`;
+    // The real scrollport ends at the trailing inset, so its scrollbar is already inside the
+    // visible region. The host may round the visible pane through --marklyra-frame-radius.
     this.element.style.clipPath =
       !left && !top && !right
         ? ''
         : panel && (left || right)
-          ? `polygon(${left}px ${top}px,${trailing} ${top}px,${trailing} ${panel.top}px,100% ${panel.top}px,100% 100%,${scrollbar} 100%,${scrollbar} ${panel.bottom}px,${trailing} ${panel.bottom}px,${trailing} 100%,${left}px 100%,${left}px ${panel.bottom}px,0 ${panel.bottom}px,0 ${panel.top}px,${left}px ${panel.top}px)`
-          : right
-            ? `polygon(${left}px ${top}px,${trailing} ${top}px,${trailing} 100%,${scrollbar} 100%,${scrollbar} ${top}px,100% ${top}px,100% 100%,${left}px 100%)`
-            : `inset(${top}px 0 0 ${left}px)`;
+          ? `polygon(${left}px ${top}px,${trailing} ${top}px,${trailing} ${panel.top}px,100% ${panel.top}px,100% ${panel.bottom}px,${trailing} ${panel.bottom}px,${trailing} 100%,${left}px 100%,${left}px ${panel.bottom}px,0 ${panel.bottom}px,0 ${panel.top}px,${left}px ${panel.top}px)`
+          : `inset(${top}px ${right}px 0 ${left}px round var(--marklyra-frame-radius, 0px))`;
     if (!panel || (!left && !right)) {
       if (this.findPanelShadow) this.findPanelShadow.hidden = true;
       if (this.findPanelTrailingShadow) this.findPanelTrailingShadow.hidden = true;

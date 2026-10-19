@@ -84,35 +84,111 @@ button[aria-pressed="true"] {
 }
 .shell[data-native-chrome="true"] {
   --surface: var(--marklyra-body-bg, #fff);
-  --sidebar: var(--marklyra-sidebar-bg, #fafafa);
+  /* Files, document and outline panes share one background. */
+  --sidebar: var(--surface);
   --text: var(--marklyra-body-text, #333);
   --muted: var(--marklyra-control-text, #777);
 }
 .shell[data-native-chrome="true"][data-theme-name="marklyra-dark"] {
   --surface: var(--marklyra-body-bg, #0d1117);
-  --sidebar: var(--marklyra-sidebar-bg, #161b22);
+  --sidebar: var(--surface);
   --text: var(--marklyra-body-text, #e6edf3);
   --muted: var(--marklyra-control-text, #8b949e);
   --border: #30363d;
 }
+/* Three panes (files, document, outline / AI) share one card language on macOS and Windows:
+   the same gap to the window, the same hairline border and radius, on a tinted canvas. */
+.shell[data-native-chrome="true"] {
+  --pane-gap: 8px;
+  --pane-radius: 8px;
+  --pane-top: calc(var(--titlebar-height) + 4px);
+  --pane-border: color-mix(
+    in srgb,
+    var(--marklyra-body-text, var(--text)) 13%,
+    var(--marklyra-body-bg, var(--surface))
+  );
+  --shell-canvas: color-mix(in srgb, var(--surface) 95%, var(--text));
+  background: var(--shell-canvas);
+}
+.shell[data-native-chrome="true"][data-native-overlay="false"] {
+  --pane-top: 4px;
+}
+.shell[data-native-chrome="true"][data-fullscreen="true"] {
+  --pane-top: var(--pane-gap);
+}
+.shell[data-native-chrome="true"] .workspace {
+  box-sizing: border-box;
+  padding: var(--pane-top) var(--pane-gap) var(--pane-gap);
+}
 .shell[data-native-chrome="true"] .sidebar {
   min-width: 160px;
   max-width: calc(100vw - 220px);
-  margin-top: var(--marklyra-sidebar-top, 0px);
-  padding-top: var(--marklyra-sidebar-padding-top, 20px);
-  border-right: var(--marklyra-sidebar-border-right, 1px solid #00000012);
-}
-.shell[data-native-chrome="true"][data-fullscreen="true"] .sidebar,
-.shell[data-native-chrome="true"][data-native-overlay="false"] .sidebar {
-  margin-top: 0;
+  margin: 0;
   padding-top: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--pane-border);
+  border-radius: var(--pane-radius);
+}
+.shell[data-native-chrome="true"] .document-area {
+  box-sizing: border-box;
+  border: 1px solid var(--pane-border);
+  border-radius: var(--pane-radius);
+  background: var(--marklyra-body-bg, var(--surface));
+}
+.shell[data-native-chrome="true"] .marklyra-editor-frame {
+  --marklyra-frame-radius: calc(var(--pane-radius) - 1px);
+}
+/* The mount is square; its own fill would paint over the pane's rounded corners. */
+.shell[data-native-chrome="true"] .runtime-editor-mount {
+  background: transparent;
+}
+/* The whole gap between two panes is the drag handle, with a little reach into each card.
+   Hovering (after a short delay, so crossing the gap does not flash) or dragging shows a
+   short rounded grip, vertically centred in the gap. */
+.shell[data-native-chrome="true"] .sidebar-resize,
+.shell[data-native-chrome="true"] .document-details-resize {
+  --sash-reach: 3px;
 }
 .shell[data-native-chrome="true"] .sidebar-resize {
-  flex-basis: 6px;
-  margin-right: -4px;
+  flex-basis: var(--pane-gap);
+  margin: 0;
 }
-.shell[data-native-chrome="true"] .sidebar-resize::before {
-  background: transparent;
+.shell[data-native-chrome="true"] .sidebar-resize::before,
+.shell[data-native-chrome="true"] .document-details-resize::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 36px;
+  margin: -18px 0 0 -1.5px;
+  border-radius: 1.5px;
+  background: var(--muted);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.shell[data-native-chrome="true"] .sidebar-resize::after,
+.shell[data-native-chrome="true"] .document-details-resize::after {
+  content: "";
+  position: absolute;
+  inset: 0 calc(var(--sash-reach) * -1);
+}
+.shell[data-native-chrome="true"] .sidebar-resize:hover::before,
+.shell[data-native-chrome="true"] .document-details-resize:hover::before {
+  opacity: 0.5;
+  transition-delay: 160ms;
+}
+.shell[data-native-chrome="true"] .sidebar-resize[data-resizing]::before,
+.shell[data-native-chrome="true"] .document-details-resize[data-resizing]::before,
+.shell[data-native-chrome="true"] .sidebar-resize:focus-visible::before,
+.shell[data-native-chrome="true"] .document-details-resize:focus-visible::before {
+  opacity: 0.85;
+  transition-delay: 0s;
+}
+.shell[data-native-chrome="true"] .sidebar-resize:focus-visible,
+.shell[data-native-chrome="true"] .document-details-resize:focus-visible {
+  outline: none;
 }
 /* FullSizeContentView lets the WKWebView swallow the native titlebar; only a
    web drag region can move the window from the top band. It must stay under
@@ -881,21 +957,19 @@ button[aria-pressed="true"] {
   }
 }
 
-/* The settings sidebar continues behind the traffic lights. The existing
-   native drag band stays above the paint layer and retains window dragging. */
+/* The settings page is two cards on the same canvas as the main window; the canvas also
+   continues behind the traffic lights / caption buttons. The existing native drag band stays
+   above the paint layer and retains window dragging. */
+.shell[data-native-chrome="true"] > .preferences-page {
+  background: var(--shell-canvas);
+}
 .shell[data-native-chrome="true"][data-native-overlay="true"]:not([data-fullscreen="true"])
-> .preferences-page::before {
+  > .preferences-page::before {
   content: "";
   position: fixed;
   inset: 0 0 auto;
   height: var(--titlebar-height);
-  background: linear-gradient(
-    to right,
-    var(--settings-sidebar-bg) 0 calc(var(--settings-sidebar-width) - 1px),
-    var(--settings-page-line) calc(var(--settings-sidebar-width) - 1px)
-      var(--settings-sidebar-width),
-    var(--settings-page-bg) var(--settings-sidebar-width) 100%
-  );
+  background: var(--shell-canvas);
   pointer-events: none;
 }
 .shell[data-settings-page] .native-titlebar-drag {
@@ -903,19 +977,16 @@ button[aria-pressed="true"] {
 }
 .settings-resize-track {
   position: absolute;
-  inset: 0;
+  /* Same insets as the cards: 4px under the titlebar band and 8px to the window. */
+  inset: 4px 8px 8px;
   display: flex;
   z-index: 2;
   pointer-events: none;
 }
 .settings-resize-track > .sidebar-resize {
   pointer-events: auto;
-  margin-left: -3px;
-  margin-right: -3px;
-  flex: 0 0 6px;
-}
-.settings-resize-track > .sidebar-resize::before {
-  background: transparent;
+  margin: 0;
+  flex: 0 0 var(--pane-gap, 8px);
 }
 .settings-resize-track > .resize-shield {
   pointer-events: auto;

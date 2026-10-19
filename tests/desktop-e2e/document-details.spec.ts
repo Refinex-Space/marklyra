@@ -80,18 +80,32 @@ async function expectAligned(page: Page) {
       return panel && Math.abs(panel.width - target);
     })
     .toBeLessThanOrEqual(1);
+  // The document pane is a bordered card: its scrollport (and scrollbar) fill the pane's inner
+  // edges and the outline card sits one pane gap after it.
   await expect
     .poll(async () => {
       const panel = await details(page).boundingBox();
-      const area = await editingArea(page);
       const main = await page.locator('main.document-area').boundingBox();
+      const port = await content(page).boundingBox();
       return (
         panel &&
         main &&
-        Math.max(Math.abs(panel.x - area.x - area.width), Math.abs(main.x - area.x))
+        port &&
+        Math.max(
+          Math.abs(panel.x - (main.x + main.width) - 8),
+          Math.abs(port.x + port.width - (main.x + main.width - 1)),
+          Math.abs(port.x - (main.x + 1)),
+        )
       );
     })
     .toBeLessThanOrEqual(2);
+}
+
+/** Right edge of the document pane's inner box, where its scrollbar lives. */
+async function paneInnerRight(page: Page) {
+  const main = await page.locator('main.document-area').boundingBox();
+  if (!main) throw Error('Missing document pane');
+  return main.x + main.width - 1;
 }
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
@@ -126,10 +140,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const panel = await details(page).boundingBox();
     const area = await editingArea(page);
     expect(
-      original &&
-        area &&
-        panel &&
-        Math.abs(original.width - area.width - panel.width - 20 + original.scrollbar),
+      original && area && panel && Math.abs(original.width - area.width - panel.width - 8),
     ).toBeLessThanOrEqual(2);
     await expect(page.locator('.runtime-area .marklyra-editor-frame')).toHaveJSProperty(
       'clientWidth',
@@ -214,9 +225,8 @@ test('right outline stays independent of files/search and adapts to resizing and
   await expect(sourceView).toBeVisible();
   await expect
     .poll(async () => {
-      const view = await editingArea(page, '#typora-source .CodeMirror-scroll');
-      const panel = await details(page).boundingBox();
-      return view && panel && Math.abs(panel.x - view.x - view.width);
+      const view = await sourceView.locator('.CodeMirror-scroll').boundingBox();
+      return view && Math.abs(view.x + view.width - (await paneInnerRight(page)));
     })
     .toBeLessThanOrEqual(2);
   await emitLayoutMenu(page, 'find');
@@ -256,7 +266,8 @@ test('both side panels resize live within their limits and keep thin dividers wi
   if (!box) throw Error('Missing outline resize handle');
   await page.mouse.move(box.x + box.width / 2, box.y + 100);
   await page.mouse.down();
-  await page.mouse.move(box.x - 97, box.y + 100, { steps: 6 });
+  // The handle is the whole gap between the panes; drag relative to where it was grabbed.
+  await page.mouse.move(box.x + box.width / 2 - 100, box.y + 100, { steps: 6 });
   await expect(
     page.locator('.native-document-notice').filter({ hasText: 'ResizeObserver' }),
   ).toHaveCount(0);
@@ -342,12 +353,14 @@ test('both side panels resize live within their limits and keep thin dividers wi
   await page.keyboard.press('Home');
   await expect(handle).toHaveAttribute('aria-valuenow', '200');
   await expectAligned(page);
-  await expect
-    .poll(async () => {
-      const area = await editingArea(page, '#typora-source .CodeMirror-scroll');
-      return Math.abs(area.x + area.width - ((await details(page).boundingBox())?.x ?? 0));
-    })
-    .toBeLessThanOrEqual(2);
+  const sourceEdge = async () => {
+    const view = await page
+      .frameLocator('.runtime-area iframe')
+      .locator('#typora-source .CodeMirror-scroll')
+      .boundingBox();
+    return view && Math.abs(view.x + view.width - (await paneInnerRight(page)));
+  };
+  await expect.poll(sourceEdge).toBeLessThanOrEqual(2);
   const sourceInput = await page
     .frameLocator('.runtime-area iframe')
     .locator('#typora-source textarea')
@@ -358,17 +371,7 @@ test('both side panels resize live within their limits and keep thin dividers wi
   await page.mouse.down();
   await page.mouse.move(sourceHandle.x - 77, sourceHandle.y + 100, { steps: 6 });
   await expect.poll(async () => (await details(page).boundingBox())?.width).toBe(280);
-  const sourcePort = await page
-    .frameLocator('.runtime-area iframe')
-    .locator('#typora-source .CodeMirror-scroll')
-    .boundingBox();
-  expect(sourcePort && Math.abs(sourcePort.x + sourcePort.width - 1484)).toBeLessThanOrEqual(1);
-  await expect
-    .poll(async () => {
-      const area = await editingArea(page, '#typora-source .CodeMirror-scroll');
-      return Math.abs(area.x + area.width - ((await details(page).boundingBox())?.x ?? 0));
-    })
-    .toBeLessThanOrEqual(2);
+  await expect.poll(sourceEdge).toBeLessThanOrEqual(2);
   await page.mouse.up();
   await expect.poll(async () => (await details(page).boundingBox())?.width).toBe(280);
   expect(await sourceInput?.evaluate((element) => element.isConnected)).toBe(true);
@@ -408,6 +411,26 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     expect(idle.right[0]).toBe('1px');
     expect(idle.lineStyle).toBe('solid');
     expect(idle.radius).toBe('8px');
+    // Files, document and outline are one card language: same radius, hairline and top edge.
+    const cards = await page.evaluate(() =>
+      ['.sidebar', 'main.document-area', '.document-details-body'].map((selector) => {
+        const element = document.querySelector(selector);
+        if (!element) throw Error(`Missing ${selector}`);
+        const style = getComputedStyle(element);
+        return {
+          radius: style.borderTopLeftRadius,
+          width: style.borderTopWidth,
+          color: style.borderTopColor,
+          top: element.getBoundingClientRect().top,
+          bottom: innerHeight - element.getBoundingClientRect().bottom,
+        };
+      }),
+    );
+    expect(cards.map((card) => ({ ...card, color: undefined }))).toEqual(
+      cards.map(() => ({ ...cards[0], color: undefined })),
+    );
+    expect(new Set(cards.map((card) => card.color)).size).toBe(1);
+    expect(cards[0]).toMatchObject({ radius: '8px', width: '1px', bottom: 8 });
     expect(idle.top).toBeGreaterThanOrEqual(32);
     expect(idle.bottomGap).toBeGreaterThanOrEqual(6);
     await page
@@ -427,9 +450,10 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
         });
       }, fullscreen);
       await expect(page.locator('.shell')).toHaveAttribute('data-fullscreen', String(fullscreen));
-      await expect(page.locator('.document-details-panel')).toHaveCSS(
-        'margin-top',
-        fullscreen ? '6px' : '32px',
+      // All three panes share the workspace's top inset: the pane gap, or 4px under the titlebar.
+      await expect(page.locator('.workspace')).toHaveCSS(
+        'padding-top',
+        fullscreen ? '8px' : '32px',
       );
       expect((await read()).bottomGap).toBeGreaterThanOrEqual(6);
     }
@@ -469,7 +493,8 @@ test('outline opening and closing interpolate the layout, reverse cleanly and re
         document.documentElement.style.getPropertyValue('--marklyra-content-trailing'),
       ),
     )
-    .toBe('0px');
+    // With the outline closed only the window gap and the document pane's border remain.
+    .toBe('9px');
   await page.evaluate(async () => {
     (window as TestWindow).__desktopMock.emitMenu('view:outline');
     await new Promise(requestAnimationFrame);
@@ -489,7 +514,7 @@ test('outline opening and closing interpolate the layout, reverse cleanly and re
   await saveLayoutSource(page, info, 'animated-outline-preserves-source', source);
 });
 
-test('rapid outline reversals keep the real document scrollbar at the window edge even with delayed layout replies', async ({
+test('rapid outline reversals keep the real document scrollbar on the document pane even with delayed layout replies', async ({
   page,
 }, info) => {
   const layoutErrors: string[] = [];
@@ -544,18 +569,6 @@ test('rapid outline reversals keep the real document scrollbar at the window edg
         page.frameLocator('.runtime-area iframe').locator('#typora-source .CodeMirror-scroll'),
       ).toBeVisible();
     }
-    const portProbe = content(page).evaluate(async (_, sourceMode) => {
-      const samples: number[] = [];
-      const start = performance.now();
-      while (performance.now() - start < 900) {
-        await new Promise(requestAnimationFrame);
-        const port = document.querySelector(
-          sourceMode ? '#typora-source .CodeMirror-scroll' : 'content',
-        );
-        if (port) samples.push(port.getBoundingClientRect().right - innerWidth);
-      }
-      return samples;
-    }, sourceMode);
     const positions = await page.evaluate(async (sourceMode) => {
       const iframe = document.querySelector<HTMLIFrameElement>('.runtime-area iframe');
       if (!iframe) throw Error('Missing editor frame');
@@ -597,7 +610,16 @@ test('rapid outline reversals keep the real document scrollbar at the window edg
     expect(positions.positions.length).toBeGreaterThan(5);
     expect(Math.max(...positions.positions.map(Math.abs))).toBeLessThanOrEqual(1);
     expect(Math.min(...positions.hiddenScrollbars)).toBeGreaterThanOrEqual(0);
-    expect(Math.max(...(await portProbe).map(Math.abs))).toBeLessThanOrEqual(1);
+    // Once the layout settles, the scrollport (and its scrollbar) ends on the document pane.
+    await expect
+      .poll(async () => {
+        const port = await page
+          .frameLocator('.runtime-area iframe')
+          .locator(sourceMode ? '#typora-source .CodeMirror-scroll' : 'content')
+          .boundingBox();
+        return port && Math.abs(port.x + port.width - (await paneInnerRight(page)));
+      })
+      .toBeLessThanOrEqual(1);
   }
   await emitLayoutMenu(page, 'view:source');
   expect(layoutErrors).toEqual([]);
@@ -667,7 +689,7 @@ test('an open outline follows the next document without retaining old headings',
 });
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
-  test(`${theme}: only the document scrollbar occupies the window edge while outline scrolling stays independent`, async ({
+  test(`${theme}: the document scrollbar sits on the document pane while outline scrolling stays independent`, async ({
     page,
   }, info) => {
     await installLayout(page);
@@ -695,9 +717,9 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await expectAligned(page);
     await expect
       .poll(async () => {
-        const panel = await details(page).evaluate(
-          (element) => getComputedStyle(element).backgroundColor,
-        );
+        const panel = await details(page)
+          .locator('.document-details-body')
+          .evaluate((element) => getComputedStyle(element).backgroundColor);
         const body = await frame
           .locator('body')
           .evaluate((element) => getComputedStyle(element).backgroundColor);
@@ -720,15 +742,23 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       .toBeGreaterThan(0);
     expect(await content(page).evaluate((element) => element.scrollTop)).toBe(before);
     const portBounds = await content(page).boundingBox();
+    const scrollbarX = (await paneInnerRight(page)) - 6;
     expect(
-      portBounds && Math.abs(portBounds.x + portBounds.width - (page.viewportSize()?.width ?? 0)),
+      portBounds && Math.abs(portBounds.x + portBounds.width - (await paneInnerRight(page))),
     ).toBeLessThanOrEqual(1);
     const panelBounds = await details(page).boundingBox();
+    // The scrollbar is hit-testable on the pane; the gap beyond the pane belongs to the shell.
+    expect(
+      await page.evaluate(
+        (x) => document.elementFromPoint(x, 160)?.classList.contains('marklyra-editor-frame'),
+        scrollbarX,
+      ),
+    ).toBe(true);
     expect(
       await page.evaluate(() =>
         document.elementFromPoint(innerWidth - 2, 160)?.classList.contains('marklyra-editor-frame'),
       ),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       await page.evaluate(
         (x) => document.elementFromPoint(x, 160)?.closest('.document-details-panel') !== null,
@@ -755,14 +785,14 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     if (!portBounds) throw Error('Missing document scrollport');
     const thumbCenter =
       portBounds.y + Math.max(12, (scroll.height * scroll.height) / scroll.total / 2);
-    await page.mouse.move((page.viewportSize()?.width ?? 0) - 6, thumbCenter);
+    await page.mouse.move(scrollbarX, thumbCenter);
     await page.mouse.down();
-    await page.mouse.move((page.viewportSize()?.width ?? 0) - 6, thumbCenter + 180, { steps: 8 });
+    await page.mouse.move(scrollbarX, thumbCenter + 180, { steps: 8 });
     await page.mouse.up();
     await expect
       .poll(() => content(page).evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
-    await page.screenshot({ path: info.outputPath('single-window-edge-scrollbar.png') });
+    await page.screenshot({ path: info.outputPath('single-pane-scrollbar.png') });
     await emitLayoutMenu(page, 'view:source');
     const sourceScroll = frame.locator('#typora-source .CodeMirror-scroll');
     await expect(sourceScroll).toBeVisible();
@@ -772,15 +802,13 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       .toBeGreaterThan(600);
     await expect
       .poll(async () => {
-        const area = await editingArea(page, '#typora-source .CodeMirror-scroll');
-        const panel = await details(page).boundingBox();
-        return panel && Math.abs(area.x + area.width - panel.x);
+        const view = await sourceScroll.boundingBox();
+        return view && Math.abs(view.x + view.width - (await paneInnerRight(page)));
       })
       .toBeLessThanOrEqual(2);
     const sourceBounds = await sourceScroll.boundingBox();
     expect(
-      sourceBounds &&
-        Math.abs(sourceBounds.x + sourceBounds.width - (page.viewportSize()?.width ?? 0)),
+      sourceBounds && Math.abs(sourceBounds.x + sourceBounds.width - (await paneInnerRight(page))),
     ).toBeLessThanOrEqual(1);
     await sourceScroll.evaluate((element) => {
       element.scrollTop = 0;
@@ -805,9 +833,9 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const sourceThumb =
       sourceBounds.y +
       Math.max(12, (sourceMetric.height * sourceMetric.height) / sourceMetric.total / 2);
-    await page.mouse.move((page.viewportSize()?.width ?? 0) - 6, sourceThumb);
+    await page.mouse.move(scrollbarX, sourceThumb);
     await page.mouse.down();
-    await page.mouse.move((page.viewportSize()?.width ?? 0) - 6, sourceThumb + 150, { steps: 8 });
+    await page.mouse.move(scrollbarX, sourceThumb + 150, { steps: 8 });
     await page.mouse.up();
     await expect
       .poll(() => sourceScroll.evaluate((element) => element.scrollTop))

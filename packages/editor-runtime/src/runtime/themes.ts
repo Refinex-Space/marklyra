@@ -8,6 +8,12 @@ import { readThemeFonts } from './theme-fonts.js';
 const links = ['theme_css', 'base_user_css', 'theme_user_css'] as const;
 type LinkId = (typeof links)[number];
 
+/** Host-driven geometry variables on the root. They never change the theme cascade, and they
+ * change on every frame while a pane is dragged or animated. */
+const layoutVariables =
+  /--marklyra-(?:content-(?:inset|trailing|top)|document-scrollbar-space|source-scrollbar-space|notification-top)s*:[^;]*;?/g;
+const withoutLayout = (style: string | null) => (style ?? '').replace(layoutVariables, '').trim();
+
 /** Operates on the original three style links, outside the document/history model. */
 export class RuntimeThemes {
   private sources: ThemeStyles = { ...emptyThemeStyles };
@@ -44,6 +50,15 @@ export class RuntimeThemes {
           const target =
             record.target instanceof Element ? record.target : record.target.parentElement;
           if (target?.closest('[data-marklyra-theme-probe]')) return false;
+          // Re-reading the whole cascade per dragged frame made pane resizing stutter.
+          if (
+            record.type === 'attributes' &&
+            record.attributeName === 'style' &&
+            record.target === document.documentElement &&
+            withoutLayout(record.oldValue) ===
+              withoutLayout(document.documentElement.getAttribute('style'))
+          )
+            return false;
           if (record.type !== 'childList') return true;
           return [...record.addedNodes, ...record.removedNodes].some((node) => !probe(node));
         })
@@ -60,6 +75,7 @@ export class RuntimeThemes {
     this.observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class', 'style'],
+      attributeOldValue: true,
     });
     this.observer.observe(document.body, {
       attributes: true,

@@ -87,7 +87,8 @@ test('native chrome uses one sidebar header and full viewport theme geometry wit
         };
       });
     })
-    .toEqual({ width: 1640, inset: '270px', padding: '30px', max: '1024px' });
+    // 8px window gap + 270px sidebar card + 8px gap + 1px document pane border.
+    .toEqual({ width: 1640, inset: '287px', padding: '30px', max: '1024px' });
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:sidebar'));
   await expect(page.locator('aside.sidebar')).toBeHidden();
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));

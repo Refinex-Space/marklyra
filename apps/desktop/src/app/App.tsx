@@ -1492,12 +1492,22 @@ export function App() {
     let previousTitleLayout = '';
     const update = () => {
       const panel = detailsElement.current;
-      const right = panel
-        ? panel.getBoundingClientRect().width +
-          Number.parseFloat(getComputedStyle(panel).marginRight)
-        : 0;
-      const left =
-        chrome.native && sidebar ? (sidebarElement.current?.getBoundingClientRect().width ?? 0) : 0;
+      const pane = documentAreaElement.current;
+      // Native shells draw the document as its own bordered pane: the runtime viewport spans the
+      // window horizontally and its scrollport (and scrollbar) ends on this pane's inner edges.
+      const inner = chrome.native && pane ? pane.getBoundingClientRect() : null;
+      const left = inner && pane ? inner.left + pane.clientLeft : 0;
+      const right =
+        inner && pane
+          ? Math.max(
+              0,
+              document.documentElement.clientWidth -
+                (inner.left + pane.clientLeft + pane.clientWidth),
+            )
+          : panel
+            ? panel.getBoundingClientRect().width +
+              Number.parseFloat(getComputedStyle(panel).marginRight)
+            : 0;
       if (webTitlebar && documentAreaElement.current) {
         const area = documentAreaElement.current.getBoundingClientRect();
         setTitleBounds((previous) =>
@@ -1523,7 +1533,8 @@ export function App() {
       void instance
         .setContentInset(
           left,
-          chrome.native && nativeOverlay && !fullscreen ? titlebarHeight : 0,
+          // The pane already starts below the titlebar; only the legacy full-bleed layout insets.
+          0,
           chrome.native ? 28 : 0,
           right,
         )
@@ -1544,6 +1555,7 @@ export function App() {
     // Never resize an iframe inside ResizeObserver delivery: nested viewports can feed back.
     const observer = new ResizeObserver(schedule);
     if (sidebarElement.current) observer.observe(sidebarElement.current);
+    if (documentAreaElement.current) observer.observe(documentAreaElement.current);
     if (panel) {
       observer.observe(panel);
       panel.addEventListener('transitionrun', schedule);
@@ -2040,8 +2052,11 @@ export function App() {
             native={chrome.native}
             hide={() => setSidebar(false)}
             width={sidebarWidth}
-            trailingWidth={detailsLayout.present ? detailsLayout.width + 20 : 0}
+            trailingWidth={
+              detailsLayout.present ? detailsLayout.width + (chrome.native ? 16 : 20) : 0
+            }
             onDragWidthChange={setSidebarDragWidth}
+            direct
             change={(sidebarWidth) => setPreferences((value) => ({ ...value, sidebarWidth }))}
           />
         )}

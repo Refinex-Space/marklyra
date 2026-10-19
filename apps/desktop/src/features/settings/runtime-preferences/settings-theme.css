@@ -9,6 +9,11 @@ html[data-settings-page],
   --settings-input: #f7f7f8;
   --settings-accent: #387ff0;
   --settings-focus: #a5a9b1;
+  --settings-gap: 8px;
+  --settings-radius: 8px;
+  /* The same canvas and hairline as the main window's cards (style.css --shell-canvas). */
+  --settings-canvas: color-mix(in srgb, var(--settings-bg) 95%, var(--settings-text));
+  --settings-pane-border: color-mix(in srgb, var(--settings-text) 13%, var(--settings-bg));
   --settings-content-width: 760px;
   --settings-content-padding: 48px 40px 64px;
   --settings-font: 14px / 1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

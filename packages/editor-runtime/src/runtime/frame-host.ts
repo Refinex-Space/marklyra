@@ -1300,11 +1300,8 @@ async function ready() {
     '#md-searchpanel .input-group-addon.close-btn{display:table-cell;width:26px;min-width:26px;height:26px;padding:0;text-align:center;vertical-align:middle;line-height:0;border-radius:4px;box-shadow:none;-webkit-tap-highlight-color:transparent}' +
     '#md-searchpanel .input-group-addon.close-btn .ion-close-round{padding:0;line-height:1;vertical-align:middle}' +
     '#md-searchpanel .input-group-addon.close-btn:hover{background:color-mix(in srgb,var(--bg-color,#fff) 80%,var(--text-color,#333));opacity:1}';
-  // Keep the real scrollport at the window edge and reserve only the text area's trailing space.
-  style.textContent +=
-    'content{right:0!important;padding-right:max(0px,calc(var(--marklyra-content-trailing,0px) - var(--marklyra-document-scrollbar-space,0px)))!important}' +
-    '#typora-source{right:0!important}' +
-    '#typora-source .CodeMirror-scroll{overflow-y:auto!important;padding-right:max(0px,calc(var(--marklyra-content-trailing,0px) - var(--marklyra-source-scrollbar-space,0px)))!important}';
+  // The scrollport ends where the host's pane ends, so its scrollbar sits on the pane's own edge.
+  style.textContent += '#typora-source .CodeMirror-scroll{overflow-y:auto!important}';
   document.head.append(style);
   const noticeStyle = document.createElement('style');
   noticeStyle.textContent = `

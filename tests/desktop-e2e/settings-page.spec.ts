@@ -474,10 +474,11 @@ test('settings sidebar resizes live and keeps help beside labels and controls al
   await page.mouse.up();
   await checkLayout();
   const paint = await page.locator('.preferences-page').evaluate((element) => ({
-    band: getComputedStyle(element, '::before').backgroundImage,
+    band: getComputedStyle(element, '::before').backgroundColor,
+    canvas: getComputedStyle(element).backgroundColor,
     sidebar: getComputedStyle(element).getPropertyValue('--settings-sidebar-bg'),
   }));
-  expect(paint.band).toContain('linear-gradient');
+  expect(paint.band).toBe(paint.canvas);
   expect(paint.sidebar).toBeTruthy();
   await page.screenshot({ path: info.outputPath('settings-resized.png') });
   await separator.press('End');
