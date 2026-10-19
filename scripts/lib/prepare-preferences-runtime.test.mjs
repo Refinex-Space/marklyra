@@ -14,7 +14,7 @@ import {
 } from './prepare-preferences-runtime.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
-const input = resolve(root, 'private/vendor/TypeMark');
+const input = resolve(root, 'resources/editor');
 const sourcePath = 'page-dist/static/js/Preferences.962926a4.d7f6a912.chunk.js';
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 

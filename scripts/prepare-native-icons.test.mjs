@@ -6,9 +6,9 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { nativeTitlebarManifest, verifyNativeIcons } from './prepare-native-icons.mjs';
 
-const input = fileURLToPath(new URL('../private/native-titlebar', import.meta.url));
+const input = fileURLToPath(new URL('../resources/native-titlebar', import.meta.url));
 
-test('all four private derived inputs retain their recorded identity and dimensions', async () => {
+test('all four tracked raster inputs retain their recorded identity and dimensions', async () => {
   assert.equal(await verifyNativeIcons(), 4);
   assert.equal(new Set(nativeTitlebarManifest.assets.map((entry) => entry.file)).size, 4);
 });
@@ -27,7 +27,7 @@ test('changed bytes cannot become a trusted native image', async () => {
   }
 });
 
-test('a symlink cannot supply a private native image or the input directory', async () => {
+test('a symlink cannot supply a tracked native image or the input directory', async () => {
   const root = await mkdtemp(join(tmpdir(), 'icons-linked-'));
   try {
     const directory = join(root, 'inputs');
@@ -35,7 +35,7 @@ test('a symlink cannot supply a private native image or the input directory', as
     const name = nativeTitlebarManifest.assets[0].file;
     await rm(join(directory, name));
     await symlink(join(input, name), join(directory, name));
-    await assert.rejects(verifyNativeIcons(directory), /regular private input/);
+    await assert.rejects(verifyNativeIcons(directory), /regular source input/);
     await symlink(input, join(root, 'linked'), process.platform === 'win32' ? 'junction' : 'dir');
     await assert.rejects(verifyNativeIcons(join(root, 'linked')), /directory must be regular/);
   } finally {

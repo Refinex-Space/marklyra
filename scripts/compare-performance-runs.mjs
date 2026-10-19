@@ -18,10 +18,9 @@ if (
   throw Error('Incomplete/drifting comparison');
 for (const [key, value] of Object.entries(before.report.sourceFingerprints))
   if (
-    ![
-      'private/runtime-assets/frame-host.js',
-      'private/runtime-assets/runtime-manifest.json',
-    ].includes(key)
+    !['dist/editor-runtime/frame-host.js', 'dist/editor-runtime/runtime-manifest.json'].includes(
+      key,
+    )
   )
     assert.equal(
       after.report.sourceFingerprints[key],

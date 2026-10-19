@@ -60,7 +60,7 @@
       }
     },
     "resources": {
-      "../../../private/runtime-assets/": "runtime/"
+      "../../../dist/editor-runtime/": "runtime/"
     },
     "fileAssociations": [
       {

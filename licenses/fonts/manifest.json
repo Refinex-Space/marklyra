@@ -1,6 +1,6 @@
 {
   "auditDate": "2026-10-16",
-  "scope": "24 desktop Shell font files only; font bytes stay private",
+  "scope": "24 desktop Shell font files; source bytes tracked under resources/editor/style",
   "fonts": [
     {
       "path": "Raleway-latin-ext.woff2",

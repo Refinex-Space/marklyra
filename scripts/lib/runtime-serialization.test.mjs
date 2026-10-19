@@ -5,7 +5,7 @@ import test from 'node:test';
 import { Script } from 'node:vm';
 import { transformRuntimeSerialization } from './runtime-serialization.mjs';
 
-const sourcePath = new URL('../../private/vendor/TypeMark/appsrc/main.js', import.meta.url);
+const sourcePath = new URL('../../resources/editor/appsrc/main.js', import.meta.url);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 
 test('only the verified runtime artifact can grant the native line capability', () => {

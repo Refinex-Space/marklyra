@@ -17,4 +17,4 @@ editor.destroy();
 
 通过 `load` 切换文稿，`execute` 执行类型化命令。`getMarkdown` 是缓存，不能替代保存前的 `flush`；同步失败时保留当前文稿并报告错误。React 适配位于 `@marklyra/editor-react`，不得逐次输入重建实例。详细接口以导出的 TypeScript 声明为准。
 
-SDK 包不包含私有运行引擎或主题、字体资源。构建与归档遵循仓库的资源校验和许可约束。
+编辑器引擎、主题和字体源码位于仓库的 `resources/editor`，运行页面生成到 `dist/editor-runtime`。SDK 归档只包含适配层，桌面构建会另行打包生成的运行页面。

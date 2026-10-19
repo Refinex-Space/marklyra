@@ -190,7 +190,7 @@ test('without the proven parser hook a later FEFF rule is rejected and the old d
   page,
 }) => {
   const original = await readFile(
-    new URL('../../private/vendor/TypeMark/appsrc/main.js', import.meta.url),
+    new URL('../../resources/editor/appsrc/main.js', import.meta.url),
   );
   await page.route('http://127.0.0.1:4174/appsrc/main.js', (route) =>
     route.fulfill({ body: original, contentType: 'text/javascript' }),

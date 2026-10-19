@@ -5,7 +5,7 @@ import { extname, resolve, sep } from 'node:path';
 const root = await realpath(
   process.argv[3]
     ? resolve(process.argv[3])
-    : resolve(import.meta.dirname, '../private/runtime-assets'),
+    : resolve(import.meta.dirname, '../dist/editor-runtime'),
 );
 const port = Number(process.argv[2] ?? 4174);
 const mime = {
@@ -49,7 +49,7 @@ const server = createServer(async (req, res) => {
   }
 });
 server.listen(port, '127.0.0.1', () =>
-  console.log(`Private editor runtime: http://127.0.0.1:${port}/index.html`),
+  console.log(`Editor runtime: http://127.0.0.1:${port}/index.html`),
 );
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.on(signal, () => server.close(() => process.exit(0)));

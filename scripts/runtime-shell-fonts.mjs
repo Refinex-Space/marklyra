@@ -7,15 +7,15 @@ import { SHELL_FONT_MANIFEST } from './runtime-shell-font-manifest.mjs';
 export { SHELL_FONT_MANIFEST };
 export const SHELL_FONT_PREFIX = '/__runtime-fonts/';
 export const SHELL_FONT_LICENSE_PREFIX = '/__runtime-fonts/licenses/fonts/';
-const defaultSource = fileURLToPath(new URL('../private/runtime-assets/style/', import.meta.url));
+const defaultSource = fileURLToPath(new URL('../dist/editor-runtime/style/', import.meta.url));
 const defaultLicenses = fileURLToPath(new URL('../licenses/fonts/', import.meta.url));
 const privateRoot = fileURLToPath(new URL('../private/', import.meta.url));
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 // Audit metadata is pinned as well as the received notices, so changing the mapping
 // and its declared notice hashes together cannot silently bypass the build gate.
 const LICENSE_METADATA = {
-  'manifest.json': '2c5d09fe634efcaf524f9e4a6b906e56793450e4bf7b596be3d6fdd6b46708e8',
-  'README.md': 'affe3fff84de2b3965928882d62fb5b08ce918eb143cb9a337e6867b63429613',
+  'manifest.json': 'b66c045a3b9a767e723be78bed93f853b6533eb6916532ba6faa84cc5f0bec8b',
+  'README.md': 'ae2b5ca150a7664f604166453e0398eb9ca5f7d6ca0b6bf5be98dffcf82278c7',
 };
 const LICENSE_NOTICES = [
   'Apache-2.0.txt',
@@ -139,7 +139,7 @@ function fontStylesheet() {
 async function verifiedResources(sourceDirectory, licenseDirectory) {
   const root = await realpath(sourceDirectory).catch(() => {
     throw new Error(
-      'Runtime shell fonts are missing; restore the private runtime font inputs before serving or building desktop',
+      'Runtime shell fonts are missing; run pnpm prepare:runtime before serving or building desktop',
     );
   });
   const results = await Promise.allSettled(
@@ -147,7 +147,7 @@ async function verifiedResources(sourceDirectory, licenseDirectory) {
       const path = resolve(root, font.path);
       const [metadata, canonical] = await Promise.all([lstat(path), realpath(path)]);
       if (!metadata.isFile() || metadata.isSymbolicLink() || !canonical.startsWith(`${root}${sep}`))
-        throw new Error(`Runtime shell font is not a regular private input: ${font.path}`);
+        throw new Error(`Runtime shell font is not a regular source input: ${font.path}`);
       const bytes = await readFile(path);
       if (digest(bytes) !== font.sha256)
         throw new Error(`Runtime shell font SHA-256 mismatch: ${font.path}`);
@@ -215,7 +215,7 @@ function middleware(resources) {
   };
 }
 
-/** Desktop-only delivery. Does not copy private bytes into source trees or SDK packages. */
+/** Desktop delivery from verified generated resources; SDK packages stay independent. */
 export function runtimeShellFonts({
   sourceDirectory = defaultSource,
   licenseDirectory = defaultLicenses,
@@ -231,7 +231,7 @@ export function runtimeShellFonts({
     },
     config(config) {
       // Preserve Vite 7's default secret-file denials while blocking its generic
-      // /@fs route from bypassing this plugin's private-resource whitelist.
+      // /@fs route from bypassing this plugin's resource whitelist.
       return {
         server: {
           fs: {

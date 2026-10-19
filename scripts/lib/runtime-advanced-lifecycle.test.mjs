@@ -13,8 +13,8 @@ import { transformRuntimeRenderLifecycle } from './runtime-render-lifecycle.mjs'
 import { transformRuntimeSerialization } from './runtime-serialization.mjs';
 import { transformRuntimeTableColumns } from './runtime-table-columns.mjs';
 
-const mainPath = new URL('../../private/vendor/TypeMark/appsrc/main.js', import.meta.url),
-  indexPath = new URL('../../private/vendor/TypeMark/index.html', import.meta.url),
+const mainPath = new URL('../../resources/editor/appsrc/main.js', import.meta.url),
+  indexPath = new URL('../../resources/editor/index.html', import.meta.url),
   original = await readFile(mainPath, 'utf8'),
   index = await readFile(indexPath, 'utf8'),
   digest = (value) => createHash('sha256').update(value).digest('hex');

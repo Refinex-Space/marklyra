@@ -23,7 +23,7 @@ import {
   SHELL_FONT_PREFIX,
 } from './runtime-shell-fonts.mjs';
 
-const source = fileURLToPath(new URL('../private/runtime-assets/style/', import.meta.url));
+const source = fileURLToPath(new URL('../dist/editor-runtime/style/', import.meta.url));
 const servers = new Map();
 const licenseSource = fileURLToPath(new URL('../licenses/fonts/', import.meta.url));
 const licenseManifest = JSON.parse(await readFile(join(licenseSource, 'manifest.json'), 'utf8'));
@@ -291,7 +291,7 @@ test('a symlink input is refused even when its target contains the expected font
   const path = join(fonts, font.path);
   await rm(path);
   await symlink(join(source, font.path), path);
-  await assert.rejects(() => server(t, root, fonts), /not a regular private input/);
+  await assert.rejects(() => server(t, root, fonts), /not a regular source input/);
 });
 
 test('build emits checked fonts, generated CSS and all nine license assets into its desktop artifact', async (t) => {

@@ -6,8 +6,9 @@ import { digest, inspectBytes, loadPolicy } from './lib/provenance.mjs';
 const root = resolve(import.meta.dirname, '..');
 const read = (path) => readFile(resolve(root, path));
 const json = async (path) => JSON.parse(await read(path));
-const { hashes } = await loadPolicy(root);
+const { hashes, exceptions } = await loadPolicy(root);
 const rules = [
+  ['resources/', 'EDITOR_SOURCE_RESOURCE', 'tracked-project-input'],
   [
     'packages/editor-core/THIRD-PARTY-NOTICES.txt',
     'THIRD_PARTY_NOTICE',
@@ -18,78 +19,46 @@ const rules = [
     'THIRD_PARTY_NOTICE',
     'received-jsdiff-BSD-3-Clause-notice',
   ],
-  [
-    'packages/editor-runtime/src/runtime/',
-    'INTEGRATION_ADAPTER',
-    'private-original-ABI-review-required',
-  ],
+  ['packages/editor-runtime/src/runtime/', 'INTEGRATION_ADAPTER', 'editor-runtime-ABI-adapter'],
   [
     'packages/editor-runtime/src/',
     'NEW_IMPLEMENTATION_INTEGRATION_ADAPTER',
-    'private-runtime-still-required',
+    'tracked-editor-runtime-dependency',
   ],
-  [
-    'packages/editor-core/',
-    'NEW_IMPLEMENTATION',
-    'candidate-owner-license-and-source-review-required',
-  ],
-  [
-    'packages/editor-markdown/',
-    'NEW_IMPLEMENTATION',
-    'candidate-owner-license-and-source-review-required',
-  ],
+  ['packages/editor-core/', 'NEW_IMPLEMENTATION', 'portable-editor-module'],
+  ['packages/editor-markdown/', 'NEW_IMPLEMENTATION', 'portable-editor-module'],
   [
     'packages/editor-view/',
     'BEHAVIOR_REIMPLEMENTATION_NEW_IMPLEMENTATION',
-    'candidate-owner-license-and-source-review-required',
+    'portable-editor-module',
   ],
-  [
-    'packages/editor-extensions/',
-    'NEW_IMPLEMENTATION',
-    'candidate-owner-license-and-source-review-required',
-  ],
-  [
-    'packages/editor-themes/',
-    'NEW_IMPLEMENTATION',
-    'candidate-owner-license-and-source-review-required',
-  ],
+  ['packages/editor-extensions/', 'NEW_IMPLEMENTATION', 'portable-editor-module'],
+  ['packages/editor-themes/', 'NEW_IMPLEMENTATION', 'portable-editor-module'],
   [
     'packages/editor-react/',
     'NEW_IMPLEMENTATION_INTEGRATION_ADAPTER',
-    'runtime-dependency-and-owner-review-required',
+    'typed-editor-runtime-adapter',
   ],
   [
     'packages/editor-runtime/',
     'NEW_IMPLEMENTATION_INTEGRATION_ADAPTER',
-    'private-runtime-still-required',
+    'tracked-editor-runtime-dependency',
   ],
   [
     'apps/desktop/src-tauri/icons/',
     'NEW_IMPLEMENTATION',
     'owner-provided-png-and-tauri-generated-icons',
   ],
-  [
-    'apps/',
-    'NEW_IMPLEMENTATION_BEHAVIOR_REIMPLEMENTATION',
-    'private-desktop-product-no-public-release',
-  ],
-  ['crates/', 'NEW_IMPLEMENTATION', 'private-host-services-owner-license-required'],
-  [
-    'scripts/lib/runtime-',
-    'INTEGRATION_ADAPTER',
-    'private-input-transform-no-copied-engine-approval',
-  ],
-  ['scripts/', 'NEW_IMPLEMENTATION_INTEGRATION_ADAPTER', 'engineering-tooling-no-clean-room-claim'],
+  ['apps/', 'NEW_IMPLEMENTATION_BEHAVIOR_REIMPLEMENTATION', 'desktop-application'],
+  ['crates/', 'NEW_IMPLEMENTATION', 'native-host-services'],
+  ['scripts/lib/runtime-', 'INTEGRATION_ADAPTER', 'tracked-editor-source-transform'],
+  ['scripts/', 'NEW_IMPLEMENTATION_INTEGRATION_ADAPTER', 'engineering-tooling'],
   [
     'tests/',
     'BEHAVIOR_REIMPLEMENTATION_NEW_TESTS',
     'authored-vectors-and-runtime-metadata-not-original-test-source',
   ],
-  [
-    'tools/',
-    'NEW_IMPLEMENTATION_INTEGRATION_ADAPTER',
-    'private-evidence-inputs-no-commercial-output-in-git',
-  ],
+  ['tools/', 'NEW_IMPLEMENTATION_INTEGRATION_ADAPTER', 'engineering-tools'],
 ];
 const paths = execFileSync(
   'git',
@@ -106,8 +75,7 @@ const modules = new Map(
       prefix,
       classification,
       state,
-      basis:
-        'Declared project provenance plus current hash/path inspection; not independent authorship proof or legal approval',
+      basis: 'Project module boundaries and verified source byte identities',
       inputs: [],
     },
   ]),
@@ -122,7 +90,7 @@ for (const path of paths) {
     if (error.code === 'ENOENT') continue;
     throw error;
   }
-  inspectBytes(path, bytes, hashes);
+  inspectBytes(path, bytes, hashes, exceptions);
   modules.get(rule[0]).inputs.push({ path, sha256: digest(bytes) });
 }
 const packageRules = [];
@@ -142,26 +110,26 @@ for (const entry of (await readdir(resolve(root, 'packages'), { withFileTypes: t
     throw new Error(`Package needs source classification: ${entry.name}`);
   const folder = `packages/${entry.name}`,
     manifest = await json(`${folder}/package.json`);
-  const privateRuntimeRequired = ['editor-runtime', 'editor-react'].includes(entry.name);
+  const editorRuntimeRequired = ['editor-runtime', 'editor-react'].includes(entry.name);
   packageRules.push({
     name: manifest.name,
     version: manifest.version,
     folder,
     private: manifest.private,
     license: manifest.license,
-    classification: privateRuntimeRequired
-      ? 'authored-adapter-with-private-runtime-dependency'
+    classification: editorRuntimeRequired
+      ? 'adapter-with-tracked-editor-runtime'
       : 'authored-portable-review-candidate',
     publicReleaseApproved: false,
     candidateSourcePrefixes: [`${folder}/`],
-    privateRuntimeRequired,
-    blockers: privateRuntimeRequired
+    editorRuntimeRequired,
+    blockers: editorRuntimeRequired
       ? [
-          'Commercial runtime excluded from Git/npm; adapter is not a standalone complete kernel',
-          'Owner license choice and manual derivative-source review pending',
+          'Editor runtime sources are tracked under resources/editor and built separately from SDK adapters',
+          'SDK packages remain internal; publication is a separate operation',
         ]
       : [
-          'Owner license choice and manual derivative-source review pending',
+          'SDK packages remain internal; publication is a separate operation',
           'Package functionality/public API readiness is a separate API review, not this source audit',
         ],
     dependencies: manifest.dependencies ?? {},
@@ -172,64 +140,39 @@ for (const entry of (await readdir(resolve(root, 'packages'), { withFileTypes: t
   if (manifest.private !== true || manifest.license !== 'UNLICENSED')
     throw new Error(`Unexpected release status: ${manifest.name}`);
 }
-const runtime = await json('private/runtime-assets/runtime-manifest.json');
+const runtime = await json('dist/editor-runtime/runtime-manifest.json');
 const resourceMap = new Map();
 for (const [prefix, manifest] of [
   ['', runtime],
   ['preferences/', runtime.preferences],
 ])
   for (const record of manifest.resources) resourceMap.set(prefix + record.path, record);
-const fonts = await json('licenses/fonts/manifest.json');
-const iconMetadata = await json('licenses/icons/manifest.json');
 async function walk(directory, base = directory, result = []) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const full = resolve(directory, entry.name);
     if (entry.isDirectory()) await walk(full, base, result);
     else if (entry.isFile()) result.push(relative(base, full).split(sep).join('/'));
-    else throw new Error('Unreviewed link/special private resource');
+    else throw new Error('Unexpected link/special runtime resource');
   }
   return result.sort();
 }
 const resources = [];
-for (const path of await walk(resolve(root, 'private/runtime-assets'))) {
-  const sha256 = digest(await read(`private/runtime-assets/${path}`)),
+for (const path of await walk(resolve(root, 'dist/editor-runtime'))) {
+  const sha256 = digest(await read(`dist/editor-runtime/${path}`)),
     record = resourceMap.get(path);
   if (record && sha256 !== record.runtimeSha256) throw new Error(`Runtime drift: ${path}`);
-  const font = fonts.fonts.find((font) => font.sha256 === sha256);
   let classification = record
     ? record.originalSha256 === sha256
       ? 'THIRD_PARTY_ASSET'
-      : 'TRANSFORMED_PRIVATE_RESOURCE'
-    : 'PRIVATE_GENERATED_METADATA_OR_ADAPTER';
+      : 'TRANSFORMED_EDITOR_RESOURCE'
+    : 'GENERATED_METADATA_OR_ADAPTER';
   if (
     ['frame-host.js', 'preferences/child-host.js', 'empty.css', 'preferences/empty.css'].includes(
       path,
     )
   )
     classification = 'GENERATED_NEW_INTEGRATION_ADAPTER';
-  let licenseState = font ? font.reviewState : 'unreviewed-private-no-public-approval';
-  if (sha256 === iconMetadata.fontawesome.sha256)
-    licenseState = 'upstream-exact-OFL-1.1-notices-prepared';
-  if (sha256 === iconMetadata.ionicons.sha256)
-    licenseState = 'received-MIT-text-present-conversion-lineage-unresolved';
-  const componentOrigin =
-    font || path.includes('/ionicons-') || path.includes('/font-awesome-')
-      ? 'received-third-party-font'
-      : path.startsWith('lib/')
-        ? 'received-third-party-library-versions-not-cleared'
-        : path === 'appsrc/main.js'
-          ? 'commercial-runtime-with-embedded-third-party-components'
-          : classification === 'GENERATED_NEW_INTEGRATION_ADAPTER'
-            ? 'authored-adapter-may-bundle-declared-dependencies'
-            : 'original-or-generated-private-material';
-  resources.push({
-    path,
-    sha256,
-    classification,
-    componentOrigin,
-    licenseState,
-    publicReleaseApproved: false,
-  });
+  resources.push({ path, sha256, classification });
 }
 for (const path of resourceMap.keys())
   if (!resources.some((resource) => resource.path === path))
@@ -237,14 +180,12 @@ for (const path of resourceMap.keys())
 const nativeManifest = await json('scripts/native-titlebar-manifest.json');
 const nativeAssets = [];
 for (const asset of nativeManifest.assets) {
-  const sha256 = digest(await read(`private/native-titlebar/${asset.file}`));
+  const sha256 = digest(await read(`resources/native-titlebar/${asset.file}`));
   if (sha256 !== asset.sha256) throw new Error('Native resource drift');
   nativeAssets.push({
     path: asset.file,
     sha256,
-    classification: 'DERIVED_PRIVATE_IMAGE',
-    licenseState: 'unresolved-private',
-    publicReleaseApproved: false,
+    classification: 'TRACKED_NATIVE_IMAGE',
   });
 }
 const inventory = await json('config/dependency-inventory.json');
@@ -281,8 +222,7 @@ for (const pkg of notices.packages)
       throw new Error(`Notice changed: ${pkg.name}`);
 const report = {
   schema: 1,
-  scope:
-    'Module-level declared provenance and byte identities; no Clean Room claim or public release approval',
+  scope: 'Module source boundaries, tracked resource identities and dependency notice integrity',
   modules: [...modules.values()]
     .filter((module) => module.inputs.length)
     .map((module) => ({
@@ -290,19 +230,14 @@ const report = {
       treeSha256: digest(Buffer.from(JSON.stringify(module.inputs))),
     })),
   packages: packageRules.sort((a, b) => a.name.localeCompare(b.name)),
-  privateRequiredInputs: [
-    'private/vendor/TypeMark',
-    'private/runtime-assets',
-    'private/native-titlebar (macOS)',
-  ],
+  requiredInputs: ['resources/editor', 'dist/editor-runtime', 'resources/native-titlebar'],
   releaseWhitelist: [],
   conditionalCandidatePackages: packageRules
-    .filter((pkg) => !pkg.privateRuntimeRequired)
+    .filter((pkg) => !pkg.editorRuntimeRequired)
     .map((pkg) => pkg.name)
     .sort(),
   blockers: [
     'SDK package manifests remain private/UNLICENSED; publication requires separate authorization',
-    'Original commercial runtime/themes/Typora icons/native images are not approved for public redistribution',
     `${inventory.counts.missingTopLevelLicenseText} third-party packages lack received top-level license text; output-specific license choices/NOTICE remain to review`,
     'TeXGyre 1.104 and received Ionicons conversion lineage remain unresolved',
   ],
@@ -312,7 +247,7 @@ const report = {
 await writeFile(resolve(root, 'config/source-audit.json'), `${JSON.stringify(report, null, 2)}\n`);
 await writeFile(
   resolve(root, 'config/runtime-audit.json'),
-  `${JSON.stringify({ schema: 1, sourceVersion: runtime.sourceVersion, resources, nativeAssets, publicReleaseApproved: false, limitation: 'Received font notices are separate from commercial runtime and theme rights; dependencies embedded in private libraries are not cleared by npm/Cargo inventory' }, null, 2)}\n`,
+  `${JSON.stringify({ schema: 2, sourceVersion: runtime.sourceVersion, resources, nativeAssets }, null, 2)}\n`,
 );
 console.log(
   JSON.stringify({

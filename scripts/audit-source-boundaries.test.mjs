@@ -20,7 +20,6 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
     'scripts/lib/provenance.mjs',
     'scripts/native-titlebar-manifest.json',
     'config/runtime-source.json',
-    'config/restricted-assets.json',
     'config/dependency-inventory.json',
     'licenses/fonts/manifest.json',
     'licenses/icons/manifest.json',
@@ -38,8 +37,9 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
     await copyFile(join(source, file), join(root, file));
   }
   for (const directory of [
-    'private/runtime-assets',
-    'private/native-titlebar',
+    'dist/editor-runtime',
+    'resources/editor',
+    'resources/native-titlebar',
     inventory.noticeBundle.directory,
   ])
     await cp(join(source, directory), join(root, directory), { recursive: true });
@@ -63,7 +63,7 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
     });
   const initial = run();
   assert.equal(initial.status, 0, initial.stderr);
-  const resource = 'private/runtime-assets/appsrc/editor/EmojiSearchMap.js';
+  const resource = 'dist/editor-runtime/appsrc/editor/EmojiSearchMap.js';
   await rm(join(root, resource));
   const missing = run();
   assert.notEqual(missing.status, 0);

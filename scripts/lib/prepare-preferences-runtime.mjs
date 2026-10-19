@@ -465,7 +465,7 @@ export async function preparePreferencesRuntime({
     '/* Preferences use the runtime native shell styles. */\n',
   );
   const manifest = {
-    kind: 'private-runtime-preferences',
+    kind: 'runtime-preferences',
     sourceVersion: 'Typora 1.11.7 (7472)',
     adapterSha256: digest(chunks[0].code),
     transformations: transformed.metadata,

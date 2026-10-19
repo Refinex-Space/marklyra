@@ -4,7 +4,7 @@ fn main() {
         for path in [
             "scripts/prepare-native-icons.mjs",
             "scripts/native-titlebar-manifest.json",
-            "private/native-titlebar",
+            "resources/native-titlebar",
         ] {
             println!("cargo:rerun-if-changed={}", root.join(path).display());
         }
@@ -17,7 +17,7 @@ fn main() {
             );
         assert!(
             status.success(),
-            "Private native titlebar icon verification failed"
+            "Native titlebar source verification failed"
         );
     }
     tauri_build::build()

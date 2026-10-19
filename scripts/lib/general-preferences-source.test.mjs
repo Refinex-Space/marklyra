@@ -7,7 +7,7 @@ import { generalPreferencesEdits } from './general-preferences-source.mjs';
 
 const source = await readFile(
   new URL(
-    '../../private/vendor/TypeMark/page-dist/static/js/Preferences.962926a4.d7f6a912.chunk.js',
+    '../../resources/editor/page-dist/static/js/Preferences.962926a4.d7f6a912.chunk.js',
     import.meta.url,
   ),
   'utf8',

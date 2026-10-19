@@ -1,4 +1,4 @@
-// Identity and observed family metadata only; original font bytes stay in private inputs.
+// Identity and observed family metadata only; font sources are tracked under resources/editor/style.
 export const SHELL_ICON_MANIFEST = Object.freeze([
   {
     path: 'typora-icon/fonts/typora-icon.woff',
@@ -6,7 +6,7 @@ export const SHELL_ICON_MANIFEST = Object.freeze([
     originalFamily: 'typora-icon',
     bytes: 15516,
     sha256: '49a95eea5e45c2dfbb2483cfc64b7f6b5b3f4d5d863dc8d39ad2ea1c00fe659d',
-    license: 'private-unreviewed',
+    sourcePath: 'resources/editor/style/typora-icon/fonts/typora-icon.woff',
   },
   {
     path: 'ionicons-2.0.1/fonts/ionicons.woff',
@@ -26,7 +26,7 @@ export const SHELL_ICON_MANIFEST = Object.freeze([
   },
 ]);
 
-// Exact symbols from the private runtime page; SVG artwork stays out of Git.
+// Exact symbols from the tracked editor runtime page.
 export const SEARCH_ICON_MANIFEST = Object.freeze([
   { name: 'case', sha256: 'cf6b7be022b4dda02e4f7111b3fda18ea46366377d0f8c2ff4141f81e7582687' },
   { name: 'word', sha256: 'b345eb86697e3a2cf5510a60288df53ee3751126bdb32c8fc34321227be77a62' },

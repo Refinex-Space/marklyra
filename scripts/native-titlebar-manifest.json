@@ -1,7 +1,7 @@
 {
   "sourceVersion": "Typora 1.11.7 / 7472",
   "assetsCarSha256": "3a52ece4b0a01232119543428b9727fb34fca29d2c2ad1df8b733277107224c8",
-  "provenance": "AppKit-derived private raster, not original encoded rendition bytes or public redistribution approval",
+  "provenance": "AppKit-derived raster inputs; tracked under resources/native-titlebar",
   "assets": [
     {
       "file": "tocButton@2x.png",

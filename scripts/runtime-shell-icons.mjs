@@ -6,7 +6,7 @@ import { SEARCH_ICON_MANIFEST, SHELL_ICON_MANIFEST } from './runtime-shell-icon-
 
 export { SHELL_ICON_MANIFEST };
 export const SHELL_ICON_PREFIX = '/__runtime-icons/';
-const defaultSource = fileURLToPath(new URL('../private/runtime-assets/style/', import.meta.url));
+const defaultSource = fileURLToPath(new URL('../dist/editor-runtime/style/', import.meta.url));
 const privateRoot = fileURLToPath(new URL('../private/', import.meta.url));
 const licenseSource = fileURLToPath(new URL('../licenses/', import.meta.url));
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -14,7 +14,7 @@ const reviewedNotices = [
   {
     source: 'icons/FONT-NOTICES.txt',
     file: 'icon-notices.txt',
-    sha256: 'af0c3b5f101331c91f86b7aed2aa6194a51f70ed099588d0398506ecb0e723b9',
+    sha256: '109142fc84aafcfd7824bd4dc489c76c8fd39db20e12a879f635e51455552682',
   },
   {
     source: 'fonts/OFL-1.1.txt',
@@ -32,7 +32,7 @@ async function verifiedInput(root, relativePath, expectedHash, expectedBytes) {
     const path = resolve(root, relativePath);
     const [metadata, canonical] = await Promise.all([lstat(path), realpath(path)]);
     if (!metadata.isFile() || metadata.isSymbolicLink() || !canonical.startsWith(`${root}${sep}`))
-      throw new Error('not a regular private input');
+      throw new Error('not a regular source input');
     const bytes = await readFile(path);
     if (
       (expectedHash !== undefined && digest(bytes) !== expectedHash) ||
@@ -49,7 +49,7 @@ async function verifiedInput(root, relativePath, expectedHash, expectedBytes) {
 
 async function verifiedResources(sourceDirectory) {
   const root = await realpath(sourceDirectory).catch(() => {
-    throw new Error('Runtime shell icons are missing; restore the private runtime inputs');
+    throw new Error('Runtime shell icons are missing; run pnpm prepare:runtime');
   });
   const results = await Promise.allSettled(
     SHELL_ICON_MANIFEST.map(async (font) => [
@@ -110,15 +110,14 @@ async function verifiedResources(sourceDirectory) {
   const provenance = Buffer.from(
     `${JSON.stringify(
       {
-        purpose:
-          'Private desktop resources; separate review required for SDK or public distribution',
+        purpose: 'Desktop icons built from tracked project resources',
         source: 'Typora 1.11.7 / 7472 shipped style resources, unchanged font bytes',
         fonts: SHELL_ICON_MANIFEST,
         searchIcons: {
           file: 'search-options.svg',
           source: 'index.html',
           symbols: SEARCH_ICON_MANIFEST,
-          license: 'private-unreviewed',
+          sourcePath: 'resources/editor/index.html',
         },
         notices: [
           { file: 'licenses/ionicons-MIT.txt', sha256: ioniconsNotice.sha256 },
@@ -127,8 +126,6 @@ async function verifiedResources(sourceDirectory) {
             sha256: record.sha256,
           })),
         ],
-        unreviewed:
-          'Typora icon redistribution rights and Ionicons conversion lineage remain unresolved; no public bundle approval',
       },
       null,
       2,
@@ -186,7 +183,7 @@ function middleware(resources) {
   };
 }
 
-/** Private desktop assets, deliberately separate from the audited 24 text fonts. */
+/** Desktop icon assets, separate from the 24 text fonts. */
 export function runtimeShellIcons({ sourceDirectory = defaultSource } = {}) {
   let pending;
   let building = false;

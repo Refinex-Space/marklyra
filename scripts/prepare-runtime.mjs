@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { prepareBuiltinThemes } from './lib/builtin-themes.mjs';
 import { preparePreferencesRuntime } from './lib/prepare-preferences-runtime.mjs';
@@ -11,18 +11,20 @@ import { transformRuntimeHTMLPreview } from './lib/runtime-html-preview.mjs';
 import { transformRuntimeLiteral } from './lib/runtime-literal.mjs';
 import { transformRuntimePairing } from './lib/runtime-pairing.mjs';
 import { transformRuntimeRenderLifecycle } from './lib/runtime-render-lifecycle.mjs';
+import { verifyRuntimeSources } from './lib/runtime-resources.mjs';
 import { transformRuntimeSerialization } from './lib/runtime-serialization.mjs';
 import { transformRuntimeTableColumns } from './lib/runtime-table-columns.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const input = resolve(root, 'private/vendor/TypeMark');
-const output = resolve(root, 'private/runtime-assets');
+const input = resolve(root, 'resources/editor');
+const output = resolve(root, 'dist/editor-runtime');
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+await verifyRuntimeSources(root);
 const manifest = JSON.parse(await readFile(resolve(root, 'config/runtime-source.json'), 'utf8'));
 const expected = new Map(
-  manifest
-    .filter((entry) => entry.path.startsWith('Contents/Resources/TypeMark/'))
-    .map((entry) => [entry.path.replace('Contents/Resources/TypeMark/', ''), entry.sha256]),
+  manifest.resources
+    .filter((entry) => entry.path.startsWith('resources/editor/'))
+    .map((entry) => [entry.path.slice('resources/editor/'.length), entry.sha256]),
 );
 const actual = [];
 const transformations = [];
@@ -97,6 +99,8 @@ async function copy(directory) {
     });
   }
 }
+// A rebuild must not retain removed source assets from an earlier version.
+await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await copy(input);
 await copyFile(
@@ -112,8 +116,8 @@ await writeFile(
   resolve(output, 'runtime-manifest.json'),
   JSON.stringify(
     {
-      sourceVersion: 'Typora 1.11.7 (7472)',
-      kind: 'private-editor-runtime',
+      sourceVersion: manifest.sourceVersion,
+      kind: 'editor-runtime',
       adapterSha256: digest(await readFile(resolve(output, 'frame-host.js'))),
       transformations,
       preferences,
@@ -123,6 +127,4 @@ await writeFile(
     2,
   ) + '\n',
 );
-console.log(
-  `Prepared ${actual.length} verified private resources for local MarkLyra builds; no source upload.`,
-);
+console.log(`Prepared ${actual.length} verified editor resources from tracked project sources.`);

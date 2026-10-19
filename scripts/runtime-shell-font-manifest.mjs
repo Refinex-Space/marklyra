@@ -1,4 +1,4 @@
-// Font metadata and SHA-256 identities only. Original font bytes remain in ignored private inputs.
+// Font metadata and SHA-256 identities only. Font sources are tracked under resources/editor/style.
 export const SHELL_FONT_MANIFEST = Object.freeze(
   [
     {

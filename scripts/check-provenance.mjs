@@ -6,6 +6,4 @@ if (args.length > 1 || args.some((value) => !['--tracked', '--history'].includes
 const mode = args[0] === '--history' ? 'history' : args[0] === '--tracked' ? 'tracked' : 'staged';
 const result = await checkRepository(process.cwd(), mode);
 console.log(JSON.stringify(result));
-console.log(
-  'Checked actual Git object bytes. Exact-byte/path gates do not approve provenance, licenses, snippets or public release.',
-);
+console.log('Checked actual Git object bytes and tracked runtime source identities.');

@@ -10,7 +10,7 @@ test('only the branded pair is generated with one GitHub layout, local fonts and
   const output = await mkdtemp(resolve(tmpdir(), 'marklyra-themes-'));
   t.after(() => rm(output, { recursive: true, force: true }));
   const original = await readFile(
-    resolve(root, 'private/vendor/TypeMark/style/themes/github.css'),
+    resolve(root, 'resources/editor/style/themes/github.css'),
     'utf8',
   );
   const directory = resolve(output, 'style/themes');
@@ -35,7 +35,7 @@ test('only the branded pair is generated with one GitHub layout, local fonts and
   assert.match(themes[0], /--bg-color: #fff/);
   assert.match(themes[1], /--bg-color: #0d1117/);
   assert.equal(
-    await readFile(resolve(root, 'private/vendor/TypeMark/style/themes/github.css'), 'utf8'),
+    await readFile(resolve(root, 'resources/editor/style/themes/github.css'), 'utf8'),
     original,
   );
 });

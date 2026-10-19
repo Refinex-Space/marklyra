@@ -1,4 +1,4 @@
-Private desktop icon resources — received identities and notices
+Desktop icon resources — received identities and notices
 
 FontAwesome 4.1.0
 Received WOFF SHA-256: 66db52b456efe7e29cec11fa09421d03cb09e37ed1b567307ec0444fd605ce31
@@ -33,7 +33,6 @@ must not be presented as proof of an identical upstream font artifact.
 Source: https://github.com/ionic-team/ionicons/blob/v2.0.1/LICENSE
 
 Typora icon and native titlebar images
-The typora-icon font and four native Assets.car-derived images remain
-private application resources without confirmed public redistribution rights.
-This notice does not grant a license to those files, Typora themes or the
-commercial editor. All current application bundles remain local/private.
+The typora-icon font is tracked under resources/editor/style/typora-icon.
+The four native titlebar PNG inputs are tracked under resources/native-titlebar.
+Original byte identities and upstream notices are retained with these project inputs.

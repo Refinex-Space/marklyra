@@ -24,7 +24,7 @@ import {
   SHELL_ICON_PREFIX,
 } from './runtime-shell-icons.mjs';
 
-const source = fileURLToPath(new URL('../private/runtime-assets/style/', import.meta.url));
+const source = fileURLToPath(new URL('../dist/editor-runtime/style/', import.meta.url));
 const servers = new Map();
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -87,7 +87,7 @@ function request(origin, path, method = 'GET', headers = {}) {
   });
 }
 
-test('three private icon fonts, precise family aliases and the actual Ionicons notice are served unchanged', async (t) => {
+test('three tracked icon fonts, precise family aliases and the actual Ionicons notice are served unchanged', async (t) => {
   const { root } = await fixture(t);
   const origin = await server(t, root);
   const html = await (await fetch(origin)).text();
@@ -127,7 +127,10 @@ test('three private icon fonts, precise family aliases and the actual Ionicons n
     (await request(origin, `${SHELL_ICON_PREFIX}provenance.json`)).bytes,
   );
   assert.equal(provenance.fonts.filter((font) => font.license === 'MIT').length, 1);
-  assert.equal(provenance.fonts.filter((font) => font.license === 'private-unreviewed').length, 1);
+  assert.equal(
+    provenance.fonts.filter((font) => font.sourcePath?.startsWith('resources/editor/')).length,
+    1,
+  );
   assert.equal(provenance.fonts.filter((font) => font.license === 'OFL-1.1').length, 1);
   const ofl = await request(origin, `${SHELL_ICON_PREFIX}licenses/fontawesome-OFL.txt`);
   assert.deepEqual(
@@ -137,7 +140,7 @@ test('three private icon fonts, precise family aliases and the actual Ionicons n
   const fontNotices = await request(origin, `${SHELL_ICON_PREFIX}licenses/icon-notices.txt`);
   assert.equal(
     digest(fontNotices.bytes),
-    'af0c3b5f101331c91f86b7aed2aa6194a51f70ed099588d0398506ecb0e723b9',
+    '109142fc84aafcfd7824bd4dc489c76c8fd39db20e12a879f635e51455552682',
   );
   assert.equal(SHELL_FONT_MANIFEST.length, 24);
   assert.ok(

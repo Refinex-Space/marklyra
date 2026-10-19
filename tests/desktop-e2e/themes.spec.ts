@@ -44,7 +44,7 @@ async function mount(page: Page) {
       await route.fulfill({
         contentType: 'font/woff2',
         body: readFileSync(
-          new URL('../../private/runtime-assets/style/Raleway-latin.woff2', import.meta.url),
+          new URL('../../dist/editor-runtime/style/Raleway-latin.woff2', import.meta.url),
         ),
       });
     } else

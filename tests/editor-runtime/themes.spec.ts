@@ -77,12 +77,12 @@ async function mount(page: Page): Promise<Frame> {
       await route.fulfill({
         contentType: 'font/woff2',
         body: readFileSync(
-          new URL('../../private/runtime-assets/style/Raleway-latin.woff2', import.meta.url),
+          new URL('../../dist/editor-runtime/style/Raleway-latin.woff2', import.meta.url),
         ),
       });
     } else if (name === 'font-data.css') {
       const bytes = readFileSync(
-        new URL('../../private/runtime-assets/style/Raleway-latin.woff2', import.meta.url),
+        new URL('../../dist/editor-runtime/style/Raleway-latin.woff2', import.meta.url),
       );
       await route.fulfill({
         contentType: 'text/css',
@@ -430,7 +430,7 @@ test('data font CSS renders in the real runtime policy and crosses the SDK as bo
     }),
   ).toEqual([{ family: 'Transfer Test', status: 'loaded' }]);
   const bytes = readFileSync(
-    new URL('../../private/runtime-assets/style/Raleway-latin.woff2', import.meta.url),
+    new URL('../../dist/editor-runtime/style/Raleway-latin.woff2', import.meta.url),
   );
   expect(
     await page.evaluate(async () => {

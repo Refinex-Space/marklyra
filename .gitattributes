@@ -1,2 +1,25 @@
-# Keep audited upstream notices and their pinned hashes byte-exact on all hosts.
-licenses/fonts/** -text -whitespace
+# Keep authored code and configuration consistent across Windows and macOS.
+*.ts text eol=lf
+*.tsx text eol=lf
+*.mts text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.rs text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+
+# Keep upstream notices and their pinned hashes byte-exact on all hosts.
+licenses/** -text -whitespace
+
+# Editor sources contain pinned bytes; do not apply Windows CRLF conversion.
+resources/** -text -whitespace
+apps/desktop/public/icons/** -text -whitespace
+**/test-fixtures/** -text -whitespace
+
+# Dependency inventory hashes must match on Windows and macOS.
+pnpm-lock.yaml text eol=lf
+Cargo.lock text eol=lf

@@ -160,7 +160,7 @@ pub fn handle<R: Runtime>(
             .map(|path| path.join("runtime"));
         #[cfg(debug_assertions)]
         let development =
-            Some(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../private/runtime-assets"));
+            Some(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../dist/editor-runtime"));
         #[cfg(not(debug_assertions))]
         let development: Option<PathBuf> = None;
         select_root(bundled.as_deref(), development.as_deref())

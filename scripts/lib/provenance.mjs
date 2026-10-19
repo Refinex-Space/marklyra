@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 
 export const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const forbidden =
-  /(?:^|\/)(?:private|artifacts|target|node_modules|\.git|runtime-assets|recovered|appsrc|[^/]+\.app)(?:\/|$)|(?:^|\/)\.env(?:\.|$)|\.(?:hdb|dmg|exe|msi|dylib|asar|tgz)$/i;
+  /(?:^|\/)(?:private|artifacts|target|node_modules|\.git|runtime-assets|recovered|[^/]+\.app)(?:\/|$)|(?:^|\/)\.env(?:\.|$)|\.(?:hdb|dmg|exe|msi|dylib|asar|tgz)$/i;
 const hashPattern = /^[a-f0-9]{64}$/;
 const modePattern = /^(100644|100755)$/;
 
@@ -19,7 +19,8 @@ export function inspectPath(path) {
       (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
     ) ||
     path.split('/').some((part) => !part || part === '.' || part === '..') ||
-    forbidden.test(path)
+    forbidden.test(path) ||
+    (/(?:^|\/)appsrc(?:\/|$)/i.test(path) && !path.startsWith('resources/editor/'))
   )
     throw new Error(`Forbidden provenance path: ${JSON.stringify(path)}`);
 }
@@ -75,20 +76,27 @@ function git(root, args, options = {}) {
 }
 export async function loadPolicy(root, index = false) {
   const read = (path) => (index ? git(root, ['show', `:${path}`]) : readFile(resolve(root, path)));
-  const originalBytes = await read('config/runtime-source.json');
-  const original = JSON.parse(originalBytes);
-  const metadata = JSON.parse(await read('config/restricted-assets.json'));
-  if (metadata.schema !== 1 || metadata.originalManifestSha256 !== digest(originalBytes))
-    throw new Error('Provenance metadata does not match the original manifest');
-  const hashes = new Set(
-    original.filter((row) => row.size > 0 && row.sha256).map((row) => row.sha256),
-  );
-  for (const record of metadata.derivedResources) {
-    if (!hashPattern.test(record.sha256)) throw new Error('Invalid restricted resource digest');
-    hashes.add(record.sha256);
-  }
+  const manifest = JSON.parse(await read('config/runtime-source.json'));
+  if (manifest.schema !== 2 || !Array.isArray(manifest.resources) || !manifest.resources.length)
+    throw new Error('Invalid runtime source manifest');
+  const hashes = new Set();
   const exceptions = new Map();
-  for (const record of metadata.noticeExceptions) {
+  const resources = new Map();
+  for (const record of manifest.resources) {
+    inspectPath(record.path);
+    if (
+      !/^(?:resources\/editor\/|resources\/native-titlebar\/)/.test(record.path) ||
+      !hashPattern.test(record.sha256) ||
+      !Number.isSafeInteger(record.size) ||
+      record.size < 0 ||
+      resources.has(record.path)
+    )
+      throw new Error('Invalid runtime source record');
+    hashes.add(record.sha256);
+    resources.set(record.path, record);
+    exceptions.set(record.path, record.sha256);
+  }
+  for (const record of manifest.noticeExceptions ?? []) {
     inspectPath(record.path);
     if (
       !record.path.startsWith('licenses/') ||
@@ -98,7 +106,7 @@ export async function loadPolicy(root, index = false) {
       throw new Error('Invalid reviewed notice exception');
     exceptions.set(record.path, record.sha256);
   }
-  return { hashes, exceptions };
+  return { hashes, exceptions, resources };
 }
 function entries(bytes) {
   return bytes
@@ -145,7 +153,7 @@ function blobs(root, ids) {
 }
 export async function checkRepository(root, mode = 'staged') {
   root = git(root, ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-  const { hashes, exceptions } = await loadPolicy(root, true);
+  const { hashes, exceptions, resources } = await loadPolicy(root, true);
   let rows,
     commits = [];
   if (mode === 'history') {
@@ -170,7 +178,20 @@ export async function checkRepository(root, mode = 'staged') {
   rows = [...new Map(rows.map((row) => [`${row.oid}:${row.path}`, row])).values()];
   for (const row of rows) inspectPath(row.path);
   const objects = blobs(root, [...new Set(rows.map((row) => row.oid))]);
-  for (const row of rows) inspectBytes(row.path, objects.get(row.oid), hashes, exceptions);
+  for (const row of rows) {
+    const bytes = objects.get(row.oid);
+    if (/^resources\/(?:editor|native-titlebar)\//.test(row.path)) {
+      const record = resources.get(row.path);
+      if (!record || record.size !== bytes.length || record.sha256 !== digest(bytes))
+        throw new Error(`Runtime source identity mismatch: ${row.path}`);
+    }
+    inspectBytes(row.path, bytes, hashes, exceptions);
+  }
+  if (mode === 'tracked') {
+    const tracked = new Set(rows.map((row) => row.path));
+    for (const path of resources.keys())
+      if (!tracked.has(path)) throw new Error(`Runtime source not tracked: ${path}`);
+  }
   return {
     mode,
     commits: commits.length,

@@ -9,7 +9,7 @@ import { transformRuntimeLiteral } from './runtime-literal.mjs';
 import { transformRuntimePairing } from './runtime-pairing.mjs';
 import { transformRuntimeSerialization } from './runtime-serialization.mjs';
 
-const sourcePath = new URL('../../private/vendor/TypeMark/appsrc/main.js', import.meta.url);
+const sourcePath = new URL('../../resources/editor/appsrc/main.js', import.meta.url);
 const original = await readFile(sourcePath, 'utf8');
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 const transformed = transformRuntimeLiteral(original);

@@ -59,7 +59,7 @@ for (const runtime of [false, true]) {
   }) => {
     if (!runtime) {
       const body = await readFile(
-        new URL('../../private/vendor/TypeMark/appsrc/main.js', import.meta.url),
+        new URL('../../resources/editor/appsrc/main.js', import.meta.url),
       );
       await page.route('http://127.0.0.1:4174/appsrc/main.js', (route) =>
         route.fulfill({ contentType: 'text/javascript', body }),

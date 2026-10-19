@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -88,11 +88,10 @@ const missingDeclaration = unique.filter((entry) => !entry.declaredLicense);
 const missingLicenseText = unique.filter((entry) => entry.licenseFiles.length === 0);
 let noticeBundle = null;
 if (args.includes('--notices')) {
-  const base = resolve(root, 'artifacts/dependency-notices');
-  await mkdir(base, { recursive: true });
-  const directory = await mkdtemp(resolve(base, 'audit-'));
+  const directory = resolve(root, 'licenses/dependencies');
+  await mkdir(directory, { recursive: true });
   for (const [sha256, bytes] of collectedNotices)
-    await writeFile(resolve(directory, `${sha256}.txt`), bytes, { flag: 'wx' });
+    await writeFile(resolve(directory, `${sha256}.txt`), bytes);
   const manifest = {
     scope:
       'Received top-level license/notice texts only; missing texts, license choices and output-specific obligations remain unresolved.',
@@ -108,9 +107,7 @@ if (args.includes('--notices')) {
         : 'missing-text-review-required',
     })),
   };
-  await writeFile(resolve(directory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, {
-    flag: 'wx',
-  });
+  await writeFile(resolve(directory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   noticeBundle = {
     directory: directory.slice(root.length + 1),
     uniqueTexts: collectedNotices.size,
@@ -122,7 +119,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   locks: lockAfter,
   scope:
-    'Installed pnpm dependencies and resolved Cargo third-party packages; excludes private runtime runtime and workspace-authored code.',
+    'Installed pnpm dependencies and resolved Cargo third-party packages; excludes bundled editor libraries and workspace-authored code.',
   evidence:
     'Manifest declarations plus top-level license/notice file digests. This is an inventory, not a legal approval or complete notice bundle.',
   counts: {

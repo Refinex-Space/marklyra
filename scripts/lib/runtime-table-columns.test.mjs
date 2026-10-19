@@ -5,7 +5,7 @@ import test from 'node:test';
 import { Script } from 'node:vm';
 import { transformRuntimeTableColumns } from './runtime-table-columns.mjs';
 
-const path = new URL('../../private/vendor/TypeMark/appsrc/main.js', import.meta.url);
+const path = new URL('../../resources/editor/appsrc/main.js', import.meta.url);
 const original = await readFile(path, 'utf8');
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 test('table column repair requires exact provenance and unchanged module identity', () => {

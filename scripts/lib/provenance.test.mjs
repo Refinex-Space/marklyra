@@ -6,8 +6,8 @@ import { join, resolve } from 'node:path';
 import test from 'node:test';
 import { checkRepository, digest, inspectBytes, inspectPath } from './provenance.mjs';
 
-const original = Buffer.from('synthetic runtime commercial resource');
-const derived = Buffer.from('synthetic transformed private resource');
+const original = Buffer.from('synthetic tracked editor resource');
+const derived = Buffer.from('synthetic tracked auxiliary resource');
 function git(root, args) {
   return execFileSync('git', args, {
     cwd: root,
@@ -23,21 +23,23 @@ async function fixture(t) {
   git(root, ['config', 'user.email', 'refinex@users.noreply.github.com']);
   await mkdir(join(root, 'config'), { recursive: true });
   await mkdir(join(root, 'src'));
-  const manifest = Buffer.from(
-    `${JSON.stringify([{ size: original.length, sha256: digest(original) }])}\n`,
-  );
-  await writeFile(join(root, 'config/runtime-source.json'), manifest);
+  await mkdir(join(root, 'resources/editor/appsrc'), { recursive: true });
+  const resources = [
+    { path: 'resources/editor/appsrc/main.js', size: original.length, sha256: digest(original) },
+    { path: 'resources/editor/auxiliary.js', size: derived.length, sha256: digest(derived) },
+  ];
+  await writeFile(join(root, resources[0].path), original);
+  await writeFile(join(root, resources[1].path), derived);
   await writeFile(
-    join(root, 'config/restricted-assets.json'),
+    join(root, 'config/runtime-source.json'),
     JSON.stringify({
-      schema: 1,
-      originalManifestSha256: digest(manifest),
-      derivedResources: [{ sha256: digest(derived) }],
+      schema: 2,
+      resources,
       noticeExceptions: [
         {
           path: 'licenses/received.txt',
           sha256: digest(original),
-          evidence: 'synthetic reviewed notice',
+          evidence: 'synthetic notice',
         },
       ],
     }),
@@ -55,7 +57,6 @@ test('actual staged bytes cannot be concealed by clean worktree bytes or edited 
   await writeFile(file, 'export const safe = true;');
   await assert.rejects(checkRepository(root), /Restricted asset/);
   await writeFile(join(root, 'config/runtime-source.json'), '[]');
-  await writeFile(join(root, 'config/restricted-assets.json'), '{}');
   await assert.rejects(checkRepository(root), /Restricted asset/);
 });
 
@@ -77,7 +78,7 @@ test('reachable history detects a removed private file without rewriting commits
   git(root, ['commit', '--quiet', '-m', 'controlled leak']);
   git(root, ['rm', '--quiet', 'private/engine.js']);
   git(root, ['commit', '--quiet', '-m', 'controlled removal']);
-  assert.equal((await checkRepository(root, 'tracked')).pathsAndVersions, 2);
+  assert.equal((await checkRepository(root, 'tracked')).pathsAndVersions, 3);
   await assert.rejects(checkRepository(root, 'history'), /Forbidden provenance path/);
   assert.equal(git(root, ['rev-list', '--all', '--count']).trim(), '3');
 });
@@ -154,11 +155,27 @@ test('malformed source maps fail without printing embedded source content', () =
   );
 });
 
-test('changed staged manifest cannot silently discard restricted resource hashes', async (t) => {
+test('invalid staged manifest and changed or untracked runtime sources fail inspection', async (t) => {
   const root = await fixture(t);
+  const path = 'resources/editor/appsrc/main.js';
+  await writeFile(join(root, path), 'changed source');
+  git(root, ['add', path]);
+  await assert.rejects(checkRepository(root, 'tracked'), /Runtime source identity mismatch/);
+  git(root, ['restore', '--staged', path]);
+  git(root, ['rm', '--cached', '--quiet', path]);
+  await assert.rejects(checkRepository(root, 'tracked'), /Runtime source not tracked/);
+  git(root, ['restore', '--staged', path]);
   await writeFile(join(root, 'config/runtime-source.json'), '[]');
   git(root, ['add', 'config/runtime-source.json']);
-  await assert.rejects(checkRepository(root, 'tracked'), /does not match/);
+  await assert.rejects(checkRepository(root, 'tracked'), /Invalid runtime source manifest/);
+});
+
+test('tracked resource bytes are allowed at their exact source path without weakening private paths', async (t) => {
+  const root = await fixture(t);
+  await checkRepository(root, 'tracked');
+  await writeFile(join(root, 'resources/editor/unlisted.js'), 'unlisted');
+  git(root, ['add', '.']);
+  await assert.rejects(checkRepository(root), /Runtime source identity mismatch/);
 });
 
 test('paths reject nested/case/Windows/private outputs while keeping actual adapter source valid', () => {

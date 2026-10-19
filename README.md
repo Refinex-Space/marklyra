@@ -12,13 +12,16 @@ pnpm build
 pnpm build:desktop --debug
 ```
 
-Node.js 22+、pnpm 10.33.0 和 Rust stable 为开发依赖。桌面编辑运行时从本地受授权资源构建，源输入位于 `private/vendor/TypeMark`，macOS 标题栏图像位于 `private/native-titlebar`；资源必须与 `config/runtime-source.json` 和图像清单匹配。私有资源不进入 Git 或 SDK 归档。
+Node.js 22+、pnpm 10.33.0 和 Rust stable 为开发依赖。Windows 还需安装 Visual Studio C++ 构建工具和 WebView2，macOS 需安装 Xcode Command Line Tools。
+
+编辑器源码资源位于 `resources/editor`，原生标题栏图像位于 `resources/native-titlebar`，均随 Git 克隆，无需手动复制本机目录或安装其他编辑器。`pnpm prepare:runtime` 校验源码、构建适配层并生成 `dist/editor-runtime`；开发和打包命令会自动执行。资源按原始字节检出，不受 Windows `core.autocrlf` 影响。目录约定见 [resources](resources/README.md)。
 
 ## 验证
 
 ```sh
 pnpm typecheck
 pnpm check:boundaries
+pnpm check:resources
 pnpm test
 pnpm test:runtime-transform
 pnpm test:runtime
@@ -41,4 +44,4 @@ cargo test --workspace --lib --bins --locked
 
 所有文件保存以源文本为准，保留编码、BOM 和换行；崩溃草稿、撤销重做和自动保存是产品能力。配置、编译、打包、运行和签名分别验证。
 
-仓库地址：`git@github.com:Refinex-Space/marklyra.git`。本地运行资源单独管理；第三方资源与依赖的许可约束见 [licenses](licenses/README.md)。
+仓库地址：`git@github.com:Refinex-Space/marklyra.git`。第三方组件原始通知保留在资源目录和 [licenses](licenses/README.md)。

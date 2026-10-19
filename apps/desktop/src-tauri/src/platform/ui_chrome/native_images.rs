@@ -24,7 +24,7 @@ impl TitlebarImages {
             outline: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../../private/native-titlebar/tocButton@2x.png"
+                    "/../../../resources/native-titlebar/tocButton@2x.png"
                 )),
                 13.0,
                 10.0,
@@ -32,7 +32,7 @@ impl TitlebarImages {
             outline_dark: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../../private/native-titlebar/tocButtonWhite@2x.png"
+                    "/../../../resources/native-titlebar/tocButtonWhite@2x.png"
                 )),
                 13.0,
                 10.0,
@@ -40,7 +40,7 @@ impl TitlebarImages {
             sidebar: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../../private/native-titlebar/sideButton@2x.png"
+                    "/../../../resources/native-titlebar/sideButton@2x.png"
                 )),
                 12.0,
                 12.0,
@@ -48,7 +48,7 @@ impl TitlebarImages {
             sidebar_dark: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../../private/native-titlebar/sideButtonWhite@2x.png"
+                    "/../../../resources/native-titlebar/sideButtonWhite@2x.png"
                 )),
                 12.0,
                 12.0,

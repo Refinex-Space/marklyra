@@ -6,7 +6,7 @@ import { parse } from 'acorn';
 import { transformRuntimeFocus } from './runtime-focus.mjs';
 
 const original = await readFile(
-  new URL('../../private/vendor/TypeMark/appsrc/main.js', import.meta.url),
+  new URL('../../resources/editor/appsrc/main.js', import.meta.url),
   'utf8',
 );
 const transformed = transformRuntimeFocus(original);
