@@ -40,11 +40,25 @@ test('the built-in pair shares layout, renders dark content clearly and is brand
     else typography = layout;
     await expect(frame.locator('#write h1')).toHaveText('MarkLyra Theme');
     await expect(frame.locator('#write table')).toHaveCount(1);
+    const table = frame.locator('#write table');
+    await expect(table).toHaveCSS('background-color', background);
+    await expect(table).toHaveCSS('border-radius', '4px');
+    await expect(table).toHaveCSS('border-collapse', 'separate');
+    for (const row of await table.locator('tr').all())
+      await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    // Outer border and shared cell edges stay single-width.
+    await expect(table.locator('th').first()).toHaveCSS('border-top-width', '0px');
+    await expect(table.locator('th').first()).toHaveCSS('border-left-width', '0px');
+    await expect(table.locator('tbody td').first()).toHaveCSS('border-top-width', '1px');
+    await expect(table.locator('tbody td').nth(1)).toHaveCSS('border-left-width', '1px');
+    await table.screenshot({ path: info.outputPath(`${theme}-table.png`) });
+    // The rounded border must not interfere with cell navigation or row editing.
+    await table.locator('tbody tr:last-child td:last-child').click();
+    await page.keyboard.press('Tab');
+    await expect(table.locator('tbody tr')).toHaveCount(3);
+    await emitLayoutMenu(page, 'undo');
+    await expect(table.locator('tbody tr')).toHaveCount(2);
     if (theme === 'marklyra-dark') {
-      await expect(frame.locator('#write tbody tr').nth(1)).toHaveCSS(
-        'background-color',
-        'rgb(22, 27, 34)',
-      );
       await expect(frame.locator('#write blockquote')).toHaveCSS('color', 'rgb(139, 148, 158)');
       await expect(frame.locator('.md-diagram-panel .node rect').first()).not.toHaveCSS(
         'fill',

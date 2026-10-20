@@ -37,17 +37,31 @@ blockquote {
 hr {
   background-color: var(--ml-border);
 }
-table tr,
-table th,
-table td {
-  border-color: var(--ml-border);
-}
-table tr {
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--ml-border);
+  border-radius: 4px;
   background-color: var(--bg-color);
 }
+/* Draw each grid line once; separate borders let the outer corners stay rounded. */
+table tr > th,
+table tr > td {
+  border-color: var(--ml-border);
+  border-width: 1px 0 0 1px;
+}
+table tr > :first-child {
+  border-left-width: 0;
+}
+table > thead > tr:first-child > *,
+table > tbody:first-child > tr:first-child > *,
+table > tr:first-child > * {
+  border-top-width: 0;
+}
+table tr,
 table tr:nth-child(2n),
 thead {
-  background-color: var(--ml-surface);
+  background-color: transparent;
 }
 code,
 tt {
