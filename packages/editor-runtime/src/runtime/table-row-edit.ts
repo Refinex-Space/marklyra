@@ -8,6 +8,7 @@ import type { PlainBlockRange } from './input-range.js';
 import type { LegacyGlobals } from './legacy-types.js';
 import { readMarkdownPolicy } from './policy-options.js';
 import { projectTableCellDeletion, type TableCellDeletion } from './table-cell-source.js';
+import { projectTableCellFormat, type TableCellFormat } from './table-format-source.js';
 import { projectTableRowChange } from './table-row-projection.js';
 import {
   readTableSourceRows,
@@ -27,7 +28,7 @@ interface NestedContext {
   document: StructuralDocumentSource;
 }
 export type TableRowContext = RootContext | NestedContext;
-export type TableEditAction = TableRowAction | TableCellDeletion;
+export type TableEditAction = TableRowAction | TableCellDeletion | TableCellFormat;
 const apply = (text: string, patches: readonly Patch[]) =>
   [...patches]
     .reverse()
@@ -288,7 +289,9 @@ export function captureTableRowAction(
     const projected =
       typeof action === 'string'
         ? projectTableRowChange(before.rows, after.rows, rowId, action, block?.from ?? 0, ending)
-        : projectTableCellDeletion(before.rows, after.rows, action, block?.from ?? 0, ending);
+        : action.kind === 'format-cells'
+          ? projectTableCellFormat(before.rows, after.rows, action, block?.from ?? 0, ending)
+          : projectTableCellDeletion(before.rows, after.rows, action, block?.from ?? 0, ending);
     if (!projected) return;
     const patches =
       before.kind === 'nested' && after.kind === 'nested'

@@ -1,4 +1,4 @@
-import type { CursorBookmark } from '../protocol.js';
+import type { CursorBookmark, JsonValue } from '../protocol.js';
 export interface JQueryElement {
   length: number;
   [index: number]: HTMLElement;
@@ -7,6 +7,13 @@ export interface JQueryElement {
 export interface LegacyNode {
   cid: string;
   toMark(): string;
+  toHTML(): string;
+  set(name: string, value: unknown): unknown;
+  attr(
+    name: 'align_idx',
+    value: [number, 'left' | 'center' | 'right'],
+    editor: LegacyEditor,
+  ): unknown;
   get(name: 'after'): LegacyNode | undefined;
   get(
     name: 'text' | 'type' | 'lang' | 'ahead' | 'tail' | 'parent' | 'marginLeft' | 'marginRight',
@@ -94,11 +101,9 @@ export interface LegacyEditor {
     hasUndo(): boolean;
     hasRedo(): boolean;
     exeCommand(command: CursorBookmark): unknown;
+    buildReplaceUndo(node: LegacyNode): { type: 'replace'; id: string; json: JsonValue };
     endSnap(force: boolean): void;
-    register(command: {
-      undo: { type: 'fences-pos'; id: string; pos: { line: number; ch: number } }[];
-      redo: object[];
-    }): unknown;
+    register(command: { undo: object[]; redo: object[] }): unknown;
   };
   contextMenu: {
     showCustom(...args: unknown[]): unknown;

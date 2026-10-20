@@ -48,6 +48,7 @@ import { parserSource } from './source-prefix.js';
 import { RuntimeSourceTracking } from './source-tracking.js';
 import { RuntimeStatistics } from './statistics.js';
 import { originalSuggestedName } from './suggested-name.js';
+import { RuntimeTableControls } from './table-controls.js';
 import { RuntimeThemes } from './themes.js';
 
 // Newly written host adapter. No runtime implementation is included in this package.
@@ -243,6 +244,16 @@ const contextMenu = new RuntimeContextMenu({
   imageActions: () => images.actions,
   imageReference: (source) => images.reference(source),
   imageStorageContext: () => images.storageContext(),
+});
+const tableControls = new RuntimeTableControls({
+  runtime,
+  available: () => !disposed && !loading && !composing() && !runtime.File?._onInitParse,
+  capture: (cell, axis) => contextMenu.captureTableControl(cell, axis),
+  execute: (work) => {
+    focus.command(work, false);
+    notifyChange();
+  },
+  onError: (error) => send('runtime-error', String(error)),
 });
 runtime.__MARKLYRA_REPLAY_SOURCE_CONTEXT__ = (cm, event, execute) =>
   contextMenu.replaySourceContext(cm, event, execute);
@@ -545,6 +556,7 @@ for (const name of disabled)
   if (name in window) Object.defineProperty(window, name, { configurable: true, value: undefined });
 
 function command(value: MarkLyraCommand) {
+  tableControls.reset();
   contextMenu.invalidate();
   const editor = runtime.editor,
     file = runtime.File;
@@ -839,6 +851,7 @@ window.addEventListener(
             const file = runtime.File;
             if (!file) throw new Error('Runtime not initialized');
             documentGeneration++;
+            tableControls.reset();
             scrollNavigation.reset();
             contextMenu.invalidate();
             loading = true;
@@ -932,6 +945,7 @@ window.addEventListener(
             break;
           case 'restore': {
             documentGeneration++;
+            tableControls.reset();
             contextMenu.invalidate();
             const value = message.payload as {
               source: string;
@@ -944,6 +958,7 @@ window.addEventListener(
           }
           case 'reload-from-disk':
             documentGeneration++;
+            tableControls.reset();
             contextMenu.invalidate();
             result = await reloads.reload(message.payload as RuntimeReloadRequest);
             break;
@@ -1053,6 +1068,7 @@ window.addEventListener(
           }
           case 'destroy':
             disposed = true;
+            tableControls.destroy();
             focus.destroy();
             contextMenu.destroy();
             if (timer) clearTimeout(timer);
@@ -1291,6 +1307,7 @@ async function ready() {
   outlineNavigation.install();
   scrollNavigation.install();
   contextMenu.install();
+  tableControls.install();
   reloads.install();
   imageLayout = new RuntimeImageLayout(runtime.editor, {
     onError: (error) => send('runtime-error', String(error)),

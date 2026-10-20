@@ -29,9 +29,15 @@ import {
   restoreContextSelection,
 } from './context-menu-selection.js';
 import type { LegacyEditor, LegacyGlobals } from './legacy-types.js';
+import {
+  type TableAxis,
+  type TableControlAction,
+  type TableControlContext,
+  tableControlItems,
+} from './table-controls-actions.js';
+import { alignTableColumn, applyTableHeading, tableHeadingPlan } from './table-formatting.js';
 import { captureTableRedoCursor } from './table-history-cursor.js';
-import { readTableRowContext } from './table-row-edit.js';
-import type { TableRowAction } from './table-row-source.js';
+import { readTableRowContext, type TableEditAction } from './table-row-edit.js';
 
 interface Stamp {
   generation: number;
@@ -70,7 +76,7 @@ export interface ContextMenuDependencies {
   clipboardHTML(html: string, forPaste?: boolean): string;
   normalizeSelection(): boolean;
   armReplacement(text: string, inputType: 'insertText' | 'deleteContentBackward'): boolean;
-  armTableRow(rowId: string, action: TableRowAction): boolean;
+  armTableRow(rowId: string, action: TableEditAction): boolean;
   armCodeLineCut?(
     cid: string,
     cm: NonNullable<LegacyEditor['sourceView']['cm']>,
@@ -116,6 +122,127 @@ export class RuntimeContextMenu {
   private offerTicket = 0;
   private dead = false;
   constructor(private readonly deps: ContextMenuDependencies) {}
+  /** An in-frame handle binds an explicit cell without changing the user's caret
+   * on hover. Execution shares the right-click command and source-proof pipeline. */
+  captureTableControl(
+    target: HTMLTableCellElement,
+    axis: TableAxis,
+  ): TableControlContext | undefined {
+    const editor = this.deps.runtime.editor;
+    if (
+      this.unavailable() ||
+      !editor ||
+      editor.isIME ||
+      editor.sourceView.inSourceMode ||
+      this.deps.runtime.File?.isLocked ||
+      !editor.writingArea.contains(target)
+    )
+      return;
+    const context = readTableRowContext(this.deps.runtime, target);
+    const table = target.closest('[mdtype="table"][cid]');
+    const node = table && editor.getNode(table.getAttribute('cid') ?? '');
+    const field = target.querySelector<HTMLElement>('[mdtype="table_cell"][cid]');
+    const cid = field?.getAttribute('cid');
+    const cellNode = cid ? editor.getNode(cid) : undefined;
+    if (!context || !table || !node || !field || !cid || !cellNode) return;
+    const mark = node.toMark();
+    const binding: Binding = {
+      requestId: crypto.randomUUID(),
+      editor,
+      session: editor.sessionStr,
+      target: field,
+      cid,
+      sourceMode: false,
+      stamp: { ...this.deps.stamp() },
+      selection: {
+        bookmark: null,
+        focusCid: cid,
+        selected: false,
+        anchor: { node: field, offset: 0 },
+        head: { node: field, offset: 0 },
+      },
+      actions: new Set(),
+      tokens: ['table'],
+      link: undefined,
+      lineWise: false,
+    };
+    const heading = tableHeadingPlan(this.deps.runtime, target, axis);
+    const menuItems = contextMenuItems(this.facts(binding));
+    const items = tableControlItems(
+      axis,
+      menuItems,
+      {
+        enabled: Boolean(heading?.cells.length),
+        checked: Boolean(heading?.allBold),
+      },
+      context.rows.alignment?.[target.cellIndex],
+    );
+    binding.actions = offeredContextActions(menuItems);
+    const formatting = new Set<TableControlAction>([
+      'table.headingRow',
+      'table.headingColumn',
+      'table.alignLeft',
+      'table.alignCenter',
+      'table.alignRight',
+    ]);
+    let consumed = false;
+    const current = () => {
+      const stamp = this.deps.stamp();
+      return (
+        !consumed &&
+        !this.unavailable() &&
+        !this.deps.runtime.File?.isLocked &&
+        !editor.isIME &&
+        this.deps.runtime.editor === editor &&
+        editor.sessionStr === binding.session &&
+        !editor.sourceView.inSourceMode &&
+        stamp.generation === binding.stamp.generation &&
+        stamp.sequence === binding.stamp.sequence &&
+        target.isConnected &&
+        editor.writingArea.contains(target) &&
+        editor.getNode(node.cid) === node &&
+        editor.getNode(cid) === cellNode &&
+        target.contains(field) &&
+        field.getAttribute('cid') === cid &&
+        node.toMark() === mark
+      );
+    };
+    return {
+      items,
+      current,
+      run: (action) => {
+        if (!current()) throw Error('表格已变化，请重新打开行列操作');
+        if (!items.some((item) => item.actionId === action && item.enabled))
+          throw Error('此表格操作当前不可用');
+        if (formatting.has(action)) {
+          consumed = true;
+          this.invalidate();
+          this.restore(binding);
+          if (action === 'table.headingRow' || action === 'table.headingColumn') {
+            if (!heading) throw Error('无法验证表格标题格式');
+            applyTableHeading(this.deps.runtime, target, heading, this.deps.armTableRow);
+          } else {
+            alignTableColumn(
+              this.deps.runtime,
+              target,
+              action === 'table.alignLeft'
+                ? 'left'
+                : action === 'table.alignCenter'
+                  ? 'center'
+                  : 'right',
+            );
+          }
+          return;
+        }
+        const existing = action as ContextAction;
+        this.assertCurrent(binding, existing);
+        consumed = true;
+        this.invalidate();
+        this.binding = binding;
+        this.execute({ requestId: binding.requestId, actionId: existing });
+      },
+    };
+  }
   install(): void {
     const document = this.deps.runtime.editor?.writingArea.ownerDocument;
     if (!document || this.abort || this.dead) return;
