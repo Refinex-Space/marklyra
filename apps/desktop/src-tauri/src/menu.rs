@@ -5,6 +5,7 @@ use tauri::{
     },
     AppHandle, Runtime,
 };
+mod about;
 #[cfg(any(windows, test))]
 pub(crate) mod accelerator;
 pub(crate) mod exports;
@@ -260,7 +261,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     }
     let window = window.build()?;
     let mut application = SubmenuBuilder::new(app, "MarkLyra")
-        .about_with_text("关于 MarkLyra", None)
+        .item(&item(app, about::MENU_ID, "关于 MarkLyra", None)?)
         .separator();
     for entry in APPLICATION {
         if let Action(id, label, accelerator) = entry {
@@ -329,6 +330,10 @@ fn action_for_id(id: &str) -> Option<&str> {
 }
 
 pub fn handle<R: Runtime>(app: &AppHandle<R>, event: tauri::menu::MenuEvent) {
+    if event.id().as_ref() == about::MENU_ID {
+        about::show(app);
+        return;
+    }
     if event.id().as_ref() == crate::debug_tools::MENU_ID {
         crate::debug_tools::open_focused(app);
         return;
