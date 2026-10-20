@@ -137,6 +137,9 @@ pub struct ChromeUpdate {
     ai_panel_open: bool,
     #[serde(default)]
     source_mode: Option<bool>,
+    /// A document is open, so the titlebar offers a way back to the home view.
+    #[serde(default)]
+    can_close_document: bool,
 }
 
 #[derive(Clone, Copy, Deserialize, Debug, Default, PartialEq, Eq)]
@@ -188,6 +191,7 @@ pub(super) struct DocumentChrome {
     outline_panel_open: bool,
     ai_panel_open: bool,
     source_mode: Option<bool>,
+    can_close_document: bool,
 }
 
 fn require_editor(window: &WebviewWindow) -> Result<(), String> {
@@ -248,6 +252,7 @@ fn document_chrome(
         outline_panel_open: update.outline_panel_open,
         ai_panel_open: update.ai_panel_open,
         source_mode: update.source_mode,
+        can_close_document: update.can_close_document,
     })
 }
 
@@ -413,6 +418,7 @@ pub async fn update_editor_chrome(
             update.outline_panel_open,
             update.ai_panel_open,
             update.source_mode,
+            update.can_close_document,
         );
         Ok(())
     }
@@ -733,6 +739,7 @@ mod tests {
             outline_panel_open: false,
             ai_panel_open: false,
             source_mode: None,
+            can_close_document: false,
         };
         let value = document_chrome(&services, "main", payload()).unwrap();
         assert_eq!(value.path, Some(path.canonicalize().unwrap()));
@@ -792,6 +799,7 @@ mod tests {
                     outline_panel_open: false,
                     ai_panel_open: false,
                     source_mode: None,
+                    can_close_document: false,
                 }
             )
             .is_err());
@@ -845,6 +853,7 @@ mod tests {
             outline_panel_open: false,
             ai_panel_open: false,
             source_mode: Some(false),
+            can_close_document: false,
         };
         let chrome = document_chrome(&services, "main", payload())
             .expect("Trashed is an expected display state, not a titlebar failure");

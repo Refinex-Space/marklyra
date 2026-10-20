@@ -49,8 +49,7 @@
   line-height: 1;
   cursor: default;
 }
-.titlebar button:hover:not(:disabled),
-.titlebar .titlebar-statistics-button[aria-expanded="true"] {
+.titlebar button:hover:not(:disabled) {
   background: var(--hover);
   color: var(--titlebar-control-hover);
 }
@@ -211,15 +210,6 @@
   border-radius: 1px;
   background: color-mix(in srgb, var(--titlebar-control) 38%, transparent);
 }
-.titlebar-statistics {
-  position: relative;
-}
-.titlebar .titlebar-statistics-button {
-  height: 24px;
-  padding: 0 7px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
 .titlebar .titlebar-action {
   display: grid;
   place-items: center;
@@ -260,41 +250,6 @@
   color: var(--text);
   opacity: 0.8;
 }
-.titlebar-popover {
-  position: absolute;
-  top: calc(100% + 2px);
-  right: 0;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  min-width: 128px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 8px 24px #00000026;
-}
-.titlebar-popover button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 12px 0 6px;
-  color: var(--text);
-  font-size: 12px;
-  text-align: left;
-  white-space: nowrap;
-}
-.titlebar-popover-check {
-  display: grid;
-  flex: 0 0 14px;
-  place-items: center;
-  width: 14px;
-}
-.titlebar-popover-check .ui-icon {
-  width: 12px;
-  height: 12px;
-}
 /* Windows 11 caption geometry: 46px wide buttons filling the band, 10px glyphs. */
 .titlebar-caption {
   display: flex;
@@ -326,18 +281,4 @@
 .titlebar .titlebar-caption-close:active:not(:disabled) {
   background: #b22a1b;
   color: #ffffffcc;
-}
-.titlebar-fullscreen-statistics {
-  position: fixed;
-  top: 2px;
-  right: 4px;
-  z-index: 25;
-  color: var(--muted);
-  font-size: 12px;
-}
-.titlebar-fullscreen-statistics .titlebar-statistics-button {
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
 }

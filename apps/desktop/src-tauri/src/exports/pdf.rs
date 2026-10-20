@@ -1,5 +1,7 @@
 //! Direct PDF export. The page geometry, header/footer and PDF options come from the confirmed
 //! settings; only the per-document variables (title, author) arrive with the request.
+// macOS prints through the system panel; the direct-PDF geometry below is built for Windows only.
+#![cfg_attr(not(windows), allow(dead_code))]
 use super::print_options::{check_printable_area, PrintMargins};
 #[cfg(windows)]
 use super::{delivery, main_only, SavedExport};

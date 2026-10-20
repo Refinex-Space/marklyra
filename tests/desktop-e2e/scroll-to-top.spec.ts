@@ -31,7 +31,7 @@ async function expectButtonInsideDocument(page: Page) {
         if (!button || !area) return false;
         return (
           Math.abs(area.right - button.right - 24) < 1 &&
-          Math.abs(area.bottom - button.bottom - 24) < 1 &&
+          Math.abs(area.bottom - button.bottom - 36) < 1 &&
           (!panel || button.right < panel.left)
         );
       }),

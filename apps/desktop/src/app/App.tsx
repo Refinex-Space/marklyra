@@ -68,6 +68,7 @@ import { startupEditorConfiguration } from '../features/settings/runtime-prefere
 import { useApplicationPreferences } from '../features/settings/useApplicationPreferences.js';
 import { useMarkdownPreferences } from '../features/settings/useMarkdownPreferences.js';
 import { usePreferences } from '../features/settings/usePreferences.js';
+import { DocumentStatistics } from '../features/statistics/DocumentStatistics.js';
 import { StatisticsStatus } from '../features/statistics/StatisticsStatus.js';
 import { useStatistics } from '../features/statistics/useStatistics.js';
 import { builtinTheme, validThemeId } from '../features/themes/model.js';
@@ -153,6 +154,8 @@ export function App() {
   // The editor has been restored (or found empty); only then can the home view decide to show.
   const [startupSettled, setStartupSettled] = useState(false);
   const [homeDismissed, setHomeDismissed] = useState(false);
+  // New windows start in the editor; closing a document brings any window back to the home view.
+  const [homeAllowed, setHomeAllowed] = useState(windowIdentity.primary);
   const [quickOpen, setQuickOpen] = useState<{ tab: QuickTab } | null>(null);
   const [quickNotes, setQuickNotes] = useState<QuickNotes | null>(null);
   /** Application menu handler; the search window runs its actions through the same guards. */
@@ -571,7 +574,7 @@ export function App() {
   // The first screen of a window with nothing open. It covers the editor, which stays mounted but
   // inert underneath, so no input or command can reach text nobody can see.
   const homeVisible =
-    windowIdentity.primary &&
+    homeAllowed &&
     startupSettled &&
     !homeDismissed &&
     !doc.file &&
@@ -579,6 +582,22 @@ export function App() {
     !doc.pending &&
     doc.snapshot === '';
   const startWriting = () => setHomeDismissed(true);
+  // Closing a document is replacing it with an empty one, through the same unsaved-changes
+  // confirmation as every other replacement; the home view appears once it has happened.
+  const closeDocument = () => {
+    if (homeVisible || !ready || doc.working || doc.pending || editor.current?.isComposing) return;
+    void doc.request({ kind: 'new' });
+  };
+  const hadFile = useRef(false);
+  useEffect(() => {
+    if (doc.file) {
+      hadFile.current = true;
+    } else if (hadFile.current) {
+      hadFile.current = false;
+      setHomeAllowed(true);
+      setHomeDismissed(false);
+    }
+  }, [doc.file]);
   const openQuickOpen = (tab: QuickTab = 'all') => {
     if (!ready || preferencesOpen || statisticsOpen || recoveryOpen || recentOpen) return;
     if (doc.working || doc.pending || editor.current?.isComposing) return;
@@ -682,6 +701,7 @@ export function App() {
     rename.begin({ left: center - 60, right: center + 60, bottom: 28 });
   };
   const actions = useRef({
+    closeDocument,
     openRename,
     openQuickOpen,
     action,
@@ -724,6 +744,7 @@ export function App() {
     statisticsOpen,
   });
   actions.current = {
+    closeDocument,
     openRename,
     openQuickOpen,
     action,
@@ -1341,6 +1362,10 @@ export function App() {
         actions.current.openRename();
         return;
       }
+      if (value === 'close-document') {
+        actions.current.closeDocument();
+        return;
+      }
       if (['open', 'save', 'save-as', 'new', 'close'].includes(value)) {
         actions.current.action(value as HostAction);
         return;
@@ -1574,6 +1599,7 @@ export function App() {
         outlinePanelOpen,
         viewMode,
         aiPanelOpen,
+        !homeVisible,
       )
       .catch((error: unknown) =>
         actions.current.doc.setMessage(`标题栏更新失败：${String(error)}`),
@@ -1590,6 +1616,7 @@ export function App() {
     outlinePanelOpen,
     viewMode,
     aiPanelOpen,
+    homeVisible,
   ]);
   useEffect(() => {
     if (!ready || !editor.current) return;
@@ -1780,13 +1807,8 @@ export function App() {
           dirty={doc.dirty}
           hasFile={!!doc.file}
           onRename={rename.canRename ? openRename : undefined}
+          onHome={homeVisible ? undefined : closeDocument}
           renaming={rename.state !== null}
-          statistics={statistics.value}
-          statisticsUnit={preferences.statisticsUnit}
-          onStatisticsUnit={(unit) =>
-            setPreferences((current) => ({ ...current, statisticsUnit: unit }))
-          }
-          alwaysShowWordCount={preferences.alwaysShowWordCount}
           sidebarOpen={sidebar}
           outlineOpen={outlinePanelOpen}
           aiOpen={aiPanelOpen}
@@ -2411,6 +2433,19 @@ export function App() {
               <Icon name="scrollTop" />
             </button>
           )}
+          {chrome.native &&
+            ready &&
+            !homeVisible &&
+            viewMode !== 'source' &&
+            (!fullscreen || preferences.alwaysShowWordCount) && (
+              <DocumentStatistics
+                statistics={statistics.value}
+                unit={preferences.statisticsUnit}
+                onUnit={(unit) =>
+                  setPreferences((current) => ({ ...current, statisticsUnit: unit }))
+                }
+              />
+            )}
           {homeVisible && (
             <HomeScreen
               mac={runtime?.platform === 'macos'}

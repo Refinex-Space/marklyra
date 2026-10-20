@@ -13,6 +13,7 @@ const paths = {
   add: 'M12 4v16 M4 12h16',
   arrowRight: 'M4 12h16 M14 6l6 6-6 6',
   chevronDown: 'M6 9l6 6 6-6',
+  home: 'M3 11l9-8 9 8 M5 9.5V21h5v-6h4v6h5V9.5',
   ai: 'M12 3l2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4z M20 2v4 M18 4h4',
   newWindow: 'M3 5h13v14H3z M7 2h14v13 M9.5 9v6 M6.5 12h6',
   sidebar: 'M3 3h18v18H3z M9 3v18',

@@ -86,9 +86,9 @@ test('compact windows fold the menu titles into one menu button', async ({ page 
   await expect(page.locator('.titlebar-menu')).toHaveCount(7);
 });
 
-test('statistics menu follows the AppKit unit menu and persists the choice', async ({ page }) => {
+test('the word count menu follows the AppKit unit menu and persists the choice', async ({ page }) => {
   await ready(page);
-  const trigger = page.locator('.titlebar-statistics-button');
+  const trigger = page.locator('.document-statistics-button');
   await expect(trigger).toContainText('词');
   await trigger.click();
   const items = page.getByRole('menuitemradio');
@@ -133,11 +133,11 @@ test('source mode swaps the document controls for the exit chip', async ({ page 
   await emitLayoutMenu(page, 'view:source');
   const chip = page.getByRole('button', { name: '退出源代码模式' });
   await expect(chip).toBeVisible();
-  await expect(page.locator('.titlebar-statistics-button')).toHaveCount(0);
+  await expect(page.locator('.document-statistics-button')).toHaveCount(0);
   await expect(page.locator('.titlebar-action')).toHaveCount(0);
   await chip.click();
   await expect(chip).toHaveCount(0);
-  await expect(page.locator('.titlebar-statistics-button')).toBeVisible();
+  await expect(page.locator('.document-statistics-button')).toBeVisible();
 });
 
 test('caption buttons drive the window and follow its maximized state', async ({ page }) => {
@@ -179,7 +179,7 @@ test('settings page hides document controls but keeps menus and caption buttons'
   await expect(frame.getByText('按住 Ctrl 时使用鼠标滑轮缩放')).toBeVisible();
 });
 
-test('fullscreen removes the titlebar and keeps only the word count', async ({ page }) => {
+test('fullscreen removes the titlebar and keeps the word count in the document card', async ({ page }) => {
   await ready(page);
   await page.evaluate(() => Reflect.set(window, '__marklyraLayoutFullscreen', true));
   await emitLayoutMenu(page, 'view:fullscreen');
@@ -187,5 +187,5 @@ test('fullscreen removes the titlebar and keeps only the word count', async ({ p
     (window as TestWindow).__desktopMock.emitEvent('tauri://resize', { width: 1280, height: 800 }),
   );
   await expect(page.locator('header.titlebar')).toHaveCount(0);
-  await expect(page.locator('.titlebar-fullscreen-statistics')).toBeVisible();
+  await expect(page.locator('main.document-area .document-statistics-button')).toBeVisible();
 });

@@ -78,16 +78,16 @@ test('recent notes are listed, newest first, and open from the home view', async
   await rows.first().click();
   await expect(home(page)).toBeHidden();
   await expect(page.locator('.runtime-editor-mount')).not.toHaveAttribute('inert', /.*/);
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText(
-    'Plan',
-  );
+  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText('Plan');
 });
 
 test('New Note and Ctrl+N start writing in this window instead of opening another', async ({
   page,
 }) => {
   await boot(page);
-  await home(page).getByRole('button', { name: /新建笔记/ }).click();
+  await home(page)
+    .getByRole('button', { name: /新建笔记/ })
+    .click();
   await expect(home(page)).toBeHidden();
   await page.frameLocator('.marklyra-editor-frame').locator('#write').click();
   await page.keyboard.type('第一行');
@@ -113,7 +113,9 @@ test('Open Note searches the folder and recent files; Enter opens the chosen one
 }) => {
   await boot(page);
   await seed(page, '/mock/Notes/Plan.md', '# Plan');
-  await home(page).getByRole('button', { name: /打开笔记/ }).click();
+  await home(page)
+    .getByRole('button', { name: /打开笔记/ })
+    .click();
   const window = search(page);
   await expect(window).toBeVisible();
   await expect(window.getByRole('tab', { name: '笔记' })).toHaveAttribute('aria-selected', 'true');
@@ -207,4 +209,95 @@ test('only the primary window shows the home view', async ({ page }) => {
   await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText(
     '直接写',
   );
+});
+
+const backHome = (page: Page) => page.getByRole('button', { name: '回到首页' });
+const openAlpha = async (page: Page) => {
+  await menu(page, 'open');
+  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write > p')).toHaveText(
+    'Alpha',
+  );
+  await expect(home(page)).toHaveCount(0);
+};
+
+test('the titlebar Home button closes the document and returns to the home view', async ({
+  page,
+}) => {
+  await boot(page);
+  // There is nothing to go back from while the home view is showing.
+  await expect(backHome(page)).toHaveCount(0);
+  await openAlpha(page);
+  await backHome(page).click();
+  await expect(home(page)).toBeVisible();
+  await expect(page.locator('.runtime-editor-mount')).toHaveAttribute('inert', '');
+  await expect(backHome(page)).toHaveCount(0);
+  await expect(page.locator('.titlebar-title-button')).toHaveCount(0);
+  expect((await calls(page, 'close_document')).map((call) => call.args.id)).toContain('doc-a');
+  // The window is usable again from there: Ctrl+N writes, Open works.
+  await menu(page, 'open');
+  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write > p')).toHaveText(
+    'Alpha',
+  );
+  await expect(home(page)).toHaveCount(0);
+});
+
+test('closing a document with unsaved changes asks first; Cancel keeps it, Discard goes home', async ({
+  page,
+}) => {
+  await boot(page);
+  await openAlpha(page);
+  const editor = page.frameLocator('.marklyra-editor-frame');
+  await editor.locator('#write > p').click();
+  await page.keyboard.press('End');
+  await page.keyboard.type('X');
+  await backHome(page).click();
+  const dialog = page.getByRole('dialog', { name: '保存当前更改？' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: '取消', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await expect(home(page)).toHaveCount(0);
+  await expect(editor.locator('#write > p')).toHaveText('AlphaX');
+  await backHome(page).click();
+  await dialog.getByRole('button', { name: '放弃修改', exact: true }).click();
+  await expect(home(page)).toBeVisible();
+  expect(await calls(page, 'save_document')).toEqual([]);
+});
+
+for (const host of ['windows', 'macos'] as const) {
+  test(`${host}: File > Close Document returns home, and does nothing on the home view`, async ({
+    page,
+  }) => {
+    await boot(page, { host });
+    await menu(page, 'close-document');
+    await expect(home(page)).toBeVisible();
+    await openAlpha(page);
+    await menu(page, 'close-document');
+    await expect(home(page)).toBeVisible();
+    expect((await calls(page, 'close_document')).length).toBe(1);
+    await menu(page, 'close-document');
+    await expect(home(page)).toBeVisible();
+    expect((await calls(page, 'close_document')).length).toBe(1);
+  });
+}
+
+test('the search window offers Home while a document is open, and not on the home view', async ({
+  page,
+}) => {
+  await boot(page);
+  await menu(page, 'quick-open');
+  await expect(search(page).getByRole('option', { name: /回到首页/ })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await openAlpha(page);
+  await menu(page, 'quick-open');
+  await page.keyboard.type('首页');
+  await page.keyboard.press('Enter');
+  await expect(home(page)).toBeVisible();
+});
+
+test('any window returns to the home view after its document is closed', async ({ page }) => {
+  await boot(page, { label: 'editor-2', workspace: false });
+  await expect(home(page)).toHaveCount(0);
+  await openAlpha(page);
+  await backHome(page).click();
+  await expect(home(page)).toBeVisible();
 });

@@ -78,6 +78,7 @@ export function quickItems(context: QuickContext): QuickItem[] {
   ];
   if (hasDocument) {
     items.push(
+      action('close-document', '回到首页', 'home', 'close document home start'),
       action('save', '保存', 'save', 'save'),
       action('save-as', '另存为…', 'save', 'save as'),
       ...(canRename ? [action('rename-document', '重命名…', 'rename', 'rename')] : []),

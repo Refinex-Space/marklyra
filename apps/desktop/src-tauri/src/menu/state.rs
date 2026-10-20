@@ -154,6 +154,10 @@ impl Snapshot {
         if action == "import-document" {
             return self.can_import;
         }
+        if action == "close-document" {
+            // Back to the home view; there is nothing to close while it is already showing.
+            return !self.home;
+        }
         if action == "rename-document" {
             return self.can_rename && !editor.locked;
         }
@@ -560,11 +564,13 @@ mod tests {
         ] {
             assert!(state.enabled(action), "{action}");
         }
+        assert!(!state.enabled("close-document"));
         for action in ["undo", "format:strong", "heading:1", "find", "view:source"] {
             assert!(!state.enabled(action), "{action}");
         }
         state.home = false;
         assert!(state.enabled("find"));
+        assert!(state.enabled("close-document"));
     }
     #[test]
     fn an_open_statistics_panel_keeps_its_own_close_action_available() {

@@ -12,7 +12,7 @@ use objc2_app_kit::{
     NSAccessibility, NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua,
     NSAppearanceNameDarkAqua, NSBezelStyle, NSButton, NSButtonType, NSFont, NSLayoutAttribute,
     NSLayoutConstraint, NSMenu, NSMenuItem, NSTitlebarAccessoryViewController, NSView, NSWindow,
-    NSWindowStyleMask, NSWindowTitleVisibility,
+    NSWindowTitleVisibility,
 };
 use objc2_foundation::{
     MainThreadMarker, NSArray, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString, NSURL,
@@ -30,6 +30,9 @@ struct ChromeIvars {
     statistics: RefCell<StatisticsSnapshot>,
     statistics_button: OnceCell<Retained<NSButton>>,
     title_button: OnceCell<Retained<NSButton>>,
+    home_button: OnceCell<Retained<NSButton>>,
+    /// A document is open, so the way back to the home view is offered.
+    can_close: Cell<bool>,
     source_button: OnceCell<Retained<NSButton>>,
     source_mode: Cell<bool>,
     always_show_word_count: Cell<bool>,
@@ -55,6 +58,9 @@ define_class!(
         }
         #[unsafe(method(renameDocument:))]
         fn rename_document(&self, _sender: &AnyObject) { self.emit("rename-document"); }
+
+        #[unsafe(method(closeDocument:))]
+        fn close_document(&self, _sender: &AnyObject) { self.emit("close-document"); }
 
         #[unsafe(method(toggleSidebar:))]
         fn toggle_sidebar(&self, _sender: &AnyObject) { self.emit("view:sidebar"); }
@@ -94,6 +100,8 @@ impl MarkLyraTitlebarView {
             statistics: RefCell::new(StatisticsSnapshot::default()),
             statistics_button: OnceCell::new(),
             title_button: OnceCell::new(),
+            home_button: OnceCell::new(),
+            can_close: Cell::new(false),
             source_button: OnceCell::new(),
             source_mode: Cell::new(false),
             always_show_word_count: Cell::new(true),
@@ -149,7 +157,11 @@ impl MarkLyraTitlebarView {
         let source_mode = self.ivars().source_mode.get();
         let settings = self.ivars().preferences_page.get();
         if let Some(button) = self.ivars().statistics_button.get() {
-            button.setHidden(source_mode || settings);
+            // The word count lives in the lower right corner of the document card (web), not here.
+            button.setHidden(true);
+        }
+        if let Some(button) = self.ivars().home_button.get() {
+            button.setHidden(!self.home_offered());
         }
         if let Some(buttons) = self.ivars().actions.get() {
             for button in buttons {
@@ -160,6 +172,13 @@ impl MarkLyraTitlebarView {
             button.setHidden(!source_mode || settings);
             button.setState(1);
         }
+    }
+
+    /// The Home button shows beside the word count, never in source mode or on the settings page.
+    fn home_offered(&self) -> bool {
+        self.ivars().can_close.get()
+            && !self.ivars().source_mode.get()
+            && !self.ivars().preferences_page.get()
     }
 
     fn statistics_menu(&self, sender: &NSButton) {
@@ -208,12 +227,8 @@ struct EditorChrome {
 
 impl EditorChrome {
     fn place_statistics(&mut self) {
-        let on_content = self
-            .window
-            .styleMask()
-            .contains(NSWindowStyleMask::FullScreen)
-            && self.view.ivars().always_show_word_count.get()
-            && !self.view.ivars().source_mode.get();
+        // The native word count is retired; it is never pinned to the full-screen content.
+        let on_content = false;
         if on_content == self.fullscreen_constraints.is_some() {
             return;
         }
@@ -252,7 +267,8 @@ impl EditorChrome {
     fn layout_controls(&self) {
         // AppKit measures the current label; the three action columns stay fixed
         // relative to the right edge as word counts grow.
-        let width = self.statistics.intrinsicContentSize().width.max(0.0);
+        // The titlebar no longer carries a word count, so the icons start at the left edge.
+        let width: f64 = 0.0;
         let source_mode = self.view.ivars().source_mode.get();
         let leading = if source_mode {
             (55.0 - width).max(8.0)
@@ -263,23 +279,31 @@ impl EditorChrome {
         // scrollbar gutter put the centers 106 / 74 / 42px from the edge.
         // Source mode keeps its existing label placement; these icons are hidden there.
         let trailing = if source_mode { 70.0 } else { 110.0 };
+        // The Home button takes a column to the left of the word count while it is offered.
+        let home = home_slot(self.view.home_offered());
         self.view
-            .setFrameSize(NSSize::new(width + trailing + leading, 22.0));
+            .setFrameSize(NSSize::new(width + trailing + leading + home, 22.0));
+        if let Some(button) = self.view.ivars().home_button.get() {
+            native_hover::set_frame(button, titlebar_icon_rect(leading - 4.0, 13.0));
+        }
         if self.fullscreen_constraints.is_none() {
             native_hover::set_frame(
                 &self.statistics,
-                titlebar_statistics_rect(leading - 8.0, width),
+                titlebar_statistics_rect(leading - 8.0 + home, width),
             );
         }
         if let Some(actions) = self.view.ivars().actions.get() {
             native_hover::set_frame(
                 &actions[2],
-                titlebar_icon_rect(leading + width + 60.0, 13.0),
+                titlebar_icon_rect(leading + home + width + 60.0, 13.0),
             );
-            native_hover::set_frame(&actions[0], titlebar_icon_rect(leading + width - 4.0, 10.0));
+            native_hover::set_frame(
+                &actions[0],
+                titlebar_icon_rect(leading + home + width - 4.0, 10.0),
+            );
             native_hover::set_frame(
                 &actions[1],
-                titlebar_icon_rect(leading + width + 28.0, 13.0),
+                titlebar_icon_rect(leading + home + width + 28.0, 13.0),
             );
         }
         if let Some(source) = self.view.ivars().source_button.get() {
@@ -302,6 +326,15 @@ fn rect(x: f64, y: f64, width: f64, height: f64) -> NSRect {
 fn titlebar_icon_rect(x: f64, height: f64) -> NSRect {
     // Keep the two differently sized images on the same visual center.
     rect(x, 15.0 - height / 2.0, 16.0, height)
+}
+
+/// Width the Home button adds to the left of the word count: a 16pt icon and a 16pt gap.
+fn home_slot(offered: bool) -> f64 {
+    if offered {
+        32.0
+    } else {
+        0.0
+    }
 }
 
 fn titlebar_statistics_rect(x: f64, width: f64) -> NSRect {
@@ -357,6 +390,25 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             sel!(renameDocument:),
             mtm,
         ));
+        let home = button(
+            &view,
+            "回到首页",
+            sel!(closeDocument:),
+            titlebar_icon_rect(0.0, 13.0),
+            true,
+        );
+        if let Some(image) =
+            objc2_app_kit::NSImage::imageWithSystemSymbolName_accessibilityDescription(
+                &NSString::from_str("house"),
+                Some(&NSString::from_str("回到首页")),
+            )
+        {
+            image.setSize(NSSize::new(14.0, 14.0));
+            home.setImage(Some(&image));
+            home.setTitle(&NSString::from_str(""));
+        }
+        home.setToolTip(Some(&NSString::from_str("回到首页（关闭当前文档）")));
+        let _ = view.ivars().home_button.set(home);
         let statistics = button(
             &view,
             "0 词",
@@ -491,6 +543,7 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
         if let Some(button) = chrome.view.ivars().title_button.get() {
             button.setEnabled(update.file_proxy && update.path.is_some());
         }
+        chrome.view.ivars().can_close.set(update.can_close_document);
         chrome.ai.setState(if update.ai_panel_open { 1 } else { 0 });
         chrome
             .outline
@@ -600,7 +653,19 @@ pub(super) fn window_changed(label: &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::{titlebar_icon_rect, titlebar_statistics_rect};
+    use super::{home_slot, titlebar_icon_rect, titlebar_statistics_rect};
+
+    #[test]
+    fn the_home_column_shifts_the_word_count_and_icons_together() {
+        assert_eq!(home_slot(false), 0.0);
+        let slot = home_slot(true);
+        assert_eq!(slot, 32.0);
+        // The Home icon sits left of the word count with a visible gap.
+        let home = titlebar_icon_rect(8.0 - 4.0, 13.0);
+        let statistics = titlebar_statistics_rect(8.0 - 8.0 + slot, 80.0);
+        assert!(home.origin.x + home.size.width < statistics.origin.x);
+        assert_eq!(home.origin.y + home.size.height / 2.0, 15.0);
+    }
 
     #[test]
     fn titlebar_statistics_offset_preserves_icon_layout() {

@@ -1,0 +1,81 @@
+/* The word count sits in the lower right corner of the document card. The back-to-top button
+   (style.css) is raised to clear it, so the two never overlap. */
+.document-statistics {
+  position: absolute;
+  right: 12px;
+  bottom: 6px;
+  z-index: 6;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.document-statistics-button {
+  display: block;
+  height: 22px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  /* Text scrolling underneath stays legible without a visible box. */
+  background: color-mix(in srgb, var(--marklyra-body-bg, var(--surface)) 88%, transparent);
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: default;
+}
+.document-statistics-button:hover,
+.document-statistics-button[aria-expanded="true"] {
+  background: var(--hover);
+  color: var(--text);
+}
+.document-statistics-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.document-statistics-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  display: flex;
+  flex-direction: column;
+  min-width: 128px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px #00000026;
+}
+.document-statistics-menu button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin: 0;
+  padding: 0 12px 0 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: default;
+}
+.document-statistics-menu button:hover,
+.document-statistics-menu button:focus-visible {
+  background: var(--hover);
+  outline: none;
+}
+.document-statistics-check {
+  display: grid;
+  flex: 0 0 14px;
+  place-items: center;
+  width: 14px;
+}
+.document-statistics-check .ui-icon {
+  width: 12px;
+  height: 12px;
+}
