@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { ShellGlyph, type ShellGlyphName } from '../../components/ShellGlyph.js';
+import { SkeletonBar } from '../../components/Skeleton.js';
 import type { DirectoryHistoryEntry } from '../../services/directory-history.js';
 import { displayPath } from '../../services/display-path.js';
 import type { WorkspaceFolder } from '../../services/workspaces.js';
@@ -24,6 +25,8 @@ interface Props {
   search?: (() => void) | undefined;
   reveal?: (() => void) | undefined;
   path: string | undefined;
+  /** The folder is still being restored: the name is a placeholder and nothing opens yet. */
+  restoring?: boolean;
   disabled: boolean;
   canChoose: boolean;
   choose: () => void;
@@ -65,6 +68,7 @@ export function WorkspaceFooter({
   search,
   reveal,
   path,
+  restoring = false,
   disabled,
   canChoose,
   choose,
@@ -243,8 +247,8 @@ export function WorkspaceFooter({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        title={path ? displayPath(path) : '打开文件夹…'}
-        disabled={disabled}
+        title={path ? displayPath(path) : restoring ? undefined : '打开文件夹…'}
+        disabled={disabled || restoring}
         ref={trigger}
         onClick={() => {
           setContext(false);
@@ -257,7 +261,7 @@ export function WorkspaceFooter({
           }
         }}
       >
-        <span>{name ?? '打开文件夹…'}</span>
+        {restoring ? <SkeletonBar width={96} height={10} /> : <span>{name ?? '打开文件夹…'}</span>}
         <span aria-hidden="true" className="workspace-menu-dots">
           <ShellGlyph name="dots" />
         </span>

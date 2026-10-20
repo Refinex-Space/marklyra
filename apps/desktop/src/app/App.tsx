@@ -38,6 +38,7 @@ import {
 import { useAutoSave } from '../features/documents/useAutoSave.js';
 import { useDocumentSession } from '../features/documents/useDocumentSession.js';
 import { DocumentNamePopover } from '../features/documents/DocumentNamePopover.js';
+import { DocumentSkeleton } from '../features/documents/DocumentSkeleton.js';
 import { useDocumentRename } from '../features/documents/useDocumentRename.js';
 import { useExternalChanges } from '../features/documents/useExternalChanges.js';
 import { HomeScreen } from '../features/home/HomeScreen.js';
@@ -59,6 +60,7 @@ import { RecentFilesPanel } from '../features/recent-files/RecentFilesPanel.js';
 import { editorSessionPreferences } from '../features/settings/editor-session-preferences.js';
 import { PreferencesPanel } from '../features/settings/PreferencesPanel.js';
 import { PreferencesWindow } from '../features/settings/PreferencesWindow.js';
+import { SettingsSkeleton } from '../features/settings/SettingsSkeleton.js';
 import type { StatisticsUnit } from '../features/settings/preferences.js';
 import {
   applicationEditorPreferences,
@@ -571,6 +573,9 @@ export function App() {
     setOutlinePanelOpen(false);
     if (aiPanelOpen) void editor.current?.focus().catch((error) => doc.setMessage(String(error)));
   };
+  // A start that has reported a problem stops presenting itself as loading: the skeleton gives
+  // way to the message and its retry instead of waiting for something that is not coming.
+  const startupFailed = Boolean(applicationSystem.error || markdownSystem.error || doc.message);
   // The first screen of a window with nothing open. It covers the editor, which stays mounted but
   // inert underneath, so no input or command can reach text nobody can see.
   const homeVisible =
@@ -2193,6 +2198,7 @@ export function App() {
               }}
               chooseRequest={chooseRequest}
               disabled={doc.working || !ready}
+              restoring={!startupSettled && !startupFailed}
               activePath={doc.file?.path}
               activeSource={doc.snapshot}
               activeSavedSource={doc.file?.text}
@@ -2396,29 +2402,27 @@ export function App() {
                   images: documentImages,
                 }}
               />
-            ) : (
+            ) : startupFailed ? (
+              // A start that cannot finish says so and offers the retry; while it is only
+              // slow, the document skeleton below stands in for the page.
               <div className="editor-loading">
                 {!doc.recoveryReady ? (
                   <>
-                    <p>正在准备草稿保护…</p>
-                    {doc.message && (
-                      <button type="button" onClick={doc.retryRecovery}>
-                        重新连接草稿保护
-                      </button>
-                    )}
+                    <p>草稿保护未能就绪</p>
+                    <button type="button" onClick={doc.retryRecovery}>
+                      重新连接草稿保护
+                    </button>
                   </>
-                ) : !markdownSystem.initial ? (
+                ) : markdownSystem.error ? (
                   <>
-                    <p>{markdownSystem.error || '正在读取Markdown缩进初值…'}</p>
+                    <p>{markdownSystem.error}</p>
                     <button type="button" onClick={markdownSystem.retry}>
                       重试读取设置
                     </button>
                   </>
-                ) : (
-                  '正在加载编辑器…'
-                )}
+                ) : null}
               </div>
-            )}
+            ) : null}
           </div>
           {ready && scrolledDown && (
             <button
@@ -2446,6 +2450,7 @@ export function App() {
                 }
               />
             )}
+          {!startupSettled && !startupFailed && <DocumentSkeleton />}
           {homeVisible && (
             <HomeScreen
               mac={runtime?.platform === 'macos'}
@@ -2762,7 +2767,7 @@ export function App() {
             aria-label="设置"
             aria-busy="true"
           >
-            <p>正在打开设置…</p>
+            <SettingsSkeleton sidebarWidth={sidebarWidth} />
           </section>
         ))}
       {preferencesOpen && !doc.pending && !preferencesEmbedded && (

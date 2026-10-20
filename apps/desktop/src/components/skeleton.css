@@ -1,0 +1,64 @@
+/* Loading placeholders: no text, one slow sweep, and nothing at all for a fast read.
+   The bars take their ink from `--skeleton-ink` (default: the surface's text colour), so a
+   surface with its own text colour, such as the sidebar, only has to set that one variable. */
+.skeleton {
+  opacity: 0;
+  animation: skeleton-in 220ms ease-out 140ms forwards;
+  pointer-events: none;
+  user-select: none;
+}
+.skeleton-bar {
+  --skeleton-base: color-mix(in srgb, var(--skeleton-ink, var(--text)) 8%, transparent);
+  --skeleton-glow: color-mix(in srgb, var(--skeleton-ink, var(--text)) 15%, transparent);
+  display: block;
+  flex: 0 0 auto;
+  height: var(--skeleton-height, 9px);
+  width: var(--skeleton-width, 60%);
+  border-radius: var(--skeleton-radius, 5px);
+  background:
+    linear-gradient(100deg, transparent 30%, var(--skeleton-glow) 50%, transparent 70%) 0 0 / 220%
+    100% no-repeat,
+    var(--skeleton-base);
+  animation: skeleton-sweep 1.8s ease-in-out infinite;
+}
+@keyframes skeleton-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes skeleton-sweep {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -30% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation-duration: 1ms;
+  }
+  .skeleton-bar {
+    animation: none;
+  }
+}
+
+/* A list that is still being read: rows of the real list's height. */
+.skeleton-rows {
+  display: flex;
+  flex-direction: column;
+}
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--skeleton-row-height, 32px);
+  padding: 0 var(--skeleton-row-inset, 8px);
+}
+.skeleton-row-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}

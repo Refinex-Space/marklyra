@@ -1,5 +1,6 @@
 import { listen } from '@tauri-apps/api/event';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { SkeletonRows } from '../../components/Skeleton.js';
 import { useModalFocus } from '../../components/useModalFocus.js';
 import { displayPath } from '../../services/display-path.js';
 import { type RecentListing, recentFiles } from '../../services/recent.js';
@@ -80,7 +81,9 @@ export function RecentFilesPanel({ close, open }: { close(): void; open(id: stri
         </header>
         <div className="recent-files-body">
           {error && <p role="alert">{error}</p>}
-          {!listing && !error && <p>正在读取最近文件…</p>}
+          {!listing && !error && (
+            <SkeletonRows rows={4} lines={2} height={56} label="正在读取最近文件" />
+          )}
           {listing?.entries.length === 0 && <p>暂无最近打开的文件。</p>}
           <ul className="recent-files-list">
             {listing?.entries.map((entry) => (

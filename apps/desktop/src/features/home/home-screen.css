@@ -119,6 +119,12 @@
   border: 1px solid var(--border);
   border-radius: 10px;
 }
+.home-recent-skeleton {
+  --skeleton-row-inset: 14px;
+}
+.home-recent-skeleton .skeleton-row + .skeleton-row {
+  border-top: 1px solid var(--border);
+}
 .home-recent li + li {
   border-top: 1px solid var(--border);
 }

@@ -1,6 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
+import { SkeletonRows } from '../../components/Skeleton.js';
 import { displayPath } from '../../services/display-path.js';
 import { desktopAvailable } from '../../services/documents.js';
 import { type RecentFile, recentFiles } from '../../services/recent.js';
@@ -119,9 +120,17 @@ export function HomeScreen(props: HomeScreenProps) {
             )}
           </div>
           {recent.length === 0 ? (
-            <div className="home-empty">
-              {entries === null ? '正在读取…' : '最近打开的笔记会显示在这里。'}
-            </div>
+            entries === null ? (
+              <SkeletonRows
+                className="home-recent home-recent-skeleton"
+                rows={3}
+                icon
+                height={40}
+                label="正在读取最近查看"
+              />
+            ) : (
+              <div className="home-empty">最近打开的笔记会显示在这里。</div>
+            )
           ) : (
             <ul className="home-recent">
               {recent.slice(0, SHOWN).map((entry) => (

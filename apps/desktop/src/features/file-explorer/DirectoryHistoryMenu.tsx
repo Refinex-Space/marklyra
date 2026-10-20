@@ -5,6 +5,7 @@ import {
   type DirectoryHistoryEntry,
   directoryHistory,
 } from '../../services/directory-history.js';
+import { SkeletonRows } from '../../components/Skeleton.js';
 import { displayPath } from '../../services/display-path.js';
 import type { WorkspaceFolder } from '../../services/workspaces.js';
 import { directoryMenuLimit, directoryMenuRows } from './directory-menu-model.js';
@@ -328,8 +329,14 @@ export function DirectoryHistoryMenu({
         </li>
       ))}
       {loading && (
-        <li className="directory-menu-status" role="status">
-          正在读取目录…
+        <li className="directory-menu-status" role="none">
+          <SkeletonRows
+            className="directory-menu-skeleton"
+            rows={catalog ? 1 : 3}
+            icon
+            height={28}
+            label="正在读取目录"
+          />
         </li>
       )}
       {error && (

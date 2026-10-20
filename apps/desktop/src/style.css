@@ -258,11 +258,21 @@ button[aria-pressed="true"] {
   > .preferences-page {
   top: var(--titlebar-height);
 }
+/* Only the failed state lays itself out; while loading, the skeleton fills the page. */
 .preferences-loading {
   display: flex;
   gap: 16px;
   align-items: center;
   justify-content: center;
+}
+.preferences-loading-back {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  left: 20px;
+}
+.preferences-loading > .preferences-loading-back {
+  position: static;
 }
 .preferences-page .preferences-window-error {
   left: 0;

@@ -67,6 +67,8 @@ export interface WorkspaceSidebarProps {
   ) => void;
   chooseRequest?: number;
   disabled?: boolean | undefined;
+  /** The window is still restoring its folder; show the list's silhouette, not an empty state. */
+  restoring?: boolean | undefined;
   activePath?: string | undefined;
   activeSource?: string | undefined;
   activeSavedSource?: string | undefined;
@@ -97,6 +99,7 @@ export function WorkspaceSidebar({
   onCurrentDocument,
   chooseRequest = 0,
   disabled = false,
+  restoring = false,
   activePath,
   activeSource,
   activeSavedSource,
@@ -941,7 +944,8 @@ export function WorkspaceSidebar({
           </button>
         </div>
       )}
-      {!workspace && !compact && (
+      {!workspace && restoring && <SidebarSkeleton variant="tree" />}
+      {!workspace && !restoring && !compact && (
         <div className="workspace-empty">
           <WorkspaceGlyph name="folderOpen" />
           <p>在这里浏览你的文档</p>
@@ -961,7 +965,7 @@ export function WorkspaceSidebar({
           </small>
         </div>
       )}
-      {!workspace && compact && (
+      {!workspace && !restoring && compact && (
         <div className="workspace-compact-empty">
           <p>没有打开的文件夹</p>
         </div>
@@ -1074,6 +1078,7 @@ export function WorkspaceSidebar({
           search={() => changeTab('search')}
           reveal={workspace ? () => void revealDirectory() : undefined}
           path={workspace?.path}
+          restoring={restoring && !workspace}
           disabled={controlsDisabled}
           canChoose={desktopAvailable}
           choose={() => void choose()}

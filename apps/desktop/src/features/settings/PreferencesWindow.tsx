@@ -51,6 +51,7 @@ import {
   startupPreferenceAction,
   startupPreferencesOptions,
 } from './runtime-preferences/startup-preferences.js';
+import { SettingsSkeleton } from './SettingsSkeleton.js';
 import { SponsorshipPage } from './sponsorship/SponsorshipPage.js';
 
 function options(
@@ -154,6 +155,8 @@ export function PreferencesWindow({
   const [platform, setPlatform] = useState<'macos' | 'windows' | 'browser'>('macos');
   const [initialOptions, setInitialOptions] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState('');
+  // The isolated page paints nothing until it initialises; until then the page's silhouette shows.
+  const [contentReady, setContentReady] = useState(false);
   const [closeRequest, setCloseRequest] = useState(0);
   const confirmedFiles = useRef<FilePreferences | null>(null);
   const confirmedStartup = useRef<StartupPreferences | null>(null);
@@ -367,21 +370,33 @@ export function PreferencesWindow({
           />
         </div>
       )}
-      {(!runtimeUrl || !initialOptions) && (
-        <div className="preferences-loading">
-          <button
-            type="button"
-            onClick={() =>
-              void (onClose ? onClose() : editorChrome.closePreferences()).catch((e) =>
-                setError(String(e)),
-              )
-            }
-          >
-            返回应用
-          </button>
-          <p>{error || '正在加载设置…'}</p>
-        </div>
-      )}
+      {!contentReady &&
+        (() => {
+          const back = (
+            <button
+              type="button"
+              className="preferences-loading-back"
+              onClick={() =>
+                void (onClose ? onClose() : editorChrome.closePreferences()).catch((e) =>
+                  setError(String(e)),
+                )
+              }
+            >
+              返回应用
+            </button>
+          );
+          return error && (!runtimeUrl || !initialOptions) ? (
+            <div className="preferences-loading">
+              {back}
+              <p>{error}</p>
+            </div>
+          ) : (
+            <>
+              <SettingsSkeleton sidebarWidth={embedded ? pageSidebarWidth : 190} />
+              {back}
+            </>
+          );
+        })()}
       {runtimeUrl && initialOptions && (
         <RuntimePreferences
           runtimeUrl={runtimeUrl}
@@ -391,6 +406,7 @@ export function PreferencesWindow({
             embedded ? { sidebarWidth: pageSidebarWidth, dark, sidebarBackground } : undefined
           }
           closeRequest={closeRequest + externalCloseRequest}
+          onReady={() => setContentReady(true)}
           onNativePage={(page) => {
             setNativePage(page);
             sessionStorage.removeItem('marklyra.settings.ai');

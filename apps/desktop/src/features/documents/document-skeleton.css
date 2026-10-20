@@ -1,0 +1,25 @@
+/* The document card while the editor starts. Same footprint as the home view, so the two never
+   differ in where the card's edge is. */
+.document-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--marklyra-body-bg, var(--surface));
+  --skeleton-ink: var(--marklyra-body-text, var(--text));
+}
+.document-skeleton-page {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: clamp(32px, 11vh, 96px) 32px 48px;
+}
+.document-skeleton-paragraph {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}

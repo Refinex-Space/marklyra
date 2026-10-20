@@ -1,5 +1,6 @@
 import { listen } from '@tauri-apps/api/event';
 import { useEffect, useState } from 'react';
+import { SkeletonRows } from '../../components/Skeleton.js';
 import { AgentCredentials } from './AgentCredentials.js';
 import { AgentDialog } from './AgentDialog.js';
 import { AgentIcon } from './AgentIcon.js';
@@ -179,8 +180,17 @@ export function AgentSettings() {
             {error}
           </div>
         )}
-        {!catalog && !error && <p role="status">正在读取智能体目录…</p>}
         <div className="ai-agent-list">
+          {!catalog && !error && (
+            <SkeletonRows
+              className="ai-agent-skeleton"
+              rows={3}
+              icon={28}
+              lines={2}
+              height={76}
+              label="正在读取智能体目录"
+            />
+          )}
           {catalog &&
             visibleAgents.map((agent) => {
               const profiles = catalog.profiles.filter((p) => p.agentId === agent.id);

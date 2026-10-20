@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { isPandocPage, pandocFormat, pandocFormats, type SettingsPage } from './catalog.js';
 import { Button, Notice } from './controls.js';
+import { ExportSettingsSkeleton } from './ExportSettingsSkeleton.js';
 import { GeneralPage } from './GeneralPage.js';
 import { HtmlPage, ImagePage, PlainHtmlPage } from './HtmlImagePages.js';
 import { CustomPage, NewCustomPage, PandocFormatPage } from './PandocPages.js';
@@ -163,11 +164,7 @@ export function ExportSettings({ dark }: { dark: boolean }) {
               {model.error}
             </Notice>
           )}
-          {!view && !model.loadError && (
-            <p className="es-muted" role="status">
-              正在读取导出设置…
-            </p>
-          )}
+          {!view && !model.loadError && <ExportSettingsSkeleton />}
           {view && (
             <div className="es-layout">
               <div

@@ -1,3 +1,4 @@
+import { SkeletonRows } from '../../../components/Skeleton.js';
 import { Button, Card, Notice, Row, Segmented, Switch } from './controls.js';
 import { ExternalLink, PANDOC_INSTALL } from './parts.js';
 import type { ExportSettingsModel } from './useExportSettings.js';
@@ -22,9 +23,7 @@ function Pandoc({ model }: { model: ExportSettingsModel }) {
         <Notice kind="error">无法检查 Pandoc：{model.capabilityError}</Notice>
       )}
       {!pandoc && !model.capabilityError && (
-        <p className="es-muted" role="status">
-          正在检查 Pandoc…
-        </p>
+        <SkeletonRows rows={1} lines={2} height={64} label="正在检查 Pandoc" />
       )}
       {pandoc && (
         <>

@@ -1194,6 +1194,10 @@
   line-height: 18px;
   overflow-wrap: anywhere;
 }
+.directory-menu-skeleton {
+  --skeleton-ink: var(--marklyra-sidebar-text, var(--text));
+  --skeleton-row-inset: 0;
+}
 .directory-menu-error button {
   padding: 0 4px;
   font: inherit;
@@ -1333,17 +1337,13 @@
   flex: 0 0 40px;
 }
 
-/* Loading placeholders: no text, one slow sweep, and nothing at all for a fast read. */
+/* Loading placeholders use the shared Skeleton (components/skeleton.css); only the sidebar's
+   rhythm and ink live here. */
 .sidebar-skeleton {
-  --skeleton-base: color-mix(in srgb, var(--marklyra-sidebar-text, var(--text)) 8%, transparent);
-  --skeleton-glow: color-mix(in srgb, var(--marklyra-sidebar-text, var(--text)) 15%, transparent);
+  --skeleton-ink: var(--marklyra-sidebar-text, var(--text));
   display: flex;
   flex-direction: column;
   padding: 6px 0;
-  opacity: 0;
-  animation: sidebar-skeleton-in 220ms ease-out 140ms forwards;
-  pointer-events: none;
-  user-select: none;
 }
 .sidebar-skeleton-row {
   display: flex;
@@ -1363,53 +1363,10 @@
   flex-direction: column;
   gap: 8px;
   padding-top: 4px;
+  --skeleton-ink: var(--marklyra-sidebar-text, var(--text));
 }
-.sidebar-skeleton-bar,
-.sidebar-skeleton-icon {
-  display: block;
-  height: 9px;
-  width: var(--skeleton-width, 60%);
-  border-radius: 5px;
-  background: linear-gradient(
-      100deg,
-      transparent 30%,
-      var(--skeleton-glow) 50%,
-      transparent 70%
-    )
-    0 0 / 220% 100% no-repeat,
-    var(--skeleton-base);
-  animation: sidebar-skeleton-sweep 1.8s ease-in-out infinite;
-}
-.sidebar-skeleton-icon {
-  flex: 0 0 14px;
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-}
-.sidebar-skeleton-row .sidebar-skeleton-bar {
+.sidebar-skeleton-row .skeleton-bar:not(.sidebar-skeleton-icon) {
   flex: 0 1 var(--skeleton-width, 60%);
-}
-@keyframes sidebar-skeleton-in {
-  to {
-    opacity: 1;
-  }
-}
-@keyframes sidebar-skeleton-sweep {
-  from {
-    background-position: 130% 0;
-  }
-  to {
-    background-position: -30% 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-skeleton {
-    animation-duration: 1ms;
-  }
-  .sidebar-skeleton-bar,
-  .sidebar-skeleton-icon {
-    animation: none;
-  }
 }
 
 /* A scan that cannot finish is one quiet line; the full explanation lives in its tooltip. */

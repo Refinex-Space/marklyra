@@ -909,6 +909,12 @@
   gap: 12px 16px;
   padding: 16px 0;
 }
+.ai-agent-skeleton {
+  --skeleton-row-inset: 0;
+}
+.ai-agent-skeleton .skeleton-row + .skeleton-row {
+  border-top: 1px solid var(--ai-line);
+}
 .ai-agent-card + .ai-agent-card {
   border-top: 1px solid var(--ai-line);
 }

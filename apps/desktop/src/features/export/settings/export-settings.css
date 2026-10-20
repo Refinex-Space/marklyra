@@ -882,3 +882,37 @@
   flex: 1 1 200px;
   max-width: none;
 }
+
+/* Loading placeholder: the page list and one card, so the page does not jump when it arrives. */
+.es-skeleton {
+  --skeleton-ink: var(--settings-text);
+}
+.es-skeleton-tab {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 10px;
+}
+.es-skeleton-card {
+  padding: 0 18px;
+  border: 1px solid var(--settings-line);
+  border-radius: 12px;
+  background: var(--settings-bg);
+}
+.es-skeleton-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  height: 72px;
+}
+.es-skeleton-row + .es-skeleton-row {
+  border-top: 1px solid var(--settings-line);
+}
+.es-skeleton-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}

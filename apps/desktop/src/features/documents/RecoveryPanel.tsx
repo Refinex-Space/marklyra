@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { SkeletonRows } from '../../components/Skeleton.js';
 import { useModalCloseHandoff } from '../../components/useModalCloseHandoff.js';
 import {
   fallbackRecovery,
@@ -138,7 +139,7 @@ export function RecoveryPanel({
         )}
 
         {!listing ? (
-          <p>正在读取恢复副本…</p>
+          <SkeletonRows rows={2} lines={2} height={64} label="正在读取恢复副本" />
         ) : (
           <>
             {listing.issues.length > 0 && (

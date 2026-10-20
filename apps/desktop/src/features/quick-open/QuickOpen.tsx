@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import { Icon } from '../../components/Icon.js';
+import { SkeletonRows } from '../../components/Skeleton.js';
 import {
   arrange,
   flatten,
@@ -205,16 +206,15 @@ export function QuickOpen(props: QuickOpenProps) {
               })}
             </div>
           ))}
-          {!flat.length && (
-            <div className="quick-open-empty" role="status">
-              {loadingNotes ? '正在读取笔记…' : query.trim() ? '没有匹配的结果' : '这里还没有内容'}
-            </div>
-          )}
-          {loadingNotes && flat.length > 0 && (
-            <div className="quick-open-hint" role="status">
-              正在读取笔记…
-            </div>
-          )}
+          {!flat.length &&
+            (loadingNotes ? (
+              <SkeletonRows rows={5} icon label="正在读取笔记" />
+            ) : (
+              <div className="quick-open-empty" role="status">
+                {query.trim() ? '没有匹配的结果' : '这里还没有内容'}
+              </div>
+            ))}
+          {loadingNotes && flat.length > 0 && <SkeletonRows rows={2} icon label="正在读取笔记" />}
           {notesHint && (tab === 'note' || tab === 'all') && (
             <div className="quick-open-hint">{notesHint}</div>
           )}

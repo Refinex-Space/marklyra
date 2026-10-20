@@ -1,0 +1,67 @@
+/* The settings page's two cards (sections, content) on the shell canvas, without their content.
+   Same insets as the real cards: 4px under the titlebar band and 8px to the window. */
+.settings-skeleton {
+  position: absolute;
+  inset: 4px 8px 8px;
+  z-index: 1;
+  display: flex;
+  gap: var(--pane-gap, 8px);
+  --skeleton-ink: var(--text);
+}
+.settings-skeleton-sidebar,
+.settings-skeleton-content {
+  box-sizing: border-box;
+  border: 1px solid var(--pane-border, var(--border));
+  border-radius: var(--pane-radius, 8px);
+  background: var(--marklyra-body-bg, var(--surface));
+}
+.settings-skeleton-sidebar {
+  display: flex;
+  flex: 0 0 calc(var(--settings-skeleton-sidebar, var(--settings-sidebar-width, 240px)) - 16px);
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 10px;
+  background: var(--settings-sidebar-bg, var(--sidebar));
+}
+/* Room for the real "返回应用" button, which sits above the skeleton while it loads. */
+.settings-skeleton-back {
+  flex: 0 0 36px;
+}
+.settings-skeleton-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 8px;
+}
+.settings-skeleton-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  padding: 28px clamp(24px, 6vw, 72px);
+  overflow: hidden;
+}
+.settings-skeleton-card {
+  border: 1px solid var(--pane-border, var(--border));
+  border-radius: 12px;
+  padding: 0 18px;
+}
+.settings-skeleton-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  height: 64px;
+}
+.settings-skeleton-row + .settings-skeleton-row {
+  border-top: 1px solid var(--pane-border, var(--border));
+}
+.settings-skeleton-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}

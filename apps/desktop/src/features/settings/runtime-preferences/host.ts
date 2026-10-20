@@ -30,6 +30,8 @@ export interface RuntimePreferencesOptions {
   onPut: (key: PreferenceKey, value: PreferenceValue) => Promise<void | FilePreferences>;
   onAction?: (name: PreferenceAction, data: unknown) => Promise<unknown>;
   onClose: () => void;
+  /** The isolated page has initialised and is now shown. */
+  onReady?: () => void;
   /** The settings page is drawn by the host (智能体、导出、赞助) instead of by the isolated page. */
   onNativePage?: (page: NativePage | null) => void;
   onError: (error: Error) => void;
@@ -164,6 +166,7 @@ export class RuntimePreferencesHost {
       this.element.style.visibility = 'visible';
       this.setPresentation(this.options.presentation);
       clearTimeout(this.timer);
+      this.options.onReady?.();
       if (this.closeRequested) this.requestClose();
       return;
     }
