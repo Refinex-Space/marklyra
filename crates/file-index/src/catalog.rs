@@ -360,6 +360,7 @@ mod tests {
             })
             .unwrap();
         assert_eq!(report.unreadable, 0);
-        assert_eq!(calls.get(), 1);
+        // Windows directory attributes are checked without opening a handle.
+        assert_eq!(calls.get(), if cfg!(windows) { 0 } else { 1 });
     }
 }

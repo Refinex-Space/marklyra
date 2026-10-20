@@ -874,6 +874,7 @@ impl Workspace {
                 }),
             })
         })();
+        mutated |= matches!(&result, Err(IndexError::Io(error)) if crate::fs_mutation::rename_was_committed(error));
         match result {
             Ok(commit) => {
                 if self.finish_entry_inspection(&data.token).is_err() {
@@ -888,7 +889,9 @@ impl Workspace {
                 operation.plan = None;
                 Ok(commit)
             }
-            Err(_) if mutated => {
+            Err(_error) if mutated => {
+                #[cfg(test)]
+                eprintln!("Move failed after publication: {_error}");
                 operation.resolution = EntryMoveResolution::MutationUncertain;
                 operation.plan = None;
                 Err(IndexError::MutationUncertain)
@@ -1109,6 +1112,7 @@ impl Workspace {
                 }),
             })
         })();
+        mutated |= matches!(&result, Err(IndexError::Io(error)) if crate::fs_mutation::rename_was_committed(error));
         let resolution = match &result {
             Ok(commit) => EntryMoveResolution::Committed {
                 receipt: commit.receipt.clone(),

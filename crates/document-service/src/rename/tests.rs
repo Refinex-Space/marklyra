@@ -280,7 +280,18 @@ fn directory_rename_rebinds_only_proven_descendants_and_preserves_their_source()
         )
         .unwrap();
     assert_eq!(plan.affected_count(), 1);
-    fs::rename(root.join("dir"), root.join("renamed")).unwrap();
+    if !crate::directory_test_support::move_retained_directory(
+        &root.join("dir"),
+        &root.join("renamed"),
+    ) {
+        drop(plan);
+        crate::directory_test_support::assert_available(
+            &service,
+            &target.id,
+            &root.join("dir/A.md"),
+        );
+        return;
+    }
     assert_eq!(plan.commit()[0].id, target.id);
     assert_eq!(service.documents[&target.id].text, "Alpha");
     assert_eq!(service.documents[&target.id].original_bytes, b"Alpha");

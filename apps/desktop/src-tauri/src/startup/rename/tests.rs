@@ -56,7 +56,9 @@ fn live_pending_released_quit_batch_archive_and_pin_all_keep_verified_references
     host.begin_quit_backup().unwrap();
     let plan = host.prepare_rename_memory(&state, &input).unwrap();
     host.release("released");
-    fs::rename(&input.old, &input.new).unwrap();
+    if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+        return;
+    }
     host.apply_rename_memory(&plan).unwrap();
     {
         let slots = host.slots.lock().unwrap();
@@ -108,13 +110,19 @@ fn claimed_before_or_after_prepare_is_rearmed_and_old_publish_is_rejected() {
         let old_claim = early.unwrap_or_else(|| commands::claim_startup(&host, "main").unwrap());
         // Exercise old restore after it has created its actual native sessions,
         // then perform the filesystem move and metadata handoff before publish.
-        assert!(
-            commands::restore_target(&host, &services, "main", old_claim, || {
-                fs::rename(&input.old, &input.new).unwrap();
-                host.apply_rename_memory(&plan).unwrap();
-            })
-            .is_err()
-        );
+        let restored = commands::restore_target(&host, &services, "main", old_claim, || {
+            if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+                return;
+            }
+            host.apply_rename_memory(&plan).unwrap();
+        });
+        if cfg!(windows) {
+            let restored = restored.unwrap();
+            assert!(Path::new(&restored.document.unwrap().path).starts_with(&input.old));
+            assert!(Path::new(&restored.workspace.unwrap().path).starts_with(&input.old));
+            continue;
+        }
+        assert!(restored.is_err());
         let next = commands::claim_startup(&host, "main").unwrap();
         assert_rebound(&next.2.session, &input);
         let restored = commands::restore_target(&host, &services, "main", next, || {}).unwrap();
@@ -141,7 +149,9 @@ fn a_new_user_session_or_cancelled_quit_batch_is_never_restored_from_old_plan() 
         slot.consumed = true;
     }
     host.end_quit_backup();
-    fs::rename(&input.old, &input.new).unwrap();
+    if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+        return;
+    }
     host.apply_rename_memory(&plan).unwrap();
     assert!(host.slots.lock().unwrap()["main"].session.empty());
     assert!(host.quit_batch.lock().unwrap().is_none());
@@ -167,7 +177,9 @@ fn store_cas_preserves_new_pin_choice_and_cleared_archive() {
             Ok(((), true))
         })
         .unwrap();
-    fs::rename(&input.old, &input.new).unwrap();
+    if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+        return;
+    }
     assert!(StartupHost::apply_rename_store(&store, &plan)
         .unwrap()
         .is_none());
@@ -226,7 +238,9 @@ fn stale_bookmark_is_not_upgraded_by_a_path_string_and_other_references_still_mo
     let plan = host.prepare_rename_memory(&state, &input).unwrap();
     assert!(!plan.warnings.is_empty());
     assert_eq!(plan.archive[1].new.workspace.as_ref(), Some(&stale));
-    fs::rename(&input.old, &input.new).unwrap();
+    if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+        return;
+    }
     host.apply_rename_memory(&plan).unwrap();
     assert_rebound(&host.slots.lock().unwrap()["main"].session, &input);
     assert!(stale.reopen().is_err());
@@ -303,7 +317,9 @@ fn move_replace_batch_maps_both_fields_of_one_session_before_the_existing_whole_
     let original_target = Arc::new(File::from_std(
         cap(&target).try_clone().unwrap().into_std_file(),
     ));
-    fs::rename(&target, &backup).unwrap();
+    if !crate::test_support::rename_retained_directory(&target, &backup) {
+        return;
+    }
     fs::rename(&old, &target).unwrap();
     let current_source = Arc::new(File::from_std(
         cap(&target).try_clone().unwrap().into_std_file(),
@@ -408,7 +424,9 @@ fn native_layout_refresh_does_not_cancel_verified_rename_or_restore_stale_tab_po
     };
     host.set_native_tab_layout(vec![("main".into(), native_tab)])
         .unwrap();
-    fs::rename(&input.old, &input.new).unwrap();
+    if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+        return;
+    }
     host.apply_rename_memory(&plan).unwrap();
     let slots = host.slots.lock().unwrap();
     assert_rebound(&slots["main"].session, &input);

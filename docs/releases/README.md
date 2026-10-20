@@ -1,6 +1,6 @@
 # MarkLyra 发布与更新手册
 
-适用仓库：[`Refinex-Space/marklyra`](https://github.com/Refinex-Space/marklyra)。维护日期：2026-10-20。
+适用仓库：[`Refinex-Space/marklyra`](https://github.com/Refinex-Space/marklyra)。维护日期：2026-10-21。
 
 本项目采用 GitHub Release 分发免费开源桌面版本。macOS 使用 ad-hoc 本地签名，不购买 Apple 开发者证书、不做公证；Windows 不要求 Authenticode 证书。应用内更新使用另一套免费的 Tauri/minisign 密钥校验来源，不能省略。
 
@@ -71,6 +71,12 @@ chmod 600 "$HOME/.config/marklyra-signing/updater.key"
 
 ## 每次更新版本的标准步骤
 
+### 发布分支
+
+不需要专门创建 DEV 分支。正式版本从已完成验证且与远端同步的 `main` 创建版本标签；发布工作流由标签触发，不由分支名称触发。日常开发可以使用功能分支，但应先合并回 `main` 再发布。不要将未提交改动或尚未验收的开发分支作为发布来源。
+
+涉及 Windows 文件系统兼容性时，可先手动运行 `Verify release platform compatibility`（`release-preflight.yml`）。它执行 Windows Rust 全套测试，不创建标签、签名安装包或 Release；通过后再开始正式打标签流程。
+
 ### 1. 完成改动、递增版本
 
 确保当前分支和工作区内容就是本次要发布的版本：
@@ -81,7 +87,7 @@ pnpm release:version 0.1.1
 pnpm release:check
 ```
 
-将例子中的 `0.1.1` 换成实际版本。只接受稳定的 `X.Y.Z`，不得重用或降低版本。脚本同步根 `package.json`、桌面 `package.json`、Tauri 配置、Rust workspace 和 workspace 成员的 `Cargo.lock` 版本；编辑器 SDK 具有独立版本，不跟随桌面版机械递增。当前尚未发布的初始 `0.1.0` 无需执行递增命令。
+将例子中的 `0.1.1` 换成实际版本。只接受稳定的 `X.Y.Z`，不得重用或降低版本。脚本同步根 `package.json`、桌面 `package.json`、Tauri 配置、Rust workspace 和 workspace 成员的 `Cargo.lock` 版本；编辑器 SDK 具有独立版本，不跟随桌面版机械递增。初始 `0.1.0` 仅在从未推送过对应标签时可以直接使用；构建失败后需要修正源码时，使用递增版本，不移动已经推送的标签。
 
 编写 `docs/releases/vX.Y.Z.md`。它会成为 GitHub Release 说明；内容应写实际改动、安装提示、已知限制和真实验证结果。应用内面板不会显示该版本摘要。
 
@@ -98,7 +104,7 @@ pnpm test:release
 node --test scripts/lib/general-preferences-source.test.mjs scripts/lib/prepare-preferences-runtime.test.mjs
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked
-cargo test --workspace --lib --bins --locked
+cargo test --workspace --lib --bins --locked -- --test-threads=1
 pnpm prepare:runtime
 pnpm exec playwright test -c playwright.desktop.config.ts tests/desktop-e2e/general-settings-layout.spec.ts tests/desktop-e2e/app-updates.spec.ts
 pnpm --filter @marklyra/desktop build
@@ -107,6 +113,10 @@ pnpm --filter @marklyra/desktop build
 浏览器测试服务器关闭了文件监视，修改代码后必须使用新启动的测试服务器，不能复用过期实例。不要关闭其他人的应用或开发实例；可使用独立端口的本地 Playwright 配置。浏览器测试使用原生 IPC 替身，不代表真实系统安装、代理和重启已验证。
 
 当前仓库已有部分 Rust PDF/导出代码的 `dead_code`、`needless_borrow` 警告；发布工作流运行 clippy 并保留诊断，暂未用 `-D warnings` 阻断既有警告。发布前应阅读输出，不把警告当作已修复。
+
+Rust 发布测试串行执行，因为文件句柄上限测试统计整个测试进程的句柄，其他并行夹具会干扰计数；串行执行不跳过测试。
+
+在 Windows 本地运行上述 Rust 测试前，先在 PowerShell 执行 `./scripts/prepare-windows-tests.ps1`。它预编译测试并为测试 EXE 添加通用控件 v6 清单，避免原生对话框依赖在测试程序启动时出现 `0xc0000139`。正式应用已有 Tauri 嵌入的清单，不需要这些测试旁置文件。
 
 ### 3. 提交代码并推送版本标签
 
@@ -191,6 +201,8 @@ Windows 在 Windows 主机使用 `x86_64-pc-windows-msvc`、`--bundles nsis` 和
 
 - **macOS**：将 DMG 中的应用拖到“应用程序”。首次打开如被阻止，到“系统设置 → 隐私与安全性”中对 MarkLyra 选择“仍要打开”，再确认打开；具体文字依系统版本而异。ad-hoc 不等于 Apple 认可或公证，不能承诺首次启动完全无提示。不提供全局关闭 Gatekeeper 的步骤。
 - **Windows**：运行对应 NSIS 安装包。若 SmartScreen 提示未知发布者，在核实官方下载来源后选择“更多信息 → 仍要运行”（如果系统提供）。有些设备没有此提示，组织策略或 Smart App Control 也可能禁止用户自行放行；不要将“总能点信任”写成兼容性保证。
+
+Windows 的目录能力句柄会阻止所持目录被移动或删除，这是文件系统沙箱的保护机制。对包含已打开文稿的目录进行重命名、移动或回收站操作前，应先保存并关闭相关文稿；若目录还作为其他窗口的工作区打开，也需先关闭该工作区。被系统拒绝的操作不会提交文稿位置变更。不要通过放宽句柄共享权限来绕过保护。
 
 ## 自动检查与本机代理
 

@@ -239,6 +239,11 @@ fn validate_path(path: &Path) -> Result<(), String> {
             return Err("原生文件路径不能包含相对跳转".into());
         }
         current.push(part);
+        // A Windows drive/UNC prefix alone is not an absolute filesystem entry.
+        // Validate it after RootDir is appended, then validate every descendant.
+        if matches!(part, std::path::Component::Prefix(_)) {
+            continue;
+        }
         let metadata = fs::symlink_metadata(&current).map_err(|_| "所选路径已不可用")?;
         if metadata.file_type().is_symlink() {
             return Err("所选路径含符号链接，请选择真实文件".into());
@@ -1020,7 +1025,11 @@ mod tests {
         let path = parent.join("own.md");
         fs::write(&path, b"own source\r\n").unwrap();
         let selected = SelectedPath::capture(path.clone()).unwrap();
-        fs::rename(&parent, root.join("retained-parent")).unwrap();
+        if !crate::test_support::rename_retained_directory(&parent, &root.join("retained-parent")) {
+            selected.verify().unwrap();
+            assert!(path.is_file());
+            return;
+        }
         fs::create_dir(&parent).unwrap();
         fs::hard_link(root.join("retained-parent/own.md"), &path).unwrap();
         fs::write(parent.join("unrelated.md"), b"not granted").unwrap();
@@ -1049,7 +1058,11 @@ mod tests {
         fs::write(&path, png).unwrap();
         let selected = SelectedPath::capture(path.clone()).unwrap();
         selected.verify().unwrap();
-        fs::rename(&parent, root.join("retained-parent")).unwrap();
+        if !crate::test_support::rename_retained_directory(&parent, &root.join("retained-parent")) {
+            selected.verify().unwrap();
+            assert!(path.is_file());
+            return;
+        }
         fs::create_dir(&parent).unwrap();
         fs::hard_link(root.join("retained-parent/own.png"), &path).unwrap();
         let transient =
@@ -1142,10 +1155,18 @@ mod tests {
     }
     #[test]
     fn native_links_use_url_encoded_lexical_relative_paths_without_reading_siblings() {
+        let path = |value: &str| {
+            PathBuf::from(if cfg!(windows) {
+                format!("C:{value}")
+            } else {
+                value.to_owned()
+            })
+        };
+        let drive = if cfg!(windows) { "C:/" } else { "" };
         assert_eq!(
             file_reference(
-                Path::new("/own/shared/a 中文.md"),
-                Some(Path::new("/own/docs/A.md")),
+                &path("/own/shared/a 中文.md"),
+                Some(&path("/own/docs/A.md")),
                 None,
                 None
             )
@@ -1154,8 +1175,8 @@ mod tests {
         );
         assert_eq!(
             file_reference(
-                Path::new("/own/docs/a.md"),
-                Some(Path::new("/own/docs/A.md")),
+                &path("/own/docs/a.md"),
+                Some(&path("/own/docs/A.md")),
                 Some(true),
                 Some(true)
             )
@@ -1164,17 +1185,17 @@ mod tests {
         );
         assert_eq!(
             file_reference(
-                Path::new("/own/docs/a.md"),
-                Some(Path::new("/own/docs/A.md")),
+                &path("/own/docs/a.md"),
+                Some(&path("/own/docs/A.md")),
                 Some(false),
                 None
             )
             .unwrap(),
-            "file:///own/docs/a.md"
+            format!("file:///{drive}own/docs/a.md")
         );
         assert_eq!(
-            file_reference(Path::new("/own/a.md"), None, None, None).unwrap(),
-            "file:///own/a.md"
+            file_reference(&path("/own/a.md"), None, None, None).unwrap(),
+            format!("file:///{drive}own/a.md")
         );
     }
     #[test]

@@ -1,7 +1,7 @@
 name: Build MarkLyra release draft
 on:
   push:
-    tags: ['v*', '!v*-*', '!v*+*']
+    tags: ['v*', '!v*-*', '!v*\+*']
 permissions:
   contents: read
 concurrency:
@@ -54,7 +54,12 @@ jobs:
         run: pnpm exec playwright test -c playwright.desktop.config.ts tests/desktop-e2e/general-settings-layout.spec.ts tests/desktop-e2e/app-updates.spec.ts
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets --locked
-      - run: cargo test --workspace --lib --bins --locked
+      - name: Prepare Windows test activation contexts
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        shell: pwsh
+        run: ./scripts/prepare-windows-tests.ps1
+      # Process-wide file descriptor assertions must not include concurrent fixtures.
+      - run: cargo test --workspace --lib --bins --locked -- --test-threads=1
       - name: Prepare updater configuration
         run: pnpm release:prepare
         env:

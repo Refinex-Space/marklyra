@@ -127,7 +127,7 @@ fn rename_undo_tracks_own_atomic_saves_and_all_sessions_without_a_redo() {
             .unwrap()
             .get_metadata(&document.id)
             .unwrap();
-        assert!(metadata.path.ends_with("/Old.md"));
+        assert!(Path::new(&metadata.path).ends_with("Old.md"));
         assert_eq!(metadata.metadata_revision, 2);
     }
     assert!(services
@@ -362,15 +362,17 @@ fn system_trash_keeps_drafts_and_save_as_then_restore_only_rebinds_remaining_ori
             .location_state,
         document_service::DocumentLocationState::Available
     );
-    assert!(services
-        .get_documents("main")
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get_metadata(&saved_as.id)
-        .unwrap()
-        .path
-        .ends_with("/separate.md"));
+    assert!(Path::new(
+        &services
+            .get_documents("main")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get_metadata(&saved_as.id)
+            .unwrap()
+            .path
+    )
+    .ends_with("separate.md"));
     assert_eq!(
         fs::read(temp.path().join("separate.md")).unwrap(),
         b"\xef\xbb\xbfown draft\r\n"

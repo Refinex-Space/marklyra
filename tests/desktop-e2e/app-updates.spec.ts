@@ -44,7 +44,9 @@ test('settings updater persists opt-in, reports failures, downloads only on requ
         state.downloaded = 50;
         state.total = 100;
         host.__desktopMock.emitEvent('app-update-changed', { ...state });
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        await new Promise<void>((resolve) => {
+          Reflect.set(window, '__completeUpdateDownload', resolve);
+        });
         state.phase = 'ready';
         state.downloaded = 100;
       }
@@ -84,6 +86,11 @@ test('settings updater persists opt-in, reports failures, downloads only on requ
     .toBe(0);
   await dialog.getByRole('button', { name: '下载更新' }).click();
   await expect(dialog).toContainText('50%');
+  await page.evaluate(() => {
+    const complete = Reflect.get(window, '__completeUpdateDownload') as () => void;
+    complete();
+    Reflect.deleteProperty(window, '__completeUpdateDownload');
+  });
   await expect(dialog).toContainText('签名校验通过');
   await page.screenshot({ path: info.outputPath('update-ready.png') });
   await dialog.getByRole('button', { name: '安装并重启' }).click();

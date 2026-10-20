@@ -910,7 +910,9 @@ mod tests {
             .unwrap()
             .to_file_path()
             .unwrap();
-        assert!(actual.starts_with(path.join("staged").join(&draft)));
+        assert!(actual.starts_with(crate::native_paths::comparison_path(
+            &path.join("staged").join(&draft)
+        )));
         assert_eq!(
             fs::read(actual).unwrap(),
             b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>"

@@ -4,6 +4,20 @@ use std::{fs, path::Path};
 
 const SVG: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg"/>"#;
 
+fn move_retained_directory(from: &Path, to: &Path) -> bool {
+    let result = fs::rename(from, to);
+    if cfg!(windows) {
+        let error = result.expect_err("Windows capability must pin the directory");
+        assert!(matches!(error.raw_os_error(), Some(5 | 32)), "{error}");
+        assert!(from.is_dir());
+        assert!(!to.exists());
+        false
+    } else {
+        result.unwrap();
+        true
+    }
+}
+
 #[test]
 fn ordinary_file_move_retains_an_existing_root_but_never_extends_it_outside() {
     let temporary = tempfile::tempdir().unwrap();
@@ -111,7 +125,16 @@ fn all_scope_relations_rebase_cache_paths_without_widening_capabilities() {
         let image = registry.resolve("doc", &scope, "image.svg").unwrap();
         let plan = scope.prepare_retarget(&cap(&old), &old, &new).unwrap();
         let cache = registry.prepare_retarget("doc", &plan);
-        fs::rename(&old, &new).unwrap();
+        if !move_retained_directory(&old, &new) {
+            assert_eq!(registry.get(&image.token).unwrap().bytes.as_ref(), SVG);
+            assert_eq!(
+                scope
+                    .read(registry.images[&image.token].path.as_ref().unwrap())
+                    .unwrap(),
+                SVG
+            );
+            continue;
+        }
         // A replacement at the old spelling cannot supply content or receive imports.
         fs::create_dir_all(old.join("sub")).unwrap();
         fs::write(old.join("sub/image.svg"), b"wrong authority").unwrap();
@@ -162,7 +185,16 @@ fn retarget_does_not_change_other_documents_cached_paths_or_bytes() {
         .prepare_retarget(&cap(&top.join("old")), &top.join("old"), &top.join("new"))
         .unwrap();
     let cache = registry.prepare_retarget("affected", &plan);
-    fs::rename(top.join("old"), top.join("new")).unwrap();
+    if !move_retained_directory(&top.join("old"), &top.join("new")) {
+        assert_eq!(registry.get(&affected.token).unwrap().bytes.as_ref(), SVG);
+        assert_eq!(
+            scope
+                .read(registry.images[&affected.token].path.as_ref().unwrap())
+                .unwrap(),
+            SVG
+        );
+        return;
+    }
     let scope = plan.commit();
     cache.commit(&mut registry);
     assert_eq!(
@@ -245,7 +277,16 @@ fn direct_scope_leave_and_return_uses_its_rebased_boundary() {
         .prepare_retarget(&cap(&top.join("old")), &top.join("old"), &top.join("new"))
         .unwrap();
     let cache = registry.prepare_retarget("doc", &plan);
-    fs::rename(top.join("old"), top.join("new")).unwrap();
+    if !move_retained_directory(&top.join("old"), &top.join("new")) {
+        assert_eq!(registry.get(&image.token).unwrap().bytes.as_ref(), SVG);
+        assert_eq!(
+            scope
+                .read(registry.images[&image.token].path.as_ref().unwrap())
+                .unwrap(),
+            SVG
+        );
+        return;
+    }
     let scope = plan.commit();
     cache.commit(&mut registry);
     assert_eq!(
@@ -329,7 +370,16 @@ fn cross_parent_directory_move_preserves_or_intersects_each_prior_scope() {
             .unwrap();
         let cache = registry.prepare_retarget("doc", &plan);
         let bytes = registry.bytes;
-        fs::rename(&source, &destination).unwrap();
+        if !move_retained_directory(&source, &destination) {
+            assert_eq!(registry.get(&inside.token).unwrap().bytes.as_ref(), SVG);
+            assert_eq!(
+                scope
+                    .read(registry.images[&inside.token].path.as_ref().unwrap())
+                    .unwrap(),
+                SVG
+            );
+            continue;
+        }
         fs::create_dir_all(source.join("sub")).unwrap();
         fs::write(
             source.join("sub/image.svg"),
@@ -392,7 +442,16 @@ fn intersected_cache_does_not_alias_identical_old_outside_bytes_to_a_new_inside_
         .prepare_directory_move(cap(&source), &source, &destination)
         .unwrap();
     let cache = registry.prepare_retarget("doc", &plan);
-    fs::rename(&source, &destination).unwrap();
+    if !move_retained_directory(&source, &destination) {
+        assert_eq!(registry.get(&inside.token).unwrap().bytes.as_ref(), SVG);
+        assert_eq!(
+            scope
+                .read(registry.images[&inside.token].path.as_ref().unwrap())
+                .unwrap(),
+            SVG
+        );
+        return;
+    }
     let scope = plan.commit();
     cache.commit(&mut registry);
     assert_eq!(

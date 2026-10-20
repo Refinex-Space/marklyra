@@ -18,6 +18,19 @@ fn cap(path: &Path) -> Arc<Dir> {
 fn file(path: &Path) -> Arc<File> {
     Arc::new(File::open_ambient(path, cap_std::ambient_authority()).unwrap())
 }
+fn rename_file_preserving_creation(old: &Path, new: &Path) {
+    #[cfg(windows)]
+    let retained = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(old)
+        .unwrap();
+    #[cfg(windows)]
+    let creation = document_service::WindowsCreationTime::capture(&retained).unwrap();
+    fs::rename(old, new).unwrap();
+    #[cfg(windows)]
+    creation.restore(&retained).unwrap();
+}
 impl Fixture {
     fn new() -> Self {
         let temp = tempfile::tempdir().unwrap();
@@ -175,6 +188,7 @@ fn directory_rename_handles_closed_descendants_and_ignores_old_tombstone_keys() 
         &moved,
         file_index::EntryKind::Directory,
     ));
+    // Closed bindings keep identity metadata, not live directory capabilities.
     fs::rename(&fixture.left, &moved).unwrap();
     assert!(plan.commit().is_empty());
     fixture.assert_cold(&moved.join("B.md"), &uri);
@@ -290,8 +304,8 @@ fn replacement_and_undo_validate_all_old_record_keys_before_the_first_publicatio
         let first_handle = file(first_old);
         let second_handle = file(second_old);
         let mut documents = service.prepare_moves(specs).unwrap();
-        fs::rename(first_old, first_new).unwrap();
-        fs::rename(second_old, second_new).unwrap();
+        rename_file_preserving_creation(first_old, first_new);
+        rename_file_preserving_creation(second_old, second_new);
         let replacement = if first_old.exists() {
             Some(file(first_old))
         } else {
@@ -334,7 +348,8 @@ fn replacement_and_undo_validate_all_old_record_keys_before_the_first_publicatio
             .unwrap()
             .finalize(&[&first, &second])
             .unwrap();
-        assert!(plan.commit_moves(&maps, &[&first, &second]).is_empty());
+        let failures = plan.commit_moves(&maps, &[&first, &second]);
+        assert!(failures.is_empty(), "{failures:?}");
         if first_new == &backup {
             fixture.assert_cold(&b, &uri_a);
             fixture.assert_cold(&backup, &uri_b);
@@ -480,7 +495,11 @@ fn retained_directory_move_carries_closed_descendants_without_copying_sibling_gr
     let held = Arc::new(File::from_std(
         cap(&old).try_clone().unwrap().into_std_file(),
     ));
-    fs::rename(&old, &new).unwrap();
+    if !crate::test_support::rename_retained_directory(&old, &new) {
+        drop(plan);
+        fixture.assert_cold(&old.join("A.md"), &uri);
+        return;
+    }
     let receipt = publication(
         &old,
         &new,
@@ -522,29 +541,38 @@ fn copied_directory_without_a_leaf_entity_receipt_and_wrong_source_receipts_are_
     fs::create_dir(&new).unwrap();
     fs::copy(old.join("A.md"), new.join("A.md")).unwrap();
     fs::remove_file(old.join("A.md")).unwrap();
-    fs::remove_dir(&old).unwrap();
-    let receipt = publication(
-        &old,
-        &new,
-        RenameKind::Directory,
-        vec![NativeMovePublicationEntry::from_owned_handles(
-            Path::new(""),
+    if cfg!(windows) {
+        let error =
+            fs::remove_dir(&old).expect_err("retained Windows directory must remain pinned");
+        assert!(matches!(error.raw_os_error(), Some(5 | 32)), "{error}");
+        assert!(old.is_dir());
+        drop(plan);
+        assert!(!fixture.root.exists(binding_name(&new.join("A.md"))));
+    } else {
+        fs::remove_dir(&old).unwrap();
+        let receipt = publication(
+            &old,
+            &new,
             RenameKind::Directory,
-            held,
-            Arc::new(File::from_std(
-                cap(&new).try_clone().unwrap().into_std_file(),
-            )),
-        )
-        .unwrap()],
-    );
-    let maps = input
-        .movement
-        .as_ref()
-        .unwrap()
-        .finalize(&[&receipt])
-        .unwrap();
-    assert!(!plan.commit_moves(&maps, &[&receipt]).is_empty());
-    assert!(!fixture.root.exists(binding_name(&new.join("A.md"))));
+            vec![NativeMovePublicationEntry::from_owned_handles(
+                Path::new(""),
+                RenameKind::Directory,
+                held,
+                Arc::new(File::from_std(
+                    cap(&new).try_clone().unwrap().into_std_file(),
+                )),
+            )
+            .unwrap()],
+        );
+        let maps = input
+            .movement
+            .as_ref()
+            .unwrap()
+            .finalize(&[&receipt])
+            .unwrap();
+        assert!(!plan.commit_moves(&maps, &[&receipt]).is_empty());
+        assert!(!fixture.root.exists(binding_name(&new.join("A.md"))));
+    }
 
     let other = Fixture::new();
     let mut service = DocumentService::new();

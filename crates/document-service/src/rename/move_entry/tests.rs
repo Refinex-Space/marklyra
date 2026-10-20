@@ -291,7 +291,15 @@ fn copied_directory_rebinds_all_descendant_handles_and_preserves_scope_intersect
             entry(suffix, *kind, source, held(&new.join(suffix), *kind))
         })
         .collect();
-    fs::rename(&old, left.join("retained")).unwrap();
+    if !crate::directory_test_support::move_retained_directory(&old, &left.join("retained")) {
+        drop(plan);
+        crate::directory_test_support::assert_available(
+            &service,
+            &opened.id,
+            &old.join("sub/A.md"),
+        );
+        return;
+    }
     let publication = proof(&old, &new, RenameKind::Directory, entries);
     plan.validate_commit(&publication).unwrap();
     plan.commit();
@@ -345,7 +353,11 @@ fn unproven_copied_descendant_and_late_destination_replacement_revoke_without_ch
         .unwrap();
     fs::create_dir(&new).unwrap();
     fs::write(new.join("A.md"), b"Alpha").unwrap();
-    fs::rename(&old, left.join("retained")).unwrap();
+    if !crate::directory_test_support::move_retained_directory(&old, &left.join("retained")) {
+        drop(plan);
+        crate::directory_test_support::assert_available(&service, &opened.id, &old.join("A.md"));
+        return;
+    }
     let publication = proof(
         &old,
         &new,

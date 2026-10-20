@@ -150,7 +150,16 @@ impl Workspace {
                 }
                 let mut target = match directory.open_with(&name, &options) {
                     Ok(file) => file,
-                    Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                    Err(error)
+                        if error.kind() == io::ErrorKind::AlreadyExists
+                            || cfg!(windows)
+                                && error.kind() == io::ErrorKind::PermissionDenied
+                                && directory.symlink_metadata(&name).is_ok() =>
+                    {
+                        // Windows reports ACCESS_DENIED when CREATE_NEW collides
+                        // with a directory. Only an observed entry permits retry.
+                        continue;
+                    }
                     Err(error) => return Err(error.into()),
                 };
                 // Once create_new succeeds, retain any partial or externally

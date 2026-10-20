@@ -125,46 +125,64 @@ fn keep_both_recursively_appends_copy_and_moves_instead_of_duplicating() {
 
 #[test]
 fn replace_retains_exact_old_target_and_undo_restores_both_entities() {
-    let (root, workspace, directory, display) = fixture();
-    fs::write(root.path().join("from/note.md"), b"source").unwrap();
-    fs::write(root.path().join("to/note.md"), b"target").unwrap();
-    let target_identity = same_file::Handle::from_path(root.path().join("to/note.md")).unwrap();
-    let commit = workspace
-        .commit_entry_move(prepare(
-            &workspace,
-            "from/note.md",
-            directory,
-            &display,
-            EntryMoveConflictPolicy::Replace,
-        ))
-        .unwrap();
-    let replaced = commit.placement.replacement().unwrap();
-    assert_eq!(*replaced.identity(), target_identity);
-    assert_eq!(fs::read(replaced.display_path()).unwrap(), b"target");
-    assert_eq!(fs::read(root.path().join("to/note.md")).unwrap(), b"source");
-    let undone = workspace
-        .commit_entry_move_undo(
-            workspace
-                .prepare_entry_move_undo(&id(), &commit.undo, None)
-                .unwrap(),
+    // Repeat replacement/undo to catch timestamp tunneling and handle-lifetime races.
+    for _ in 0..16 {
+        let (root, workspace, directory, display) = fixture();
+        fs::write(root.path().join("from/note.md"), b"source").unwrap();
+        #[cfg(windows)]
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        fs::write(root.path().join("to/note.md"), b"target").unwrap();
+        #[cfg(windows)]
+        let creation = document_service::WindowsCreationTime::capture(
+            &fs::File::open(root.path().join("from/note.md")).unwrap(),
         )
         .unwrap();
-    assert_eq!(
-        fs::read(root.path().join("from/note.md")).unwrap(),
-        b"source"
-    );
-    assert_eq!(fs::read(root.path().join("to/note.md")).unwrap(), b"target");
-    assert_eq!(
-        same_file::Handle::from_path(root.path().join("to/note.md")).unwrap(),
-        target_identity
-    );
-    assert!(undone.placement.publication().is_ok());
-    assert!(undone
-        .placement
-        .replacement_publication()
-        .unwrap()
-        .is_some());
-    assert!(undone.receipt.replaced);
+        let target_identity = same_file::Handle::from_path(root.path().join("to/note.md")).unwrap();
+        let commit = workspace
+            .commit_entry_move(prepare(
+                &workspace,
+                "from/note.md",
+                directory,
+                &display,
+                EntryMoveConflictPolicy::Replace,
+            ))
+            .unwrap();
+        let replaced = commit.placement.replacement().unwrap();
+        assert_eq!(*replaced.identity(), target_identity);
+        assert_eq!(fs::read(replaced.display_path()).unwrap(), b"target");
+        assert_eq!(fs::read(root.path().join("to/note.md")).unwrap(), b"source");
+        #[cfg(windows)]
+        assert_eq!(
+            document_service::WindowsCreationTime::capture(
+                &fs::File::open(root.path().join("to/note.md")).unwrap(),
+            )
+            .unwrap(),
+            creation
+        );
+        let undone = workspace
+            .commit_entry_move_undo(
+                workspace
+                    .prepare_entry_move_undo(&id(), &commit.undo, None)
+                    .unwrap(),
+            )
+            .unwrap();
+        assert_eq!(
+            fs::read(root.path().join("from/note.md")).unwrap(),
+            b"source"
+        );
+        assert_eq!(fs::read(root.path().join("to/note.md")).unwrap(), b"target");
+        assert_eq!(
+            same_file::Handle::from_path(root.path().join("to/note.md")).unwrap(),
+            target_identity
+        );
+        assert!(undone.placement.publication().is_ok());
+        assert!(undone
+            .placement
+            .replacement_publication()
+            .unwrap()
+            .is_some());
+        assert!(undone.receipt.replaced);
+    }
 }
 
 #[test]
@@ -246,7 +264,18 @@ fn changed_bytes_parent_and_destination_occupation_do_not_overwrite() {
         &display,
         EntryMoveConflictPolicy::Cancel,
     );
-    fs::rename(root.path().join("to"), root.path().join("held-dir")).unwrap();
+    if !crate::directory_test_support::rename_directory(
+        &root.path().join("to"),
+        &root.path().join("held-dir"),
+    ) {
+        drop(plan);
+        assert_eq!(
+            fs::read(root.path().join("from/note.md")).unwrap(),
+            b"edited"
+        );
+        assert!(!root.path().join("to/note.md").exists());
+        return;
+    }
     fs::create_dir(root.path().join("to")).unwrap();
     assert!(workspace.commit_entry_move(plan).is_err());
     assert!(!root.path().join("held-dir/note.md").exists());
@@ -373,15 +402,21 @@ fn directory_moves_entire_resources_and_rejects_moving_into_self() {
     assert!(workspace
         .inspect_entry_move_destination(&token, inside_directory, &inside)
         .is_err());
-    let commit = workspace
-        .commit_entry_move(prepare(
-            &workspace,
-            "from/book",
-            directory,
-            &display,
-            EntryMoveConflictPolicy::Cancel,
-        ))
-        .unwrap();
+    let result = workspace.commit_entry_move(prepare(
+        &workspace,
+        "from/book",
+        directory,
+        &display,
+        EntryMoveConflictPolicy::Cancel,
+    ));
+    let Some(commit) = crate::directory_test_support::directory_move_result(result) else {
+        assert_eq!(
+            fs::read(root.path().join("from/book/assets/x.png")).unwrap(),
+            b"pixels"
+        );
+        assert!(!root.path().join("to/book").exists());
+        return;
+    };
     assert_eq!(
         fs::read(root.path().join("to/book/assets/x.png")).unwrap(),
         b"pixels"

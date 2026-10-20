@@ -4,8 +4,9 @@ use std::fs;
 fn rename_fixture(root: &Path, old: &str, new: &str) -> RenameUndo {
     fs::create_dir(root.join(old)).unwrap();
     let parent = Arc::new(Dir::open_ambient_dir(root, cap_std::ambient_authority()).unwrap());
-    let entity = parent.open_dir(old).unwrap();
-    let identity = Arc::new(same_file::Handle::from_file(entity.into_std_file()).unwrap());
+    // The identity witness must share deletion on Windows; no directory
+    // capability inside the renamed entity is needed by this history fixture.
+    let identity = Arc::new(same_file::Handle::from_path(root.join(old)).unwrap());
     let plan = PreparedRenameUndo::prepare(
         &DocumentAuthorities::default(),
         parent,

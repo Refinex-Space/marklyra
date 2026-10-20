@@ -867,7 +867,7 @@ mod tests {
             ("invalid.md", vec![0xff, 0x80]),
             ("odd.md", vec![0xff, 0xfe, 1]),
             ("surrogate.md", vec![0xfe, 0xff, 0xd8, 0]),
-            ("nul.md", vec![b'a', 0]),
+            ("contains-nul.md", vec![b'a', 0]),
             ("utf32.md", vec![0xff, 0xfe, 0, 0, 65, 0, 0, 0]),
         ] {
             fs::write(root.path().join(name), bytes).unwrap();

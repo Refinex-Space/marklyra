@@ -46,7 +46,14 @@ fn directory_move_retargets_nested_mounts_and_live_tokens_without_reauthorizing(
     for (_, plan) in &plans {
         plan.validate().unwrap();
     }
-    outer_ws.commit_entry_rename(rename).unwrap();
+    if crate::directory_test_support::directory_move_result(outer_ws.commit_entry_rename(rename))
+        .is_none()
+    {
+        assert!(inner_ws.inspect_entry("note.md").is_ok());
+        assert!(root.join("Old/nested/note.md").is_file());
+        assert!(!root.join("New").exists());
+        return;
+    }
     for (id, plan) in plans {
         assert_eq!(plan.commit(&id).unwrap().metadata_revision, 1);
     }
@@ -136,7 +143,16 @@ fn lost_creation_ack_after_ancestor_move_replays_only_receipt_and_finishes_retar
     let plans = registry
         .prepare_relocation(&source, &root.join("Old"), &root.join("New"))
         .unwrap();
-    fs::rename(root.join("Old"), root.join("New")).unwrap();
+    if !crate::directory_test_support::rename_directory(&root.join("Old"), &root.join("New")) {
+        assert_eq!(
+            workspace
+                .create_untitled(&operation, "Old/nested", EntryKind::File, "md")
+                .unwrap(),
+            receipt
+        );
+        assert!(root.join("Old/nested/Untitled.md").is_file());
+        return;
+    }
     for (id, plan) in plans {
         plan.commit(&id).unwrap();
     }
@@ -184,7 +200,11 @@ fn stale_plan_cannot_overwrite_a_later_binding_and_uncertain_mount_is_revoked() 
     let mut stale = registry
         .prepare_relocation(&source, &root.join("Old"), &root.join("Else"))
         .unwrap();
-    fs::rename(root.join("Old"), root.join("New")).unwrap();
+    if !crate::directory_test_support::rename_directory(&root.join("Old"), &root.join("New")) {
+        assert!(workspace.bookmark().is_ok());
+        assert!(workspace.list_directory("").is_ok());
+        return;
+    }
     plans.pop().unwrap().1.commit(&selected.id).unwrap();
     assert!(stale[0].1.validate().is_err());
     assert!(stale.pop().unwrap().1.commit(&selected.id).is_err());

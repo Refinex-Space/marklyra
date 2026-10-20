@@ -424,8 +424,9 @@ impl ImageScope {
             }
         }
         if let Some(root) = &self.logical_root {
+            let reference_root = logical_reference_root(root);
             path = path
-                .strip_prefix(root)
+                .strip_prefix(if absolute { &reference_root } else { root })
                 .map_err(|_| ImageError::OutsideScope)?
                 .to_owned();
         }
@@ -640,6 +641,19 @@ fn validate_storage_path(folder: &str) -> Result<(), ImageError> {
         return Err(ImageError::InvalidReference);
     }
     Ok(())
+}
+/// Canonical Windows roots have a verbatim drive prefix; Markdown URLs do not.
+/// This is lexical comparison only: all IO still uses the original capability.
+fn logical_reference_root(root: &Path) -> PathBuf {
+    #[cfg(windows)]
+    if let Some(Component::Prefix(prefix)) = root.components().next() {
+        if let std::path::Prefix::VerbatimDisk(drive) = prefix.kind() {
+            let mut result = PathBuf::from(format!("{}:\\", char::from(drive)));
+            result.extend(root.components().skip(2).map(|part| part.as_os_str()));
+            return result;
+        }
+    }
+    root.to_owned()
 }
 fn local_url_path(reference: &str) -> Result<&str, ImageError> {
     let Some(url) = reference.strip_prefix("file://") else {

@@ -327,7 +327,13 @@ fn opaque_reopen_never_upgrades_legacy_paths_or_a_replaced_directory() {
         crate::startup::StartupTarget::from_workspace(history_bookmark(&state, &id).unwrap())
             .is_ok()
     );
-    std::fs::rename(&selected, root.path().join("old")).unwrap();
+    if !crate::test_support::rename_retained_directory(&selected, &root.path().join("old")) {
+        assert!(registry
+            .restore_bookmark(&history_bookmark(&state, &id).unwrap())
+            .is_ok());
+        assert!(history_bookmark(&state, "../../outside").is_err());
+        return;
+    }
     std::fs::create_dir(&selected).unwrap();
     assert!(registry
         .restore_bookmark(&history_bookmark(&state, &id).unwrap())

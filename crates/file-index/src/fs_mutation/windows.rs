@@ -129,6 +129,7 @@ pub(super) fn rename(directory: &Dir, source: &File, new: &Path) -> io::Result<(
 }
 
 pub(crate) fn set_rename(handle: &std::fs::File, target: &Path) -> io::Result<()> {
+    let creation = document_service::WindowsCreationTime::capture(handle)?;
     // FILE_RENAME_INFO's leading union is zero (ReplaceIfExists=false) and RootDirectory is null;
     // FileName is the complete destination path.
     // https://learn.microsoft.com/windows/win32/api/winbase/ns-winbase-file_rename_info
@@ -152,5 +153,44 @@ pub(crate) fn set_rename(handle: &std::fs::File, target: &Path) -> io::Result<()
             return Err(io::Error::last_os_error());
         }
     }
-    Ok(())
+    creation
+        .restore(handle)
+        .map_err(|error| io::Error::other(super::CommittedRenameError(error)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn creation_restore_failure_after_a_real_rename_is_marked_committed() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("source.md");
+        let target = temp.path().join("target.md");
+        let backup = temp.path().join("backup.md");
+        std::fs::write(&source, b"source").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        std::fs::write(&target, b"target").unwrap();
+        std::fs::rename(&target, &backup).unwrap();
+        // DELETE + READ_ATTRIBUTES + SYNCHRONIZE permits rename, but deliberately
+        // omits WRITE_ATTRIBUTES so timestamp repair cannot silently succeed.
+        let handle = open_by_path(&source, 0x0011_0080).unwrap();
+        let before = document_service::WindowsCreationTime::capture(&handle).unwrap();
+        let result = set_rename(&handle, &target);
+        assert!(!source.exists());
+        assert_eq!(std::fs::read(&target).unwrap(), b"source");
+        assert_eq!(std::fs::read(&backup).unwrap(), b"target");
+        let after = document_service::WindowsCreationTime::capture(&handle).unwrap();
+        match result {
+            Err(error) => {
+                assert!(super::super::rename_was_committed(&error));
+                assert_ne!(before, after);
+            }
+            // Filesystems without creation-time tunneling need no repair.
+            Ok(()) => assert_eq!(before, after),
+        }
+        assert!(!super::super::rename_was_committed(
+            &io::Error::from_raw_os_error(32)
+        ));
+    }
 }

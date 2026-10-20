@@ -451,6 +451,16 @@ impl Workspace {
                 &plan.old_name,
                 &plan.new_name,
             ) {
+                if crate::fs_mutation::rename_was_committed(&error) {
+                    state.pending.remove(&plan.token);
+                    reject_other_prepared(&mut state, &plan.token, Some(&plan.operation_id));
+                    set_resolution(
+                        &mut state,
+                        &plan.operation_id,
+                        EntryRenameResolution::MutationUncertain,
+                    );
+                    return Err(IndexError::MutationUncertain);
+                }
                 set_resolution(
                     &mut state,
                     &plan.operation_id,

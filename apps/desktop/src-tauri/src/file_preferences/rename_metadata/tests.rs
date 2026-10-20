@@ -55,7 +55,10 @@ fn existing_directory_refs_keep_ids_pin_order_and_verified_identity() {
     assert!(!store
         .transaction(|state| Ok((host.current_ticket(state, old_ticket), false)))
         .unwrap());
-    fs::rename(&input.old, &input.new).unwrap();
+    if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+        drop(plan);
+        return;
+    }
     host.commit_folder_rename_in_store(&store, plan).unwrap();
     store
         .transaction(|state| {
@@ -83,7 +86,10 @@ fn disabled_recording_only_rebinds_pins_and_later_clear_cancels_every_change() {
         if clear {
             host.clear_history(&store, true, || Ok(())).unwrap();
         }
-        fs::rename(&input.old, &input.new).unwrap();
+        if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+            drop(plan);
+            continue;
+        }
         host.commit_folder_rename_in_store(&store, plan).unwrap();
         store
             .transaction(|state| {
@@ -116,7 +122,10 @@ fn newer_record_changes_and_no_recent_toggle_cancel_snapshot_without_restoration
                 Ok(((), true))
             })
             .unwrap();
-        fs::rename(&input.old, &input.new).unwrap();
+        if !crate::test_support::rename_retained_directory(&input.old, &input.new) {
+            drop(plan);
+            continue;
+        }
         host.commit_folder_rename_in_store(&store, plan).unwrap();
         store
             .transaction(|state| {

@@ -4,6 +4,8 @@ mod articles;
 mod catalog;
 mod counts;
 mod creation;
+#[cfg(test)]
+mod directory_test_support;
 mod duplicate;
 mod entry_action;
 pub use entry_action::InspectedEntryAction;

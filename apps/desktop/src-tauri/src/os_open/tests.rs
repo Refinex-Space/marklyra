@@ -9,9 +9,17 @@ fn receipt(path: &Path) -> Receipt {
 }
 #[test]
 fn urls_decode_unicode_spaces_but_reject_authority_protocol_queries_and_controls() {
-    let value =
-        file_url_path(&Url::parse("file:///tmp/%E4%B8%AD%E6%96%87%20file.md").unwrap()).unwrap();
-    assert_eq!(value, Path::new("/tmp/中文 file.md"));
+    let drive = if cfg!(windows) { "C:/" } else { "" };
+    let value = file_url_path(
+        &Url::parse(&format!("file:///{drive}tmp/%E4%B8%AD%E6%96%87%20file.md")).unwrap(),
+    )
+    .unwrap();
+    let expected = if cfg!(windows) {
+        "C:/tmp/中文 file.md"
+    } else {
+        "/tmp/中文 file.md"
+    };
+    assert_eq!(value, Path::new(expected));
     for value in [
         "https://example.invalid/a.md",
         "mailto:user@example.invalid",
@@ -77,7 +85,11 @@ fn foreign_parent_even_same_leaf_hardlink_cannot_borrow_sibling_capability() {
     let path = parent.join("A.md");
     fs::write(&path, b"original").unwrap();
     let selected = receipt(&path);
-    fs::rename(&parent, root.path().join("retained")).unwrap();
+    if !crate::test_support::rename_retained_directory(&parent, &root.path().join("retained")) {
+        selected.verify().unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"original");
+        return;
+    }
     fs::create_dir(&parent).unwrap();
     fs::hard_link(root.path().join("retained/A.md"), &path).unwrap();
     fs::write(parent.join("foreign.svg"), b"foreign").unwrap();
