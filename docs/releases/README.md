@@ -116,6 +116,8 @@ pnpm --filter @marklyra/desktop build
 
 Rust 发布测试串行执行，因为文件句柄上限测试统计整个测试进程的句柄，其他并行夹具会干扰计数；串行执行不跳过测试。
 
+在 Windows 本地运行上述 Rust 测试前，先在 PowerShell 执行 `./scripts/prepare-windows-tests.ps1`。它预编译测试并为测试 EXE 添加通用控件 v6 清单，避免原生对话框依赖在测试程序启动时出现 `0xc0000139`。正式应用已有 Tauri 嵌入的清单，不需要这些测试旁置文件。
+
 ### 3. 提交代码并推送版本标签
 
 先审查 diff，确认无密钥、`private/`、`artifacts/`、构建产物，再按项目流程提交和合并。以下命令假定发布代码已经位于 `main`：

@@ -1,14 +1,13 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Manager, Runtime};
 use windows::{
-    core::{s, w, BOOL, HRESULT, PCWSTR},
+    core::{HRESULT, PCWSTR},
     Win32::{
-        Foundation::{FreeLibrary, HWND, LPARAM, WPARAM},
-        System::LibraryLoader::{GetProcAddress, LoadLibraryExW, LOAD_LIBRARY_SEARCH_SYSTEM32},
+        Foundation::{HWND, LPARAM, WPARAM},
         UI::{
             Controls::{
-                TASKDIALOGCONFIG, TASKDIALOGCONFIG_0, TASKDIALOG_BUTTON, TASKDIALOG_NOTIFICATIONS,
-                TDF_ALLOW_DIALOG_CANCELLATION, TDF_ENABLE_HYPERLINKS,
+                TaskDialogIndirect, TASKDIALOGCONFIG, TASKDIALOGCONFIG_0, TASKDIALOG_BUTTON,
+                TASKDIALOG_NOTIFICATIONS, TDF_ALLOW_DIALOG_CANCELLATION, TDF_ENABLE_HYPERLINKS,
                 TDF_POSITION_RELATIVE_TO_WINDOW, TDF_SIZE_TO_CONTENT, TDF_USE_HICON_MAIN,
                 TDN_HYPERLINK_CLICKED,
             },
@@ -75,45 +74,9 @@ pub(super) fn show<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
             pfCallback: Some(callback),
             ..Default::default()
         };
-        let result = task_dialog(&config);
+        let result = TaskDialogIndirect(&config, None, None, None);
         let _ = DestroyIcon(icon);
         result.map_err(|error| error.to_string())
-    }
-}
-
-/// TaskDialogIndirect exists only in Common Controls v6. The packaged app has
-/// Tauri's v6 manifest, but Rust test executables do not. Avoid a static import
-/// that would prevent the entire executable from loading before any tests run.
-unsafe fn task_dialog(config: &TASKDIALOGCONFIG) -> windows::core::Result<()> {
-    type Show = unsafe extern "system" fn(
-        *const TASKDIALOGCONFIG,
-        *mut i32,
-        *mut i32,
-        *mut BOOL,
-    ) -> HRESULT;
-    // SAFETY: Use the OS library search path (and the active SxS manifest), never
-    // a DLL from the document/current directory. Keep it loaded through the call.
-    unsafe {
-        let library = LoadLibraryExW(w!("comctl32.dll"), None, LOAD_LIBRARY_SEARCH_SYSTEM32)?;
-        let result = match GetProcAddress(library, s!("TaskDialogIndirect")) {
-            Some(address) => {
-                // The symbol is Microsoft's documented TASKDIALOGCONFIG ABI.
-                let show: Show = std::mem::transmute(address);
-                show(
-                    config,
-                    std::ptr::null_mut(),
-                    std::ptr::null_mut(),
-                    std::ptr::null_mut(),
-                )
-                .ok()
-            }
-            None => Err(windows::core::Error::new(
-                HRESULT(0x8007007fu32 as i32),
-                "Windows Common Controls v6 is required for the About dialog",
-            )),
-        };
-        let _ = FreeLibrary(library);
-        result
     }
 }
 

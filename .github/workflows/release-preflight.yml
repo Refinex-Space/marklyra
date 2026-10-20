@@ -24,6 +24,7 @@ jobs:
           restore-keys: release-preflight-windows-${{ hashFiles('Cargo.lock') }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm prepare:runtime
+      - run: ./scripts/prepare-windows-tests.ps1
       - run: cargo test --workspace --lib --bins --locked --no-fail-fast -- --test-threads=1
       - uses: actions/cache/save@v4
         if: ${{ !cancelled() }}
