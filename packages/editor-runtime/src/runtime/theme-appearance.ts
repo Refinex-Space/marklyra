@@ -32,15 +32,43 @@ function selectors(value: string): string[] {
   return result;
 }
 
+/** What a rule contributes for one sample, remembered per rule object. A theme change keeps
+ * the base stylesheets (thousands of rules) and only swaps the theme's own, so most rules keep
+ * their answer and only the new ones are matched again. The answer depends on the sample's
+ * position in the page, so it is dropped whenever the page's root or body classes change. */
+let ruleAnswers = new WeakMap<CSSStyleRule, Map<string, string[]>>();
+let answerContext = '';
+function answerCache(): WeakMap<CSSStyleRule, Map<string, string[]>> {
+  const context = `${document.documentElement.className}|${document.body?.className ?? ''}`;
+  if (context !== answerContext) {
+    answerContext = context;
+    ruleAnswers = new WeakMap();
+  }
+  return ruleAnswers;
+}
+
 /** Hover has no standard DOM forcing API. Mirror only the two display properties
  * onto an owned sample, preserving selector specificity and stylesheet order.
  * Layer/scope rules are deliberately not flattened into an inaccurate cascade. */
 function hoverRules(element: HTMLElement): string {
   const rules: string[] = [];
-  const scope = `:where([${marker}="${element.getAttribute(marker)}"])`;
+  const name = element.getAttribute(marker) ?? '';
+  const scope = `:where([${marker}="${name}"])`;
+  const answers = answerCache();
   const visit = (list: CSSRuleList) => {
     for (const rule of Array.from(list)) {
       if (rule instanceof CSSStyleRule) {
+        const remembered = answers.get(rule)?.get(name);
+        if (remembered) {
+          for (const text of remembered) rules.push(text);
+          continue;
+        }
+        const contributed: string[] = [];
+        const remember = () => {
+          const byName = answers.get(rule) ?? new Map<string, string[]>();
+          byName.set(name, contributed);
+          answers.set(rule, byName);
+        };
         // A var() shorthand has no expanded background-color in CSSOM until
         // computed. A separately serialized longhand takes precedence over it.
         const declarations = ['background', 'background-color', 'color']
@@ -52,16 +80,22 @@ function hoverRules(element: HTMLElement): string {
           })
           .filter(Boolean)
           .join(';');
-        if (!declarations) continue;
+        if (!declarations) {
+          remember();
+          continue;
+        }
         for (const selector of selectors(rule.selectorText)) {
           // :is(:root, *) is always true with the same specificity as :hover.
           const simulated = selector.replaceAll(':hover', ':is(:root, *)');
           try {
-            if (element.matches(simulated)) rules.push(`${simulated}${scope}{${declarations}}`);
+            if (element.matches(simulated))
+              contributed.push(`${simulated}${scope}{${declarations}}`);
           } catch {
             // Unknown/unsupported selector syntax cannot grant access or alter the live view.
           }
         }
+        remember();
+        for (const text of contributed) rules.push(text);
       } else if (rule instanceof CSSMediaRule) {
         if (matchMedia(rule.conditionText).matches) visit(rule.cssRules);
       } else if (rule instanceof CSSSupportsRule) {

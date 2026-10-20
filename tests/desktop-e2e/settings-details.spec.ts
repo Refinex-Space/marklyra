@@ -135,7 +135,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     expect(await ui.locator('.pane').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await page.screenshot({ path: info.outputPath('appearance-narrow.png') });
     // The two settings cards add a 4px top inset, an 8px bottom inset and their borders.
-    await page.setViewportSize({ width: 1280, height: 920 });
+    await page.setViewportSize({ width: 1280, height: 1040 });
     for (const category of ['文件', '编辑器', '图像', 'Markdown', '导出', '外观', '通用']) {
       await ui.getByRole('button', { name: category, exact: true }).click();
       const pane = ui.locator('.pane');

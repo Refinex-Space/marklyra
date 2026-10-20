@@ -5,6 +5,7 @@ import type {
   ThemeStyles,
 } from '@marklyra/editor-runtime';
 import { type MutableRefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { themeFiles } from '../../services/themes.js';
 import { HostThemeFonts } from './font-faces.js';
 import {
@@ -22,6 +23,7 @@ import {
   type ThemeChoiceWrite,
   themeChoiceKey,
 } from './model.js';
+import { presentThemeChange } from './theme-transition.js';
 
 let requestId = Date.now() * 1000;
 export interface ThemeMode {
@@ -65,6 +67,9 @@ export function useThemes(
     fallback?: boolean;
   }>(() => ({ theme: storedTheme(), version: 0 }));
   const theme = requested.theme;
+  // The theme the window is showing. It follows `theme` only once the new look is ready, in the
+  // same step as the appearance, so no part of the window changes before the rest.
+  const [presented, setPresented] = useState(theme);
   const version = useRef(0);
   const waiter = useRef<SelectionWaiter | null>(null);
   const [catalog, setCatalog] = useState(defaultThemeCatalog);
@@ -192,13 +197,25 @@ export function useThemes(
       }
       const prepared = await themeFiles.prepare(theme, id);
       if (!current()) return;
-      const skin = await instance.setThemeStyles(prepared.styles, prepared.theme, operation.signal);
-      if (!current()) return;
-      const loadedFonts = await instance.getThemeFonts();
-      if (!current()) return;
-      await fonts.current?.apply(loadedFonts);
-      if (!fonts.current) throw new Error('主题字体宿主已关闭。');
-      if (!current()) return;
+      let skin: ThemeAppearance = {};
+      let loadedFonts: ThemeFont[] = [];
+      // The document's stylesheets, the fonts and the shell's appearance change as one visual
+      // step: the old picture stays up while they are prepared, then the new one fades in.
+      const shown = await presentThemeChange(async () => {
+        skin = await instance.setThemeStyles(prepared.styles, prepared.theme, operation.signal);
+        if (!current()) return false;
+        loadedFonts = await instance.getThemeFonts();
+        if (!current()) return false;
+        await fonts.current?.apply(loadedFonts);
+        if (!fonts.current) throw new Error('主题字体宿主已关闭。');
+        if (!current()) return false;
+        flushSync(() => {
+          setAppearance(skin);
+          setPresented(theme);
+        });
+        return true;
+      });
+      if (!shown) return;
       if (selection && !selection.passive) {
         if (selection.target === 'dark' && modeRef.current)
           rollbackDark = await modeRef.current.persistDark(selection.choiceTheme ?? theme);
@@ -247,7 +264,10 @@ export function useThemes(
           const skin = await instance.setThemeStyles(previous.styles, previous.theme);
           if (!alive) return;
           await fonts.current?.apply(previous.fonts);
-          if (alive) setAppearance(skin);
+          if (alive) {
+            setAppearance(skin);
+            setPresented(active.current);
+          }
         } catch (restoreError) {
           if (alive) reportRef.current(`主题恢复失败：${String(restoreError)}`);
         }
@@ -310,11 +330,13 @@ export function useThemes(
 
   return {
     theme,
+    /** The theme currently on screen; changes together with `appearance`. */
+    presented,
     builtin: builtinTheme(theme),
     catalog,
     appearance,
     working,
-    dark: darkBackground(appearance['--marklyra-body-bg'], theme === 'marklyra-dark'),
+    dark: darkBackground(appearance['--marklyra-body-bg'], presented === 'marklyra-dark'),
     select,
     selectAndWait,
     reload,

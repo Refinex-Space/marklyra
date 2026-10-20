@@ -68,6 +68,12 @@ select:focus-visible,
 button[aria-pressed="true"] {
   background: var(--selected);
 }
+/* A theme change cross-fades the whole window from the old look to the new one. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-in-out;
+}
 .shell {
   height: 100dvh;
   display: flex;

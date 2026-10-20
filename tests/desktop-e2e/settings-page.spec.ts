@@ -437,7 +437,8 @@ test('settings sidebar resizes live and keeps help beside labels and controls al
   await emitLayoutMenu(page, 'preferences');
   const frame = settings(page);
   await expect(frame.getByRole('button', { name: '返回应用', exact: true })).toBeVisible();
-  await expect(frame.locator('.settings-file-content .settings-card-start')).toHaveCount(3);
+  // 启动与新建, 文档与记录, 目录树 and 拖放行为.
+  await expect(frame.locator('.settings-file-content .settings-card-start')).toHaveCount(4);
   const checkLayout = async () => {
     const metrics = await frame
       .locator('.settings-inline-setting')

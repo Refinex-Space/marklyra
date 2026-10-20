@@ -1616,7 +1616,7 @@ export function App() {
       data-titlebar={chrome.native ? chrome.titlebar : undefined}
       data-fullscreen={fullscreen}
       data-settings-page={(preferencesOpen && preferencesEmbedded) || undefined}
-      data-theme-name={theme}
+      data-theme-name={themeSystem.presented}
       data-theme-loading={themeSystem.working || undefined}
       style={themeSystem.appearance as CSSProperties}
     >
