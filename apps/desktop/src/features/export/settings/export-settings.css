@@ -595,8 +595,9 @@
   padding-left: 17px;
 }
 .es-row-control.es-tool-actions {
-  flex: 0 1 auto;
-  flex-wrap: wrap;
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: 1fr;
   gap: 6px;
 }
 .es-tool-path {

@@ -9,6 +9,7 @@ export function AgentDialog({
   footer,
   viewer = false,
   className = '',
+  focusContainer = false,
 }: {
   title: string;
   busy?: boolean;
@@ -17,6 +18,8 @@ export function AgentDialog({
   footer?: ReactNode;
   viewer?: boolean;
   className?: string;
+  /** Start at the dialog instead of automatically highlighting its first button. */
+  focusContainer?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [nativeModal] = useState(
@@ -75,6 +78,7 @@ export function AgentDialog({
       if (
         !first ||
         !last ||
+        document.activeElement === dialog ||
         !dialog.contains(document.activeElement) ||
         (event.shiftKey ? document.activeElement === first : document.activeElement === last)
       ) {
@@ -86,7 +90,7 @@ export function AgentDialog({
     document.addEventListener('keydown', keydown, true);
     if (nativeModal) dialog.showModal();
     else dialog.setAttribute('open', '');
-    if (viewer) dialog.focus({ preventScroll: true });
+    if (viewer || focusContainer) dialog.focus({ preventScroll: true });
     else
       dialog
         .querySelector<HTMLElement>(
@@ -107,7 +111,7 @@ export function AgentDialog({
       if (opener instanceof HTMLElement && opener.isConnected)
         opener.focus({ preventScroll: true });
     };
-  }, [nativeModal, viewer]);
+  }, [nativeModal, viewer, focusContainer]);
   useLayoutEffect(() => {
     if (busy && [...document.querySelectorAll('dialog[open]')].at(-1) === ref.current)
       ref.current?.focus({ preventScroll: true });

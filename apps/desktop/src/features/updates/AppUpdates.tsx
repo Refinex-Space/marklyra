@@ -96,7 +96,7 @@ export function AppUpdates() {
         </aside>
       )}
       {opened && (
-        <AgentDialog title="软件更新" close={close} className="app-update-dialog">
+        <AgentDialog title="软件更新" close={close} className="app-update-dialog" focusContainer>
           <p>当前版本 {snapshot?.currentVersion || '—'}</p>
           {snapshot?.version && <p>新版本 {snapshot.version}</p>}
           <p role="status" aria-live="polite">

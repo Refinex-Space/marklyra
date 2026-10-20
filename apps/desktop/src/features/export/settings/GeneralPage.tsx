@@ -8,7 +8,7 @@ function Pandoc({ model }: { model: ExportSettingsModel }) {
   const manual = !!view?.pandocPath;
   const buttons = (
     <>
-      <Button onClick={() => void model.choosePandoc()}>选择程序…</Button>
+      <Button onClick={() => void model.choosePandoc()}>选择程序</Button>
       <Button onClick={() => void model.refreshCapabilities()}>重新检测</Button>
       {manual && <Button onClick={() => model.update('pandocPath', () => '')}>恢复自动检测</Button>}
     </>

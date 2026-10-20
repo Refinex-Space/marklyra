@@ -2,7 +2,8 @@
   width: min(440px, calc(100vw - 48px));
   padding: 0;
   border: 1px solid var(--border, #d8dbe1);
-  border-radius: 12px;
+  border-radius: 6px;
+  outline: none;
   color: var(--text, #24292f);
   background: var(--surface, #fff);
   box-shadow: 0 16px 64px #0003;
@@ -22,6 +23,18 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
+}
+.app-update-dialog .app-update-actions button {
+  min-width: 76px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--surface) 94%, var(--text) 6%);
+}
+.app-update-dialog .app-update-actions button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface) 88%, var(--text) 12%);
+}
+.app-update-dialog .app-update-actions button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--surface) 82%, var(--text) 18%);
 }
 .app-update-notice {
   position: fixed;

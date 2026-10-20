@@ -135,7 +135,7 @@ test.describe('通用', () => {
     await expect(page.getByText('自动检测到已安装的程序。')).toBeVisible();
     await expect(page.getByRole('button', { name: '恢复自动检测' })).toHaveCount(0);
     // A manually chosen program is stored through the dialog and can be given up again.
-    await page.getByRole('button', { name: '选择程序…' }).click();
+    await page.getByRole('button', { name: '选择程序', exact: true }).click();
     await expect(page.getByRole('button', { name: '恢复自动检测' })).toBeVisible();
     expect((await stored(page)).pandocPath).toBe('/mock/pandoc');
     await page.getByRole('button', { name: '恢复自动检测' }).click();
@@ -143,10 +143,11 @@ test.describe('通用', () => {
     expect(await calls(page, 'get_format_capabilities')).toBeGreaterThan(1);
   });
 
-  test('a missing Pandoc explains the install path', async ({ page }) => {
+  test('a missing Pandoc explains the install path', async ({ page }, info) => {
     await open(page);
     await expect(page.getByText('未找到 Pandoc')).toBeVisible();
     await expect(page.getByRole('link', { name: '安装 Pandoc' })).toBeVisible();
+    await page.screenshot({ path: info.outputPath('pandoc-actions.png') });
     const before = await calls(page, 'get_format_capabilities');
     await page.getByRole('button', { name: '重新检测' }).click();
     await expect.poll(() => calls(page, 'get_format_capabilities')).toBe(before + 1);

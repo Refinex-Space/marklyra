@@ -63,6 +63,13 @@ test('settings updater persists opt-in, reports failures, downloads only on requ
   await ui.locator('[data-marklyra-update-check]').click();
   const dialog = page.getByRole('dialog', { name: '软件更新' });
   await expect(dialog.getByRole('alert')).toContainText('无法连接更新服务');
+  await expect(dialog).toBeFocused();
+  await expect(dialog.getByRole('button', { name: '关闭弹窗' })).not.toBeFocused();
+  await page.screenshot({ path: info.outputPath('update-initial.png') });
+  await dialog.getByRole('button', { name: '检查更新', exact: true }).hover();
+  await page.screenshot({ path: info.outputPath('update-hover.png') });
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('button', { name: '关闭弹窗' })).toBeFocused();
   await dialog.getByRole('button', { name: '检查更新', exact: true }).click();
   await expect(dialog).toContainText('新版本 0.2.0');
   await expect
@@ -136,8 +143,13 @@ for (const fallback of [false, true]) {
     await notice.getByRole('button', { name: '查看更新' }).click();
     const dialog = page.getByRole('dialog', { name: '软件更新' });
     await expect(dialog).toBeVisible();
+    await expect(dialog).toBeFocused();
     await expect(dialog).toHaveCSS('background-color', 'rgb(13, 17, 23)');
     await page.screenshot({ path: info.outputPath('update-dark.png') });
+    await page.keyboard.press('Shift+Tab');
+    await expect(dialog.getByRole('button', { name: '下载更新' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(dialog.getByRole('button', { name: '关闭弹窗' })).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(dialog).not.toBeVisible();
     await expect(notice).not.toBeVisible();
