@@ -5,7 +5,7 @@ import {
   type WorkspaceSearchReport,
   workspaces,
 } from '../../services/workspaces.js';
-
+import { useNotice } from '../notices/notices.js';
 import {
   entryIsPresent,
   NO_PRESENCE,
@@ -168,6 +168,8 @@ export function WorkspaceSearch({
         entryIsPresent(match.relativePath, reportEpoch.current, presence, renames),
       ) ?? [];
   const skipped = report ? skippedSummary(report) : '';
+  useNotice(error, 'error');
+  useNotice(skipped);
   // A new result set starts again from its first rows.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the report identity is the generation.
   useEffect(() => setShown(PAGE_SIZE), [report]);
@@ -319,15 +321,9 @@ export function WorkspaceSearch({
           ''
         )}
       </div>
-      {error && (
-        <p className="workspace-error" role="alert">
-          {error}
-        </p>
-      )}
       {report && !loading && (
         <>
           {matches.length === 0 && <p className="workspace-hint">没有找到匹配。</p>}
-          {skipped && <p className="workspace-limit">{skipped}</p>}
           <ol className="workspace-results" aria-label="全文搜索结果">
             {matches.slice(0, visible).map((sourceMatch) => {
               const match = {

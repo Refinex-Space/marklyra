@@ -21,6 +21,7 @@ import { focusInitialEditor } from '../components/focusInitialEditor.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { ShellGlyph } from '../components/ShellGlyph.js';
 import { SidebarResize } from '../components/SidebarResize.js';
+import { Titlebar } from '../components/Titlebar.js';
 import { useModalFocus } from '../components/useModalFocus.js';
 import { AiPanel } from '../features/ai/AiPanel.js';
 import { DocumentDetailsPanel } from '../features/document-details/DocumentDetailsPanel.js';
@@ -45,6 +46,7 @@ import {
 import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
 import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
 import { hostTextInputFocused, useNativeMenus } from '../features/menus/useNativeMenus.js';
+import { NoticeHost } from '../features/notices/NoticeHost.js';
 import { useOsOpenEvents } from '../features/os-integration/useOsOpenEvents.js';
 import { OutlinePanel } from '../features/outline/OutlinePanel.js';
 import { RecentFilesPanel } from '../features/recent-files/RecentFilesPanel.js';
@@ -82,7 +84,6 @@ import { discoverRecovery } from '../services/recovery.js';
 import { type EditorRuntime, editorRuntime } from '../services/runtime.js';
 import { completePreferenceTheme } from '../services/theme-preferences.js';
 import { type EditorChrome, editorChrome } from '../services/ui-chrome.js';
-import { Titlebar } from '../components/Titlebar.js';
 import { windowStartup } from '../services/window-startup.js';
 import { editorWindowIdentity, editorWindows } from '../services/windows.js';
 import { type WorkspaceFolder, workspaces } from '../services/workspaces.js';
@@ -2383,6 +2384,7 @@ export function App() {
           {nativeNotice}
         </div>
       )}
+      <NoticeHost />
       {markdownSystem.initial && markdownSystem.error && (
         <div role="alert" id="markdown-preferences-sync-status" className="native-document-notice">
           {markdownSystem.error}{' '}

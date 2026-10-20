@@ -398,7 +398,7 @@ test('rejected history target leaves old mount, authority and exact document int
   await open(page);
   await page.evaluate(() => ((window as Host).directoryProbe.failure = '目录身份已经改变'));
   await menu(page).getByRole('menuitem', { name: 'Pinned1', exact: true }).click();
-  await expect(page.locator('.workspace-error[role="alert"]')).toContainText('目录身份已经改变');
+  await expect(page.locator('.notice-error[role="alert"]')).toContainText('目录身份已经改变');
   await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Current');
   expect(await calls(page, 'close_workspace')).toEqual([]);
   await save(page);

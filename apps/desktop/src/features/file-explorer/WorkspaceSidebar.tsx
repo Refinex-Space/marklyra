@@ -20,6 +20,7 @@ import {
   type WorkspaceMatchPosition,
   workspaces,
 } from '../../services/workspaces.js';
+import { useNotice } from '../notices/notices.js';
 import { DirectoryTree } from './DirectoryTree.js';
 import {
   defaultFileSidebarPreferences,
@@ -751,6 +752,16 @@ export function WorkspaceSidebar({
     onOpenDocument(current.current.id, relative, match);
   };
 
+  // Plain messages are transient: they appear in the window corner instead of pushing the tree
+  // around. Only states that ask for a decision (check, retry) stay in the sidebar.
+  useNotice(error, 'error');
+  useNotice(catalogStatus);
+  useNotice(fileActions.message, 'error');
+  useNotice(move.message, 'error');
+  useNotice(entryActions.message, 'error');
+  useNotice(rename.message, 'error');
+  useNotice(creation.message, 'error');
+
   return (
     <section
       className={`workspace-sidebar${compact ? ' workspace-sidebar-compact' : ''}`}
@@ -884,21 +895,6 @@ export function WorkspaceSidebar({
           )}
         </nav>
       )}
-      {error && (
-        <p className="workspace-error" role="alert">
-          {error}
-        </p>
-      )}
-      {catalogStatus && (
-        <p className="workspace-limit workspace-limit-compact" role="status" title={catalogStatus}>
-          {catalogStatus}
-        </p>
-      )}
-      {fileActions.message && (
-        <p className="workspace-error" role="alert">
-          {fileActions.message}
-        </p>
-      )}
       {fileActions.state && (
         <div
           className={fileActions.state.phase === 'resolving' ? 'workspace-error' : 'workspace-hint'}
@@ -912,11 +908,6 @@ export function WorkspaceSidebar({
           )}
         </div>
       )}
-      {move.message && (
-        <p className="workspace-error" role="alert">
-          {move.message}
-        </p>
-      )}
       {move.state && (
         <p className={move.state.checking ? 'workspace-error' : 'workspace-hint'} role="status">
           {move.state.checking ? (
@@ -928,11 +919,6 @@ export function WorkspaceSidebar({
           )}
         </p>
       )}
-      {entryActions.message && (
-        <p className="workspace-error" role="alert">
-          {entryActions.message}
-        </p>
-      )}
       {entryActions.state?.checking && (
         <div className="workspace-error" role="alert">
           {entryActions.state.error}
@@ -941,17 +927,7 @@ export function WorkspaceSidebar({
           </button>
         </div>
       )}
-      {rename.message && (
-        <p className="workspace-error" role="alert">
-          {rename.message}
-        </p>
-      )}
       {rename.state?.phase === 'inspecting' && <SidebarSkeleton variant="tree" rows={1} />}
-      {creation.message && (
-        <p className="workspace-error" role="alert">
-          {creation.message}
-        </p>
-      )}
       {creation.state?.phase === 'creating' && <SidebarSkeleton variant="tree" rows={1} />}
       {creation.state?.phase === 'failed' && (
         <div className="workspace-error" role="alert">

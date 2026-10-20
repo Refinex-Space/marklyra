@@ -14,6 +14,7 @@ import {
   type WorkspaceFolder,
   workspaces,
 } from '../../services/workspaces.js';
+import { useNotice } from '../notices/notices.js';
 import { sortedDirectory, workspacePathIsActive, workspacePathIsInside } from './article-model.js';
 import { CreatedNameInput } from './CreatedNameInput.js';
 import { type CreationEditor, parentPath } from './creation-types.js';
@@ -354,6 +355,12 @@ function DirectoryBranch({ relativePath, ...props }: TreeState & { relativePath:
       ),
     [entries, props.sort, props.noGroup, props.platform],
   );
+  useNotice(
+    listing && listing.skipped > 0
+      ? `已跳过 ${listing.skipped} 个符号链接、不可读或不支持的名称。`
+      : '',
+  );
+  useNotice(listing?.truncated ? '目录条目过多，当前列表未包含全部内容。请选择更小的目录。' : '');
   // biome-ignore lint/correctness/useExhaustiveDependencies: Refresh and retry deliberately re-read the same directory path.
   useEffect(() => {
     let stale = false;
@@ -411,28 +418,16 @@ function DirectoryBranch({ relativePath, ...props }: TreeState & { relativePath:
         </div>
       )}
       {(listing || entries.length > 0) && (
-        <>
-          <ul className="workspace-tree-list">
-            {ordered.map((entry, index) => (
-              <DirectoryItem
-                key={props.entryKey?.(entry.relativePath) ?? entry.relativePath}
-                entry={entry}
-                initial={relativePath === '' && index === 0}
-                {...props}
-              />
-            ))}
-          </ul>
-          {listing && listing.skipped > 0 && (
-            <p className="workspace-hint">
-              已跳过 {listing.skipped} 个符号链接、不可读或不支持的名称。
-            </p>
-          )}
-          {listing?.truncated && (
-            <p className="workspace-limit" role="status">
-              目录条目过多，当前列表未包含全部内容。请选择更小的目录。
-            </p>
-          )}
-        </>
+        <ul className="workspace-tree-list">
+          {ordered.map((entry, index) => (
+            <DirectoryItem
+              key={props.entryKey?.(entry.relativePath) ?? entry.relativePath}
+              entry={entry}
+              initial={relativePath === '' && index === 0}
+              {...props}
+            />
+          ))}
+        </ul>
       )}
     </div>
   );

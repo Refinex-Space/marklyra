@@ -16,6 +16,7 @@ import {
   type WorkspaceFolder,
   workspaces,
 } from '../../services/workspaces.js';
+import { useNotice } from '../notices/notices.js';
 import {
   articleSummary,
   groupedArticles,
@@ -565,6 +566,7 @@ export function WorkspaceArticles({
       report.skipped.unreadable +
       report.skipped.unsupportedEncoding
     : 0;
+  useNotice(skipped > 0 ? `已跳过 ${skipped} 个符号链接、不可读或不支持的条目。` : '');
   return (
     <nav
       ref={navigation}
@@ -625,9 +627,6 @@ export function WorkspaceArticles({
           <li ref={sentinel} className="workspace-article-sentinel" aria-hidden="true" />
         )}
       </ul>
-      {report && skipped > 0 && (
-        <p className="workspace-hint">已跳过 {skipped} 个符号链接、不可读或不支持的条目。</p>
-      )}
       {report?.truncated && (
         <div className="workspace-limit" role="status">
           <p>
