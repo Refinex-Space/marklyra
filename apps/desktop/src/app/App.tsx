@@ -37,6 +37,8 @@ import {
 } from '../features/documents/search-position.js';
 import { useAutoSave } from '../features/documents/useAutoSave.js';
 import { useDocumentSession } from '../features/documents/useDocumentSession.js';
+import { DocumentNamePopover } from '../features/documents/DocumentNamePopover.js';
+import { useDocumentRename } from '../features/documents/useDocumentRename.js';
 import { useExternalChanges } from '../features/documents/useExternalChanges.js';
 import { isExportAction, useDocumentExport } from '../features/export/useDocumentExport.js';
 import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
@@ -545,7 +547,68 @@ export function App() {
     setOutlinePanelOpen(false);
     if (aiPanelOpen) void editor.current?.focus().catch((error) => doc.setMessage(String(error)));
   };
+  const rename = useDocumentRename({
+    file:
+      doc.file && doc.file.locationState !== 'trashed'
+        ? { id: doc.file.id, path: doc.file.path }
+        : null,
+    disabled:
+      !ready ||
+      doc.working ||
+      !!doc.pending ||
+      exporter.working ||
+      importingImage ||
+      creatingWindow ||
+      preferencesOpen ||
+      statisticsOpen ||
+      recoveryOpen ||
+      recentOpen ||
+      closingPanel,
+    windows: runtime?.platform === 'windows',
+    prepare: async () => {
+      const active = editor.current;
+      const before = actions.current.doc;
+      if (!active || before.working || before.pending || active.isComposing)
+        throw new Error('请先完成当前文档操作或输入法候选');
+      const owner = before.getOwner();
+      await active.flush();
+      const latest = actions.current.doc;
+      if (
+        editor.current !== active ||
+        latest.getOwner() !== owner ||
+        latest.working ||
+        latest.pending ||
+        active.isComposing
+      )
+        throw new Error('当前文档状态已更改，请重试重命名');
+    },
+    onRenamed: (warnings) => {
+      if (warnings.length) doc.setMessage(warnings.join('\n'));
+      void editor.current?.focus().catch((error) => doc.setMessage(String(error)));
+    },
+    onCancelled: () => {
+      void editor.current?.focus().catch((error) => doc.setMessage(String(error)));
+    },
+  });
+  /** Hang the popover from the Windows title button, or from where the native macOS title sits. */
+  const openRename = (element?: HTMLElement) => {
+    if (rename.state) {
+      rename.cancel();
+      return;
+    }
+    const rect = (
+      element ?? document.querySelector<HTMLElement>('.titlebar-title-button')
+    )?.getBoundingClientRect();
+    if (rect) {
+      rename.begin({ left: rect.left, right: rect.right, bottom: rect.bottom });
+      return;
+    }
+    const area = documentAreaElement.current?.getBoundingClientRect();
+    const center = area ? (area.left + area.right) / 2 : document.documentElement.clientWidth / 2;
+    rename.begin({ left: center - 60, right: center + 60, bottom: 28 });
+  };
   const actions = useRef({
+    openRename,
     action,
     toggleAiPanel,
     command,
@@ -584,6 +647,7 @@ export function App() {
     statisticsOpen,
   });
   actions.current = {
+    openRename,
     action,
     toggleAiPanel,
     command,
@@ -921,6 +985,7 @@ export function App() {
         ...exporter.customFormats,
       ],
       canImport: (exporter.capabilities?.importExtensions.length ?? 0) > 0,
+      canRename: rename.canRename,
     },
     async () => {
       const bridge = nativeCommandBridge.current;
@@ -1182,6 +1247,10 @@ export function App() {
         setRecoveryOpen(false);
         setRecentOpen(false);
         void actions.current.exporter.run(value);
+        return;
+      }
+      if (value === 'rename-document') {
+        actions.current.openRename();
         return;
       }
       if (['open', 'save', 'save-as', 'new', 'close'].includes(value)) {
@@ -1621,6 +1690,8 @@ export function App() {
           title={doc.file ? filename(doc.file.path) : '未命名'}
           dirty={doc.dirty}
           hasFile={!!doc.file}
+          onRename={rename.canRename ? openRename : undefined}
+          renaming={rename.state !== null}
           statistics={statistics.value}
           statisticsUnit={preferences.statisticsUnit}
           onStatisticsUnit={(unit) =>
@@ -1646,6 +1717,15 @@ export function App() {
           sidebarWidth={sidebar ? sidebarWidth : 0}
           disabled={doc.working || !ready}
           onError={doc.setMessage}
+        />
+      )}
+      {rename.state && (
+        <DocumentNamePopover
+          platform={webTitlebar ? 'windows' : 'mac'}
+          state={rename.state}
+          onCommit={(name) => void rename.commit(name)}
+          onCancel={rename.cancel}
+          onEdit={rename.clearError}
         />
       )}
       {!chrome.native && (

@@ -454,3 +454,64 @@ fn queued_workspace_open_resolves_the_current_mount_inside_the_mutation_lane() {
     assert!(task.join().unwrap().is_err());
     assert_eq!(fs::read(temp.path().join("note.md")).unwrap(), b"protected");
 }
+
+#[test]
+fn document_rename_works_without_a_mounted_folder_and_leaves_no_mount_behind() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(temp.path()).unwrap();
+    let raw = b"\xef\xbb\xbf# Heading\r\n\r\nTail  \n";
+    fs::write(root.join("note.md"), raw).unwrap();
+    fs::write(root.join("taken.md"), b"other").unwrap();
+    let services = WindowServices::default();
+    services.register("main").unwrap();
+    let document = services
+        .mutate_document("main", |documents| {
+            documents
+                .open_authorized(&root.join("note.md"))
+                .map_err(|e| e.to_string())
+        })
+        .unwrap();
+    let rename = |name: &str| {
+        services.rename_document_file(
+            "main",
+            &document.id,
+            name,
+            &operation(),
+            |_| Ok(()),
+            |_| vec![],
+        )
+    };
+    // Names the pipeline already refuses stay refused, and nothing is renamed.
+    assert!(rename("taken.md").is_err());
+    assert!(rename("bad/name.md").is_err());
+    assert!(root.join("note.md").exists());
+    let result = rename("Renamed Note.md").unwrap();
+    assert_eq!(result.receipt.unwrap().name, "Renamed Note.md");
+    assert_eq!(result.documents.len(), 1);
+    assert!(result.uncertain_documents.is_empty());
+    assert_eq!(fs::read(root.join("Renamed Note.md")).unwrap(), raw);
+    assert!(!root.join("note.md").exists());
+    let service = services.get_documents("main").unwrap();
+    let mut service = service.lock().unwrap();
+    let metadata = service.get_metadata(&document.id).unwrap();
+    assert_eq!(
+        metadata.path,
+        root.join("Renamed Note.md").to_string_lossy()
+    );
+    assert_eq!(metadata.metadata_revision, 1);
+    // The open document keeps saving to its new name, byte for byte.
+    assert_eq!(
+        service.save(&document.id, &document.text).unwrap().text,
+        document.text
+    );
+    assert_eq!(fs::read(root.join("Renamed Note.md")).unwrap(), raw);
+    drop(service);
+    // The temporary mount is gone: no folder is left behind for the window.
+    assert!(services
+        .get_workspaces("main")
+        .unwrap()
+        .lock()
+        .unwrap()
+        .ids()
+        .is_empty());
+}

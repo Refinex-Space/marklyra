@@ -1,5 +1,6 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { forgetImageEpoch } from './image-epochs.js';
+import type { EntryRenameReceipt } from './workspaces.js';
 export interface DocumentFile {
   id: string;
   path: string;
@@ -69,6 +70,9 @@ export const documents = {
       encoding: encoding ?? null,
       suggestedName: suggestedName ?? null,
     }),
+  /** Rename the file the open document is saved as; the host owns the location. */
+  renameFile: (id: string, newName: string, operationId: string) =>
+    invoke<EntryRenameReceipt>('rename_document_file', { documentId: id, newName, operationId }),
   checkChange: (id: string) => invoke<DocumentChange>('check_document_change', { id }),
   acceptChange: (id: string, version: string) =>
     invoke<DocumentFile>('accept_document_change', { id, version }),

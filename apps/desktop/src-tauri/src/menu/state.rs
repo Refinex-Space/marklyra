@@ -51,6 +51,9 @@ pub struct Snapshot {
     available_formats: Vec<String>,
     #[serde(default)]
     can_import: bool,
+    /// The open document is saved on disk, so its file can be renamed from the title or menu.
+    #[serde(default)]
+    can_rename: bool,
     #[serde(default)]
     text_input_focused: bool,
 }
@@ -144,6 +147,9 @@ impl Snapshot {
         }
         if action == "import-document" {
             return self.can_import;
+        }
+        if action == "rename-document" {
+            return self.can_rename && !editor.locked;
         }
         if let Some(format) = action.strip_prefix("export-") {
             return format == "html" || self.available_formats.iter().any(|item| item == format);

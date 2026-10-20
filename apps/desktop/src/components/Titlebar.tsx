@@ -42,6 +42,10 @@ export interface TitlebarProps {
   dirty: boolean;
   /** The document has a file location, matching the macOS file proxy icon. */
   hasFile: boolean;
+  /** Present when the saved file can be renamed: the title then opens the rename popover. */
+  onRename?: ((anchor: HTMLElement) => void) | undefined;
+  /** The rename popover is open on this title. */
+  renaming?: boolean;
   statistics: TitlebarStatistics | null;
   statisticsUnit: StatisticsUnit;
   onStatisticsUnit: (unit: StatisticsUnit) => void;
@@ -267,14 +271,41 @@ export function Titlebar(props: TitlebarProps) {
           style={{ left: titleFrame.left, width: titleFrame.width }}
           title={title}
         >
-          {props.hasFile && (
-            <span className="titlebar-proxy" aria-hidden="true">
-              <Icon name="document" />
-            </span>
-          )}
-          <span className="titlebar-name">{title}</span>
-          {props.dirty && (
-            <span className="titlebar-dirty" role="img" aria-label="未保存" title="未保存" />
+          {props.onRename ? (
+            <button
+              type="button"
+              className="titlebar-title-button"
+              aria-label={`重命名文稿：${title}`}
+              aria-haspopup="dialog"
+              aria-expanded={props.renaming === true}
+              data-open={props.renaming || undefined}
+              onClick={(event) => props.onRename?.(event.currentTarget)}
+            >
+              {props.hasFile && (
+                <span className="titlebar-proxy" aria-hidden="true">
+                  <Icon name="document" />
+                </span>
+              )}
+              <span className="titlebar-name">{title}</span>
+              {props.dirty && (
+                <span className="titlebar-dirty" role="img" aria-label="未保存" title="未保存" />
+              )}
+              <span className="titlebar-title-chevron" aria-hidden="true">
+                <Icon name="chevronDown" />
+              </span>
+            </button>
+          ) : (
+            <>
+              {props.hasFile && (
+                <span className="titlebar-proxy" aria-hidden="true">
+                  <Icon name="document" />
+                </span>
+              )}
+              <span className="titlebar-name">{title}</span>
+              {props.dirty && (
+                <span className="titlebar-dirty" role="img" aria-label="未保存" title="未保存" />
+              )}
+            </>
           )}
         </div>
       )}

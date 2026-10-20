@@ -226,6 +226,7 @@ pub fn run() {
             commands::workspaces::rename_workspace_creation,
             commands::workspaces::inspect_workspace_entry,
             commands::workspaces::rename_workspace_entry,
+            commands::workspaces::rename_document_file,
             commands::workspaces::resolve_workspace_entry_rename,
             commands::workspaces::finish_workspace_entry,
             commands::workspaces::get_workspace_file_undo,

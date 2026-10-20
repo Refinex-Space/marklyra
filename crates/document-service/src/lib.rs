@@ -612,6 +612,27 @@ impl DocumentService {
             .map(|document| document.path.clone())
             .ok_or(DocumentError::UnknownDocument)
     }
+    /// Host-only: the retained parent capability, file name and display path of a document that is
+    /// still at its saved location. Renaming the open file starts from this, never from a path the
+    /// renderer supplies, and the rename preflight re-proves the file's identity.
+    pub fn entry_location(
+        &self,
+        id: &str,
+    ) -> Result<(Arc<cap_std::fs::Dir>, PathBuf, PathBuf), DocumentError> {
+        let document = self
+            .documents
+            .get(id)
+            .ok_or(DocumentError::UnknownDocument)?;
+        if document.trashed_by.is_some() {
+            return Err(DocumentError::UnsupportedRename);
+        }
+        document.ensure_location()?;
+        Ok((
+            Arc::clone(&document.scoped.directory),
+            document.scoped.name.clone(),
+            document.path.clone(),
+        ))
+    }
     pub fn get_metadata(&self, id: &str) -> Result<DocumentMetadata, DocumentError> {
         let document = self
             .documents

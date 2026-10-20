@@ -50,6 +50,33 @@ pub async fn rename_workspace_entry(
     }).await.map_err(|_| "重命名条目任务未能完成".to_owned())?
 }
 
+/// Rename the file the window's open document is saved as, from the title. The renderer names
+/// the document and the new file name only; the location comes from the host's own capability.
+#[tauri::command]
+pub async fn rename_document_file(
+    document_id: String,
+    new_name: String,
+    operation_id: String,
+    window: WebviewWindow,
+) -> Result<file_index::EntryRenameReceipt, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        require_window(&window)?;
+        let app = window.app_handle();
+        let result = window.state::<WindowServices>().rename_document_file(
+            window.label(),
+            &document_id,
+            &new_name,
+            &operation_id,
+            |plan| crate::rename_metadata::RenameMetadataPlan::prepare(app, plan.directory(), plan.old_name(), plan.new_name(), plan.old_display_path(), plan.new_display_path(), plan.kind()),
+            |plan| plan.commit(app),
+        )?;
+        publish_changes(app, &result);
+        result.receipt.ok_or_else(|| "重命名操作已执行，但位置交接无法确认；旧权限已停用，请核对磁盘或另存当前正文，未自动重试".into())
+    })
+    .await
+    .map_err(|_| "重命名文稿任务未能完成".to_owned())?
+}
+
 #[tauri::command]
 pub async fn resolve_workspace_entry_rename(
     workspace_id: String,

@@ -259,6 +259,34 @@ impl WorkspaceRegistry {
         );
         Ok(payload)
     }
+    /// A short-lived, UI-invisible mount of a directory the host already holds a capability for
+    /// (an open document's parent). It never counts against the mount limit and the caller must
+    /// `close` it before the operation returns; nothing is persisted or advertised.
+    pub fn attach_directory(&mut self, root: Arc<Dir>, display_root: PathBuf) -> WorkspacePayload {
+        let id = Uuid::new_v4().to_string();
+        let payload = WorkspacePayload {
+            id: id.clone(),
+            name: display_root
+                .file_name()
+                .unwrap_or(display_root.as_os_str())
+                .to_string_lossy()
+                .into_owned(),
+            path: display_root.to_string_lossy().into_owned(),
+            metadata_revision: 0,
+        };
+        self.workspaces.insert(
+            id,
+            Arc::new(Workspace {
+                root,
+                location: Mutex::new(WorkspaceLocation::new(display_root)),
+                creations: Mutex::default(),
+                duplicates: Mutex::default(),
+                moves: Mutex::default(),
+                entries: Mutex::default(),
+            }),
+        );
+        payload
+    }
     pub fn get(&self, id: &str) -> Result<Arc<Workspace>, IndexError> {
         self.workspaces
             .get(id)

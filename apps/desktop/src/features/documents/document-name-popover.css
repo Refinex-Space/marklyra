@@ -1,0 +1,160 @@
+/* Rename the open document's file from its title. Both looks share one structure; the platform
+   attribute only changes the native idiom: macOS hangs a popover from an arrow with the label in
+   front of the field, Windows opens a Fluent flyout with the label above it. */
+.document-name-popover {
+  --rename-accent: var(--focus);
+  --rename-danger: #c4373d;
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-user-select: none;
+  user-select: none;
+  animation: document-name-in 120ms ease-out;
+}
+:root[data-theme="dark"] .document-name-popover {
+  --rename-danger: #ff8085;
+}
+.document-name-row {
+  display: flex;
+  min-width: 0;
+}
+.document-name-input {
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  color: var(--text);
+  font: inherit;
+  -webkit-user-select: text;
+  user-select: text;
+  outline: none;
+}
+/* The global focus ring would stack on each platform's own focus treatment below. */
+.document-name-popover .document-name-input:focus-visible {
+  outline: none;
+}
+.document-name-popover[data-busy] .document-name-input {
+  opacity: 0.6;
+}
+.document-name-error {
+  margin: 0;
+  color: var(--rename-danger);
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* macOS: grey popover, "名称：" in front of a rounded field, soft blue focus ring. */
+.document-name-popover[data-platform="mac"] {
+  padding: 18px 20px 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 90%, var(--text) 10%);
+  box-shadow:
+    0 10px 30px #00000033,
+    0 1px 3px #0000001f;
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+.document-name-popover[data-platform="mac"]::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: calc(var(--arrow-x) - 6px);
+  width: 11px;
+  height: 11px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  border-top-left-radius: 3px;
+  background: color-mix(in srgb, var(--surface) 90%, var(--text) 10%);
+  transform: rotate(45deg);
+}
+.document-name-popover[data-platform="mac"] .document-name-row {
+  align-items: center;
+  gap: 8px;
+}
+.document-name-popover[data-platform="mac"] .document-name-label {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+.document-name-popover[data-platform="mac"] .document-name-input {
+  flex: 1 1 auto;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 14px;
+  transition: box-shadow 120ms ease-out;
+}
+.document-name-popover[data-platform="mac"] .document-name-input:focus {
+  border-color: var(--rename-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rename-accent) 45%, transparent);
+}
+.document-name-popover[data-platform="mac"] .document-name-input[aria-invalid="true"] {
+  border-color: var(--rename-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rename-danger) 35%, transparent);
+}
+.document-name-popover[data-platform="mac"] .document-name-error {
+  margin: 8px 0 0 52px;
+}
+
+/* Windows: Fluent flyout, label above a 32px field whose focus shows as an accent underline. */
+.document-name-popover[data-platform="windows"] {
+  padding: 14px 16px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow:
+    0 8px 24px #00000026,
+    0 0 2px #0000001a;
+}
+.document-name-popover[data-platform="windows"] .document-name-row {
+  flex-direction: column;
+  gap: 6px;
+}
+.document-name-popover[data-platform="windows"] .document-name-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.document-name-popover[data-platform="windows"] .document-name-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--text) 45%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--surface) 94%, var(--text) 6%);
+  font-size: 14px;
+}
+.document-name-popover[data-platform="windows"] .document-name-input:focus {
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--text) 18%, transparent);
+  border-bottom: 2px solid var(--rename-accent);
+  padding-bottom: 1px;
+}
+.document-name-popover[data-platform="windows"] .document-name-input[aria-invalid="true"] {
+  border-bottom: 2px solid var(--rename-danger);
+  padding-bottom: 1px;
+}
+.document-name-popover[data-platform="windows"] .document-name-error {
+  margin-top: 8px;
+}
+
+@keyframes document-name-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .document-name-popover {
+    animation: none;
+  }
+  .document-name-popover[data-platform="mac"] .document-name-input {
+    transition: none;
+  }
+}

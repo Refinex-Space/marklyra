@@ -47,6 +47,61 @@ impl WindowServices {
         self.rename_workspace_entry_in_lane(request, before_move, after_move, true)
     }
 
+    /// Rename the file an open document is saved as. The document's own retained parent capability
+    /// is mounted for the duration of the call, so the one workspace pipeline (identity proof,
+    /// draft and metadata handoff for every window, undo record) serves documents that live
+    /// outside any mounted folder as well. The renderer names only the document and the new name.
+    pub(crate) fn rename_document_file<M>(
+        &self,
+        label: &str,
+        document_id: &str,
+        name: &str,
+        operation_id: &str,
+        before_move: impl FnOnce(&EntryRenamePlan) -> Result<M, String>,
+        after_move: impl FnOnce(M) -> Vec<String>,
+    ) -> Result<EntryRenameResult, String> {
+        let _gate = self.write_gate.lock().map_err(|_| "文件服务不可用")?;
+        let (directory, file, display) = self
+            .get_documents(label)?
+            .lock()
+            .map_err(|_| "文档状态不可用")?
+            .entry_location(document_id)
+            .map_err(|error| error.to_string())?;
+        let parent = display.parent().ok_or("文稿位置无效")?.to_owned();
+        let file = file.to_str().ok_or("文件名无法处理")?.to_owned();
+        let retained = self.get_workspaces(label)?;
+        let mount = retained
+            .lock()
+            .map_err(|_| "目录状态不可用")?
+            .attach_directory(directory, parent);
+        let renamed = (|| {
+            let workspace = retained
+                .lock()
+                .map_err(|_| "目录状态不可用")?
+                .get(&mount.id)
+                .map_err(|error| error.to_string())?;
+            let entry = workspace
+                .inspect_entry(&file)
+                .map_err(|error| error.to_string())?;
+            self.rename_workspace_entry_in_lane(
+                EntryRenameRequest {
+                    label,
+                    workspace_id: &mount.id,
+                    token: &entry.entry_token,
+                    name,
+                    operation_id,
+                },
+                before_move,
+                after_move,
+                true,
+            )
+        })();
+        if let Ok(mut registry) = retained.lock() {
+            registry.close(&mount.id);
+        }
+        renamed
+    }
+
     pub(super) fn rename_workspace_entry_in_lane<M>(
         &self,
         request: EntryRenameRequest<'_>,

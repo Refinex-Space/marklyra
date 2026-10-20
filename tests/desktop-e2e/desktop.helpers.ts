@@ -73,6 +73,10 @@ export interface DesktopMock {
   pendingOpens: number;
   pendingCloses: number;
   exportError: string | null;
+  /** Fails the next rename of the open document's file with this message. */
+  renameError: string | null;
+  /** Warnings a successful rename reports. */
+  renameWarnings: string[];
   /** Warnings a successful export reports alongside its file. */
   exportWarnings: string[];
   deferExport: boolean;
@@ -165,6 +169,8 @@ export function installMock(
     pendingOpens: 0,
     pendingCloses: 0,
     exportError: null,
+    renameError: null,
+    renameWarnings: [],
     exportWarnings: [],
     deferExport: false,
     finishExport() {
@@ -549,6 +555,33 @@ export function installMock(
           mock.pendingOpens = pendingOpens.length;
         });
       return result;
+    }
+    if (command === 'rename_document_file') {
+      if (mock.renameError) {
+        const message = mock.renameError;
+        mock.renameError = null;
+        throw new Error(message);
+      }
+      const document = mock.nextDocument;
+      document.path = `${document.path.slice(0, document.path.lastIndexOf('/') + 1)}${String(args.newName)}`;
+      mock.emitTarget('main', 'document-metadata-changed', [
+        {
+          id: String(args.documentId),
+          path: document.path,
+          encoding: document.encoding,
+          metadataRevision: 100 + mock.calls.length,
+        },
+      ]);
+      return {
+        operationId: args.operationId,
+        entryToken: 'rename-mock',
+        oldRelativePath: '',
+        name: args.newName,
+        relativePath: args.newName,
+        kind: 'file',
+        size: 0,
+        warnings: mock.renameWarnings,
+      };
     }
     if (command === 'save_document' || command === 'save_document_as') {
       const result = {

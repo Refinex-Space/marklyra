@@ -31,6 +31,7 @@ const FILE: &[MenuEntry] = &[
     Separator,
     Action("save", "保存", Some("CmdOrCtrl+S")),
     Action("save-as", "另存为…", Some("CmdOrCtrl+Shift+S")),
+    Action("rename-document", "重命名…", None),
     Separator,
     Action("import-document", "导入…", None),
     Action("export-menu", "导出", None),
@@ -622,7 +623,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            73 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            74 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {
