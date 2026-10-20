@@ -81,7 +81,26 @@ export function generalPreferencesEdits(source, ast) {
       null,
       element('span', { className: 'settings-about-eyebrow' }, text('为写作，保持自由')),
       element('h2', null, text('MarkLyra')),
-      element('p', { className: 'settings-about-tagline' }, text('永久免费 · 开放源代码')),
+      element(
+        'p',
+        { className: 'settings-about-tagline' },
+        element('span', null, text('永久免费 · 开放源代码')),
+        element(
+          'button',
+          {
+            type: 'button',
+            className: 'settings-about-github',
+            'data-marklyra-open-repository': 'true',
+            title: 'GitHub · Refinex-Space/marklyra',
+            'aria-label': '打开 MarkLyra GitHub 仓库',
+          },
+          element(
+            'span',
+            { className: 'icon icon-github-circled', 'aria-hidden': 'true' },
+            text(''),
+          ),
+        ),
+      ),
     ),
     element('span', { className: 'settings-about-license' }, text('Apache 2.0')),
   );
@@ -97,7 +116,7 @@ export function generalPreferencesEdits(source, ast) {
   );
   const about = group(
     '关于 MarkLyra',
-    ['MarkLyra', '版本', '更新', '开源', '免费', 'Apache', 'License', '许可'],
+    ['MarkLyra', 'GitHub', '仓库', '版本', '更新', '开源', '免费', 'Apache', 'License', '许可'],
     brand,
     release,
     code(automatic),

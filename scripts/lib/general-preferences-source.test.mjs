@@ -48,6 +48,13 @@ test('general redesign preserves control handlers without a runtime-license sect
     ['应用偏好', '关于 MarkLyra'],
   );
   assert.ok(!nodes.includes(license));
+  assert.ok(
+    nodes.find(
+      (node) =>
+        node.props?.['data-marklyra-open-repository'] === 'true' &&
+        node.props?.['aria-label'] === '打开 MarkLyra GitHub 仓库',
+    ),
+  );
   assert.ok(!edit.text.includes('settings-third-party-license'));
   assert.equal(nodes.find((node) => node.props?.keyName === 'debugMode').props.onChange, change);
   assert.equal(

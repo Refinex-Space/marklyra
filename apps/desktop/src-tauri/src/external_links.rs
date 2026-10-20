@@ -34,6 +34,19 @@ pub async fn open_external_link(window: WebviewWindow, url: String) -> Result<()
     .map_err(|_| "外部链接打开任务未完成".to_owned())?
 }
 
+/// A fixed destination for the isolated About page; it cannot supply arbitrary URLs.
+#[tauri::command]
+pub async fn open_project_repository(window: WebviewWindow) -> Result<(), String> {
+    crate::platform::ui_chrome::require_preferences_session(&window)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::platform::ui_chrome::require_preferences_session(&window)?;
+        open::that("https://github.com/Refinex-Space/marklyra")
+            .map_err(|_| "无法打开 GitHub 仓库，请稍后重试。".to_owned())
+    })
+    .await
+    .map_err(|_| "打开 GitHub 仓库的任务未完成。".to_owned())?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

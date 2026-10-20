@@ -28,10 +28,40 @@ html[data-settings-page] {
   letter-spacing: -0.7px;
 }
 .settings-about-tagline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   color: var(--settings-accent);
   font-size: 14px;
   font-weight: 500;
+}
+.settings-about-tagline .settings-about-github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--settings-text);
+  cursor: pointer;
+}
+.settings-about-github .icon::before {
+  font-size: 20px;
+  color: currentColor;
+}
+.settings-about-tagline .settings-about-github:hover:not(:disabled) {
+  background: var(--settings-hover);
+  border-color: var(--settings-line);
+}
+.settings-about-tagline .settings-about-github:focus-visible {
+  outline: 2px solid var(--settings-focus);
+  outline-offset: 2px;
 }
 .settings-about-license {
   flex: none;

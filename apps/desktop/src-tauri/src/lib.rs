@@ -158,6 +158,7 @@ pub fn run() {
             commands::native_input::open_native_input_document,
             commands::native_input::open_native_input_workspace,
             external_links::open_external_link,
+            external_links::open_project_repository,
             application_preferences::get_application_preferences,
             application_preferences::put_editor_appearance_preference,
             application_preferences::step_application_zoom,

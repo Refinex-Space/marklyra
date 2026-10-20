@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { appUpdates } from '../updates/AppUpdates.js';
 import './runtime-preferences/settings-theme.css';
@@ -74,6 +75,7 @@ function options(
     allThemes: catalog.themes.map((entry) => `${entry.id}.css`),
     marklyraThemeActions: true,
     marklyraUpdateActions: true,
+    marklyraRepositoryAction: true,
     marklyraReadingSpeedActions: true,
     theme,
     image_save_location:
@@ -398,6 +400,7 @@ export function PreferencesWindow({
               appUpdates.open();
               return;
             }
+            if (name === 'open-repository') return invoke<void>('open_project_repository');
             if (name === 'open-theme-folder') await themeFiles.openFolder();
             else if (name === 'theme-gallery') await themeFiles.openGallery();
             else if (name === 'clear-recent-history') return filePreferences.clearRecentHistory();

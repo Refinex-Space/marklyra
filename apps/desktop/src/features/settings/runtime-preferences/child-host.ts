@@ -370,6 +370,9 @@ function protectControls() {
     const update =
       element.hasAttribute('data-marklyra-update-check') &&
       runtime._options.marklyraUpdateActions === true;
+    const repository =
+      element.hasAttribute('data-marklyra-open-repository') &&
+      runtime._options.marklyraRepositoryAction === true;
     const action = themeAction(element);
     const clear = fileAction(element);
     const zoom = zoomResetControl(element);
@@ -399,7 +402,8 @@ function protectControls() {
       !controlActionPending &&
       (!clear || !fileActionPending) &&
       originalProperties(element).disabled !== true &&
-      (update ||
+      (repository ||
+        update ||
         zoom ||
         !!reading ||
         !!action ||
@@ -415,7 +419,14 @@ function protectControls() {
         element,
         failed
           ? '保存失败，请关闭后重新打开偏好设置。'
-          : (!supported(key) && !action && !clear && !startup && !reading && !zoom && !update) ||
+          : (!supported(key) &&
+                !action &&
+                !clear &&
+                !startup &&
+                !reading &&
+                !zoom &&
+                !update &&
+                !repository) ||
               element.tagName === 'A' ||
               (!startup &&
                 (element.classList.contains('icon-folder') ||
@@ -635,13 +646,19 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     (event) => {
       const target =
         event.target instanceof Element
-          ? event.target.closest<HTMLElement>('[data-marklyra-update-check]')
+          ? event.target.closest<HTMLElement>(
+              '[data-marklyra-update-check], [data-marklyra-open-repository]',
+            )
           : null;
       if (!target) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       if (target.getAttribute('aria-disabled') !== 'true')
-        void request('check-updates').catch(report);
+        void request(
+          target.hasAttribute('data-marklyra-open-repository')
+            ? 'open-repository'
+            : 'check-updates',
+        ).catch(report);
     },
     true,
   );

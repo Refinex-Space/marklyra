@@ -63,7 +63,8 @@ export type PreferenceAction =
   | 'theme-gallery'
   | 'clear-recent-history'
   | 'startup'
-  | 'check-updates';
+  | 'check-updates'
+  | 'open-repository';
 
 export function preferenceThemeFiles(value: unknown): readonly string[] {
   if (value === undefined) return preferenceThemes;
@@ -164,6 +165,7 @@ export function initialPreferencesOptions(
     allThemes: [...themes],
     marklyraThemeActions: input.marklyraThemeActions === true,
     marklyraUpdateActions: input.marklyraUpdateActions === true,
+    marklyraRepositoryAction: input.marklyraRepositoryAction === true,
     marklyraNativePage: input.marklyraNativePage === 'ai' ? 'ai' : '',
     marklyraReadingSpeedActions: input.marklyraReadingSpeedActions === true,
     marklyraFileActions: input.marklyraFileActions === true,

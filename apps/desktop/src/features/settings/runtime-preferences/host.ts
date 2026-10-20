@@ -220,6 +220,10 @@ export class RuntimePreferencesHost {
             if (change.key === 'wordsPerMinute') this.initial.customWordsPerMinute = true;
             if (change.key === 'customWordsPerMinute' && change.value === false)
               this.initial.wordsPerMinute = 382;
+          } else if (request.operation === 'open-repository') {
+            if (this.initial.marklyraRepositoryAction !== true || !this.options.onAction)
+              throw new Error('开源仓库入口尚未就绪。');
+            await this.options.onAction('open-repository', null);
           } else if (request.operation === 'check-updates') {
             if (this.initial.marklyraUpdateActions !== true || !this.options.onAction)
               throw new Error('更新功能尚未就绪。');

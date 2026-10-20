@@ -18,6 +18,25 @@ for (const theme of layoutThemes) {
     await expect(about).toContainText('永久免费 · 开放源代码');
     await expect(about).toContainText('Apache 2.0');
     await expect(about).toContainText('第三方组件遵循各自许可');
+    const repository = about.getByRole('button', { name: '打开 MarkLyra GitHub 仓库' });
+    await expect(repository).toBeEnabled();
+    await expect(repository.locator('.icon-github-circled')).toBeVisible();
+    const settingsSource = await page.locator('.runtime-preferences-frame').getAttribute('src');
+    await repository.click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as TestWindow).__desktopMock.calls.filter(
+              (call) => call.command === 'open_project_repository',
+            ).length,
+        ),
+      )
+      .toBe(1);
+    await expect(page.locator('.runtime-preferences-frame')).toHaveAttribute(
+      'src',
+      settingsSource ?? '',
+    );
     await expect(
       ui.locator(
         '[data-marklyra-preference="autoUpdateToDev"], [data-marklyra-preference="send_usage_info"], [data-marklyra-preference="useMirrorInCN"]',
