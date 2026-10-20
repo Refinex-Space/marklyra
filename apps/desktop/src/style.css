@@ -80,6 +80,10 @@ button[aria-pressed="true"] {
   flex-direction: column;
   background: var(--surface);
   color: var(--text);
+  /* The window never scrolls. The native-chrome editor frame is a full viewport wide and only
+     shifts left over the side panels once the runtime reports ready; until then it would
+     overhang the window and flash a horizontal scrollbar. `clip` is not a scroll container. */
+  overflow: clip;
 }
 .shell {
   /* AppKit's unified titlebar; the Windows WebView titlebar overrides this to 32px. */
