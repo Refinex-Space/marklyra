@@ -17,6 +17,8 @@ export interface FileSidebarPreferences {
   articleSort: FileSortType;
   treeNoGroup: boolean;
   articleNoGroup: boolean;
+  /** Show how many documents each folder holds (everything below it) beside its name. */
+  showDocumentCounts: boolean;
 }
 export const defaultFileSidebarPreferences: Readonly<FileSidebarPreferences> = Object.freeze({
   view: 'articles',
@@ -24,6 +26,7 @@ export const defaultFileSidebarPreferences: Readonly<FileSidebarPreferences> = O
   articleSort: 0,
   treeNoGroup: false,
   articleNoGroup: false,
+  showDocumentCounts: true,
 });
 export function normalizeFileSidebarPreferences(value: unknown): FileSidebarPreferences {
   const input =
@@ -40,5 +43,6 @@ export function normalizeFileSidebarPreferences(value: unknown): FileSidebarPref
     articleSort: sort(input.articleSort),
     treeNoGroup: input.treeNoGroup === true,
     articleNoGroup: input.articleNoGroup === true,
+    showDocumentCounts: input.showDocumentCounts !== false,
   };
 }

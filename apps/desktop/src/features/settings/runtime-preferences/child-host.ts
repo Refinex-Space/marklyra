@@ -160,6 +160,7 @@ function request(operation: string, payload: Record<string, unknown> = {}): Prom
 
 function fieldKey(element: Element): string | undefined {
   if (element.hasAttribute('data-marklyra-background-save')) return 'enableAutoSave';
+  if (element.hasAttribute('data-marklyra-directory-count')) return 'showDirectoryDocumentCount';
   if (element.hasAttribute('data-marklyra-file-remove')) return 'removeCustomFileType';
   if (element.hasAttribute('data-marklyra-file-default')) return 'defaultExtension';
   if (element.hasAttribute('data-marklyra-file-type')) return 'disabledFileTypes';
@@ -587,7 +588,9 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
         change.key === 'defaultExtension' ||
         change.key === 'removeCustomFileType')) ||
     (runtime._options.marklyraFileActions === true &&
-      (change.key === 'save_file_on_switch' || change.key === 'enableAutoSave'));
+      (change.key === 'save_file_on_switch' ||
+        change.key === 'enableAutoSave' ||
+        change.key === 'showDirectoryDocumentCount'));
   const focus = managedControl ? document.activeElement : null;
   const row =
     change.key === 'removeCustomFileType' ? focus?.closest('.settings-file-type-row') : null;
@@ -703,6 +706,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     defaultExtension: (extension) => changePreference(undefined, 'defaultExtension', extension),
     remove: (extension) => changePreference(undefined, 'removeCustomFileType', extension),
     save: (key, enabled) => changePreference(undefined, key, enabled),
+    treeCount: (enabled) => changePreference(undefined, 'showDirectoryDocumentCount', enabled),
   });
   updateSettingsPage = updatePage;
   presentSettingsPage(presentation);

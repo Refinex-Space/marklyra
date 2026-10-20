@@ -1012,6 +1012,7 @@ export function WorkspaceSidebar({
                 renames={renames}
                 presence={presence}
                 highlightPath={highlightPath}
+                showCounts={preferences.showDocumentCounts}
                 onRename={(target) => void rename.start(target.relativePath, target.kind)}
                 onTrash={(target) => void fileActions.trash(target)}
               />

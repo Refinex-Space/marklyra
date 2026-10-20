@@ -74,6 +74,7 @@ describe('desktop preferences validation', () => {
       articleSort: -2,
       treeNoGroup: true,
       articleNoGroup: false,
+      showDocumentCounts: false,
     };
     expect(normalizePreferences({ fileSidebar }).fileSidebar).toEqual(fileSidebar);
     expect(normalizePreferences({}).fileSidebar).toEqual(defaultPreferences.fileSidebar);

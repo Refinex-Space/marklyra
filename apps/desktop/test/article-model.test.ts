@@ -108,7 +108,16 @@ it('normalizes preferences without sharing mutable defaults', () => {
     articleSort: 0,
     treeNoGroup: true,
     articleNoGroup: false,
+    showDocumentCounts: true,
   });
+  // Folder document counts are on unless the stored value is explicitly false.
+  expect(normalizeFileSidebarPreferences({}).showDocumentCounts).toBe(true);
+  expect(normalizeFileSidebarPreferences({ showDocumentCounts: 'no' }).showDocumentCounts).toBe(
+    true,
+  );
+  expect(normalizeFileSidebarPreferences({ showDocumentCounts: false }).showDocumentCounts).toBe(
+    false,
+  );
 });
 it('matches observed English relative-date boundaries', () => {
   const now = new Date(2026, 9, 15, 12, 0, 0);

@@ -33,6 +33,8 @@ describe('runtime preferences policy', () => {
       ['apply_image_move_for_web', false],
       ['use_relative_path_for_img', true],
       ['relativePathWithDot', true],
+      ['showDirectoryDocumentCount', false],
+      ['showDirectoryDocumentCount', true],
     ])
       expect(preferenceChange(key, value)).toEqual({ key, value });
     for (const [key, value] of [
@@ -45,8 +47,17 @@ describe('runtime preferences policy', () => {
       ['wordsPerMinute', 1000],
       ['wordsPerMinute', '600'],
       ['always_show_wordcount', 1],
+      ['showDirectoryDocumentCount', 'yes'],
+      ['showDirectoryDocumentCount', 0],
     ])
       expect(() => preferenceChange(key, value)).toThrow();
+  });
+
+  it('shows folder document counts unless the host says otherwise', () => {
+    expect(initialPreferencesOptions({}).showDirectoryDocumentCount).toBe(true);
+    expect(
+      initialPreferencesOptions({ showDirectoryDocumentCount: false }).showDirectoryDocumentCount,
+    ).toBe(false);
   });
 
   it('initializes only supported host-owned settings and bounded display metadata', () => {

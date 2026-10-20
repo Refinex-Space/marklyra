@@ -220,6 +220,7 @@ pub fn run() {
             commands::workspaces::read_workspace_document_summaries,
             commands::workspaces::open_workspace_document,
             commands::workspaces::search_workspace,
+            commands::workspaces::count_workspace_documents,
             commands::workspaces::close_workspace,
             commands::workspaces::create_workspace_entry,
             commands::workspaces::rename_workspace_creation,

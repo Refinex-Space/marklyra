@@ -96,6 +96,7 @@ function options(
       value.customImageStorageFolder.startsWith('.')
         ? value.customImageStorageFolder
         : `./${value.customImageStorageFolder}`,
+    showDirectoryDocumentCount: value.fileSidebar.showDocumentCounts,
     no_image_move_for_local: !value.imageMoveForLocal,
     apply_image_move_for_web: value.imageMoveForWeb,
     use_relative_path_for_img: value.useRelativeImagePath,
@@ -310,6 +311,15 @@ export function PreferencesWindow({
             })
           )
             throw new Error('无法持久保存图片目录。');
+          break;
+        case 'showDirectoryDocumentCount':
+          if (
+            !savePreferences({
+              ...current,
+              fileSidebar: { ...current.fileSidebar, showDocumentCounts: change.value === true },
+            })
+          )
+            throw new Error('无法持久保存目录文档数量设置。');
           break;
         case 'no_image_move_for_local':
         case 'apply_image_move_for_web':

@@ -2,6 +2,7 @@
 //! No frontend-provided absolute path grants access to the filesystem.
 mod articles;
 mod catalog;
+mod counts;
 mod creation;
 mod duplicate;
 mod entry_action;
@@ -20,6 +21,7 @@ pub use articles::{
     WorkspaceDocument, MAX_SUMMARY_BATCH,
 };
 pub use catalog::WorkspaceCatalogSnapshot;
+pub use counts::DocumentCounts;
 pub use creation::{CreatedWorkspaceEntry, CreationRenamePlan};
 pub use duplicate::{EntryDuplicateReceipt, EntryDuplicateResolution};
 pub use entry_move::{

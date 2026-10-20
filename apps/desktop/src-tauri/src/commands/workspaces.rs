@@ -2,7 +2,7 @@ use super::require_window;
 use crate::window_services::WindowServices;
 use document_service::DocumentPayload;
 use file_index::{
-    DirectoryListing, DocumentSummary, SearchOptions, SearchReport, Workspace,
+    DirectoryListing, DocumentCounts, DocumentSummary, SearchOptions, SearchReport, Workspace,
     WorkspaceArticlesReport, WorkspaceCatalogSnapshot, WorkspacePayload, WorkspaceRegistry,
 };
 use std::{
@@ -393,6 +393,44 @@ pub async fn search_workspace(
     .await;
     finish_search(&label, &cancel);
     outcome.map_err(|_| "目录搜索任务未能完成".to_owned())?
+}
+
+/// Documents per directory (recursive), for the counts shown beside tree folders.
+#[tauri::command]
+pub async fn count_workspace_documents(
+    workspace_id: String,
+    window: WebviewWindow,
+) -> Result<DocumentCounts, String> {
+    let registry = window
+        .state::<WindowServices>()
+        .get_workspaces(window.label())?;
+    let app = window.app_handle().clone();
+    // A newer count (after another change) withdraws this one.
+    let label = format!("{}#count", window.label());
+    let cancel = begin_search(&label);
+    let outcome = tauri::async_runtime::spawn_blocking({
+        let cancel = Arc::clone(&cancel);
+        move || {
+            let types = app
+                .state::<crate::file_preferences::FilePreferencesHost>()
+                .document_types(&app)?;
+            read_workspace(
+                &registry,
+                &workspace_id,
+                || verify_workspace_window(&window, &registry),
+                |selected| {
+                    selected.count_documents_with_filters(
+                        crate::platform::file_metadata::include_entry,
+                        |name| types.allows(std::path::Path::new(name)),
+                        &cancel,
+                    )
+                },
+            )
+        }
+    })
+    .await;
+    finish_search(&label, &cancel);
+    outcome.map_err(|_| "目录文档统计任务未能完成".to_owned())?
 }
 
 #[tauri::command]

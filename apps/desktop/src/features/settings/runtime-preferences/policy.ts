@@ -52,6 +52,7 @@ export const preferenceKeys = [
   'quitAfterWindowClose',
   'debugMode',
   'can_collapse_outline_panel',
+  'showDirectoryDocumentCount',
   ...editorPreferenceKeys,
   ...startupEditorKeys,
   ...filePreferenceKeys,
@@ -142,6 +143,7 @@ export function preferenceChange(
         return { key: 'wordsPerMinute', value };
       break;
     case 'enableAutoSave':
+    case 'showDirectoryDocumentCount':
     case 'no_image_move_for_local':
     case 'apply_image_move_for_web':
     case 'use_relative_path_for_img':
@@ -193,6 +195,7 @@ export function initialPreferencesOptions(
     save_file_on_switch: true,
     enableAutoSave: true,
     noRecentFiles: false,
+    showDirectoryDocumentCount: true,
     actionWhenDropFile: '',
     actionWhenDropFolder: '',
     actionWhenDropImport: '',

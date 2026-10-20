@@ -3,6 +3,7 @@ import { type FileTypePageControls, renderFileTypes } from './file-types-page.js
 import { renderSavePreferences, type SavePageControls } from './save-preferences-page.js';
 import css from './settings-page.css?inline';
 import themeCss from './settings-theme.css?inline';
+import { renderTreePreferences, type TreePageControls } from './tree-preferences-page.js';
 
 const summaries: Record<string, string> = {
   文件: '启动、保存与文档管理',
@@ -35,7 +36,7 @@ export function presentSettingsPage(value: unknown) {
 
 export function setupSettingsPage(
   close: () => void,
-  fileTypes?: FileTypePageControls & SavePageControls,
+  fileTypes?: FileTypePageControls & SavePageControls & TreePageControls,
 ) {
   if (new URL(location.href).searchParams.get('layout') !== 'page') return;
   document.documentElement.dataset.settingsPage = 'true';
@@ -126,6 +127,7 @@ export function setupSettingsPage(
     if (fileTypes) {
       renderFileTypes(pane, fileTypes);
       renderSavePreferences(pane, fileTypes);
+      renderTreePreferences(pane, fileTypes);
     }
     arrangeEditingGroups(pane);
     arrangeIndentControls(pane);

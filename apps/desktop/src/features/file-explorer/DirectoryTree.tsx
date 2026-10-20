@@ -45,6 +45,8 @@ interface TreeProps {
   renames?: readonly RelativeEntryRename[] | undefined;
   presence?: readonly RelativeEntryPresence[] | undefined;
   highlightPath?: string | undefined;
+  /** Beside each folder: how many documents it holds, subfolders included. */
+  showCounts?: boolean;
   /** F2 and Delete on the focused row; the host decides whether the action may start. */
   onRename?: ((target: TreeTarget) => void) | undefined;
   onTrash?: ((target: TreeTarget) => void) | undefined;
@@ -54,7 +56,11 @@ export interface TreeTarget {
   kind: 'file' | 'directory';
 }
 
+type DocumentCountMap = Readonly<Record<string, number>>;
+const NO_COUNTS: DocumentCountMap = Object.freeze({});
+
 interface TreeState extends TreeProps {
+  counts: DocumentCountMap;
   focusPath: string | null;
   focusRow: (path: string) => void;
   listed: (path: string, entries: WorkspaceEntry[]) => void;
@@ -240,6 +246,11 @@ function DirectoryItem({
           </span>
           <WorkspaceGlyph name={directory ? (expanded ? 'folderOpen' : 'folder') : 'file'} />
           <span className="workspace-tree-name">{entry.name}</span>
+          {directory && (props.counts[entry.relativePath] ?? 0) > 0 && (
+            <span className="workspace-tree-count">
+              {formatCount(props.counts[entry.relativePath] ?? 0)}
+            </span>
+          )}
         </button>
       )}
       {directory && expanded && (
@@ -249,6 +260,46 @@ function DirectoryItem({
       )}
     </li>
   );
+}
+
+const formatCount = (count: number) => (count > 9999 ? '9999+' : String(count));
+
+function sameCounts(a: DocumentCountMap, b: DocumentCountMap): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
+}
+
+/**
+ * Documents per folder, recounted after every change of the directory. The numbers are a
+ * courtesy: a failed or late count leaves the previous ones and never blocks the tree.
+ */
+function useDocumentCounts(workspace: WorkspaceFolder, refresh: number, enabled: boolean) {
+  const [counts, setCounts] = useState<DocumentCountMap>(NO_COUNTS);
+  const { id, metadataRevision } = workspace;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a changed refresh or revision recounts the same workspace.
+  useEffect(() => {
+    if (!enabled) {
+      setCounts(NO_COUNTS);
+      return;
+    }
+    let stale = false;
+    const timer = setTimeout(() => {
+      void workspaces.documentCounts(id).then(
+        (report) => {
+          // Hosts without the command (and test doubles) answer nothing: keep the tree plain.
+          const next = report?.counts;
+          if (!stale && next && typeof next === 'object')
+            setCounts((previous) => (sameCounts(previous, next) ? previous : next));
+        },
+        () => {},
+      );
+    }, 120);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [id, metadataRevision, refresh, enabled]);
+  return counts;
 }
 
 /** A refresh that finds the directory unchanged must not re-render its rows. */
@@ -389,6 +440,7 @@ function DirectoryBranch({ relativePath, ...props }: TreeState & { relativePath:
 
 export function DirectoryTree(props: TreeProps) {
   const [focusPath, focusRow] = useState<string | null>(null);
+  const counts = useDocumentCounts(props.workspace, props.refresh, props.showCounts ?? true);
   const typing = useRef({ prefix: '', time: 0 });
   const seenRename = useRef(0);
   useEffect(() => {
@@ -432,6 +484,7 @@ export function DirectoryTree(props: TreeProps) {
       <DirectoryBranch
         {...props}
         relativePath=""
+        counts={counts}
         focusPath={focusPath}
         focusRow={focusRow}
         listed={listed}

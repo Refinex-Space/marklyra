@@ -1408,3 +1408,28 @@
   line-height: 18px;
   opacity: 0.7;
 }
+
+/* Documents inside a folder (subfolders included), at the right edge of the folder's row. */
+.workspace-tree-count {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  pointer-events: none;
+}
+/* The tree's right edge sits 4px inside the sidebar and the header's search icon 11px inside it:
+   7px puts the numbers on the icon's right edge, so both read as one column. */
+.workspace-sidebar-compact .workspace-tree-row .workspace-tree-count {
+  position: absolute;
+  top: 4px;
+  right: 7px;
+  margin: 0;
+  padding: 0;
+  line-height: 22px;
+}
+.workspace-sidebar-compact .workspace-tree-row:has(.workspace-tree-count) {
+  padding-right: 44px;
+}

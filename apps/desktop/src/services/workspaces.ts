@@ -120,6 +120,12 @@ export interface WorkspaceArticlesReport {
   };
   truncationReasons: ('documents' | 'scan' | 'depth' | 'bytes')[];
 }
+/** Documents per directory, including everything below it. Folders without documents are absent. */
+export interface WorkspaceDocumentCounts {
+  counts: Record<string, number>;
+  scannedEntries: number;
+  truncated: boolean;
+}
 export interface WorkspaceMatchPosition {
   /** One-based line and UTF-16 column, matching JavaScript string offsets. */
   line: number;
@@ -247,6 +253,8 @@ export const workspaces = {
     }),
   open: (workspaceId: string, relativePath: string) =>
     invoke<DocumentFile>('open_workspace_document', { workspaceId, relativePath }),
+  documentCounts: (workspaceId: string) =>
+    invoke<WorkspaceDocumentCounts>('count_workspace_documents', { workspaceId }),
   search: (
     workspaceId: string,
     query: string,
