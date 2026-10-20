@@ -150,7 +150,8 @@ for (const named of [true, false]) {
     });
     await input.fill('中文.md');
     await input.press('Enter');
-    await expect(page.getByRole('alert')).toContainText('目标名称已存在');
+    await expect(page.locator('.notice-host').getByRole('alert')).toContainText('目标名称已存在');
+    await expect(page.locator('.workspace-creation-error')).toHaveCount(0);
     await expect(input).toHaveValue('中文.md');
     await input.fill('Final.md');
     await page.getByRole('button', { name: '全文搜索', exact: true }).focus();

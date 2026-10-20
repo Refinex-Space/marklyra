@@ -446,7 +446,13 @@ fn create_entity(directory: &Dir, name: &str, kind: EntryKind) -> Result<File, I
         options.mode(0o600);
     }
     #[cfg(windows)]
-    crate::fs_mutation::configure_source(&mut options);
+    {
+        use cap_std::fs::OpenOptionsExt;
+        crate::fs_mutation::configure_source(&mut options);
+        // The explicit access mask replaces read/write: add FILE_READ_DATA, FILE_WRITE_DATA and
+        // FILE_APPEND_DATA so the created file can be filled (duplicates write through this handle).
+        options.access_mode(crate::fs_mutation::retained_access() | 0x7);
+    }
     Ok(directory.open_with(name, &options)?)
 }
 

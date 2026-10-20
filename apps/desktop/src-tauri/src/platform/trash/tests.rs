@@ -458,3 +458,50 @@ fn actual_restricted_system_restore_denial_is_known_not_moved_and_does_not_fallb
     restore(&placement.0).unwrap();
     assert_eq!(fixture.parent.read(name).unwrap(), b"protected");
 }
+
+#[cfg(windows)]
+#[test]
+fn actual_recycle_bin_directory_with_children_moves_and_restores() {
+    let fixture = Fixture::new();
+    let name = "marklyra-trash-fixture-directory";
+    fixture.parent.create_dir(name).unwrap();
+    fixture.parent.create_dir(format!("{name}/inner")).unwrap();
+    fixture
+        .parent
+        .write(format!("{name}/inner/note.md"), b"child")
+        .unwrap();
+    // A directory the app has listed, plus a retained entity handle: neither may block the Shell.
+    let listed = fixture.parent.open_dir(name).unwrap();
+    assert_eq!(listed.entries().unwrap().count(), 1);
+    drop(listed);
+    let source = fixture.source(name, EntryKind::Directory);
+    let placement = trash(&source).unwrap();
+    assert!(!fixture.parent.exists(name));
+    restore(&placement).unwrap();
+    assert_eq!(
+        fixture
+            .parent
+            .read(format!("{name}/inner/note.md"))
+            .unwrap(),
+        b"child"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn actual_recycle_bin_file_moves_and_restores_exclusively() {
+    let fixture = Fixture::new();
+    let name = "marklyra-trash-fixture-file.md";
+    fixture.parent.write(name, b"bytes").unwrap();
+    let source = fixture.source(name, EntryKind::File);
+    let placement = trash(&source).unwrap();
+    assert!(!fixture.parent.exists(name));
+    fixture.parent.write(name, b"new occupant").unwrap();
+    assert!(matches!(
+        restore(&placement),
+        Err(TrashFailure::NotMoved(_))
+    ));
+    fixture.parent.remove_file(name).unwrap();
+    restore(&placement).unwrap();
+    assert_eq!(fixture.parent.read(name).unwrap(), b"bytes");
+}

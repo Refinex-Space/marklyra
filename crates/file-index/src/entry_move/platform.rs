@@ -176,15 +176,14 @@ pub(super) fn different_volume(source: &Dir, destination: &Dir) -> io::Result<bo
 pub(super) fn open_for_move(directory: &Dir, name: &Path, kind: EntryKind) -> io::Result<File> {
     #[cfg(windows)]
     {
-        use cap_std::fs::{OpenOptions, OpenOptionsExt};
-        let mut options = OpenOptions::new();
-        options.read(true);
-        crate::fs_mutation::configure_source(&mut options);
-        // Existing rename inspections need DELETE/attributes only. Move's
-        // stable byte verification also needs FILE_READ_DATA/LIST_DIRECTORY.
-        options.access_mode(0x0011_0181);
+        // Rename inspections need attributes only. Move's stable byte verification also needs
+        // FILE_READ_DATA/LIST_DIRECTORY. No DELETE: see fs_mutation::windows.
         let _ = kind;
-        directory.open_with(name, &options)
+        crate::fs_mutation::open_retained(
+            directory,
+            name,
+            crate::fs_mutation::retained_access() | 1,
+        )
     }
     #[cfg(not(windows))]
     {

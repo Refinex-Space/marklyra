@@ -14,7 +14,7 @@ mod macos;
 #[cfg(windows)]
 mod windows;
 #[cfg(windows)]
-pub(super) use windows::configure_source;
+pub(super) use windows::{configure_source, open_retained, retained_access};
 
 pub(super) fn directory_identity(directory: &Dir) -> io::Result<same_file::Handle> {
     same_file::Handle::from_file(directory.try_clone()?.into_std_file())
@@ -52,11 +52,8 @@ pub(super) fn open_entity(directory: &Dir, name: &Path, kind: EntryKind) -> io::
     }
     #[cfg(windows)]
     {
-        let mut options = OpenOptions::new();
-        options.read(true);
-        configure_source(&mut options);
         let _ = kind;
-        directory.open_with(name, &options)
+        windows::open_retained(directory, name, windows::retained_access())
     }
 }
 

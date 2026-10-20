@@ -524,4 +524,53 @@ mod tests {
             assert!(root.path().join("Ready.md").is_file());
         }
     }
+
+    /// A sidebar "new folder / new document" followed by typing its name. The inline name used to
+    /// fail on Windows with "os error 87" (a RootDirectory handle in FILE_RENAME_INFO) and, for a
+    /// folder, "os error 32" (a retained DELETE handle blocking every later directory open).
+    #[cfg(windows)]
+    #[test]
+    fn windows_new_entries_take_their_typed_names_and_stay_usable() {
+        let root = tempfile::tempdir().unwrap();
+        let services = WindowServices::default();
+        services.register("main").unwrap();
+        let selected = services
+            .get_workspaces("main")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .select_authorized(root.path())
+            .unwrap();
+        let folder = create(&services, &selected.id, EntryKind::Directory);
+        services
+            .rename_workspace_creation("main", &selected.id, &folder.entry_token, "ceshi")
+            .unwrap();
+        assert!(root.path().join("ceshi").is_dir());
+        // The renamed folder can be listed and receives a document straight away.
+        let document = services
+            .create_workspace_entry(
+                "main",
+                &selected.id,
+                &uuid::Uuid::new_v4().to_string(),
+                "ceshi",
+                EntryKind::File,
+                "md",
+            )
+            .unwrap();
+        services
+            .rename_workspace_creation("main", &selected.id, &document.entry_token, "note.md")
+            .unwrap();
+        assert!(root.path().join("ceshi/note.md").is_file());
+        let listing = services
+            .mutate_workspace("main", &selected.id, |scope| {
+                scope.list_directory("ceshi").map_err(|e| e.to_string())
+            })
+            .unwrap();
+        assert_eq!(listing.entries.len(), 1);
+        let loose = create(&services, &selected.id, EntryKind::File);
+        services
+            .rename_workspace_creation("main", &selected.id, &loose.entry_token, "plain.md")
+            .unwrap();
+        assert!(root.path().join("plain.md").is_file());
+    }
 }

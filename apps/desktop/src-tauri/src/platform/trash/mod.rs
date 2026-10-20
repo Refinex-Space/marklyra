@@ -367,14 +367,8 @@ fn verify_entry(
 fn open_entry(directory: &Dir, name: &Path, kind: EntryKind) -> io::Result<File> {
     #[cfg(windows)]
     {
-        use cap_std::fs::{OpenOptions, OpenOptionsExt};
-        let mut options = OpenOptions::new();
-        options
-            .access_mode(0x0011_0180)
-            .share_mode(7)
-            .custom_flags(0x0200_0000 | 0x0020_0000);
         let _ = kind;
-        directory.open_with(name, &options)
+        windows::open_entry(directory, name)
     }
     #[cfg(not(windows))]
     {

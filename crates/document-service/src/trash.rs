@@ -146,6 +146,29 @@ impl DocumentService {
     }
 }
 
+/// The identity a trash location keeps for the whole operation.
+///
+/// The capability handle is opened by cap-std without FILE_SHARE_DELETE on Windows, and a
+/// `same_file::Handle` keeps its file open, so retaining that handle would stop the Shell from
+/// moving the folder to the Recycle Bin (HRESULT 0x80270027, "file in use"). Windows therefore keeps
+/// a share-all handle opened by path and proves it is the same folder as the capability handle.
+fn directory_identity(directory: &Dir, display: &Path) -> Result<same_file::Handle, DocumentError> {
+    let capability = same_file::Handle::from_file(directory.try_clone()?.into_std_file())?;
+    #[cfg(windows)]
+    {
+        let shared = same_file::Handle::from_path(display)?;
+        if shared != capability {
+            return Err(DocumentError::ExternalChange);
+        }
+        Ok(shared)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = display;
+        Ok(capability)
+    }
+}
+
 impl DocumentService {
     pub fn prepare_trash(
         &mut self,
@@ -166,9 +189,7 @@ impl DocumentService {
             None
         };
         let identity = Arc::new(match &directory {
-            Some(directory) => {
-                same_file::Handle::from_file(directory.try_clone()?.into_std_file())?
-            }
+            Some(directory) => directory_identity(directory, display)?,
             None => source.identity()?,
         });
         let location = Arc::new(TrashedLocation {

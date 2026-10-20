@@ -455,7 +455,7 @@ impl Workspace {
                     &mut state,
                     &plan.operation_id,
                     EntryRenameResolution::Rejected {
-                        message: error.to_string(),
+                        message: document_service::describe_io(&error),
                     },
                 );
                 return Err(error.into());

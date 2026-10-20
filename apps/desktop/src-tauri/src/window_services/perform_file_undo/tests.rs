@@ -817,3 +817,88 @@ fn proven_single_file_alias_cannot_restore_over_an_equal_byte_new_occupant() {
     crate::platform::trash::restore(&placement).unwrap();
     assert_eq!(fs::read(&path).unwrap(), bytes);
 }
+
+#[cfg(windows)]
+#[test]
+fn windows_folder_trash_with_listed_children_moves_to_the_recycle_bin() {
+    let (temp, services, workspace) = setup();
+    let name = "marklyra-trash-fixture-folder";
+    let folder = temp.path().join(name);
+    fs::create_dir_all(folder.join("nested")).unwrap();
+    fs::write(folder.join("nested/note.md"), b"Alpha\r\n").unwrap();
+    // The sidebar lists the folder and its child before the user deletes it.
+    services
+        .mutate_workspace("main", &workspace, |scope| {
+            scope.list_directory(name).map_err(|e| e.to_string())?;
+            scope
+                .list_directory(&format!("{name}/nested"))
+                .map_err(|e| e.to_string())
+        })
+        .unwrap();
+    let result = services
+        .perform_trash(reservation(&services, &workspace, name), vec![], false)
+        .unwrap();
+    assert!(
+        matches!(result.resolution, TrashResolution::Committed { .. }),
+        "{:?}",
+        result.resolution
+    );
+    assert!(!folder.exists());
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_file_trash_then_undo_restores_the_file() {
+    let (temp, services, workspace) = setup();
+    let name = "marklyra-trash-fixture-note.md";
+    let path = temp.path().join(name);
+    fs::write(&path, b"Alpha\r\n").unwrap();
+    let result = services
+        .perform_trash(reservation(&services, &workspace, name), vec![], false)
+        .unwrap();
+    assert!(
+        matches!(result.resolution, TrashResolution::Committed { .. }),
+        "{:?}",
+        result.resolution
+    );
+    assert!(!path.exists());
+    let request = undo_request(&services, &workspace);
+    let restored = undo(&services, request);
+    assert!(
+        matches!(restored.resolution, FileUndoResolution::Committed { .. }),
+        "{}",
+        match &restored.resolution {
+            FileUndoResolution::Rejected { message } => message.clone(),
+            FileUndoResolution::MutationUncertain => "MutationUncertain".into(),
+            _ => "unexpected".into(),
+        }
+    );
+    assert_eq!(fs::read(&path).unwrap(), b"Alpha\r\n");
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_rename_of_a_listed_folder_and_a_file_then_undo() {
+    let (temp, services, workspace) = setup();
+    fs::create_dir_all(temp.path().join("Old/nested")).unwrap();
+    fs::write(temp.path().join("Old/nested/note.md"), b"child").unwrap();
+    fs::write(temp.path().join("a.md"), b"file").unwrap();
+    services
+        .mutate_workspace("main", &workspace, |scope| {
+            scope.list_directory("Old").map_err(|e| e.to_string())?;
+            scope
+                .list_directory("Old/nested")
+                .map_err(|e| e.to_string())
+        })
+        .unwrap();
+    rename(&services, &workspace, "Old", "New");
+    assert_eq!(
+        fs::read(temp.path().join("New/nested/note.md")).unwrap(),
+        b"child"
+    );
+    rename(&services, &workspace, "a.md", "b.md");
+    assert_eq!(fs::read(temp.path().join("b.md")).unwrap(), b"file");
+    let request = undo_request(&services, &workspace);
+    undo(&services, request);
+    assert_eq!(fs::read(temp.path().join("a.md")).unwrap(), b"file");
+}

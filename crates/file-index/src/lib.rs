@@ -85,7 +85,7 @@ pub enum IndexError {
     InvalidQuery,
     #[error("文件操作已执行，但文件或目录身份随后变化；旧写权限必须撤销，请刷新核对或另存当前正文，未自动回滚")]
     MutationUncertain,
-    #[error("目录操作失败：{0}")]
+    #[error("目录操作失败：{}", document_service::describe_io(.0))]
     Io(#[from] std::io::Error),
     #[error("{0}")]
     Document(#[from] document_service::DocumentError),

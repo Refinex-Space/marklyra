@@ -90,8 +90,23 @@ pub enum DocumentError {
     InvalidImageDraft,
     #[error("{0}")]
     Image(#[from] image_assets::ImageError),
-    #[error("文件操作失败：{0}")]
+    #[error("文件操作失败：{}", describe_io(.0))]
     Io(#[from] std::io::Error),
+}
+
+/// An I/O error in words a person can act on. Windows reports an entry or a file inside it that
+/// another program (or an open document) is using as a bare sharing violation or access denial;
+/// everything else keeps the system's own text.
+pub fn describe_io(error: &std::io::Error) -> String {
+    #[cfg(windows)]
+    match error.raw_os_error() {
+        // ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION
+        Some(32 | 33) => return "文件或文件夹正被其他程序占用，请关闭相关程序或文档后重试".into(),
+        // ERROR_ACCESS_DENIED: also what Windows returns when a folder with an open file is moved.
+        Some(5) => return "没有权限，或文件夹中有文件正在使用，请关闭相关程序或文档后重试".into(),
+        _ => {}
+    }
+    error.to_string()
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]

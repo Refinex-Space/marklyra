@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { useNotice } from '../notices/notices.js';
 import type { CreationEditor } from './creation-types.js';
 
 export function CreatedNameInput({
@@ -19,6 +20,10 @@ export function CreatedNameInput({
     focused = useRef(false);
   const alive = useRef(true);
   const busy = creation.state?.phase !== 'naming';
+  // A failed name is reported in the window corner like every other file message; the input stays
+  // in place so the name can be corrected. Only a result that needs a decision keeps buttons here.
+  const needsDecision = creation.state?.phase === 'resolving';
+  useNotice(needsDecision ? '' : creation.state?.error, 'error');
   useLayoutEffect(() => {
     alive.current = true;
     return () => {
@@ -86,7 +91,7 @@ export function CreatedNameInput({
           }
         }}
       />
-      {creation.state?.error && (
+      {creation.state?.error && needsDecision && (
         <span className="workspace-creation-error" role="alert">
           {creation.state.error}
           {creation.state.phase === 'resolving' && creation.retryResolution && (

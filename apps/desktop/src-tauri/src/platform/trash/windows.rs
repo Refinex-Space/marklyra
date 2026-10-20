@@ -305,6 +305,8 @@ fn recycle_failure(source: &AuthorizedTrashSource, error: impl fmt::Display) -> 
     }
 }
 
+// Mirrors FILE_RENAME_INFO; ReplaceIfExists and RootDirectory stay zero.
+#[allow(dead_code)]
 #[repr(C)]
 struct RenameInfo {
     replace: u32,
@@ -322,28 +324,55 @@ unsafe extern "system" {
     ) -> i32;
 }
 
+/// FILE_READ_DATA/LIST_DIRECTORY + FILE_READ_ATTRIBUTES + FILE_WRITE_ATTRIBUTES + SYNCHRONIZE,
+/// every share mode, and no DELETE: a retained handle holding DELETE would make cap-std directory
+/// opens (which share only READ|WRITE) fail with ERROR_SHARING_VIOLATION, and Win32 only needs
+/// DELETE on the short-lived handle that performs a rename.
+const RETAINED_ACCESS: u32 = 0x0010_0181;
+const RENAME_ACCESS: u32 = 0x0011_0181;
+// FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT.
+const ENTRY_FLAGS: u32 = 0x0200_0000 | 0x0020_0000;
+
+fn open_path(path: &Path, access: u32) -> io::Result<std::fs::File> {
+    use std::os::windows::fs::OpenOptionsExt;
+    std::fs::OpenOptions::new()
+        .access_mode(access)
+        .share_mode(7)
+        .custom_flags(ENTRY_FLAGS)
+        .open(path)
+}
+
+pub(super) fn open_entry(directory: &Dir, name: &Path) -> io::Result<File> {
+    single_name(name)?;
+    Ok(File::from_std(open_path(
+        &current_path(directory)?.join(name),
+        RETAINED_ACCESS,
+    )?))
+}
+
+/// Win32 rejects a RootDirectory handle for FILE_RENAME_INFO, so the destination is the original
+/// parent's full path plus the name. The retained handle holds no DELETE right: a short-lived
+/// handle to the same object, checked against it, performs the rename.
 pub(super) fn restore(placement: &TrashPlacement) -> io::Result<()> {
-    let name: Vec<u16> = placement.original_name.as_os_str().encode_wide().collect();
+    let target = current_path(placement.original_parent.as_ref())?.join(&placement.original_name);
+    let handle = open_path(&current_path(placement.source.as_ref())?, RENAME_ACCESS)?;
+    if same_file::Handle::from_file(handle.try_clone()?)? != *placement.identity {
+        return Err(changed());
+    }
+    let name: Vec<u16> = target.as_os_str().encode_wide().collect();
     let length = std::mem::offset_of!(RenameInfo, name) + (name.len() + 1) * 2;
     let mut storage = vec![0_usize; length.div_ceil(std::mem::size_of::<usize>())];
     let info = storage.as_mut_ptr().cast::<RenameInfo>();
-    // SAFETY: aligned zeroed buffer contains FILE_RENAME_INFO with ReplaceIfExists
-    // false, live authorized target directory and retained source entity handle.
+    // SAFETY: aligned zeroed buffer contains FILE_RENAME_INFO with ReplaceIfExists false and a null
+    // RootDirectory; the verified short-lived handle outlives this synchronous call.
     unsafe {
-        (*info).root = placement.original_parent.as_raw_handle();
         (*info).name_bytes = (name.len() * 2) as u32;
         std::ptr::copy_nonoverlapping(
             name.as_ptr(),
             std::ptr::addr_of_mut!((*info).name).cast(),
             name.len(),
         );
-        if SetFileInformationByHandle(
-            placement.source.as_raw_handle(),
-            3,
-            info.cast(),
-            length as u32,
-        ) == 0
-        {
+        if SetFileInformationByHandle(handle.as_raw_handle(), 3, info.cast(), length as u32) == 0 {
             return Err(io::Error::last_os_error());
         }
     }
