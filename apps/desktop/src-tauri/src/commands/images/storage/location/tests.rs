@@ -18,6 +18,19 @@ fn cap(path: &Path) -> Arc<Dir> {
 fn file(path: &Path) -> Arc<File> {
     Arc::new(File::open_ambient(path, cap_std::ambient_authority()).unwrap())
 }
+fn rename_file_preserving_creation(old: &Path, new: &Path) {
+    #[cfg(windows)]
+    let retained = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(old)
+        .unwrap();
+    #[cfg(windows)]
+    let creation = document_service::WindowsCreationTime::capture(&retained).unwrap();
+    fs::rename(old, new).unwrap();
+    #[cfg(windows)]
+    creation.restore(&retained).unwrap();
+}
 impl Fixture {
     fn new() -> Self {
         let temp = tempfile::tempdir().unwrap();
@@ -291,8 +304,8 @@ fn replacement_and_undo_validate_all_old_record_keys_before_the_first_publicatio
         let first_handle = file(first_old);
         let second_handle = file(second_old);
         let mut documents = service.prepare_moves(specs).unwrap();
-        fs::rename(first_old, first_new).unwrap();
-        fs::rename(second_old, second_new).unwrap();
+        rename_file_preserving_creation(first_old, first_new);
+        rename_file_preserving_creation(second_old, second_new);
         let replacement = if first_old.exists() {
             Some(file(first_old))
         } else {

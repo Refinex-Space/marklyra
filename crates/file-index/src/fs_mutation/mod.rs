@@ -16,6 +16,21 @@ mod windows;
 #[cfg(windows)]
 pub(super) use windows::{configure_source, open_retained, retained_access};
 
+#[derive(Debug)]
+pub(super) struct CommittedRenameError(io::Error);
+impl std::fmt::Display for CommittedRenameError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "文件已移动，但创建时间恢复失败：{}", self.0)
+    }
+}
+impl std::error::Error for CommittedRenameError {}
+
+pub(super) fn rename_was_committed(error: &io::Error) -> bool {
+    error
+        .get_ref()
+        .is_some_and(|error| error.is::<CommittedRenameError>())
+}
+
 pub(super) fn directory_identity(directory: &Dir) -> io::Result<same_file::Handle> {
     same_file::Handle::from_file(directory.try_clone()?.into_std_file())
 }

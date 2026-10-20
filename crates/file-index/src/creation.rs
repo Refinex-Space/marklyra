@@ -351,12 +351,18 @@ impl Workspace {
             .then(|| plan.source.metadata().map(|metadata| metadata.len()))
             .transpose()?;
         if plan.old_name != plan.new_name {
-            rename_exclusive(
+            if let Err(error) = rename_exclusive(
                 &plan.directory,
                 &plan.source,
                 &plan.old_name,
                 &plan.new_name,
-            )?;
+            ) {
+                if crate::fs_mutation::rename_was_committed(&error) {
+                    state.pending.remove(&plan.token);
+                    return Err(IndexError::MutationUncertain);
+                }
+                return Err(error.into());
+            }
         }
         // Once the syscall succeeded the token must never authorize a second
         // move, including a failed post-check. Do not delete or overwrite paths

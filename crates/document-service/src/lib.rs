@@ -8,6 +8,8 @@ mod codec;
 mod directory_test_support;
 mod external;
 mod file_location;
+#[cfg(windows)]
+mod file_times;
 mod image_document_identity;
 mod image_drafts;
 mod image_save_as;
@@ -33,6 +35,8 @@ pub use authority::{
 pub use codec::{validate_text, Encoding};
 pub use external::{DocumentChange, UnreadableReason};
 pub use file_location::FileLocationLease;
+#[cfg(windows)]
+pub use file_times::WindowsCreationTime;
 pub use image_assets::{ImageRegistration, ImageResource, IMAGE_CSP};
 use image_assets::{ImageRegistry, ImageScope};
 pub use image_document_identity::ImageDocumentIdentity;

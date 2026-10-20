@@ -132,6 +132,11 @@ fn replace_retains_exact_old_target_and_undo_restores_both_entities() {
         #[cfg(windows)]
         std::thread::sleep(std::time::Duration::from_millis(20));
         fs::write(root.path().join("to/note.md"), b"target").unwrap();
+        #[cfg(windows)]
+        let creation = document_service::WindowsCreationTime::capture(
+            &fs::File::open(root.path().join("from/note.md")).unwrap(),
+        )
+        .unwrap();
         let target_identity = same_file::Handle::from_path(root.path().join("to/note.md")).unwrap();
         let commit = workspace
             .commit_entry_move(prepare(
@@ -146,6 +151,14 @@ fn replace_retains_exact_old_target_and_undo_restores_both_entities() {
         assert_eq!(*replaced.identity(), target_identity);
         assert_eq!(fs::read(replaced.display_path()).unwrap(), b"target");
         assert_eq!(fs::read(root.path().join("to/note.md")).unwrap(), b"source");
+        #[cfg(windows)]
+        assert_eq!(
+            document_service::WindowsCreationTime::capture(
+                &fs::File::open(root.path().join("to/note.md")).unwrap(),
+            )
+            .unwrap(),
+            creation
+        );
         let undone = workspace
             .commit_entry_move_undo(
                 workspace
