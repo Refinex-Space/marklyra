@@ -1,6 +1,6 @@
 # MarkLyra 发布与更新手册
 
-适用仓库：[`Refinex-Space/marklyra`](https://github.com/Refinex-Space/marklyra)。维护日期：2026-10-20。
+适用仓库：[`Refinex-Space/marklyra`](https://github.com/Refinex-Space/marklyra)。维护日期：2026-10-21。
 
 本项目采用 GitHub Release 分发免费开源桌面版本。macOS 使用 ad-hoc 本地签名，不购买 Apple 开发者证书、不做公证；Windows 不要求 Authenticode 证书。应用内更新使用另一套免费的 Tauri/minisign 密钥校验来源，不能省略。
 
@@ -87,7 +87,7 @@ pnpm release:version 0.1.1
 pnpm release:check
 ```
 
-将例子中的 `0.1.1` 换成实际版本。只接受稳定的 `X.Y.Z`，不得重用或降低版本。脚本同步根 `package.json`、桌面 `package.json`、Tauri 配置、Rust workspace 和 workspace 成员的 `Cargo.lock` 版本；编辑器 SDK 具有独立版本，不跟随桌面版机械递增。当前尚未发布的初始 `0.1.0` 无需执行递增命令。
+将例子中的 `0.1.1` 换成实际版本。只接受稳定的 `X.Y.Z`，不得重用或降低版本。脚本同步根 `package.json`、桌面 `package.json`、Tauri 配置、Rust workspace 和 workspace 成员的 `Cargo.lock` 版本；编辑器 SDK 具有独立版本，不跟随桌面版机械递增。初始 `0.1.0` 仅在从未推送过对应标签时可以直接使用；构建失败后需要修正源码时，使用递增版本，不移动已经推送的标签。
 
 编写 `docs/releases/vX.Y.Z.md`。它会成为 GitHub Release 说明；内容应写实际改动、安装提示、已知限制和真实验证结果。应用内面板不会显示该版本摘要。
 
