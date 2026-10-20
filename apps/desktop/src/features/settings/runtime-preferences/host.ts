@@ -18,7 +18,7 @@ import {
 } from './policy.js';
 import { startupPreferenceAction, startupPreferencesSnapshot } from './startup-preferences.js';
 
-export type NativePage = 'ai' | 'export';
+export type NativePage = 'ai' | 'export' | 'sponsorship';
 
 export interface RuntimePreferencesOptions {
   runtimeUrl: string;
@@ -30,7 +30,7 @@ export interface RuntimePreferencesOptions {
   onPut: (key: PreferenceKey, value: PreferenceValue) => Promise<void | FilePreferences>;
   onAction?: (name: PreferenceAction, data: unknown) => Promise<unknown>;
   onClose: () => void;
-  /** The settings page is drawn by the host (智能体, 导出) instead of by the isolated page. */
+  /** The settings page is drawn by the host (智能体、导出、赞助) instead of by the isolated page. */
   onNativePage?: (page: NativePage | null) => void;
   onError: (error: Error) => void;
 }
@@ -167,7 +167,10 @@ export class RuntimePreferencesHost {
       if (this.closeRequested) this.requestClose();
       return;
     }
-    if (kind === 'native-page' && (payload === null || payload === 'ai' || payload === 'export')) {
+    if (
+      kind === 'native-page' &&
+      (payload === null || payload === 'ai' || payload === 'export' || payload === 'sponsorship')
+    ) {
       this.options.onNativePage?.(payload);
       return;
     }

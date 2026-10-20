@@ -51,6 +51,7 @@ import {
   startupPreferenceAction,
   startupPreferencesOptions,
 } from './runtime-preferences/startup-preferences.js';
+import { SponsorshipPage } from './sponsorship/SponsorshipPage.js';
 
 function options(
   catalog: ThemeCatalog,
@@ -438,6 +439,11 @@ export function PreferencesWindow({
       {nativePage === 'ai' && (
         <div className="preferences-native-overlay" data-settings-dark={dark}>
           <AgentSettings />
+        </div>
+      )}
+      {nativePage === 'sponsorship' && (
+        <div className="preferences-native-overlay" data-settings-dark={dark}>
+          <SponsorshipPage />
         </div>
       )}
       {nativePage === 'export' && (

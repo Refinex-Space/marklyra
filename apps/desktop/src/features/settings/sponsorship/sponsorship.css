@@ -1,0 +1,146 @@
+.sponsorship-page {
+  container: sponsorship / inline-size;
+  height: 100%;
+  overflow: auto;
+  padding: var(--settings-content-padding);
+  scrollbar-gutter: stable both-edges;
+  color: var(--settings-text);
+  background: var(--settings-bg);
+  font: var(--settings-font);
+}
+.sponsorship-content {
+  max-width: var(--settings-content-width);
+  margin: 0 auto;
+}
+.sponsorship-heading {
+  margin-bottom: 34px;
+}
+.sponsorship-heading h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.sponsorship-heading p {
+  margin: 6px 0 0;
+  color: var(--settings-muted);
+  font-size: 13px;
+}
+.sponsorship-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 252px;
+  gap: 28px 36px;
+  align-items: center;
+  padding: 36px 32px 24px;
+  border: 1px solid var(--settings-line);
+  border-radius: 8px;
+  background: var(--settings-bg);
+}
+.sponsorship-mark {
+  display: block;
+  width: 46px;
+  height: 46px;
+  color: var(--settings-text);
+}
+.sponsorship-introduction h2 {
+  margin: 24px 0 16px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.4px;
+}
+.sponsorship-description {
+  max-width: 32em;
+  margin: 0;
+  color: var(--settings-muted);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.sponsorship-purpose {
+  margin: 22px 0 0;
+  font-size: 12px;
+  color: var(--settings-text);
+}
+.sponsorship-thanks {
+  margin: 10px 0 0;
+  color: var(--settings-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.sponsorship-payment {
+  width: 252px;
+  max-width: 100%;
+  margin: 0;
+  justify-self: center;
+}
+.sponsorship-qr-surface {
+  padding: 16px;
+  border: 1px solid var(--settings-line);
+  border-radius: 8px;
+  background: #fff;
+  color-scheme: light;
+}
+.sponsorship-qr-surface img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+}
+.sponsorship-payment figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+  text-align: center;
+}
+.sponsorship-payment strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.sponsorship-payment figcaption span {
+  color: var(--settings-muted);
+  font-size: 12px;
+}
+.sponsorship-note {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding-top: 22px;
+  border-top: 1px solid var(--settings-line);
+}
+.sponsorship-note > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--settings-muted);
+}
+.sponsorship-note p {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.sponsorship-note strong {
+  font-weight: 500;
+}
+.sponsorship-note span {
+  color: var(--settings-muted);
+}
+@container sponsorship (max-width: 620px) {
+  .sponsorship-card {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 26px 24px 22px;
+    gap: 28px;
+  }
+  .sponsorship-introduction h2 {
+    margin-top: 20px;
+    font-size: 22px;
+  }
+  .sponsorship-payment {
+    width: 252px;
+  }
+}
