@@ -250,8 +250,12 @@ fn changed_bytes_parent_and_destination_occupation_do_not_overwrite() {
         &root.path().join("to"),
         &root.path().join("held-dir"),
     ) {
-        assert!(workspace.commit_entry_move(plan).is_ok());
-        assert_eq!(fs::read(root.path().join("to/note.md")).unwrap(), b"edited");
+        drop(plan);
+        assert_eq!(
+            fs::read(root.path().join("from/note.md")).unwrap(),
+            b"edited"
+        );
+        assert!(!root.path().join("to/note.md").exists());
         return;
     }
     fs::create_dir(root.path().join("to")).unwrap();
