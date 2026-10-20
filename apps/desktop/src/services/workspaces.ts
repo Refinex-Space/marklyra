@@ -251,7 +251,7 @@ export const workspaces = {
     workspaceId: string,
     query: string,
     options: { caseSensitive?: boolean; wholeWord?: boolean; useRegex?: boolean } = {},
-    maxResults = 200,
+    maxResults = 5000,
   ) =>
     invoke<WorkspaceSearchReport>('search_workspace', {
       workspaceId,

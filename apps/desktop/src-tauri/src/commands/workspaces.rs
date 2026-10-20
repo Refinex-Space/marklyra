@@ -5,7 +5,10 @@ use file_index::{
     DirectoryListing, DocumentSummary, SearchOptions, SearchReport, Workspace,
     WorkspaceArticlesReport, WorkspaceCatalogSnapshot, WorkspacePayload, WorkspaceRegistry,
 };
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicBool, Arc, Mutex, OnceLock},
+};
 use tauri::WebviewWindow;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
@@ -23,6 +26,38 @@ mod trash;
 pub use trash::*;
 
 pub type Workspaces = Arc<Mutex<WorkspaceRegistry>>;
+
+/// Matches a search returns unless the caller asks for fewer; results are in path order.
+const DEFAULT_SEARCH_RESULTS: usize = 5_000;
+
+/// The newest search of each window. A new query withdraws the previous one, so typing never
+/// leaves several full scans of the directory running.
+fn running_searches() -> &'static Mutex<HashMap<String, Arc<AtomicBool>>> {
+    static SEARCHES: OnceLock<Mutex<HashMap<String, Arc<AtomicBool>>>> = OnceLock::new();
+    SEARCHES.get_or_init(Mutex::default)
+}
+
+/// Registers a search for `label`, cancelling the one it replaces.
+fn begin_search(label: &str) -> Arc<AtomicBool> {
+    let cancel = Arc::new(AtomicBool::new(false));
+    if let Ok(mut searches) = running_searches().lock() {
+        if let Some(previous) = searches.insert(label.to_owned(), Arc::clone(&cancel)) {
+            previous.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+    cancel
+}
+
+fn finish_search(label: &str, cancel: &Arc<AtomicBool>) {
+    if let Ok(mut searches) = running_searches().lock() {
+        if searches
+            .get(label)
+            .is_some_and(|current| Arc::ptr_eq(current, cancel))
+        {
+            searches.remove(label);
+        }
+    }
+}
 
 fn report_notification(result: tauri::Result<()>, event: &str) {
     if let Err(error) = result {
@@ -326,31 +361,38 @@ pub async fn search_workspace(
         .state::<WindowServices>()
         .get_workspaces(window.label())?;
     let app = window.app_handle().clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        let types = app
-            .state::<crate::file_preferences::FilePreferencesHost>()
-            .document_types(&app)?;
-        read_workspace(
-            &registry,
-            &workspace_id,
-            || verify_workspace_window(&window, &registry),
-            |selected| {
-                selected.search_with_filters(
-                    SearchOptions {
-                        query: &query,
-                        case_sensitive: case_sensitive.unwrap_or(true),
-                        whole_word: whole_word.unwrap_or(false),
-                        use_regex: use_regex.unwrap_or(false),
-                        max_results: max_results.unwrap_or(200),
-                    },
-                    crate::platform::file_metadata::include_entry,
-                    |name| types.allows(std::path::Path::new(name)),
-                )
-            },
-        )
+    let label = window.label().to_owned();
+    let cancel = begin_search(&label);
+    let outcome = tauri::async_runtime::spawn_blocking({
+        let cancel = Arc::clone(&cancel);
+        move || {
+            let types = app
+                .state::<crate::file_preferences::FilePreferencesHost>()
+                .document_types(&app)?;
+            read_workspace(
+                &registry,
+                &workspace_id,
+                || verify_workspace_window(&window, &registry),
+                |selected| {
+                    selected.search_with_cancel(
+                        SearchOptions {
+                            query: &query,
+                            case_sensitive: case_sensitive.unwrap_or(true),
+                            whole_word: whole_word.unwrap_or(false),
+                            use_regex: use_regex.unwrap_or(false),
+                            max_results: max_results.unwrap_or(DEFAULT_SEARCH_RESULTS),
+                        },
+                        crate::platform::file_metadata::include_entry,
+                        |name| types.allows(std::path::Path::new(name)),
+                        &cancel,
+                    )
+                },
+            )
+        }
     })
-    .await
-    .map_err(|_| "目录搜索任务未能完成".to_owned())?
+    .await;
+    finish_search(&label, &cancel);
+    outcome.map_err(|_| "目录搜索任务未能完成".to_owned())?
 }
 
 #[tauri::command]

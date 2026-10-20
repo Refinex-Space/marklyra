@@ -342,7 +342,7 @@ test('a relocated capability invalidates late listings and late metadata checks'
   expect(await lists(page)).toBe(before);
 });
 
-test('directory changes cancel an old search and show explicit scan and encoding boundaries', async ({
+test('directory changes cancel an old search and still disclose unreadable encodings quietly', async ({
   page,
 }) => {
   await boot(page);
@@ -362,9 +362,10 @@ test('directory changes cancel an old search and show explicit scan and encoding
   );
   await expect(page.locator('.workspace-result-path')).toHaveText('目标😀.md');
   await expect(page.locator('.workspace-result-hit')).toHaveText('needle');
-  await expect(page.getByText(/达到扫描条目数、目录深度、读取字节数、扫描时间上限/)).toBeVisible();
+  // Files that cannot be searched are still named, but scan limits and the file-browse filter
+  // are no longer announced above the results.
   await expect(page.getByText(/1 个不支持的编码文件/)).toBeVisible();
-  await expect(page.getByText(/过滤规则排除了 2 个项目/)).toBeVisible();
+  await expect(page.getByText(/达到.*上限|过滤规则排除/)).toHaveCount(0);
   await page.evaluate(() => (window as ExplorerWindow).__explorerProbe.releaseSearch(0, 'Old.md'));
   await expect(page.locator('.workspace-result-path')).toHaveText('目标😀.md');
   await expect(page.getByText('Old.md', { exact: true })).toHaveCount(0);

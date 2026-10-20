@@ -15,6 +15,10 @@ import {
   type RelativeEntryPresence,
   type RelativeEntryRename,
 } from './entry-projection.js';
+import { SidebarSkeleton } from './SidebarSkeleton.js';
+
+/** Result rows drawn per step while scrolling; the whole result set is held, not drawn. */
+const PAGE_SIZE = 100;
 
 interface SearchProps {
   workspaceId: string;
@@ -75,6 +79,9 @@ export function WorkspaceSearch({
   latestPresence.current = presence;
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const section = useRef<HTMLElement | null>(null);
+  const sentinel = useRef<HTMLLIElement | null>(null);
   const generation = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputId = useId();
@@ -143,7 +150,7 @@ export function WorkspaceSearch({
       setReport(null);
       setError('');
       setLoading(query.length > 0);
-      if (query.length > 0) timer.current = setTimeout(() => void runSearch(), 280);
+      if (query.length > 0) timer.current = setTimeout(() => void runSearch(), 180);
     }
     return () => {
       generation.current += 1;
@@ -161,6 +168,30 @@ export function WorkspaceSearch({
         entryIsPresent(match.relativePath, reportEpoch.current, presence, renames),
       ) ?? [];
   const skipped = report ? skippedSummary(report) : '';
+  // A new result set starts again from its first rows.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the report identity is the generation.
+  useEffect(() => setShown(PAGE_SIZE), [report]);
+  const visible = Math.min(shown, matches.length);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a fresh observer reports the sentinel again after every page.
+  useEffect(() => {
+    const target = sentinel.current;
+    if (!target || !active) return;
+    const observer = new IntersectionObserver(
+      (records) => {
+        if (records.some((record) => record.isIntersecting))
+          setShown((current) => Math.min(current + PAGE_SIZE, matches.length));
+      },
+      {
+        root: section.current?.closest('.workspace-panel, .sidebar-panel') ?? null,
+        rootMargin: '480px 0px',
+      },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [active, visible, matches.length]);
+  const files = new Set(matches.map((match) => match.relativePath)).size;
+  // The result set is cut at a generous size; when it is, the count says "N+" rather than warning.
+  const capped = report?.truncationReasons?.includes('results') ?? false;
   const controls = (
     <form
       className={headerTarget ? 'sidebar-search-controls' : undefined}
@@ -272,6 +303,7 @@ export function WorkspaceSearch({
   );
   return (
     <section
+      ref={section}
       className="workspace-search"
       aria-label="工作区全文搜索"
       data-header-search={Boolean(headerTarget) || undefined}
@@ -279,11 +311,13 @@ export function WorkspaceSearch({
     >
       {headerTarget ? createPortal(controls, headerTarget) : controls}
       <div id={statusId} className="workspace-search-status" aria-live="polite" aria-atomic="true">
-        {loading
-          ? '正在搜索…'
-          : report
-            ? `找到 ${matches.length} 处匹配，检查了 ${report.scannedFiles} 个候选文件。`
-            : ''}
+        {loading ? (
+          <SidebarSkeleton variant="articles" rows={3} />
+        ) : report ? (
+          `找到 ${matches.length.toLocaleString('zh-CN')}${capped ? '+' : ''} 处匹配，位于 ${files.toLocaleString('zh-CN')} 个文件`
+        ) : (
+          ''
+        )}
       </div>
       {error && (
         <p className="workspace-error" role="alert">
@@ -292,35 +326,10 @@ export function WorkspaceSearch({
       )}
       {report && !loading && (
         <>
-          {matches.length === 0 && <p className="workspace-hint">当前已扫描范围内没有匹配。</p>}
+          {matches.length === 0 && <p className="workspace-hint">没有找到匹配。</p>}
           {skipped && <p className="workspace-limit">{skipped}</p>}
-          {!!report.skipped.ignored && (
-            <p className="workspace-hint">
-              按文件浏览过滤规则排除了 {report.skipped.ignored} 个项目。
-            </p>
-          )}
-          {report.truncated && (
-            <p className="workspace-limit" role="status">
-              已达到搜索或读取上限，结果不完整。请缩小目录范围或使用更具体的搜索词。
-              {!!report.truncationReasons?.length &&
-                `达到${report.truncationReasons
-                  .map(
-                    (reason) =>
-                      ({
-                        results: '匹配数',
-                        files: '文件数',
-                        entries: '扫描条目数',
-                        directory: '单目录条目数',
-                        depth: '目录深度',
-                        bytes: '读取字节数',
-                        time: '扫描时间',
-                      })[reason],
-                  )
-                  .join('、')}上限。`}
-            </p>
-          )}
           <ol className="workspace-results" aria-label="全文搜索结果">
-            {matches.map((sourceMatch) => {
+            {matches.slice(0, visible).map((sourceMatch) => {
               const match = {
                 ...sourceMatch,
                 relativePath: sourceMatch.relativePath,
@@ -378,12 +387,15 @@ export function WorkspaceSearch({
                 </li>
               );
             })}
+            {visible < matches.length && (
+              <li ref={sentinel} className="workspace-result-sentinel" aria-hidden="true" />
+            )}
           </ol>
         </>
       )}
       <p className="workspace-search-scope">
-        搜索支持的文本文件（UTF-8、带 BOM 的 UTF-16LE/BE），单文件最多 2 MiB，最多显示 200
-        处匹配。隐藏及忽略项目不在搜索范围内。目录变化后自动重新搜索。
+        搜索支持的文本文件（UTF-8、带 BOM 的 UTF-16LE/BE），单文件最多 2
+        MiB。隐藏及忽略项目不在搜索范围内。目录变化后自动重新搜索。
       </p>
     </section>
   );
