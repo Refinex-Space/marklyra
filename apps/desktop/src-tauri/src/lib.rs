@@ -266,7 +266,7 @@ pub fn run() {
             let native_menu = menu::build(app.handle())?;
             app.set_menu(native_menu.clone())?;
             #[cfg(target_os = "macos")]
-            menu::register_window_menu(&native_menu)?;
+            menu::register_native_menu(&native_menu)?;
             // The configured main window predates the app menu; its titlebar is WebView-owned.
             #[cfg(windows)]
             if let Some(main) = app.get_webview_window("main") {

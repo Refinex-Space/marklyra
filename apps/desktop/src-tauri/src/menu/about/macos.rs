@@ -6,9 +6,30 @@ use objc2_app_kit::{
     NSLinkAttributeName, NSMutableParagraphStyle, NSParagraphStyleAttributeName, NSTextAlignment,
 };
 use objc2_foundation::{
-    ns_string, NSData, NSDictionary, NSMutableAttributedString, NSRange, NSString, NSURL,
+    ns_string, NSData, NSDictionary, NSMutableAttributedString, NSRange, NSSize, NSString, NSURL,
 };
 use tauri::{AppHandle, Runtime};
+
+/// Apply after installing the application menu: Muda forces icon sizes to 18 pt.
+pub(super) fn configure_menu_icon() -> Result<(), String> {
+    let mtm = MainThreadMarker::new().ok_or("Menu icons require the main thread")?;
+    let item = NSApplication::sharedApplication(mtm)
+        .mainMenu()
+        .and_then(|menu| menu.itemAtIndex(0))
+        .and_then(|item| item.submenu())
+        .and_then(|menu| menu.itemWithTitle(ns_string!("关于 MarkLyra")))
+        .ok_or("About menu item is missing")?;
+    let image = NSImage::imageWithSystemSymbolName_accessibilityDescription(
+        ns_string!("info.circle"),
+        None,
+    )
+    .ok_or("Information symbol is unavailable")?;
+    image.setSize(NSSize::new(14.0, 14.0));
+    // AppKit supplies the menu's light/dark, highlighted and disabled colors.
+    image.setTemplate(true);
+    item.setImage(Some(&image));
+    Ok(())
+}
 
 pub(super) fn show<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
     let mtm = MainThreadMarker::new().ok_or("About must open on the main thread")?;

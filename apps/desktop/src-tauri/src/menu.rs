@@ -261,7 +261,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     }
     let window = window.build()?;
     let mut application = SubmenuBuilder::new(app, "MarkLyra")
-        .item(&item(app, about::MENU_ID, "关于 MarkLyra", None)?)
+        .item(&about::menu_item(app)?)
         .separator();
     for entry in APPLICATION {
         if let Action(id, label, accelerator) = entry {
@@ -297,7 +297,8 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn register_window_menu<R: Runtime>(menu: &Menu<R>) -> tauri::Result<()> {
+pub fn register_native_menu<R: Runtime>(menu: &Menu<R>) -> tauri::Result<()> {
+    about::configure_menu_icon().map_err(std::io::Error::other)?;
     // Muda resolves the submenu through NSApp.mainMenu's delegate. Before
     // app.set_menu this silently does nothing, even though the call returns Ok.
     let item = menu

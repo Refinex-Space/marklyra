@@ -1,5 +1,5 @@
 //! Native About surfaces share product information, not window chrome.
-use tauri::{AppHandle, Runtime};
+use tauri::{menu::MenuItemKind, AppHandle, Runtime};
 
 pub const MENU_ID: &str = "about-marklyra";
 const NAME: &str = "MarkLyra";
@@ -14,6 +14,22 @@ mod native;
 #[cfg(windows)]
 #[path = "about/windows.rs"]
 mod native;
+
+pub fn menu_item<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<MenuItemKind<R>> {
+    #[cfg(target_os = "macos")]
+    return tauri::menu::IconMenuItemBuilder::with_id(MENU_ID, "关于 MarkLyra")
+        .build(app)
+        .map(MenuItemKind::Icon);
+    #[cfg(not(target_os = "macos"))]
+    tauri::menu::MenuItemBuilder::with_id(MENU_ID, "关于 MarkLyra")
+        .build(app)
+        .map(MenuItemKind::MenuItem)
+}
+
+#[cfg(target_os = "macos")]
+pub fn configure_menu_icon() -> Result<(), String> {
+    native::configure_menu_icon()
+}
 
 pub fn show<R: Runtime>(app: &AppHandle<R>) {
     let app = app.clone();

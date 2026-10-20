@@ -18,6 +18,25 @@ fn main() {
     let directory = std::env::var_os("MARKLYRA_ABOUT_SNAPSHOTS").map(std::path::PathBuf::from);
     tauri::Builder::default()
         .setup(move |app| {
+            let item = about::menu_item(app.handle())?;
+            assert_eq!(item.id().as_ref(), about::MENU_ID);
+            assert!(item.as_icon_menuitem().unwrap().is_enabled()?);
+            let application = tauri::menu::SubmenuBuilder::new(app, "MarkLyra")
+                .item(&item)
+                .build()?;
+            app.set_menu(tauri::menu::MenuBuilder::new(app).item(&application).build()?)?;
+            about::configure_menu_icon().map_err(std::io::Error::other)?;
+            let mtm = MainThreadMarker::new().unwrap();
+            let native_item = NSApplication::sharedApplication(mtm)
+                .mainMenu().unwrap()
+                .itemAtIndex(0).unwrap()
+                .submenu().unwrap()
+                .itemAtIndex(0).unwrap();
+            assert_eq!(native_item.title().to_string(), "关于 MarkLyra");
+            let image = native_item.image().expect("About menu must have a native information icon");
+            assert!(image.isTemplate(), "menu icon must follow AppKit colors");
+            assert_eq!(image.size().width, 14.0);
+            assert_eq!(image.size().height, 14.0);
             about::show(app.handle());
             about::show(app.handle());
             let app = app.handle().clone();
