@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Locator, test } from '@playwright/test';
 import type { WorkspaceEntry } from '../../apps/desktop/src/services/workspaces.js';
 import {
   emitLayoutMenu,
@@ -29,6 +29,40 @@ const entries: WorkspaceEntry[] = [
     }),
   ),
 ];
+
+/** Compare painted edges, not just equal CSS boxes around different icon formats. */
+async function paintedLeft(icon: Locator) {
+  const bounds = await icon.boundingBox();
+  if (!bounds) throw Error('Missing icon bounds');
+  const png = await icon.screenshot({ scale: 'css' });
+  const offset = await icon.page().evaluate(async (base64) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${base64}`;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw Error('Missing canvas context');
+    context.drawImage(image, 0, 0);
+    const { data } = context.getImageData(0, 0, image.width, image.height);
+    for (let x = 0; x < image.width; x++) {
+      let painted = 0;
+      for (let y = 0; y < image.height; y++) {
+        const at = (y * image.width + x) * 4;
+        if (
+          [0, 1, 2].some(
+            (channel) => Math.abs((data[at + channel] ?? 0) - (data[channel] ?? 0)) > 50,
+          )
+        )
+          painted++;
+      }
+      if (painted >= 2) return x;
+    }
+    throw Error('Icon has no visible pixels');
+  }, png.toString('base64'));
+  return bounds.x + offset;
+}
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: sidebar tree icons and names remain on one line while resizing with ellipsis`, async ({
@@ -76,6 +110,16 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       await page.locator(`button.workspace-tree-row[data-entry-path="${path}"]`).click();
     const rows = page.locator('button.workspace-tree-row');
     await expect(rows).toHaveCount(entries.length);
+    // Closed/open folders and files at the root share the same visible left edge.
+    const visibleEdges = [];
+    for (const path of ['归档', folder, 'Layout.md']) {
+      visibleEdges.push(
+        await paintedLeft(
+          page.locator(`button.workspace-tree-row[data-entry-path="${path}"] > .workspace-glyph`),
+        ),
+      );
+    }
+    expect(Math.max(...visibleEdges) - Math.min(...visibleEdges)).toBeLessThanOrEqual(0.5);
     const sidebar = page.locator('aside.sidebar');
     const divider = page.getByRole('separator', { name: '调整侧栏宽度' });
     for (const position of ['narrow', 'middle', 'wide', 'narrow-again']) {

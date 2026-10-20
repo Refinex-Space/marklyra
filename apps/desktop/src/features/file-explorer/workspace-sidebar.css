@@ -464,6 +464,7 @@
   --workspace-active-border: var(--marklyra-active-file-border, #777);
   --workspace-active-text: var(--marklyra-active-file-text, var(--muted));
   --workspace-row-height: var(--marklyra-tree-row-height, 29px);
+  --workspace-root-inset: 16px;
   position: relative;
   color: var(--marklyra-sidebar-text, var(--text));
   font-size: var(--marklyra-sidebar-font-size, 14px);
@@ -476,14 +477,15 @@
   --workspace-row-height: var(--marklyra-tree-row-height, 32px);
 }
 .workspace-sidebar-compact .workspace-directory-tree {
-  padding: 0 4px 60px 8px;
+  /* The first child starts at the center of the header's 14px folder icon. */
+  padding: 0 4px 60px calc(var(--workspace-root-inset) + 7px);
   position: relative;
 }
 .workspace-sidebar-compact .workspace-tree-item > div > .workspace-branch {
   margin-left: 8px;
 }
 .workspace-sidebar-compact .workspace-directory-tree > .workspace-branch {
-  margin-left: 8px;
+  margin-left: 0;
 }
 .workspace-sidebar-compact .workspace-tree-row {
   display: flex;
@@ -492,8 +494,8 @@
   border-radius: 0;
   height: auto;
   min-height: var(--workspace-row-height);
-  width: calc(100% - 8px);
-  margin-left: 8px;
+  width: 100%;
+  margin-left: 0;
   line-height: 22px;
   padding: 4px 32px 0 0;
   color: var(--marklyra-control-text, var(--muted));
@@ -509,7 +511,7 @@
   position: absolute;
   top: 0;
   height: var(--workspace-row-height);
-  left: calc(-16px - var(--workspace-tree-depth, 1) * 8px);
+  left: calc(0px - var(--workspace-root-inset) - 7px - (var(--workspace-tree-depth, 1) - 1) * 8px);
   right: -4px;
   pointer-events: none;
 }
@@ -531,7 +533,12 @@
 /* One stateful folder icon replaces the old disclosure triangle and folder pair. */
 .workspace-sidebar-compact .workspace-tree-row > .workspace-glyph {
   float: none;
-  margin-left: 2px;
+  margin-left: 0;
+}
+.workspace-sidebar-compact .workspace-tree-row > .workspace-glyph-file::before {
+  /* Match the folder SVG's 2/24 leading inset inside its 16px icon slot. */
+  display: inline-block;
+  transform: translateX(calc(16px * 2 / 24));
 }
 .workspace-sidebar-compact .workspace-tree-row:hover::before {
   background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
@@ -590,13 +597,13 @@
   flex: 0 0 40px;
   min-width: 0;
   gap: 12px;
-  padding: 0 6px 0 16px;
+  padding: 0 6px 0 var(--workspace-root-inset);
   position: relative;
   z-index: 4;
 }
-.shell[data-native-chrome="true"] .workspace-navigation-header {
+.shell[data-native-chrome="true"] .workspace-sidebar-compact {
   /* Align the folder icon with the macOS overlay titlebar's leading window control. */
-  padding-left: 8px;
+  --workspace-root-inset: 8px;
 }
 .workspace-navigation-header .workspace-root-row {
   display: grid;
@@ -608,6 +615,13 @@
   height: 40px;
   margin: 0;
   padding: 0;
+}
+.sidebar[data-file-view="tree"] .workspace-navigation-header {
+  flex-basis: var(--workspace-row-height);
+}
+.sidebar[data-file-view="tree"] .workspace-navigation-header .workspace-root-row {
+  height: var(--workspace-row-height);
+  padding-top: 4px;
 }
 .workspace-navigation-header .workspace-root-row > .workspace-glyph {
   float: none;
@@ -1410,13 +1424,14 @@
   line-height: 1;
   pointer-events: none;
 }
-/* The tree's right edge sits 4px inside the sidebar and the header's search icon 11px inside it:
-   7px puts the numbers on the icon's right edge, so both read as one column. */
+/* Search is centered 20px from the sidebar edge; rows end 4px inside it.
+   Center every count on that axis, including single digits and the 9999+ cap. */
 .workspace-sidebar-compact .workspace-tree-row .workspace-tree-count {
   position: absolute;
-  top: 4px;
-  right: 7px;
-  margin: 0;
+  top: 50%;
+  right: 16px;
+  transform: translate(50%, -50%);
+  margin: 2px 0 0;
   padding: 0;
   line-height: 22px;
 }

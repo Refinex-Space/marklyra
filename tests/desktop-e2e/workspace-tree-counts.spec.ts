@@ -54,8 +54,8 @@ async function installFolders(page: Page, host: 'windows' | 'macos') {
   });
 }
 
-async function openTree(page: Page) {
-  await readyLayout(page, 'marklyra-light');
+async function openTree(page: Page, theme = 'marklyra-light') {
+  await readyLayout(page, theme);
   await openLayoutDocument(page);
   await emitLayoutMenu(page, 'open-folder');
   await emitLayoutMenu(page, 'view:files');
@@ -82,40 +82,59 @@ for (const host of ['windows', 'macos'] as const) {
     ).toHaveCount(0);
   });
 
-  test(`${host}: the numbers sit in the search icon's column, on the name's line`, async ({
-    page,
-  }) => {
-    await installFolders(page, host);
-    await openTree(page);
-    await expect(
-      page.locator('button[data-entry-path="Folder"] .workspace-tree-count'),
-    ).toHaveText('3');
-    await page.locator('.sidebar').hover();
-    const geometry = await page.evaluate(() => {
-      const icon = document.querySelector<HTMLElement>(
-        '.sidebar-header-action[aria-label="全文搜索"] .ui-icon',
-      );
-      const number = document.querySelector<HTMLElement>(
-        'button[data-entry-path="Folder"] .workspace-tree-count',
-      );
-      const name = document.querySelector<HTMLElement>(
-        'button[data-entry-path="Folder"] .workspace-tree-name',
-      );
-      if (!icon || !number || !name) throw Error('Missing tree geometry');
-      const a = icon.getBoundingClientRect();
-      const b = number.getBoundingClientRect();
-      const c = name.getBoundingClientRect();
-      return {
-        iconRight: a.right,
-        numberRight: b.right,
-        numberMiddle: b.top + b.height / 2,
-        nameMiddle: c.top + c.height / 2,
-      };
+  for (const theme of ['marklyra-light', 'marklyra-dark']) {
+    test(`${host} ${theme}: tree spacing, first-level indent and count centers stay aligned`, async ({
+      page,
+    }, info) => {
+      await installFolders(page, host);
+      await openTree(page, theme);
+      await expect(count(page, 'Folder')).toHaveText('3');
+      await page.locator('button[data-entry-path="Folder"]').click();
+      await expect(count(page, 'Folder/Inner')).toHaveText('2');
+      const divider = page.getByRole('separator', { name: '调整侧栏宽度' });
+      for (const width of ['narrow', 'wide']) {
+        await divider.press(width === 'narrow' ? 'Home' : 'End');
+        await page.locator('.sidebar').hover();
+        const geometry = await page.evaluate(() => {
+          const box = (selector: string) => {
+            const element = document.querySelector(selector);
+            if (!element) throw Error(`Missing tree geometry: ${selector}`);
+            return element.getBoundingClientRect();
+          };
+          const centerX = (rect: DOMRect) => rect.left + rect.width / 2;
+          const centerY = (rect: DOMRect) => rect.top + rect.height / 2;
+          const root = box('.workspace-navigation-header .workspace-root-row > .workspace-glyph');
+          const first = box('button[data-entry-path="Big"] > .workspace-glyph');
+          const second = box('button[data-entry-path="Empty"] > .workspace-glyph');
+          const parent = box('button[data-entry-path="Folder"] > .workspace-glyph');
+          const child = box('button[data-entry-path="Folder/Inner"] > .workspace-glyph');
+          const search = box('.sidebar-header-action[aria-label="全文搜索"] .ui-icon');
+          return {
+            rootGap: centerY(first) - centerY(root),
+            rowGap: centerY(second) - centerY(first),
+            firstIndent: first.left - centerX(root),
+            nestedIndent: child.left - parent.left,
+            counts: ['Big', 'Folder', 'Folder/Inner'].map((path) => {
+              const number = box(`button[data-entry-path="${path}"] .workspace-tree-count`);
+              const name = box(`button[data-entry-path="${path}"] .workspace-tree-name`);
+              return {
+                columnOffset: centerX(number) - centerX(search),
+                lineOffset: centerY(number) - centerY(name),
+              };
+            }),
+          };
+        });
+        expect(Math.abs(geometry.rootGap - geometry.rowGap)).toBeLessThanOrEqual(1);
+        expect(Math.abs(geometry.firstIndent)).toBeLessThanOrEqual(1);
+        expect(geometry.nestedIndent).toBe(8);
+        for (const number of geometry.counts) {
+          expect(Math.abs(number.columnOffset)).toBeLessThanOrEqual(1);
+          expect(Math.abs(number.lineOffset)).toBeLessThanOrEqual(1);
+        }
+        await page.locator('.sidebar').screenshot({ path: info.outputPath(`tree-${width}.png`) });
+      }
     });
-    // Right edges line up with the search icon; the number sits on the folder name's line.
-    expect(Math.abs(geometry.numberRight - geometry.iconRight)).toBeLessThanOrEqual(2);
-    expect(Math.abs(geometry.numberMiddle - geometry.nameMiddle)).toBeLessThanOrEqual(2);
-  });
+  }
 }
 
 test('the setting hides and restores the counts and defaults to on', async ({ page }) => {
