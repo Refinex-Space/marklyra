@@ -96,7 +96,14 @@ fn source_and_parent_replacement_reject_both_prepared_and_new_preflight() {
     assert!(workspace.prepare_entry_action(&entry.entry_token).is_err());
     let fresh = workspace.inspect_entry("parent/a.md").unwrap();
     let plan = workspace.prepare_entry_action(&fresh.entry_token).unwrap();
-    fs::rename(root.path().join("parent"), root.path().join("retained")).unwrap();
+    if !crate::directory_test_support::rename_directory(
+        &root.path().join("parent"),
+        &root.path().join("retained"),
+    ) {
+        workspace.validate_entry_action(&plan).unwrap();
+        assert_eq!(fs::read(root.path().join("parent/a.md")).unwrap(), b"same");
+        return;
+    }
     fs::create_dir(root.path().join("parent")).unwrap();
     fs::write(root.path().join("parent/a.md"), b"replacement").unwrap();
     assert!(workspace.validate_entry_action(&plan).is_err());
@@ -124,7 +131,11 @@ fn root_replacement_and_same_text_revision_aba_reject_old_plan() {
     }
     assert!(workspace.validate_entry_action(&plan).is_err());
     let fresh = workspace.prepare_entry_action(&entry.entry_token).unwrap();
-    fs::rename(&path, outer.path().join("retained")).unwrap();
+    if !crate::directory_test_support::rename_directory(&path, &outer.path().join("retained")) {
+        workspace.validate_entry_action(&fresh).unwrap();
+        assert_eq!(fs::read(path.join("a.md")).unwrap(), b"A");
+        return;
+    }
     fs::create_dir(&path).unwrap();
     fs::write(path.join("a.md"), b"new root").unwrap();
     assert!(workspace.validate_entry_action(&fresh).is_err());

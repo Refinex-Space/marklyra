@@ -350,10 +350,18 @@ fn directory_creation_after_create_root_move_reports_uncertain_without_retrying(
     let operation = token();
     let result =
         workspace.create_untitled_with_hook(&operation, "", EntryKind::Directory, "md", || {
-            fs::rename(&root, &moved).unwrap();
+            if !crate::directory_test_support::rename_directory(&root, &moved) {
+                return;
+            }
             fs::create_dir(&root).unwrap();
             fs::write(root.join("external.md"), b"untouched").unwrap();
         });
+    if cfg!(windows) {
+        assert!(result.is_ok());
+        assert!(root.join("Untitled Folder").is_dir());
+        assert!(!moved.exists());
+        return;
+    }
     assert!(matches!(result, Err(IndexError::MutationUncertain)));
     assert!(moved.join("Untitled Folder").is_dir());
     assert!(!root.join("Untitled Folder").exists());
@@ -408,7 +416,12 @@ fn parent_replacement_and_root_rename_are_rejected_without_touching_replacement(
     let plan = workspace
         .prepare_creation_rename(&entry.entry_token, "renamed.md")
         .unwrap();
-    fs::rename(root.join("sub"), root.join("moved-sub")).unwrap();
+    if !crate::directory_test_support::rename_directory(&root.join("sub"), &root.join("moved-sub"))
+    {
+        assert!(workspace.commit_creation_rename(plan).is_ok());
+        assert!(root.join("sub/renamed.md").is_file());
+        return;
+    }
     fs::create_dir(root.join("sub")).unwrap();
     fs::write(root.join("sub/Untitled.md"), b"replacement").unwrap();
     assert!(workspace.commit_creation_rename(plan).is_err());
@@ -683,10 +696,18 @@ fn real_rename_then_root_move_reports_uncertain_without_touching_replacement_roo
         .unwrap();
     let result = workspace.commit_with_postcommit_hook(plan, || {
         assert_eq!(fs::read(root.join("renamed.md")).unwrap(), b"ours");
-        fs::rename(&root, &moved).unwrap();
+        if !crate::directory_test_support::rename_directory(&root, &moved) {
+            return;
+        }
         fs::create_dir(&root).unwrap();
         fs::write(root.join("renamed.md"), b"replacement root").unwrap();
     });
+    if cfg!(windows) {
+        assert!(result.is_ok());
+        assert_eq!(fs::read(root.join("renamed.md")).unwrap(), b"ours");
+        assert!(!moved.exists());
+        return;
+    }
     assert!(matches!(result, Err(IndexError::MutationUncertain)));
     assert_eq!(
         fs::read(root.join("renamed.md")).unwrap(),

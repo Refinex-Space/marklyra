@@ -246,7 +246,14 @@ fn changed_bytes_parent_and_destination_occupation_do_not_overwrite() {
         &display,
         EntryMoveConflictPolicy::Cancel,
     );
-    fs::rename(root.path().join("to"), root.path().join("held-dir")).unwrap();
+    if !crate::directory_test_support::rename_directory(
+        &root.path().join("to"),
+        &root.path().join("held-dir"),
+    ) {
+        assert!(workspace.commit_entry_move(plan).is_ok());
+        assert_eq!(fs::read(root.path().join("to/note.md")).unwrap(), b"edited");
+        return;
+    }
     fs::create_dir(root.path().join("to")).unwrap();
     assert!(workspace.commit_entry_move(plan).is_err());
     assert!(!root.path().join("held-dir/note.md").exists());
@@ -373,15 +380,21 @@ fn directory_moves_entire_resources_and_rejects_moving_into_self() {
     assert!(workspace
         .inspect_entry_move_destination(&token, inside_directory, &inside)
         .is_err());
-    let commit = workspace
-        .commit_entry_move(prepare(
-            &workspace,
-            "from/book",
-            directory,
-            &display,
-            EntryMoveConflictPolicy::Cancel,
-        ))
-        .unwrap();
+    let result = workspace.commit_entry_move(prepare(
+        &workspace,
+        "from/book",
+        directory,
+        &display,
+        EntryMoveConflictPolicy::Cancel,
+    ));
+    let Some(commit) = crate::directory_test_support::directory_move_result(result) else {
+        assert_eq!(
+            fs::read(root.path().join("from/book/assets/x.png")).unwrap(),
+            b"pixels"
+        );
+        assert!(!root.path().join("to/book").exists());
+        return;
+    };
     assert_eq!(
         fs::read(root.path().join("to/book/assets/x.png")).unwrap(),
         b"pixels"

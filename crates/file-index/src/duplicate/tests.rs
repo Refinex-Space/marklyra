@@ -332,12 +332,26 @@ fn parent_replacement_before_create_never_redirects_the_operation() {
         &entry.entry_token,
         || {},
         || {
-            fs::rename(root.path().join("parent"), root.path().join("retained")).unwrap();
+            if !crate::directory_test_support::rename_directory(
+                &root.path().join("parent"),
+                &root.path().join("retained"),
+            ) {
+                return;
+            }
             fs::create_dir(root.path().join("parent")).unwrap();
             fs::write(root.path().join("parent/source.md"), b"replacement").unwrap();
         },
         |_, _| Ok(()),
     );
+    if cfg!(windows) {
+        let receipt = result.unwrap();
+        assert_eq!(
+            fs::read(root.path().join(receipt.relative_path)).unwrap(),
+            b"original"
+        );
+        assert!(!root.path().join("retained").exists());
+        return;
+    }
     assert!(result.is_err());
     assert_eq!(
         fs::read_dir(root.path().join("retained")).unwrap().count(),

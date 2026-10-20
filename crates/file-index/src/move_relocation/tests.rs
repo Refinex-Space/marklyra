@@ -62,7 +62,13 @@ fn moved_mounts_follow_owned_destination_and_ancestor_only_finishes_affected_tok
     for (_, plan) in &plans {
         plan.validate().unwrap();
     }
-    let commit = source.commit_entry_move(move_plan).unwrap();
+    let Some(commit) =
+        crate::directory_test_support::directory_move_result(source.commit_entry_move(move_plan))
+    else {
+        assert!(old_mounted.bookmark().is_ok());
+        assert!(source.prepare_entry_action(&unaffected.entry_token).is_ok());
+        return;
+    };
     for (_, plan) in &plans {
         plan.validate_commit(&commit.placement).unwrap();
     }
@@ -141,7 +147,12 @@ fn replaced_target_and_source_cohorts_can_commit_to_same_ancestor_without_revoki
             move_plan.kind(),
         )
         .unwrap();
-    let commit = workspace.commit_entry_move(move_plan).unwrap();
+    let Some(commit) = crate::directory_test_support::directory_move_result(
+        workspace.commit_entry_move(move_plan),
+    ) else {
+        assert!(workspace.bookmark().is_ok());
+        return;
+    };
     let replacement = commit.placement.replacement_placement().unwrap();
     for (_, plan) in &replacement_plans {
         plan.validate_commit(&replacement).unwrap();

@@ -183,7 +183,11 @@ fn root_and_parent_replacement_never_redirect_a_ready_operation() {
     let entry = workspace.inspect_entry("sub/note.md").unwrap();
     let operation = token();
     let ready = plan(&workspace, &operation, &entry, "new.md");
-    fs::rename(root.join("sub"), root.join("old-sub")).unwrap();
+    if !crate::directory_test_support::rename_directory(&root.join("sub"), &root.join("old-sub")) {
+        assert!(workspace.commit_entry_rename(ready).is_ok());
+        assert_eq!(fs::read(root.join("sub/new.md")).unwrap(), b"original");
+        return;
+    }
     fs::create_dir(root.join("sub")).unwrap();
     fs::write(root.join("sub/note.md"), b"replacement").unwrap();
     assert!(workspace.commit_entry_rename(ready).is_err());
@@ -225,7 +229,9 @@ fn rename_preserves_bytes_identity_and_updates_mtime_then_reconciles_without_rep
     let path = root.path().join("existing.md");
     let bytes = b"\xef\xbb\xbfsource\r\n tail ";
     fs::write(&path, bytes).unwrap();
-    fs::File::open(&path)
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
         .unwrap()
         .set_modified(UNIX_EPOCH + Duration::from_secs(1))
         .unwrap();

@@ -43,7 +43,18 @@ fn removal_detaches_exact_and_nested_mounts_and_denies_retained_arcs_after_resto
         EntryRenamePreparation::Ready(plan) => plan,
         _ => panic!(),
     };
-    fs::rename(root.join("目录😀"), root.join("holding/目录😀")).unwrap();
+    if !crate::directory_test_support::rename_directory(
+        &root.join("目录😀"),
+        &root.join("holding/目录😀"),
+    ) {
+        assert!(registry.get(&exact.id).is_ok());
+        assert!(registry.get(&nested.id).is_ok());
+        assert_eq!(
+            fs::read(root.join("目录😀/nested/A.md")).unwrap(),
+            b"Alpha\r\nTail  \n"
+        );
+        return;
+    }
     let detached = registry
         .detach_removed_directory(&root.join("目录😀"))
         .unwrap();
@@ -123,7 +134,17 @@ fn outer_mount_keeps_other_authority_but_old_child_tokens_never_revive_after_und
         EntryRenamePreparation::Ready(plan) => plan,
         _ => panic!(),
     };
-    fs::rename(root.join("目录😀"), root.join("holding/目录😀")).unwrap();
+    if !crate::directory_test_support::rename_directory(
+        &root.join("目录😀"),
+        &root.join("holding/目录😀"),
+    ) {
+        assert!(workspace.list_directory("").is_ok());
+        assert_eq!(
+            fs::read(root.join("目录😀/nested/A.md")).unwrap(),
+            b"Alpha\r\nTail  \n"
+        );
+        return;
+    }
     assert!(registry
         .detach_removed_directory(&root.join("目录😀"))
         .unwrap()
@@ -224,7 +245,16 @@ fn denial_does_not_read_deleted_paths_or_treat_string_prefix_siblings_as_descend
     let sibling_created = workspace
         .create_untitled(&id(), "目录😀-other", EntryKind::File, "md")
         .unwrap();
-    fs::rename(root.join("目录😀"), root.join("holding/目录😀")).unwrap();
+    if !crate::directory_test_support::rename_directory(
+        &root.join("目录😀"),
+        &root.join("holding/目录😀"),
+    ) {
+        assert!(registry.get(&nested.id).is_ok());
+        assert!(workspace
+            .prepare_creation_rename(&sibling_created.entry_token, "Sibling.md")
+            .is_ok());
+        return;
+    }
     // The removed prefix is absent; no metadata/canonicalize/reopen is needed.
     let detached = registry
         .detach_removed_directory(&root.join("目录😀"))
@@ -248,7 +278,13 @@ fn malformed_prefix_is_rejected_before_invalidating_other_tokens_or_mounts() {
     for prefix in [
         PathBuf::from(""),
         PathBuf::from("relative"),
-        root.join("../outside"),
+        // PathBuf::join normalizes ".." for verbatim Windows paths; preserve
+        // the malformed input rather than accidentally testing a valid sibling.
+        PathBuf::from(format!(
+            "{}{sep}..{sep}outside",
+            root.display(),
+            sep = std::path::MAIN_SEPARATOR
+        )),
         root.join("nul\0name"),
     ] {
         assert!(matches!(

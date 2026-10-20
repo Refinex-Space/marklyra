@@ -3,6 +3,13 @@ use cap_std::{ambient_authority, fs::Dir};
 use image::{DynamicImage, ImageFormat};
 use std::{fs, io::Cursor, path::Path};
 
+fn markdown_absolute_path(path: &Path) -> String {
+    let path = path.to_str().unwrap();
+    path.strip_prefix(r"\\?\")
+        .unwrap_or(path)
+        .replace('\\', "/")
+}
+
 fn raster(format: ImageFormat) -> Vec<u8> {
     let mut output = Cursor::new(Vec::new());
     DynamicImage::new_rgb8(2, 2)
@@ -629,7 +636,7 @@ fn parent_and_absolute_storage_targets_are_limited_to_the_existing_workspace_roo
     let mut registry = ImageRegistry::default();
     for folder in [
         "../shared".to_owned(),
-        path.join("shared/absolute").to_str().unwrap().to_owned(),
+        markdown_absolute_path(&path.join("shared/absolute")),
         "media%20literal".to_owned(),
     ] {
         let imported = registry
@@ -652,12 +659,7 @@ fn parent_and_absolute_storage_targets_are_limited_to_the_existing_workspace_roo
     let outside = tempfile::tempdir().unwrap();
     for folder in [
         "../../escape".to_owned(),
-        outside
-            .path()
-            .join("not-created")
-            .to_str()
-            .unwrap()
-            .to_owned(),
+        markdown_absolute_path(&outside.path().join("not-created")),
     ] {
         assert!(matches!(
             registry.import_bytes_with_folder(
@@ -691,14 +693,25 @@ fn absolute_and_local_file_urls_decode_once_and_never_expand_a_scope() {
     let bytes = raster(ImageFormat::Png);
     std::fs::write(path.join("space #.png"), &bytes).unwrap();
     std::fs::write(path.join("%2e.png"), &bytes).unwrap();
-    let encoded = format!("{}/space%20%23.png", path.to_str().unwrap());
+    let url_root = markdown_absolute_path(&path);
+    let encoded = format!("{url_root}/space%20%23.png");
+    let file_path = if encoded.starts_with('/') {
+        encoded.clone()
+    } else {
+        format!("/{encoded}")
+    };
+    let file_root = if url_root.starts_with('/') {
+        url_root.clone()
+    } else {
+        format!("/{url_root}")
+    };
     let mut registry = ImageRegistry::default();
     for reference in [
         encoded.clone(),
-        format!("file://{encoded}"),
-        format!("file://localhost{encoded}"),
-        format!("file://LOCALHOST{encoded}"),
-        format!("file://{}/%252e.png", path.display()),
+        format!("file://{file_path}"),
+        format!("file://localhost{file_path}"),
+        format!("file://LOCALHOST{file_path}"),
+        format!("file://{file_root}/%252e.png"),
     ] {
         let found = registry.resolve("doc", &scope, &reference).unwrap();
         assert_eq!(found.source, reference);
@@ -727,7 +740,11 @@ fn absolute_and_local_file_urls_decode_once_and_never_expand_a_scope() {
         registry.resolve(
             "doc",
             &scope,
-            &format!("file://{}/secret.png", outside.path().display())
+            &format!(
+                "file://{}{}/secret.png",
+                if cfg!(windows) { "/" } else { "" },
+                markdown_absolute_path(outside.path())
+            )
         ),
         Err(ImageError::OutsideScope)
     ));
