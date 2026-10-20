@@ -625,6 +625,11 @@
 .ai-error button {
   float: right;
 }
+/* On the agents page the notice sits between the search row and the list; keep it off both. */
+.ai-settings-content > .ai-error {
+  margin: 6px 0 16px;
+  border-radius: 8px;
+}
 .ai-panel .ai-jump {
   align-self: center;
   border: 1px solid var(--ai-line);

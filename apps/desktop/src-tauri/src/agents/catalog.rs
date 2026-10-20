@@ -130,6 +130,19 @@ pub(super) fn read_catalog(root: &Path, refresh: bool) -> Result<Value, String> 
         json!({"agents":catalog["agents"],"platform":platform(),"source":REGISTRY,"digest":hash_json(&catalog)}),
     )
 }
+/// `canonicalize` yields `\\?\C:\…` on Windows. Node cannot run a script from such a path
+/// (`EISDIR: lstat 'C:'`) and npm mishandles it as `--prefix`, so paths handed to a child process
+/// use the ordinary drive form. Comparisons against the data root keep the canonical form.
+pub(super) fn plain(path: &Path) -> PathBuf {
+    let text = path.to_string_lossy();
+    match text.strip_prefix(r"\\?\") {
+        Some(rest) if !rest.starts_with("UNC\\") => PathBuf::from(rest),
+        _ => path.to_path_buf(),
+    }
+}
+fn plain_text(value: String) -> String {
+    plain(Path::new(&value)).to_string_lossy().into_owned()
+}
 fn safe_relative(path: &Path) -> bool {
     !path.as_os_str().is_empty()
         && path
@@ -450,17 +463,17 @@ pub(super) fn install(
             let (node, npm) = node_runtime(root)?;
             task.check()?;
             task.progress("正在下载智能体及依赖…");
-            let npm_config = root.join("runtime/npm-user.npmrc");
-            let npm_global_config = root.join("runtime/npm-global.npmrc");
+            let npm_config = plain(&root.join("runtime/npm-user.npmrc"));
+            let npm_global_config = plain(&root.join("runtime/npm-global.npmrc"));
             fs::create_dir_all(root.join("runtime")).map_err(|_| "无法创建安装配置目录")?;
             fs::write(&npm_config, b"").map_err(|_| "无法准备安装配置")?;
             fs::write(&npm_global_config, b"").map_err(|_| "无法准备安装配置")?;
-            let mut process = command(&node, &[]);
+            let mut process = command(&plain(&node), &[]);
             process
                 .env("NPM_CONFIG_USERCONFIG", npm_config)
                 .env("NPM_CONFIG_GLOBALCONFIG", npm_global_config);
             process
-                .arg(npm)
+                .arg(plain(&npm))
                 .args([
                     "install",
                     "--save-exact",
@@ -470,13 +483,13 @@ pub(super) fn install(
                     "--registry=https://registry.npmjs.org/",
                 ])
                 .arg("--prefix")
-                .arg(&staging)
+                .arg(plain(&staging))
                 .arg(spec)
-                .current_dir(&staging)
+                .current_dir(plain(&staging))
                 .stdout(Stdio::null())
                 .stderr(Stdio::null());
             if let Some(parent) = node.parent() {
-                let mut paths = vec![parent.to_path_buf()];
+                let mut paths = vec![plain(parent)];
                 if let Some(path) = std::env::var_os("PATH") {
                     paths.extend(std::env::split_paths(&path));
                 }
@@ -582,8 +595,11 @@ pub(super) fn install(
             id: Uuid::new_v4().to_string(),
             agent_id: id.into(),
             name: entry["name"].as_str().unwrap_or(id).into(),
-            executable: rewrite(program.to_string_lossy().into()),
-            args: args.into_iter().map(rewrite).collect(),
+            executable: plain_text(rewrite(program.to_string_lossy().into())),
+            args: args
+                .into_iter()
+                .map(|value| plain_text(rewrite(value)))
+                .collect(),
             env: BTreeMap::new(),
             secret_keys: vec![],
             version: Some(version.into()),
@@ -639,6 +655,22 @@ mod tests {
         assert!(package_name("@scope/pkg@1.2.3").is_ok());
     }
     #[test]
+    fn child_process_paths_drop_the_verbatim_prefix() {
+        assert_eq!(
+            plain(Path::new(r"\\?\C:\Users\a\npm-cli.js")),
+            PathBuf::from(r"C:\Users\a\npm-cli.js")
+        );
+        assert_eq!(plain_text("--acp".into()), "--acp");
+        assert_eq!(
+            plain(Path::new(r"\\?\UNC\host\share\x")),
+            PathBuf::from(r"\\?\UNC\host\share\x")
+        );
+        assert_eq!(
+            plain(Path::new("/usr/bin/node")),
+            PathBuf::from("/usr/bin/node")
+        );
+    }
+    #[test]
     fn rejects_archive_parent_components() {
         assert!(!safe_relative(Path::new("../escape")));
         assert!(!safe_relative(Path::new("/absolute")));
@@ -656,6 +688,8 @@ fn probe_installation(
     task.progress("正在验证 ACP 连接…");
     use std::io::{BufRead, BufReader};
     use std::sync::mpsc::channel;
+    let cwd = plain(cwd);
+    let cwd = cwd.as_path();
     let mut builder = command(Path::new(&profile.executable), &profile.args);
     let canary_home = cwd.join(".marklyra-canary");
     fs::create_dir_all(canary_home.join("codex")).map_err(|_| "无法创建安装验证目录")?;

@@ -15,6 +15,7 @@ function mockAgents({
   includeBrandIcons = false,
   imageSupport = true,
   embeddedSupport = true,
+  failInstall = false,
 } = {}) {
   if (window !== window.top) return;
   const host = window as TestWindow & {
@@ -82,6 +83,8 @@ function mockAgents({
         platform: 'darwin-aarch64',
         defaultProfileId: installed ? profile.id : null,
       };
+    if (name === 'agent_install' && failInstall)
+      throw new Error('智能体安装失败，请检查网络或运行时要求');
     if (name === 'agent_connect')
       return { connectionId: `connection-${++connection}`, mcpServers: [] };
     if (name === 'agent_context') return args.context;
@@ -851,6 +854,32 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     ).toBe(false);
   });
 }
+
+test('a failed agent install keeps its notice clear of the search row and the list', async ({
+  page,
+}) => {
+  await installLayout(page);
+  await page.addInitScript(mockAgents, { installed: false, failInstall: true });
+  await readyLayout(page, 'marklyra-dark');
+  await emitLayoutMenu(page, 'open-folder');
+  await emitLayoutMenu(page, 'view:ai');
+  await page.getByRole('button', { name: '智能体设置', exact: true }).click();
+  const settings = page.getByRole('region', { name: '智能体设置' });
+  await settings.getByRole('button', { name: '安装', exact: true }).first().click();
+  const notice = settings.getByRole('alert');
+  await expect(notice).toContainText('智能体安装失败');
+  const gaps = await page.evaluate(() => {
+    const box = (selector: string) =>
+      document.querySelector(selector)?.getBoundingClientRect() ?? null;
+    const notice = box('.ai-settings-content > .ai-error');
+    const search = box('.ai-search');
+    const list = box('.ai-agent-list');
+    if (!notice || !search || !list) throw new Error('missing agent settings regions');
+    return { above: notice.top - search.bottom, below: list.top - notice.bottom };
+  });
+  expect(gaps.above).toBeGreaterThanOrEqual(8);
+  expect(gaps.below).toBeGreaterThanOrEqual(12);
+});
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
   test(`${theme}: agent settings share navigation states and content geometry with existing preferences`, async ({
