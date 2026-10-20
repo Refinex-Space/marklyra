@@ -134,24 +134,14 @@
   display: block;
   flex-shrink: 0;
 }
-.workspace-tree-disclosure {
-  width: 11px;
-  flex-shrink: 0;
-}
-.workspace-tree-disclosure .workspace-glyph {
-  width: 10px;
-  height: 10px;
-  color: var(--muted);
-  transition: transform 100ms ease;
-}
-.workspace-tree-row[aria-expanded="true"] .workspace-tree-disclosure .workspace-glyph {
-  transform: rotate(90deg);
-}
-.workspace-tree-row[aria-expanded="true"] .workspace-tree-disclosure .shell-glyph {
-  transform: none;
-}
-.workspace-tree-row[aria-expanded="true"] .workspace-tree-disclosure .shell-glyph::before {
-  content: attr(data-expanded-character);
+.workspace-tabler-folder {
+  background: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
 }
 .workspace-tree-name {
   white-space: nowrap;
@@ -288,12 +278,6 @@
   color: #fff;
   border-radius: 2px;
   padding: 0 1px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .workspace-tree-disclosure .workspace-glyph {
-    transition: none;
-  }
 }
 
 /* Mac workspace layout follows the observed sidebar contract. */
@@ -532,24 +516,19 @@
 .workspace-sidebar-compact .workspace-tree-row > * {
   position: relative;
 }
-.workspace-sidebar-compact .workspace-tree-disclosure {
-  flex: 0 0 8px;
-  width: 8px;
-  min-height: 22px;
-  line-height: var(--marklyra-tree-icon-line-height, 22px);
-}
 .workspace-sidebar-compact .workspace-tree-row > .workspace-glyph,
 .workspace-sidebar-compact .workspace-root-row > .workspace-glyph {
   display: block;
   float: left;
-  width: auto;
+  width: 16px;
+  flex: 0 0 16px;
   height: auto;
   min-height: 22px;
   margin-right: 4px;
   font-size: 14px;
   line-height: var(--marklyra-tree-icon-line-height, 22px);
 }
-/* Slight gap between the disclosure triangle slot and the entry icon. */
+/* One stateful folder icon replaces the old disclosure triangle and folder pair. */
 .workspace-sidebar-compact .workspace-tree-row > .workspace-glyph {
   float: none;
   margin-left: 2px;
@@ -968,9 +947,20 @@
     var(--marklyra-sidebar-item-hover-text, inherit)
   );
 }
-.workspace-sidebar-compact .workspace-tree-row > .workspace-glyph,
-.workspace-sidebar-compact .workspace-tree-disclosure .workspace-glyph {
+.workspace-sidebar-compact .workspace-tree-row > .workspace-glyph {
   color: inherit;
+}
+.workspace-sidebar-compact .workspace-tree-row > .workspace-tabler-folder,
+.workspace-sidebar-compact .workspace-root-row > .workspace-tabler-folder {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  flex: 0 0 16px;
+}
+.workspace-navigation-header .workspace-root-row > .workspace-tabler-folder {
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
 }
 
 .sidebar-header-action > .ui-icon,

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "folder",
+    "url": "https://raw.githubusercontent.com/tabler/tabler-icons/v3.49.0/icons/filled/folder.svg",
+    "sha256": "decd4fbbbc670e600ed4bf1e0a4768aca77eedb47fb690ace38d241cd1f32066",
+    "modifications": "User-supplied SVG markup retains class attributes and a transparent viewport path; visible path geometry verified against upstream"
+  },
+  {
+    "name": "folder-open",
+    "url": "https://raw.githubusercontent.com/tabler/tabler-icons/v3.49.0/icons/filled/folder-open.svg",
+    "sha256": "5a6584d9decfe3ecd6c6cf1e6f804480d1057904818f4b182b5889b41eaa7b6f",
+    "modifications": "User-supplied SVG markup retains class attributes and a transparent viewport path; visible path geometry verified against upstream"
+  }
+]

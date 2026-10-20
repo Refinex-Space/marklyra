@@ -87,6 +87,9 @@ for (const host of ['windows', 'macos'] as const) {
   }) => {
     await installFolders(page, host);
     await openTree(page);
+    await expect(
+      page.locator('button[data-entry-path="Folder"] .workspace-tree-count'),
+    ).toHaveText('3');
     await page.locator('.sidebar').hover();
     const geometry = await page.evaluate(() => {
       const icon = document.querySelector<HTMLElement>(

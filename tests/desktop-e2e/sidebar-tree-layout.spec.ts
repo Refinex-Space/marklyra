@@ -12,6 +12,7 @@ const folder = '01 开始使用';
 const nested = `${folder}/团队协作与长期维护的项目资料`;
 const entries: WorkspaceEntry[] = [
   { name: folder, relativePath: folder, kind: 'directory', size: null },
+  { name: '归档', relativePath: '归档', kind: 'directory', size: null },
   { name: nested.split('/').at(-1) ?? '', relativePath: nested, kind: 'directory', size: null },
   ...[
     'Layout.md',
@@ -61,6 +62,16 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const history = await layoutHistory(page);
     await emitLayoutMenu(page, 'open-folder');
     await emitLayoutMenu(page, 'view:files');
+    const directory = page.locator(`button.workspace-tree-row[data-entry-path="${folder}"]`);
+    await expect(directory.locator('.workspace-glyph-folder')).toBeVisible();
+    await expect(page.locator('.workspace-tree-disclosure')).toHaveCount(0);
+    await directory.focus();
+    await directory.press('ArrowRight');
+    await expect(directory).toHaveAttribute('aria-expanded', 'true');
+    await expect(directory.locator('.workspace-glyph-folderOpen')).toBeVisible();
+    await directory.press('ArrowLeft');
+    await expect(directory).toHaveAttribute('aria-expanded', 'false');
+    await expect(directory.locator('.workspace-glyph-folder')).toBeVisible();
     for (const path of [folder, nested])
       await page.locator(`button.workspace-tree-row[data-entry-path="${path}"]`).click();
     const rows = page.locator('button.workspace-tree-row');

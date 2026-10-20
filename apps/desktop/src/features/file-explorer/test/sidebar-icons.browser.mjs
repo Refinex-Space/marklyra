@@ -11,6 +11,7 @@ import ReactDOM from '/@id/react-dom/client';
 import { SidebarHeader } from '/src/features/file-explorer/SidebarHeader.tsx';
 import { WorkspaceFooter } from '/src/features/file-explorer/WorkspaceFooter.tsx';
 import { WorkspaceGlyph } from '/src/features/file-explorer/WorkspaceGlyph.tsx';
+import { ShellGlyph } from '/src/components/ShellGlyph.tsx';
 import { OutlinePanel } from '/src/features/outline/OutlinePanel.tsx';
 import '/src/style.css';
 function Harness(){
@@ -19,10 +20,10 @@ function Harness(){
  const [expanded,setExpanded]=React.useState(false);
  window.probe={mode,preferences};
  return React.createElement('aside',{className:'sidebar',style:{width:270,minWidth:270,height:600}},
+  mode==='files' && React.createElement('button',{'aria-label':'全文搜索',onClick:()=>change('search')},React.createElement(ShellGlyph,{name:'search'})),
   React.createElement(SidebarHeader,{mode,change,fileView:preferences.view}),
   React.createElement('div',{className:'workspace-sidebar workspace-sidebar-compact',style:{position:'relative',height:500}},
    React.createElement('button',{className:'workspace-tree-row','aria-expanded':expanded,onClick:()=>setExpanded(!expanded),'aria-label':'测试目录'},
-    React.createElement('span',{className:'workspace-tree-disclosure'},React.createElement(WorkspaceGlyph,{name:'chevron'})),
     React.createElement(WorkspaceGlyph,{name:expanded?'folderOpen':'folder'}),'测试目录'),
    React.createElement(OutlinePanel,{entries:[{id:'parent',level:1,text:'Parent'},{id:'child',level:2,text:'Child'}],disabled:false,jump:async()=>{}}),
    React.createElement(WorkspaceFooter,{name:'Owned fixture',workspace:{id:'owned',name:'Owned fixture',path:'/owned'},path:'/owned',disabled:false,canChoose:false,choose:()=>{},refresh:()=>{},close:()=>{},newDocument:()=>{},preferences,changePreferences})));
@@ -72,16 +73,15 @@ async function check(type, name) {
     assert.equal(await page.evaluate(() => window.probe.mode), 'files');
 
     const directory = page.getByRole('button', { name: '测试目录', exact: true });
-    const arrow = directory.locator('.workspace-glyph-chevron');
-    const content = () => arrow.evaluate((node) => getComputedStyle(node, '::before').content);
+    const mask = (name) =>
+      directory
+        .locator(`.workspace-glyph-${name}`)
+        .evaluate((node) => getComputedStyle(node).maskImage);
     assert.equal(await directory.textContent(), '测试目录');
-    assert.ok((await content()).includes('\uf0da'));
+    assert.equal(await directory.locator('.workspace-tree-disclosure').count(), 0);
+    assert.ok((await mask('folder')).includes('/icons/workspace/folder.svg'));
     await directory.click();
-    assert.ok((await content()).includes('\uf0d7'));
-    assert.equal(
-      await directory.locator('.workspace-glyph-folderOpen').getAttribute('data-character'),
-      '\uf07b',
-    );
+    assert.ok((await mask('folderOpen')).includes('/icons/workspace/folder-open.svg'));
     const parent = page.getByRole('treeitem', { name: 'Parent', exact: true });
     assert.equal(
       await parent.locator('.outline-disclosure .shell-glyph').getAttribute('data-shell-glyph'),

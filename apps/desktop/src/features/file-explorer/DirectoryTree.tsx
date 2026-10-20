@@ -1,4 +1,3 @@
-import { displayPath } from '../../services/display-path.js';
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -9,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { displayPath } from '../../services/display-path.js';
 import {
   type DirectoryListing,
   type WorkspaceEntry,
@@ -199,10 +199,7 @@ function DirectoryItem({
             { '--workspace-tree-depth': entry.relativePath.split('/').length } as CSSProperties
           }
         >
-          <span className="workspace-tree-disclosure" aria-hidden="true">
-            {directory && <WorkspaceGlyph name="chevron" />}
-          </span>
-          <WorkspaceGlyph name={directory ? 'folder' : 'file'} />
+          <WorkspaceGlyph name={directory ? (expanded ? 'folderOpen' : 'folder') : 'file'} />
           <CreatedNameInput
             key={pending?.entry?.entryToken}
             creation={props.creation}
@@ -243,9 +240,6 @@ function DirectoryItem({
             } else props.onOpen(entry.relativePath);
           }}
         >
-          <span className="workspace-tree-disclosure" aria-hidden="true">
-            {directory && <WorkspaceGlyph name="chevron" />}
-          </span>
           <WorkspaceGlyph name={directory ? (expanded ? 'folderOpen' : 'folder') : 'file'} />
           <span className="workspace-tree-name">{entry.name}</span>
           {directory && (props.counts[entry.relativePath] ?? 0) > 0 && (
