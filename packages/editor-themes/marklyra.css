@@ -1,4 +1,31 @@
 /* Shared presentation only. Both palettes keep the verified GitHub typography and spacing. */
+:root {
+  --ml-document-width: 860px;
+}
+@media only screen and (min-width: 1400px) {
+  :root {
+    --ml-document-width: 1024px;
+  }
+}
+@media only screen and (min-width: 1800px) {
+  :root {
+    --ml-document-width: 1200px;
+  }
+}
+#write,
+#typora-source .CodeMirror-lines {
+  max-width: var(--ml-document-width);
+  padding-left: 30px;
+  padding-right: 30px;
+}
+/* Keep line numbers in the shared page padding without narrowing the text column. */
+#typora-source .CodeMirror-gutter-wrapper {
+  /* biome-ignore lint/complexity/noImportantStyles: Override the bundled runtime's important gutter offset. */
+  left: -30px !important;
+  /* biome-ignore lint/complexity/noImportantStyles: Override the bundled runtime's important gutter minimum. */
+  min-width: 0 !important;
+  width: 26px;
+}
 html,
 body {
   background: var(--bg-color);
@@ -83,6 +110,17 @@ tt {
 .CodeMirror-gutters {
   background: var(--ml-surface);
   border-right-color: var(--ml-border);
+}
+/* Source is the document surface, not an embedded code block. */
+#typora-source,
+#typora-source .CodeMirror {
+  background: var(--bg-color);
+}
+/* Line numbers live in per-line wrappers. The fixed gutter must not cover text. */
+#typora-source .CodeMirror-gutters {
+  background: transparent;
+  border-right: 0;
+  pointer-events: none;
 }
 .CodeMirror-linenumber {
   color: var(--ml-muted);
