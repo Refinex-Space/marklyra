@@ -422,6 +422,17 @@ export function installMock(
         [field]: structuredClone(change.value),
       });
     }
+    if (command === 'app_update_status')
+      return {
+        currentVersion: '0.1.0',
+        automatic: false,
+        phase: 'current',
+        version: null,
+        downloaded: 0,
+        total: null,
+        message: '',
+      };
+    if (command === 'app_update_automatic' || command === 'app_update_check') return;
     if (command === 'get_application_preferences') {
       const saved = localStorage.getItem('mock-application-preferences');
       if (saved) mock.applicationPreferences = JSON.parse(saved);

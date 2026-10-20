@@ -552,6 +552,7 @@ pub fn cancel_application_quit(window: WebviewWindow, token: String) -> Result<(
     let host = window.state::<EditorWindows>();
     let mut state = host.0.lock().map_err(|_| "窗口状态不可用")?;
     if state.cancel(window.label(), &token) {
+        crate::app_update::cancel_install(window.app_handle());
         window
             .state::<crate::startup::StartupHost>()
             .end_quit_backup();
@@ -592,6 +593,7 @@ pub fn request_quit(app: &AppHandle) {
         }
     };
     if waiting_for_startup {
+        crate::app_update::cancel_install(app);
         app.dialog()
             .message("有编辑窗口尚未完成初始化，退出已取消。请等待窗口就绪后重试。")
             .title("无法退出")
@@ -626,10 +628,18 @@ fn advance_quit<R: Runtime>(app: &AppHandle<R>) {
         if let Err(error) = result {
             if let Ok(mut state) = app.state::<EditorWindows>().0.lock() {
                 if state.cancel(&label, &request.token) {
+                    crate::app_update::cancel_install(app);
                     app.state::<crate::startup::StartupHost>().end_quit_backup();
                 }
             }
             eprintln!("Application shutdown cancelled: {error}");
+        }
+    }
+}
+pub(crate) fn cancel_finished_quit(app: &AppHandle) {
+    if let Ok(mut state) = app.state::<EditorWindows>().0.lock() {
+        if state.labels.is_empty() {
+            state.quit = None;
         }
     }
 }

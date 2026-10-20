@@ -21,3 +21,6 @@ __pycache__/
 
 # Generated local design QA (references private, ignored screenshots)
 /design-qa.md
+
+# Generated release configuration and staging
+.release/

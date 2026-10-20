@@ -54,7 +54,7 @@ test('general redesign preserves control handlers without a runtime-license sect
     nodes.find((node) => node.props?.keyName === 'quitAfterWindowClose').props.onChange,
     change,
   );
-  assert.equal(nodes.find((node) => node.props?.label === 'Check Updates').props.onClick, updates);
+  assert.ok(nodes.find((node) => node.props?.['data-marklyra-update-check'] === 'true'));
   for (const key of ['autoUpdateToDev', 'send_usage_info', 'useMirrorInCN'])
     assert.ok(!edit.text.includes(`keyName:"${key}"`));
   assert.ok(!edit.text.includes('Reset All Dialog Warnings'));

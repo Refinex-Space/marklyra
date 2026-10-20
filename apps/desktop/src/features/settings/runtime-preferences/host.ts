@@ -209,6 +209,8 @@ export class RuntimePreferencesHost {
               this.initial.marklyraFileTypeActions !== true
             )
               throw Error('文件类型设置尚未就绪。');
+            if (change.key === 'enableAutoUpdate' && this.initial.marklyraUpdateActions !== true)
+              throw new Error('更新功能尚未就绪。');
             const updated = await this.options.onPut(change.key, change.value);
             if (updated !== undefined) {
               result = filePreferencesSnapshot(updated);
@@ -218,6 +220,10 @@ export class RuntimePreferencesHost {
             if (change.key === 'wordsPerMinute') this.initial.customWordsPerMinute = true;
             if (change.key === 'customWordsPerMinute' && change.value === false)
               this.initial.wordsPerMinute = 382;
+          } else if (request.operation === 'check-updates') {
+            if (this.initial.marklyraUpdateActions !== true || !this.options.onAction)
+              throw new Error('更新功能尚未就绪。');
+            await this.options.onAction('check-updates', null);
           } else if (request.operation === 'theme-action') {
             if (
               this.initial.marklyraThemeActions !== true ||

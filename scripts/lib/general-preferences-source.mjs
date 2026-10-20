@@ -89,7 +89,11 @@ export function generalPreferencesEdits(source, ast) {
     'div',
     { className: 'row settings-about-version' },
     element('span', null, text('当前版本 '), element('strong', null, text(version))),
-    code(check),
+    element(
+      'button',
+      { type: 'button', className: 'btn btn-default', 'data-marklyra-update-check': 'true' },
+      text('检查更新'),
+    ),
   );
   const about = group(
     '关于 MarkLyra',

@@ -185,6 +185,7 @@ function fieldKey(element: Element): string | undefined {
 }
 
 function supported(key: string | undefined): boolean {
+  if (key === 'enableAutoUpdate') return runtime._options.marklyraUpdateActions === true;
   if (key && isMarkdownPreferenceKey(key)) return runtime._options.marklyraMarkdownActions === true;
   return !!key && preferenceKeys.includes(key as (typeof preferenceKeys)[number]);
 }
@@ -366,6 +367,9 @@ function protectControls() {
       continue;
     }
     const key = fieldKey(element);
+    const update =
+      element.hasAttribute('data-marklyra-update-check') &&
+      runtime._options.marklyraUpdateActions === true;
     const action = themeAction(element);
     const clear = fileAction(element);
     const zoom = zoomResetControl(element);
@@ -395,7 +399,8 @@ function protectControls() {
       !controlActionPending &&
       (!clear || !fileActionPending) &&
       originalProperties(element).disabled !== true &&
-      (zoom ||
+      (update ||
+        zoom ||
         !!reading ||
         !!action ||
         !!clear ||
@@ -410,7 +415,7 @@ function protectControls() {
         element,
         failed
           ? '保存失败，请关闭后重新打开偏好设置。'
-          : (!supported(key) && !action && !clear && !startup && !reading && !zoom) ||
+          : (!supported(key) && !action && !clear && !startup && !reading && !zoom && !update) ||
               element.tagName === 'A' ||
               (!startup &&
                 (element.classList.contains('icon-folder') ||
@@ -625,6 +630,21 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     await new Promise<void>((resolve) =>
       document.addEventListener('DOMContentLoaded', () => resolve(), { once: true }),
     );
+  document.addEventListener(
+    'click',
+    (event) => {
+      const target =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>('[data-marklyra-update-check]')
+          : null;
+      if (!target) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (target.getAttribute('aria-disabled') !== 'true')
+        void request('check-updates').catch(report);
+    },
+    true,
+  );
   const updatePage = setupSettingsPage(closePreferences, {
     state: () => runtime._options,
     change: (disabled) => changePreference(undefined, 'disabledFileTypes', disabled),

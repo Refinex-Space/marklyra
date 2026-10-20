@@ -1,5 +1,6 @@
 pub mod agents;
 mod app_paths;
+mod app_update;
 mod application_preferences;
 mod clipboard;
 mod commands;
@@ -76,8 +77,15 @@ pub fn run() {
             runtime_assets::handle(context.app_handle(), context.webview_label(), &request)
         })
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(app_update::UpdateHost::default())
         .manage(agents::AgentHostState::default())
         .invoke_handler(tauri::generate_handler![
+            app_update::app_update_status,
+            app_update::app_update_automatic,
+            app_update::app_update_check,
+            app_update::app_update_download,
+            app_update::app_update_install,
             agents::auth::agent_auth_start,
             agents::auth::agent_auth_io,
             agents::agent_prepare_scope,
@@ -271,6 +279,7 @@ pub fn run() {
             windows::restore_initial(app.handle());
             os_open::capture_process_arguments(app.handle());
             platform::single_instance::listen(app.handle());
+            app_update::start(app.handle());
             Ok(())
         })
         .on_menu_event(route_menu_event)
@@ -310,6 +319,9 @@ pub fn run() {
             tauri::RunEvent::ExitRequested { api, .. } if windows::has_editors(app) => {
                 api.prevent_exit();
                 windows::request_quit(app);
+            }
+            tauri::RunEvent::ExitRequested { api, .. } if app_update::intercept_exit(app) => {
+                api.prevent_exit();
             }
             tauri::RunEvent::Exit => {
                 app.state::<agents::AgentHostState>().shutdown();

@@ -28,7 +28,7 @@ for (const theme of layoutThemes) {
     ).toHaveCount(0);
     const version = about.locator('.settings-about-version');
     const check = version.getByRole('button', { name: '检查更新', exact: true });
-    await expect(check).toBeDisabled();
+    await expect(check).toBeEnabled();
     await expect(about.locator('[data-marklyra-preference="enableAutoUpdate"]')).toBeVisible();
     const disclosure = about.locator('.settings-third-party-license');
     await expect(disclosure).toHaveCount(0);

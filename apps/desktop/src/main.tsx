@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App.js';
 import { PreferencesWindow } from './features/settings/PreferencesWindow.js';
+import { AppUpdates } from './features/updates/AppUpdates.js';
 import '@marklyra/editor-themes/paper.css';
 import './style.css';
 
@@ -14,5 +15,6 @@ createRoot(root).render(
     ) : (
       <App />
     )}
+    <AppUpdates />
   </StrictMode>,
 );

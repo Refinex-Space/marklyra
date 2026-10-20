@@ -1,0 +1,108 @@
+name: Build MarkLyra release draft
+on:
+  push:
+    tags: ['v*', '!v*-*', '!v*+*']
+permissions:
+  contents: read
+concurrency:
+  group: marklyra-release-${{ github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm release:check "$RELEASE_TAG"
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+      - run: pnpm check:resources
+      - run: pnpm prepare:runtime
+      - run: node scripts/check-provenance.mjs --tracked
+      - run: pnpm typecheck
+      - run: pnpm check:boundaries
+      - run: pnpm test
+      - run: pnpm test:release
+      - run: node --test scripts/lib/general-preferences-source.test.mjs
+      - name: Install browser test engines
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: pnpm exec playwright install chromium webkit
+      - name: Verify settings and update interactions
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: pnpm exec playwright test -c playwright.desktop.config.ts tests/desktop-e2e/general-settings-layout.spec.ts tests/desktop-e2e/app-updates.spec.ts
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked
+      - run: cargo test --workspace --lib --bins --locked
+      - name: Prepare updater configuration
+        run: pnpm release:prepare
+        env:
+          MARKLYRA_UPDATER_PUBLIC_KEY: ${{ vars.MARKLYRA_UPDATER_PUBLIC_KEY }}
+      - name: Require signing key
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: test -n "$TAURI_SIGNING_PRIVATE_KEY" || { echo 'Missing updater signing key'; exit 1; }
+      - name: Build platform installers and signed updater packages
+        working-directory: apps/desktop
+        run: pnpm exec tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config ../../.release/tauri.release.json -- --locked
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - run: node scripts/release.mjs collect ${{ matrix.target }} .release/assets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: .release/assets/*
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+  draft:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: .release/assets
+          merge-multiple: true
+      - name: Assemble and cryptographically verify the complete release
+        run: node scripts/release.mjs assemble .release/assets
+        env:
+          MARKLYRA_UPDATER_PUBLIC_KEY: ${{ vars.MARKLYRA_UPDATER_PUBLIC_KEY }}
+      - name: Create complete draft (never overwrite an existing release)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$RELEASE_TAG" --jq .sha)" = "$GITHUB_SHA"
+          test -s "docs/releases/$RELEASE_TAG.md"
+          gh release create "$RELEASE_TAG" .release/assets/* --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "MarkLyra $RELEASE_TAG" --notes-file "docs/releases/$RELEASE_TAG.md" --target "$GITHUB_SHA"

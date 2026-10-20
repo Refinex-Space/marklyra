@@ -1,0 +1,51 @@
+name: Publish verified MarkLyra release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Accepted draft tag, for example v0.1.0'
+        required: true
+        type: string
+      accepted:
+        description: 'I tested installation and upgrade on macOS ARM, macOS Intel and Windows x64'
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: marklyra-release-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: inputs.accepted
+    runs-on: ubuntu-latest
+    environment: production-release
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Validate tag input
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: '[[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]'
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Require successful build workflow for this tag and commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?head_sha=$SHA&event=push&status=success" --jq '.workflow_runs[].head_branch' | grep -Fx "$RELEASE_TAG"
+      - name: Verify remote bytes, signatures, source commit, manifest and checksums, then publish
+        run: node scripts/publish-release.mjs --publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          MARKLYRA_UPDATER_PUBLIC_KEY: ${{ vars.MARKLYRA_UPDATER_PUBLIC_KEY }}

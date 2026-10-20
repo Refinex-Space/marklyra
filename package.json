@@ -28,7 +28,11 @@
     "prepare:native-icons": "node scripts/prepare-native-icons.mjs",
     "dev:runtime": "node scripts/runtime-server.mjs",
     "audit:dependencies": "node scripts/audit-dependencies.mjs",
-    "test:runtime": "pnpm prepare:runtime && playwright test -c playwright.runtime.config.ts"
+    "test:runtime": "pnpm prepare:runtime && playwright test -c playwright.runtime.config.ts",
+    "release:version": "node scripts/release.mjs version",
+    "release:check": "node scripts/release.mjs check",
+    "release:prepare": "node scripts/release.mjs prepare",
+    "test:release": "node --test scripts/release.test.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

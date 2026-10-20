@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { appUpdates } from '../updates/AppUpdates.js';
 import './runtime-preferences/settings-theme.css';
 import { SidebarResize } from '../../components/SidebarResize.js';
 import { applicationPreferences } from '../../services/application-preferences.js';
@@ -72,6 +73,7 @@ function options(
     marklyraNativePage: sessionStorage.getItem('marklyra.settings.ai') === 'true' ? 'ai' : '',
     allThemes: catalog.themes.map((entry) => `${entry.id}.css`),
     marklyraThemeActions: true,
+    marklyraUpdateActions: true,
     marklyraReadingSpeedActions: true,
     theme,
     image_save_location:
@@ -163,14 +165,18 @@ export function PreferencesWindow({
       startupPreferences.get(),
       markdownPreferences.get(),
       applicationPreferences.get(),
+      appUpdates.status(),
     ]).then(
-      ([runtime, catalog, files, startup, markdown, application]) => {
+      ([runtime, catalog, files, startup, markdown, application, updates]) => {
         if (alive) {
           confirmedFiles.current = files;
           confirmedStartup.current = startup;
           confirmedMarkdown.current = markdown;
           confirmedApplication.current = application;
-          setInitialOptions(options(catalog, files, startup, markdown, application));
+          setInitialOptions({
+            ...options(catalog, files, startup, markdown, application),
+            enableAutoUpdate: updates.automatic,
+          });
           setPlatform(runtime.platform);
           setRuntimeUrl(new URL('./preferences/setting.html', runtime.url).href);
         }
@@ -264,6 +270,9 @@ export function PreferencesWindow({
       return confirmedFiles.current;
     } else
       switch (change.key) {
+        case 'enableAutoUpdate':
+          await appUpdates.automatic(change.value === true);
+          return;
         case 'theme':
           await themeFiles.requestPreference(String(change.value).replace(/\.css$/, ''));
           return;
@@ -385,6 +394,10 @@ export function PreferencesWindow({
           }}
           onPut={put}
           onAction={async (name, data) => {
+            if (name === 'check-updates') {
+              appUpdates.open();
+              return;
+            }
             if (name === 'open-theme-folder') await themeFiles.openFolder();
             else if (name === 'theme-gallery') await themeFiles.openGallery();
             else if (name === 'clear-recent-history') return filePreferences.clearRecentHistory();

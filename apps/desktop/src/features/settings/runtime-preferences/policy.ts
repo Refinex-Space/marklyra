@@ -45,6 +45,7 @@ export const preferenceKeys = [
   'useSeparateDarkTheme',
   'quitAfterWindowClose',
   'debugMode',
+  'enableAutoUpdate',
   'can_collapse_outline_panel',
   'showDirectoryDocumentCount',
   ...editorPreferenceKeys,
@@ -61,7 +62,8 @@ export type PreferenceAction =
   | 'open-theme-folder'
   | 'theme-gallery'
   | 'clear-recent-history'
-  | 'startup';
+  | 'startup'
+  | 'check-updates';
 
 export function preferenceThemeFiles(value: unknown): readonly string[] {
   if (value === undefined) return preferenceThemes;
@@ -133,6 +135,7 @@ export function preferenceChange(
       if (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 999)
         return { key: 'wordsPerMinute', value };
       break;
+    case 'enableAutoUpdate':
     case 'enableAutoSave':
     case 'showDirectoryDocumentCount':
     case 'no_image_move_for_local':
@@ -160,6 +163,7 @@ export function initialPreferencesOptions(
         : '11.0',
     allThemes: [...themes],
     marklyraThemeActions: input.marklyraThemeActions === true,
+    marklyraUpdateActions: input.marklyraUpdateActions === true,
     marklyraNativePage: input.marklyraNativePage === 'ai' ? 'ai' : '',
     marklyraReadingSpeedActions: input.marklyraReadingSpeedActions === true,
     marklyraFileActions: input.marklyraFileActions === true,

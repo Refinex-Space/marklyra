@@ -8,6 +8,7 @@ export function AgentDialog({
   children,
   footer,
   viewer = false,
+  className = '',
 }: {
   title: string;
   busy?: boolean;
@@ -15,6 +16,7 @@ export function AgentDialog({
   children: ReactNode;
   footer?: ReactNode;
   viewer?: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [nativeModal] = useState(
@@ -120,7 +122,7 @@ export function AgentDialog({
       )}
       <dialog
         ref={ref}
-        className={`ai-settings-dialog${viewer ? ' ai-image-viewer' : ''}`}
+        className={`ai-settings-dialog${viewer ? ' ai-image-viewer' : ''}${className ? ` ${className}` : ''}`}
         role={nativeModal ? undefined : 'dialog'}
         data-fallback={!nativeModal || undefined}
         aria-labelledby={titleId}

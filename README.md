@@ -45,3 +45,7 @@ cargo test --workspace --lib --bins --locked
 所有文件保存以源文本为准，保留编码、BOM 和换行；崩溃草稿、撤销重做和自动保存是产品能力。配置、编译、打包、运行和签名分别验证。
 
 仓库地址：`git@github.com:Refinex-Space/marklyra.git`。第三方组件原始通知保留在资源目录和 [licenses](licenses/README.md)。
+
+## 版本发布
+
+Mac、Windows GitHub Release 构建、首次密钥配置、版本递增、草稿验收与手动发布步骤见 [发布与更新手册](docs/releases/README.md)。应用内更新不显示版本摘要；平台安装包无需付费签名证书。
