@@ -7,6 +7,7 @@ import {
 } from '../../services/directory-history.js';
 import type { WorkspaceFolder } from '../../services/workspaces.js';
 import { directoryMenuLimit, directoryMenuRows } from './directory-menu-model.js';
+import { revealLabel } from './file-preferences.js';
 import { WorkspaceGlyph } from './WorkspaceGlyph.js';
 
 interface Props {
@@ -234,7 +235,7 @@ export function DirectoryHistoryMenu({
               disabled={disabled || busy || !reveal}
               onClick={action(reveal)}
             >
-              {platform === 'windows' ? '在文件资源管理器中显示' : '在 Finder 中显示'}
+              {revealLabel(platform)}
             </button>
           </li>
           <li role="none">

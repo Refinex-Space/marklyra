@@ -284,6 +284,25 @@ export function naturalModifiedDate(timestamp: number | null, now = new Date()):
   return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
 }
 
+/** Whether `active` is a document somewhere below the folder `relative` of `root`. */
+export function workspacePathIsInside(
+  root: string,
+  relative: string,
+  active: string | undefined,
+  platform: FileSidebarPlatform = 'browser',
+): boolean {
+  if (active === undefined || relative === '') return false;
+  const normalize = (path: string) =>
+    platform === 'windows'
+      ? path.replaceAll('\\', '/')
+      : platform === 'macos'
+        ? path.toLowerCase().normalize('NFD')
+        : path;
+  return normalize(active).startsWith(
+    `${normalize(root).replace(/\/+$/, '')}/${normalize(relative)}/`,
+  );
+}
+
 export function workspacePathIsActive(
   root: string,
   relative: string,

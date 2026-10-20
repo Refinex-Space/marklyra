@@ -187,10 +187,13 @@ const ArticleCard = memo(function ArticleCard({
           draggable={!disabled}
           aria-current={selected ? 'page' : undefined}
           tabIndex={tabIndex}
-          disabled={disabled}
+          // Not `disabled`: that drops keyboard focus and dims the card on every document switch.
+          aria-disabled={disabled || undefined}
           title={entry.relativePath}
           onFocus={() => onFocusPath(entry.relativePath)}
-          onClick={() => onOpen(entry.relativePath)}
+          onClick={() => {
+            if (!disabled) onOpen(entry.relativePath);
+          }}
         >
           {content}
         </button>

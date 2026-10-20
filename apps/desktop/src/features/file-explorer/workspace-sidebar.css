@@ -78,6 +78,11 @@
 .workspace-sidebar button:disabled {
   cursor: default;
 }
+/* Rows stay enabled (and focusable) while the shell is busy; they only stop reacting. */
+.workspace-tree-row[aria-disabled="true"],
+.workspace-article[aria-disabled="true"] {
+  cursor: default;
+}
 .workspace-panel {
   flex: 1;
   overflow: auto;

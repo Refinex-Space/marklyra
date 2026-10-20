@@ -175,7 +175,7 @@ test('Trash of an ancestor removes the subtree and keeps the edited descendant m
   page,
 }) => {
   await boot(page, false, '/mock/Creation/Folder/Child.md');
-  await page.locator('button[data-entry-path="Folder"]:visible').click();
+  // The folder holding the open document is revealed on its own.
   await expect(page.locator('button[data-entry-path="Folder/Child.md"]:visible')).toBeVisible();
   const before = await state(page);
   await trash(page, 'Folder');

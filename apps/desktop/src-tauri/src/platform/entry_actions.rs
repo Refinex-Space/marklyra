@@ -21,6 +21,30 @@ pub(crate) fn clipboard_path(path: &Path) -> Result<Content, String> {
     };
     Ok(data)
 }
+/// Explorer selects the item in a new or existing window. It reports success with a non-zero
+/// exit code, so the launch itself is the only result worth checking; `/select,` needs the path
+/// quoted by hand and cannot take the `\\?\` verbatim form the host keeps internally.
+#[cfg(any(windows, test))]
+fn explorer_select_argument(path: &Path) -> Result<String, String> {
+    let text = path.display().to_string();
+    let text = match text.strip_prefix(r"\\?\UNC\") {
+        Some(share) => format!(r"\\{share}"),
+        None => text.strip_prefix(r"\\?\").unwrap_or(&text).to_owned(),
+    };
+    if text.contains('"') {
+        return Err("路径包含系统无法定位的字符".into());
+    }
+    Ok(format!("/select,\"{text}\""))
+}
+#[cfg(windows)]
+pub(crate) fn reveal_in_explorer(path: &Path) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    std::process::Command::new("explorer.exe")
+        .raw_arg(explorer_select_argument(path)?)
+        .spawn()
+        .map(|_child| ())
+        .map_err(|e| format!("无法启动文件资源管理器：{e}"))
+}
 pub(crate) fn dispatch(action: EntryActionKind, path: &Path) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     let status = match action {
@@ -31,18 +55,16 @@ pub(crate) fn dispatch(action: EntryActionKind, path: &Path) -> Result<(), Strin
         _ => return Err("文件动作不能通过系统路径调度".into()),
     };
     #[cfg(windows)]
-    let status = match action {
-        EntryActionKind::Reveal => std::process::Command::new("explorer.exe")
-            .arg(format!("/select,{}", path.display()))
-            .status(),
-        _ => return Err("此平台尚未接通此系统文件动作".into()),
+    return match action {
+        EntryActionKind::Reveal => reveal_in_explorer(path),
+        _ => Err("此平台尚未接通此系统文件动作".into()),
     };
     #[cfg(not(any(target_os = "macos", windows)))]
     {
         let _ = (action, path);
         Err("此平台尚未接通系统文件动作".into())
     }
-    #[cfg(any(target_os = "macos", windows))]
+    #[cfg(target_os = "macos")]
     if status
         .map_err(|e| format!("无法启动系统文件动作：{e}"))?
         .success()
@@ -186,6 +208,22 @@ pub(crate) async fn show_info(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn explorer_gets_a_quoted_plain_path_instead_of_the_verbatim_form() {
+        assert_eq!(
+            explorer_select_argument(Path::new(r"\\?\D:\笔记 本\a b.md")).unwrap(),
+            "/select,\"D:\\笔记 本\\a b.md\""
+        );
+        assert_eq!(
+            explorer_select_argument(Path::new(r"\\?\UNC\server\share\a.md")).unwrap(),
+            "/select,\"\\\\server\\share\\a.md\""
+        );
+        assert_eq!(
+            explorer_select_argument(Path::new(r"D:\plain\a.md")).unwrap(),
+            "/select,\"D:\\plain\\a.md\""
+        );
+        assert!(explorer_select_argument(Path::new("D:\\bad\"name.md")).is_err());
+    }
     #[test]
     fn path_clipboard_has_plain_and_escaped_html_without_private_markup() {
         let data = clipboard_path(Path::new("/Owned/中<&\"'>.md")).unwrap();

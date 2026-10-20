@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -13,7 +14,7 @@ import {
   type WorkspaceFolder,
   workspaces,
 } from '../../services/workspaces.js';
-import { sortedDirectory, workspacePathIsActive } from './article-model.js';
+import { sortedDirectory, workspacePathIsActive, workspacePathIsInside } from './article-model.js';
 import { CreatedNameInput } from './CreatedNameInput.js';
 import { type CreationEditor, parentPath } from './creation-types.js';
 import {
@@ -44,6 +45,13 @@ interface TreeProps {
   renames?: readonly RelativeEntryRename[] | undefined;
   presence?: readonly RelativeEntryPresence[] | undefined;
   highlightPath?: string | undefined;
+  /** F2 and Delete on the focused row; the host decides whether the action may start. */
+  onRename?: ((target: TreeTarget) => void) | undefined;
+  onTrash?: ((target: TreeTarget) => void) | undefined;
+}
+export interface TreeTarget {
+  relativePath: string;
+  kind: 'file' | 'directory';
 }
 
 interface TreeState extends TreeProps {
@@ -52,10 +60,36 @@ interface TreeState extends TreeProps {
   listed: (path: string, entries: WorkspaceEntry[]) => void;
 }
 
-function treeKey(event: KeyboardEvent<HTMLElement>, typing: { prefix: string; time: number }) {
-  if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+function treeKey(
+  event: KeyboardEvent<HTMLElement>,
+  typing: { prefix: string; time: number },
+  entry: Pick<TreeProps, 'disabled' | 'onRename' | 'onTrash' | 'platform'>,
+) {
   const target = event.target;
   if (!(target instanceof HTMLButtonElement) || !target.hasAttribute('data-workspace-row')) return;
+  // File operations follow the system's keys: F2 renames; Delete (Cmd+Backspace on a Mac) deletes.
+  const item: TreeTarget | undefined = target.dataset.entryPath
+    ? {
+        relativePath: target.dataset.entryPath,
+        kind: target.dataset.entryKind === 'directory' ? 'directory' : 'file',
+      }
+    : undefined;
+  if (item && !entry.disabled && !event.altKey && !event.shiftKey) {
+    const trash =
+      event.key === 'Delete' ||
+      (entry.platform === 'macos' && event.metaKey && event.key === 'Backspace');
+    if (event.key === 'F2' && !event.metaKey && !event.ctrlKey && entry.onRename) {
+      event.preventDefault();
+      entry.onRename(item);
+      return;
+    }
+    if (trash && !event.ctrlKey && entry.onTrash) {
+      event.preventDefault();
+      entry.onTrash(item);
+      return;
+    }
+  }
+  if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
   const rows = Array.from(
     event.currentTarget.querySelectorAll<HTMLButtonElement>(
       'button[data-workspace-row]:not(:disabled)',
@@ -129,6 +163,23 @@ function DirectoryItem({
       props.activePath,
       props.platform,
     );
+  // Opening a document from anywhere (search, recents, a restored session) reveals it here. Only
+  // the change into a folder expands it, so the user can still collapse a folder afterwards.
+  const holdsActive =
+    directory &&
+    workspacePathIsInside(
+      props.workspace.path,
+      entry.relativePath,
+      props.activePath,
+      props.platform,
+    );
+  useEffect(() => {
+    if (holdsActive) setExpanded(true);
+  }, [holdsActive]);
+  const row = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (active) row.current?.scrollIntoView({ block: 'nearest' });
+  }, [active]);
   return (
     <li className="workspace-tree-item">
       {editing && props.creation ? (
@@ -153,6 +204,7 @@ function DirectoryItem({
         </div>
       ) : (
         <button
+          ref={row}
           type="button"
           className={`workspace-tree-row${props.highlightPath === entry.relativePath ? ' workspace-file-highlight' : ''}`}
           data-workspace-row=""
@@ -170,9 +222,12 @@ function DirectoryItem({
           aria-expanded={directory ? expanded : undefined}
           aria-controls={directory && expanded ? groupId : undefined}
           aria-current={active ? 'page' : undefined}
-          disabled={props.disabled}
+          // Not `disabled`: a disabled button drops keyboard focus and is dimmed by the global
+          // button style, which made the whole tree flash on every document switch.
+          aria-disabled={props.disabled || undefined}
           title={entry.relativePath}
           onClick={(event) => {
+            if (props.disabled) return;
             props.focusRow(entry.relativePath);
             if (directory) {
               event.currentTarget.focus();
@@ -196,46 +251,78 @@ function DirectoryItem({
   );
 }
 
+/** A refresh that finds the directory unchanged must not re-render its rows. */
+function sameListing(a: DirectoryListing | null, b: DirectoryListing): boolean {
+  return (
+    !!a &&
+    a.truncated === b.truncated &&
+    a.skipped === b.skipped &&
+    a.entries.length === b.entries.length &&
+    a.entries.every((entry, index) => {
+      const other = b.entries[index];
+      return (
+        !!other &&
+        entry.name === other.name &&
+        entry.relativePath === other.relativePath &&
+        entry.kind === other.kind &&
+        entry.size === other.size
+      );
+    })
+  );
+}
+
 function DirectoryBranch({ relativePath, ...props }: TreeState & { relativePath: string }) {
   const [listing, setListing] = useState<DirectoryListing | null>(null);
   const [listingEpoch, setListingEpoch] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
+  const listed = useRef(false);
   const { id } = props.workspace;
   const created = props.creation?.state?.view === 'tree' ? props.creation.state.entry : undefined;
-  const entries = (listing?.entries ?? [])
-    .map((entry) => projectedEntry(entry, listingEpoch, props.renames ?? NO_RENAMES))
-    .filter((entry) =>
-      entryIsPresent(
-        entry.relativePath,
-        listingEpoch,
-        props.presence ?? NO_PRESENCE,
-        props.renames ?? NO_RENAMES,
+  const renames = props.renames ?? NO_RENAMES;
+  const presence = props.presence ?? NO_PRESENCE;
+  const entries = useMemo(() => {
+    const visible = (listing?.entries ?? [])
+      .map((entry) => projectedEntry(entry, listingEpoch, renames))
+      .filter((entry) => entryIsPresent(entry.relativePath, listingEpoch, presence, renames));
+    if (created && parentPath(created.relativePath) === relativePath) {
+      const index = visible.findIndex((entry) => entry.relativePath === created.relativePath);
+      if (index < 0) visible.push(created);
+      else visible[index] = created;
+    }
+    return visible;
+  }, [listing, listingEpoch, renames, presence, created, relativePath]);
+  const ordered = useMemo(
+    () =>
+      sortedDirectory(
+        entries,
+        props.sort ?? 0,
+        props.noGroup ?? false,
+        props.platform === 'windows',
       ),
-    );
-  if (created && parentPath(created.relativePath) === relativePath) {
-    const index = entries.findIndex((entry) => entry.relativePath === created.relativePath);
-    if (index < 0) entries.push(created);
-    else entries[index] = created;
-  }
+    [entries, props.sort, props.noGroup, props.platform],
+  );
   // biome-ignore lint/correctness/useExhaustiveDependencies: Refresh and retry deliberately re-read the same directory path.
   useEffect(() => {
     let stale = false;
     const epoch = projectionEpoch(props.renames ?? NO_RENAMES, props.presence ?? NO_PRESENCE);
-    setLoading(true);
+    // Only the first read shows a busy state; later refreshes swap the rows in place.
+    if (!listed.current) setLoading(true);
     setError('');
     void workspaces.list(id, relativePath).then(
       (result) => {
         if (!stale) {
+          listed.current = true;
           setListingEpoch(epoch);
-          setListing(result);
+          setListing((previous) => (sameListing(previous, result) ? previous : result));
           props.listed(relativePath, result.entries);
           setLoading(false);
         }
       },
       (reason) => {
         if (!stale) {
+          listed.current = false;
           setListing(null);
           props.listed(relativePath, []);
           setError(String(reason));
@@ -272,18 +359,10 @@ function DirectoryBranch({ relativePath, ...props }: TreeState & { relativePath:
           </button>
         </div>
       )}
-      {!props.rootRow && !loading && listing?.entries.length === 0 && (
-        <p className="workspace-hint">没有 Markdown 文件或子目录</p>
-      )}
       {(listing || entries.length > 0) && (
         <>
           <ul className="workspace-tree-list">
-            {sortedDirectory(
-              entries,
-              props.sort ?? 0,
-              props.noGroup ?? false,
-              props.platform === 'windows',
-            ).map((entry, index) => (
+            {ordered.map((entry, index) => (
               <DirectoryItem
                 key={props.entryKey?.(entry.relativePath) ?? entry.relativePath}
                 entry={entry}
@@ -337,7 +416,7 @@ export function DirectoryTree(props: TreeProps) {
     <nav
       className="workspace-directory-tree"
       aria-label={`${props.workspace.name} 文件目录`}
-      onKeyDown={(event) => treeKey(event, typing.current)}
+      onKeyDown={(event) => treeKey(event, typing.current, props)}
     >
       {props.rootRow && (
         <div

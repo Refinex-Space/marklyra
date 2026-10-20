@@ -325,7 +325,9 @@ export function useWorkspaceCreation(options: Options) {
     completion.current = null;
     setState(null);
     setNamedCompletion(null);
-    setMessage('该项目已移入废纸篓，已结束命名。当前文稿保留。');
+    setMessage(
+      `该项目已移入${latest.current.windows ? '回收站' : '废纸篓'}，已结束命名。当前文稿保留。`,
+    );
     if (operation.entry) void releaseStale(operation.workspaceId, operation.entry);
   };
   const registerInput = useCallback((entryToken: string, input: HTMLInputElement | null) => {

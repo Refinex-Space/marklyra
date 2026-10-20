@@ -1,5 +1,15 @@
 export const fileSortTypes = [0, -10, 1, -1, 2, -2, 3, -3] as const;
 export type FileSidebarPlatform = 'macos' | 'windows' | 'browser';
+/** What each system calls the place deleted items go. */
+export const trashName = (platform: FileSidebarPlatform | undefined) =>
+  platform === 'windows' ? '回收站' : '废纸篓';
+/** The menu label for showing an item in the system file manager. */
+export const revealLabel = (platform: FileSidebarPlatform | undefined) =>
+  platform === 'windows'
+    ? '在文件资源管理器中显示'
+    : platform === 'macos'
+      ? '在 Finder 中显示'
+      : '在文件管理器中显示';
 export type FileSortType = (typeof fileSortTypes)[number];
 export interface FileSidebarPreferences {
   view: 'tree' | 'articles';

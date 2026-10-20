@@ -25,6 +25,7 @@ import {
   defaultFileSidebarPreferences,
   type FileSidebarPlatform,
   type FileSidebarPreferences,
+  trashName,
 } from './file-preferences.js';
 import { DEFAULT_SIDEBAR_SEARCH_TARGET } from './SidebarHeader.js';
 import { WorkspaceArticles } from './WorkspaceArticles.js';
@@ -363,6 +364,7 @@ export function WorkspaceSidebar({
   const entryMenu = useWorkspaceEntryMenu({
     scope: activeTab === 'files' ? workspace?.id : undefined,
     native: desktopAvailable && filePlatform === 'macos',
+    platform: filePlatform,
     disabled: controlsDisabled,
     busy:
       !!naming.state ||
@@ -478,7 +480,7 @@ export function WorkspaceSidebar({
             current.current = null;
             setWorkspace(null);
             notifyWorkspace.current?.(null);
-            setError('文件夹已移入废纸篓，当前文稿保留。请重新选择文件夹。');
+            setError(`文件夹已移入${trashName(filePlatform)}，当前文稿保留。请重新选择文件夹。`);
             void workspaces.close(folder.id).catch(() => {});
             return;
           }
@@ -514,7 +516,9 @@ export function WorkspaceSidebar({
         current.current = null;
         setWorkspace(null);
         notifyWorkspace.current?.(null);
-        setError('文件夹已移入废纸篓，当前文稿保留。可在有权限的父目录菜单中撤销。');
+        setError(
+          `文件夹已移入${trashName(filePlatform)}，当前文稿保留。可在有权限的父目录菜单中撤销。`,
+        );
         void workspaces.close(previous.id).catch(() => {});
       }),
       listen<string[]>('workspace-file-operation-uncertain', (event) => {
@@ -929,17 +933,12 @@ export function WorkspaceSidebar({
           {entryActions.message}
         </p>
       )}
-      {entryActions.state && (
-        <div
-          className={entryActions.state.checking ? 'workspace-error' : 'workspace-hint'}
-          role={entryActions.state.checking ? 'alert' : 'status'}
-        >
-          {entryActions.state.checking ? entryActions.state.error : '正在处理文件动作…'}
-          {entryActions.state.checking && (
-            <button type="button" onClick={() => void entryActions.check()}>
-              核对结果
-            </button>
-          )}
+      {entryActions.state?.checking && (
+        <div className="workspace-error" role="alert">
+          {entryActions.state.error}
+          <button type="button" onClick={() => void entryActions.check()}>
+            核对结果
+          </button>
         </div>
       )}
       {rename.message && (
@@ -953,11 +952,7 @@ export function WorkspaceSidebar({
           {creation.message}
         </p>
       )}
-      {creation.state?.phase === 'creating' && (
-        <p className="workspace-hint" role="status">
-          正在创建…
-        </p>
-      )}
+      {creation.state?.phase === 'creating' && <SidebarSkeleton variant="tree" rows={1} />}
       {creation.state?.phase === 'failed' && (
         <div className="workspace-error" role="alert">
           {creation.state.error}
@@ -1017,6 +1012,8 @@ export function WorkspaceSidebar({
                 renames={renames}
                 presence={presence}
                 highlightPath={highlightPath}
+                onRename={(target) => void rename.start(target.relativePath, target.kind)}
+                onTrash={(target) => void fileActions.trash(target)}
               />
             </div>
             <div hidden={preferences.view !== 'articles'} className="workspace-file-view">

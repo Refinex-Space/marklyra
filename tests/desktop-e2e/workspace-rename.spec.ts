@@ -74,7 +74,11 @@ test('ancestor rename preserves expanded descendants and the named child without
   page,
 }) => {
   await boot(page, false, '/mock/Creation/Folder/Child.md');
-  await page.locator('button[data-entry-path="Folder"]').click();
+  // The folder holding the open document is revealed on its own.
+  await expect(page.locator('button[data-entry-path="Folder"]')).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
   await expect(page.locator('button[data-entry-path="Folder/Child.md"]')).toBeVisible();
   const before = await history(page),
     iframe = await page.locator('.marklyra-editor-frame').elementHandle();

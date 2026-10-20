@@ -747,12 +747,11 @@ pub async fn reveal_workspace_directory(
             .arg(current.bookmark.path())
             .status();
         #[cfg(target_os = "windows")]
-        let status = std::process::Command::new("explorer.exe")
-            .arg(format!("/select,{}", current.bookmark.path().display()))
-            .status();
+        return crate::platform::entry_actions::reveal_in_explorer(current.bookmark.path())
+            .map_err(|_| "系统未能定位目录".to_owned());
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         return Err("此平台尚未接通目录定位".into());
-        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        #[cfg(target_os = "macos")]
         if status.map_err(|_| "无法定位目录")?.success() {
             Ok(())
         } else {

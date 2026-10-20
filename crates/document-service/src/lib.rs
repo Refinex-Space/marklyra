@@ -77,7 +77,14 @@ pub enum DocumentError {
     MetadataRevisionLimit,
     #[error("文件移动结果尚未确认；当前稿件已保留，请刷新核对或显式另存为")]
     RelocationUncertain,
-    #[error("文件已移入废纸篓；当前正文已保留，请撤销删除或显式另存为")]
+    #[cfg_attr(
+        windows,
+        error("文件已移入回收站；当前正文已保留，请撤销删除或显式另存为")
+    )]
+    #[cfg_attr(
+        not(windows),
+        error("文件已移入废纸篓；当前正文已保留，请撤销删除或显式另存为")
+    )]
     Trashed,
     #[error("图片暂存会话不存在或其原生恢复记录已失效")]
     InvalidImageDraft,

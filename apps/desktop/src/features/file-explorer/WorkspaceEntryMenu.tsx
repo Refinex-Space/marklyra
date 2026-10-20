@@ -5,6 +5,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { EntryOperation } from '../../services/entry-actions.js';
 import type { WorkspaceFileUndo } from '../../services/workspaces.js';
 import type { CreationKind } from './creation-types.js';
+import { type FileSidebarPlatform, revealLabel } from './file-preferences.js';
 
 export interface EntryMenuTarget {
   relativePath: string;
@@ -26,6 +27,7 @@ interface Request {
 interface Options {
   scope: string | undefined;
   native: boolean;
+  platform?: FileSidebarPlatform | undefined;
   disabled: boolean;
   busy: boolean;
   view: 'tree' | 'articles';
@@ -42,11 +44,22 @@ interface Options {
   undo(catalog: WorkspaceFileUndo): void;
   report(reason: unknown): void;
 }
+/** Drops leading, trailing and doubled separators left by conditionally omitted groups. */
+function tidy(items: Item[]): Item[] {
+  const result: Item[] = [];
+  for (const item of items) {
+    if (item === 'separator' && (result.length === 0 || result.at(-1) === 'separator')) continue;
+    result.push(item);
+  }
+  if (result.at(-1) === 'separator') result.pop();
+  return result;
+}
 function itemsFor(
   target: EntryMenuTarget,
   options: Options,
   undo: WorkspaceFileUndo | null,
 ): Item[] {
+  const windows = options.platform === 'windows';
   const root = target.kind === 'directory' && target.relativePath === '';
   const folder = target.kind === 'directory';
   const article = options.view === 'articles';
@@ -76,7 +89,8 @@ function itemsFor(
     label: '新建文件',
     run: () => options.create(article ? '' : parent, 'file'),
   });
-  if (!article)
+  // A folder can be created inside a folder (or the root); a document is not a place for one.
+  if (!article && folder)
     items.push({
       id: 'create-directory',
       label: '新建文件夹',
@@ -106,17 +120,21 @@ function itemsFor(
       items.push(
         {
           id: 'info',
-          label: '显示简介…',
+          label: windows ? '属性…' : '显示简介…',
           run: options.nativeInfo ? () => options.entryAction(target, 'info') : undefined,
         },
         { id: 'rename', label: '重命名…', run: () => options.rename(target) },
-        { id: 'duplicate', label: '制作副本', run: () => options.entryAction(target, 'duplicate') },
+        {
+          id: 'duplicate',
+          label: windows ? '创建副本' : '制作副本',
+          run: () => options.entryAction(target, 'duplicate'),
+        },
       );
     else {
       if (!folder)
         items.push({
           id: 'duplicate',
-          label: '制作副本',
+          label: windows ? '创建副本' : '制作副本',
           run: () => options.entryAction(target, 'duplicate'),
         });
       items.push(
@@ -124,7 +142,7 @@ function itemsFor(
         'separator',
         {
           id: 'info',
-          label: '显示简介…',
+          label: windows ? '属性…' : '显示简介…',
           run: options.nativeInfo ? () => options.entryAction(target, 'info') : undefined,
         },
       );
@@ -136,11 +154,11 @@ function itemsFor(
     { id: 'copy-path', label: '复制文件路径', run: () => options.entryAction(target, 'copy-path') },
     {
       id: 'reveal',
-      label: '在 Finder 中显示',
+      label: revealLabel(options.platform),
       run: root ? options.revealRoot : () => options.entryAction(target, 'reveal'),
     },
   );
-  return items;
+  return tidy(items);
 }
 /** Real native context menu where available; the browser uses the same action model. */
 export function useWorkspaceEntryMenu(options: Options) {
