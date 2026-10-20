@@ -25,3 +25,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm prepare:runtime
       - run: cargo test --workspace --lib --bins --locked --no-fail-fast -- --test-threads=1
+      - uses: actions/cache/save@v4
+        if: ${{ !cancelled() }}
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: release-preflight-windows-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}

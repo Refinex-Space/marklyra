@@ -4,6 +4,8 @@
 mod authorities;
 mod authority;
 mod codec;
+#[cfg(test)]
+mod directory_test_support;
 mod external;
 mod file_location;
 mod image_document_identity;

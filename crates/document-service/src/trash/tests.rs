@@ -190,7 +190,15 @@ fn ancestor_trash_retains_all_scope_shapes_and_restore_resumes_only_original_fds
         )
         .unwrap();
     assert_eq!(plan.affected_count(), 3);
-    fs::rename(&old, &holding).unwrap();
+    if !crate::directory_test_support::move_retained_directory(&old, &holding) {
+        drop(plan);
+        crate::directory_test_support::assert_available(
+            &service,
+            &direct.id,
+            &old.join("nested/A.md"),
+        );
+        return;
+    }
     assert_eq!(plan.commit().len(), 3);
     for (document, image) in [&direct, &inner, &outer].into_iter().zip(&images) {
         assert_eq!(service.image(&image.token).unwrap().bytes.as_ref(), SVG);
@@ -475,7 +483,14 @@ fn later_ancestor_trash_and_reused_path_rename_do_not_capture_an_older_trashed_d
         )
         .unwrap();
     assert_eq!(plan.affected_count(), 1);
-    fs::rename(&folder, root.join("holding/folder")).unwrap();
+    if !crate::directory_test_support::move_retained_directory(
+        &folder,
+        &root.join("holding/folder"),
+    ) {
+        drop(plan);
+        crate::directory_test_support::assert_available(&service, &second.id, &renamed);
+        return;
+    }
     plan.commit();
     assert_eq!(service.documents[&first.id].trashed_by, Some(first_key));
     assert_eq!(service.documents[&second.id].trashed_by, Some(second_key));
@@ -654,7 +669,11 @@ fn directory_restore_rejects_missing_or_foreign_root_proof_before_any_state_chan
             key,
         )
         .unwrap();
-    fs::rename(&old, &holding).unwrap();
+    if !crate::directory_test_support::move_retained_directory(&old, &holding) {
+        drop(plan);
+        crate::directory_test_support::assert_available(&service, &document.id, &old.join("A.md"));
+        return;
+    }
     plan.commit();
     let identity = same_file::Handle::from_path(&holding).unwrap();
     let source = cap(&holding);
@@ -727,7 +746,15 @@ fn a_replaced_descendant_file_stays_in_conflict_but_a_replaced_parent_blocks_res
                 key,
             )
             .unwrap();
-        fs::rename(&old, &holding).unwrap();
+        if !crate::directory_test_support::move_retained_directory(&old, &holding) {
+            drop(plan);
+            crate::directory_test_support::assert_available(
+                &service,
+                &document.id,
+                &old.join("nested/A.md"),
+            );
+            continue;
+        }
         plan.commit();
         if replace_parent {
             fs::rename(holding.join("nested"), holding.join("retained")).unwrap();

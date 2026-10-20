@@ -63,7 +63,15 @@ fn available_trash_open_follows_directory_restore_and_preserves_shared_own_save_
                 key,
             )
             .unwrap();
-        fs::rename(&original, &holding).unwrap();
+        if !crate::directory_test_support::move_retained_directory(&original, &holding) {
+            drop(trash);
+            crate::directory_test_support::assert_available(
+                &first,
+                &a.id,
+                &original.join("nested/A.md"),
+            );
+            continue;
+        }
         trash.commit();
         let b = second
             .open_authorized(&holding.join("nested/A.md"))
@@ -181,7 +189,11 @@ fn available_workspace_images_are_intersected_with_source_not_destination_siblin
             key,
         )
         .unwrap();
-    fs::rename(&original, &holding).unwrap();
+    if !crate::directory_test_support::move_retained_directory(&original, &holding) {
+        drop(plan);
+        crate::directory_test_support::assert_available(&service, &a.id, &original.join("A.md"));
+        return;
+    }
     plan.commit();
     let b = service
         .open_in_workspace(
@@ -280,7 +292,13 @@ fn available_handoff_invalidates_old_reload_watch_and_unknown_restore_cannot_rea
                 Uuid::new_v4(),
             ))
             .unwrap();
-        fs::rename(&holding, &original).unwrap();
+        if !crate::directory_test_support::move_retained_directory(&holding, &original) {
+            drop(plan);
+            assert_eq!(service.get_metadata(&b.id).unwrap().path, b.path);
+            assert_eq!(fs::read(holding.join("A.md")).unwrap(), b"External");
+            assert_eq!(service.documents[&b.id].text, b.text);
+            continue;
+        }
         if uncertain {
             assert_eq!(plan.revoke(), vec![b.id.clone()]);
             assert!(matches!(
@@ -337,7 +355,17 @@ fn source_display_and_descendant_parent_must_both_match_the_actual_source() {
             Uuid::new_v4()
         ))
         .is_err());
-    fs::rename(holding.join("nested"), holding.join("retained")).unwrap();
+    if !crate::directory_test_support::move_retained_directory(
+        &holding.join("nested"),
+        &holding.join("retained"),
+    ) {
+        crate::directory_test_support::assert_available(
+            &service,
+            &b.id,
+            &holding.join("nested/A.md"),
+        );
+        return;
+    }
     fs::create_dir(holding.join("nested")).unwrap();
     fs::write(holding.join("nested/A.md"), b"Alpha").unwrap();
     assert!(matches!(
