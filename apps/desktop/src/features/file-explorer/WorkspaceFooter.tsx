@@ -1,4 +1,12 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type ComponentPropsWithRef,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { ShellGlyph, type ShellGlyphName } from '../../components/ShellGlyph.js';
 import type { DirectoryHistoryEntry } from '../../services/directory-history.js';
 import { displayPath } from '../../services/display-path.js';
@@ -38,6 +46,15 @@ const sortGlyphs = [
 function SortGlyph({ mode, descending }: { mode: number; descending: boolean }) {
   const variants = sortGlyphs[mode] ?? sortGlyphs[0];
   return <ShellGlyph name={variants[descending ? 1 : 0]} className="workspace-sort-glyph" />;
+}
+
+/** Keep history anchored to the footer; context menus share the Shell's unclipped layer. */
+function FooterPopup({
+  layer,
+  ...props
+}: ComponentPropsWithRef<'div'> & { layer: Element | null }) {
+  const popup = <div {...props} />;
+  return layer ? createPortal(popup, layer) : popup;
 }
 
 export function WorkspaceFooter({
@@ -96,14 +113,37 @@ export function WorkspaceFooter({
       [preferences.view === 'tree' ? 'treeNoGroup' : 'articleNoGroup']: !noGroup,
     });
   useLayoutEffect(() => {
+    if (!open || !context || !contextPoint || !menu.current) return;
+    const element = menu.current;
+    const place = () => {
+      const bounds = element.getBoundingClientRect();
+      const margin = 8;
+      element.style.left = `${Math.max(margin, Math.min(contextPoint.x, window.innerWidth - bounds.width - margin))}px`;
+      element.style.top = `${Math.max(margin, Math.min(contextPoint.y, window.innerHeight - bounds.height - margin))}px`;
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(element);
+    window.addEventListener('resize', place);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', place);
+    };
+  }, [open, context, contextPoint]);
+  useLayoutEffect(() => {
     if (!open) return;
     if (context)
       menu.current
         ?.querySelector<HTMLButtonElement>('button:not(:disabled):not([data-menu-skip-roving])')
-        ?.focus();
+        ?.focus({ preventScroll: true });
     else menu.current?.focus({ preventScroll: true });
     const dismiss = (event: Event) => {
-      if (event.target instanceof Node && !root.current?.contains(event.target)) setOpen(false);
+      if (
+        event.target instanceof Node &&
+        !root.current?.contains(event.target) &&
+        !menu.current?.contains(event.target)
+      )
+        setOpen(false);
     };
     const dismissWithEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape' || event.metaKey || event.ctrlKey) return;
@@ -235,8 +275,9 @@ export function WorkspaceFooter({
         </button>
       )}
       {open && (
-        <div
-          className={`workspace-location-popup sidebar-popup-menu${context ? '' : ' directory-footer-popup'}`}
+        <FooterPopup
+          layer={context ? (root.current?.closest('.shell') ?? document.body) : null}
+          className={`workspace-location-popup sidebar-popup-menu ${context ? 'workspace-context-popup' : 'directory-footer-popup'}`}
           tabIndex={-1}
           role="menu"
           aria-label="目录操作"
@@ -244,12 +285,8 @@ export function WorkspaceFooter({
           style={
             context && contextPoint
               ? {
-                  position: 'fixed',
-                  left: Math.min(contextPoint.x, window.innerWidth - 240),
-                  top: Math.min(contextPoint.y, window.innerHeight - 290),
-                  bottom: 'auto',
-                  right: 'auto',
-                  width: 230,
+                  left: contextPoint.x,
+                  top: contextPoint.y,
                 }
               : undefined
           }
@@ -366,7 +403,7 @@ export function WorkspaceFooter({
               )}
             </>
           )}
-        </div>
+        </FooterPopup>
       )}
     </nav>
   );

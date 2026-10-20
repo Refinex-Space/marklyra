@@ -7,6 +7,7 @@ import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 
 type Configuration = {
+  platform?: 'macos' | 'windows';
   mounted?: boolean;
   named?: boolean;
   historyOff?: boolean;
@@ -165,7 +166,10 @@ function installDirectoryHistoryMock(configuration: Configuration) {
 const menu = (page: Page) => page.getByRole('menu', { name: '目录操作', exact: true });
 const write = (page: Page) => page.frameLocator('.marklyra-editor-frame').locator('#write');
 async function start(page: Page, configuration: Configuration = {}) {
-  await page.addInitScript(installMock, { nativeChrome: true });
+  await page.addInitScript(installMock, {
+    nativeChrome: true,
+    titlebar: configuration.platform === 'windows' ? 'web' : 'appkit',
+  });
   await page.addInitScript(installRecoveryMock);
   await page.addInitScript(installDirectoryHistoryMock, {
     ...configuration,
@@ -192,6 +196,67 @@ async function names(page: Page) {
   return menu(page)
     .locator('.directory-location-open > span:not([aria-hidden="true"])')
     .allTextContents();
+}
+
+for (const platform of ['macos', 'windows'] as const) {
+  for (const theme of ['marklyra-light', 'marklyra-dark']) {
+    test(`${platform}/${theme}: footer context menu stays above the editor and within the viewport`, async ({
+      page,
+    }, info) => {
+      await start(page, { platform });
+      await page.evaluate(
+        (theme) => (window as TestWindow).__desktopMock.emitMenu(`theme:${theme}`),
+        theme,
+      );
+      await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', theme);
+      await open(page);
+      const history = await menu(page).boundingBox();
+      const sidebar = await page.locator('.sidebar').boundingBox();
+      if (!history || !sidebar) throw Error('Missing sidebar menu geometry');
+      await menu(page).click({
+        button: 'right',
+        position: { x: history.width - 8, y: 48 },
+      });
+      await expect(
+        menu(page).getByRole('menuitem', { name: '刷新目录', exact: true }),
+      ).toBeVisible();
+      const bounds = await menu(page).boundingBox();
+      if (!bounds) throw Error('Missing context menu');
+      expect(bounds.x + bounds.width).toBeGreaterThan(sidebar.x + sidebar.width + 100);
+      await expect
+        .poll(() =>
+          menu(page).evaluate((element) => {
+            const box = element.getBoundingClientRect();
+            return element.contains(
+              document.elementFromPoint(box.right - 8, box.top + Math.min(30, box.height / 2)),
+            );
+          }),
+        )
+        .toBe(true);
+      await page.screenshot({ path: info.outputPath('context-over-editor.png') });
+      await page.setViewportSize({ width: 700, height: 480 });
+      await expect
+        .poll(() =>
+          menu(page).evaluate((element) => {
+            const box = element.getBoundingClientRect();
+            return (
+              box.left >= 8 &&
+              box.top >= 8 &&
+              box.right <= innerWidth - 8 &&
+              box.bottom <= innerHeight - 8
+            );
+          }),
+        )
+        .toBe(true);
+      await menu(page).getByRole('menuitem', { name: '刷新目录', exact: true }).click();
+      await expect(menu(page)).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '目录菜单', exact: true })).toBeFocused();
+      await open(page);
+      await menu(page).click({ button: 'right', position: { x: 10, y: 48 } });
+      await page.keyboard.press('Escape');
+      await expect(menu(page)).toHaveCount(0);
+    });
+  }
 }
 async function save(page: Page) {
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('save'));

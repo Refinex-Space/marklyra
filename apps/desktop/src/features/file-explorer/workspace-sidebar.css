@@ -762,6 +762,17 @@
   left: 4px;
   right: 4px;
 }
+.workspace-location-popup.workspace-context-popup {
+  position: fixed;
+  z-index: 100;
+  bottom: auto;
+  right: auto;
+  width: 230px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  font-family: var(--marklyra-sidebar-font-family, inherit);
+}
 .workspace-footer .workspace-location-menu:focus,
 .workspace-location-popup:focus {
   outline: none;
