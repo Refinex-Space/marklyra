@@ -3,6 +3,8 @@
 mod macos;
 #[cfg(target_os = "macos")]
 mod native_title;
+#[cfg(target_os = "macos")]
+mod native_title_action;
 mod title_layout;
 #[cfg(windows)]
 mod windows;

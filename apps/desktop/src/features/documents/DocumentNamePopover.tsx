@@ -1,6 +1,6 @@
 import {
-  type KeyboardEvent as ReactKeyboardEvent,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -10,9 +10,9 @@ import { stemRange } from './rename-model.js';
 import type { RenameState } from './useDocumentRename.js';
 import './document-name-popover.css';
 
-/** The macOS popover is a little wider and hangs from an arrow; the Windows flyout does not. */
-const WIDTH = { mac: 340, windows: 320 } as const;
-const GAP = { mac: 10, windows: 6 } as const;
+/** Equal compact widths; only the macOS popover reserves room for a title arrow. */
+const WIDTH = { mac: 320, windows: 320 } as const;
+const GAP = { mac: 8, windows: 6 } as const;
 const MARGIN = 12;
 
 export interface DocumentNamePopoverProps {
@@ -38,6 +38,9 @@ export function DocumentNamePopover(props: DocumentNamePopoverProps) {
   busy.current = state.busy;
   const latest = useRef({ value, onCommit });
   latest.current = { value, onCommit };
+  const composing = useRef(false);
+  const deferredOutside = useRef(false);
+  const settleOutside = useRef<() => void>(() => {});
 
   useLayoutEffect(() => {
     const field = input.current;
@@ -48,17 +51,57 @@ export function DocumentNamePopover(props: DocumentNamePopoverProps) {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    let frame: number | undefined;
+    const confirmOutside = () => {
+      if (!active || busy.current) return;
+      if (composing.current) {
+        deferredOutside.current = true;
+        return;
+      }
+      deferredOutside.current = false;
+      // Composition's final DOM input may precede React's state update.
+      latest.current.onCommit(input.current?.value ?? latest.current.value);
+    };
+    const scheduleOutside = () => {
+      if (frame !== undefined) return;
+      frame = requestAnimationFrame(() => {
+        frame = undefined;
+        confirmOutside();
+      });
+    };
+    settleOutside.current = scheduleOutside;
     const outside = (event: PointerEvent) => {
       if (event.target instanceof Node && root.current?.contains(event.target)) return;
       // The title button toggles the popover itself; its press is not an "elsewhere" click.
       if (event.target instanceof Element && event.target.closest('.titlebar-title-button')) return;
-      if (!busy.current) latest.current.onCommit(latest.current.value);
+      confirmOutside();
+    };
+    // Cross-origin editor pointer events never bubble here. Entering that frame
+    // blurs this window; inspect focus after the browser finishes transferring it.
+    const frameFocus = () => {
+      queueMicrotask(() => {
+        if (
+          active &&
+          document.hasFocus() &&
+          document.activeElement instanceof HTMLIFrameElement &&
+          !root.current?.contains(document.activeElement)
+        )
+          scheduleOutside();
+      });
     };
     const resize = () => setViewport(document.documentElement.clientWidth);
     document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('focusin', frameFocus);
+    window.addEventListener('blur', frameFocus);
     window.addEventListener('resize', resize);
     return () => {
+      active = false;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      settleOutside.current = () => {};
       document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('focusin', frameFocus);
+      window.removeEventListener('blur', frameFocus);
       window.removeEventListener('resize', resize);
     };
   }, []);
@@ -110,6 +153,13 @@ export function DocumentNamePopover(props: DocumentNamePopoverProps) {
           onChange={(event) => {
             setValue(event.target.value);
             if (state.error) onEdit();
+          }}
+          onCompositionStart={() => {
+            composing.current = true;
+          }}
+          onCompositionEnd={() => {
+            composing.current = false;
+            if (deferredOutside.current) settleOutside.current();
           }}
           onKeyDown={keys}
         />

@@ -8,10 +8,36 @@ mod native_title;
 mod title_layout;
 
 #[cfg(target_os = "macos")]
+#[path = "../src/platform/ui_chrome/native_title_action.rs"]
+mod native_title_action;
+
+#[cfg(target_os = "macos")]
+mod click_probe {
+    use objc2::{define_class, runtime::AnyObject, MainThreadOnly};
+    use objc2_foundation::{NSObject, NSObjectProtocol};
+    pub static CLICKS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    define_class!(
+        #[unsafe(super = NSObject)]
+        #[thread_kind = MainThreadOnly]
+        pub struct RenameProbe;
+        unsafe impl NSObjectProtocol for RenameProbe {}
+        impl RenameProbe {
+            #[unsafe(method(renameDocument:))]
+            fn rename_document(&self, _sender: &AnyObject) { CLICKS.fetch_add(1, std::sync::atomic::Ordering::SeqCst); }
+        }
+    );
+}
+
+#[cfg(target_os = "macos")]
 fn main() {
-    use objc2::{rc::autoreleasepool, MainThreadMarker, MainThreadOnly};
+    use objc2::{
+        msg_send,
+        rc::{autoreleasepool, Retained},
+        sel, MainThreadMarker, MainThreadOnly,
+    };
     use objc2_app_kit::{
-        NSApplication, NSBackingStoreType, NSWindow, NSWindowButton, NSWindowStyleMask,
+        NSApplication, NSBackingStoreType, NSEventModifierFlags, NSEventType, NSWindow,
+        NSWindowButton, NSWindowStyleMask, NSWindowTitleVisibility,
     };
     use objc2_foundation::{NSPoint, NSRect, NSSize, NSString, NSURL};
     use title_layout::TitlebarLayout;
@@ -36,6 +62,12 @@ fn main() {
         let url = NSURL::fileURLWithPath(&NSString::from_str("/tmp/MarkLyra-title-layout.md"));
         window.setRepresentedURL(Some(&url));
         window.setDocumentEdited(true);
+        let probe: Retained<click_probe::RenameProbe> =
+            unsafe { msg_send![click_probe::RenameProbe::alloc(mtm), init] };
+        let rename = native_title_action::button(&probe, sel!(renameDocument:), mtm);
+        rename.setEnabled(true);
+        let mut expected_clicks = 0;
+
         for name in [
             "README.md".to_owned(),
             "项目使用说明与功能设计.md".to_owned(),
@@ -73,7 +105,35 @@ fn main() {
                     .unwrap(),
                     width - 140.0,
                 );
+                native_title_action::position(&rename, &window);
                 parent.layoutSubtreeIfNeeded();
+                assert!(!rename.isHidden());
+                assert_eq!(rename.frame(), field.frame());
+                assert!(
+                    rename.isTransparent(),
+                    "AppKit still draws the original title"
+                );
+                assert!(!rename.mouseDownCanMoveWindow());
+                let frame = rename.frame();
+                let point = NSPoint::new(
+                    frame.origin.x + frame.size.width / 2.0,
+                    frame.origin.y + frame.size.height / 2.0,
+                );
+                let outer = unsafe { parent.superview() };
+                let point = parent.convertPoint_toView(point, outer.as_deref());
+                let hit = parent.hitTest(point).expect("native title hit target");
+                assert_eq!(
+                    Retained::as_ptr(&hit).cast::<()>(),
+                    Retained::as_ptr(&rename).cast::<()>()
+                );
+                unsafe {
+                    rename.performClick(None);
+                }
+                expected_clicks += 1;
+                assert_eq!(
+                    click_probe::CLICKS.load(std::sync::atomic::Ordering::SeqCst),
+                    expected_clicks
+                );
                 let text = parent.convertRect_toView(field.frame(), None);
                 // SAFETY: the same retained window owns this standard button.
                 let icon_parent = unsafe { icon.superview() }.unwrap();
@@ -110,6 +170,40 @@ fn main() {
                 assert_eq!(icon.image(), image);
             }
         }
+        for kind in [NSEventType::RightMouseDown, NSEventType::OtherMouseDown] {
+            assert!(!native_title_action::accepts_click(
+                kind,
+                NSEventModifierFlags::empty()
+            ));
+        }
+        for modifier in [
+            NSEventModifierFlags::Command,
+            NSEventModifierFlags::Control,
+            NSEventModifierFlags::Option,
+            NSEventModifierFlags::Shift,
+        ] {
+            assert!(!native_title_action::accepts_click(
+                NSEventType::LeftMouseDown,
+                modifier
+            ));
+        }
+        assert!(native_title_action::accepts_click(
+            NSEventType::LeftMouseDown,
+            NSEventModifierFlags::empty()
+        ));
+        window.setTitleVisibility(NSWindowTitleVisibility::Hidden);
+        native_title_action::position(&rename, &window);
+        assert!(
+            rename.isHidden(),
+            "preferences hides the title click target"
+        );
+        window.setTitleVisibility(NSWindowTitleVisibility::Visible);
+        rename.setEnabled(false);
+        native_title_action::position(&rename, &window);
+        assert!(
+            rename.isHidden(),
+            "untitled/deleted documents have no rename target"
+        );
         window.setRepresentedURL(None);
         window.setTitle(&NSString::from_str("未命名"));
         let field = native_title::title_field(&window).unwrap();
@@ -119,7 +213,13 @@ fn main() {
             content_right: width,
             viewport_width: width,
         };
+        rename.setEnabled(true);
         native_title::position(&window, layout, 500.0);
+        native_title_action::position(&rename, &window);
+        assert!(
+            rename.isHidden(),
+            "clipped titles leave no stale clickable rectangle"
+        );
         assert!(
             field.isHidden(),
             "A title cannot overlap the right accessory controls"
@@ -131,8 +231,9 @@ fn main() {
         let text = parent.convertRect_toView(field.frame(), None);
         assert!((text.origin.x + text.size.width / 2.0 - (270.0 + width) / 2.0).abs() < 0.5);
         assert!(window.representedURL().is_none());
+        rename.removeFromSuperview(); // The action target must outlive its attached button.
     });
-    println!("Native title layout passed: reading-area center, both panels, resizing, clipping and original proxy state");
+    println!("Native title passed: layout, real hit testing, rename target/action, modifier passthrough, visibility and original proxy state");
 }
 
 #[cfg(not(target_os = "macos"))]

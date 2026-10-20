@@ -1,6 +1,6 @@
 use super::{
-    native_hover, native_images::TitlebarImages, native_title, title_layout::TitlebarLayout,
-    DocumentChrome, StatisticsSnapshot, StatisticsUnit,
+    native_hover, native_images::TitlebarImages, native_title, native_title_action,
+    title_layout::TitlebarLayout, DocumentChrome, StatisticsSnapshot, StatisticsUnit,
 };
 use objc2::{
     define_class, msg_send,
@@ -29,6 +29,7 @@ struct ChromeIvars {
     actions: OnceCell<Vec<Retained<NSButton>>>,
     statistics: RefCell<StatisticsSnapshot>,
     statistics_button: OnceCell<Retained<NSButton>>,
+    title_button: OnceCell<Retained<NSButton>>,
     source_button: OnceCell<Retained<NSButton>>,
     source_mode: Cell<bool>,
     always_show_word_count: Cell<bool>,
@@ -52,6 +53,9 @@ define_class!(
             unsafe { let _: () = msg_send![super(self), layout]; }
             self.position_title();
         }
+        #[unsafe(method(renameDocument:))]
+        fn rename_document(&self, _sender: &AnyObject) { self.emit("rename-document"); }
+
         #[unsafe(method(toggleSidebar:))]
         fn toggle_sidebar(&self, _sender: &AnyObject) { self.emit("view:sidebar"); }
 
@@ -89,6 +93,7 @@ impl MarkLyraTitlebarView {
             actions: OnceCell::new(),
             statistics: RefCell::new(StatisticsSnapshot::default()),
             statistics_button: OnceCell::new(),
+            title_button: OnceCell::new(),
             source_button: OnceCell::new(),
             source_mode: Cell::new(false),
             always_show_word_count: Cell::new(true),
@@ -112,6 +117,9 @@ impl MarkLyraTitlebarView {
 
     fn position_title(&self) {
         if self.ivars().preferences_page.get() {
+            if let Some(button) = self.ivars().title_button.get() {
+                button.setHidden(true);
+            }
             if let Some(window) = self.window() {
                 window.setTitleVisibility(NSWindowTitleVisibility::Hidden);
                 if let Some(field) = native_title::title_field(&window) {
@@ -128,6 +136,11 @@ impl MarkLyraTitlebarView {
         if let (Some(window), Some(layout)) = (self.window(), self.ivars().content_layout.get()) {
             let accessory_left = self.convertRect_toView(self.bounds(), None).origin.x;
             native_title::position(&window, layout, accessory_left);
+            if let Some(button) = self.ivars().title_button.get() {
+                native_title_action::position(button, &window);
+            }
+        } else if let Some(button) = self.ivars().title_button.get() {
+            button.setHidden(true);
         }
     }
 
@@ -339,6 +352,11 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             unsafe { Retained::retain(pointer.cast::<NSWindow>()) }.ok_or("原生窗口不存在")?;
         let view = MarkLyraTitlebarView::new(window, mtm);
         let images = TitlebarImages::load()?;
+        let _ = view.ivars().title_button.set(native_title_action::button(
+            &view,
+            sel!(renameDocument:),
+            mtm,
+        ));
         let statistics = button(
             &view,
             "0 词",
@@ -470,6 +488,9 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
         chrome.window.setRepresentedURL(url.as_deref());
         chrome.window.setTitle(&NSString::from_str(&title));
         chrome.window.setDocumentEdited(update.dirty);
+        if let Some(button) = chrome.view.ivars().title_button.get() {
+            button.setEnabled(update.file_proxy && update.path.is_some());
+        }
         chrome.ai.setState(if update.ai_panel_open { 1 } else { 0 });
         chrome
             .outline
@@ -511,6 +532,9 @@ pub(super) fn release(label: &str) {
     };
     CHROME.with(|registry| {
         if let Some(chrome) = registry.borrow_mut().remove(label) {
+            if let Some(button) = chrome.view.ivars().title_button.get() {
+                button.removeFromSuperview();
+            }
             if let Some(constraints) = chrome.fullscreen_constraints {
                 NSLayoutConstraint::deactivateConstraints(&constraints);
                 chrome.statistics.removeFromSuperview();

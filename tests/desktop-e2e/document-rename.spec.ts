@@ -61,7 +61,7 @@ test('windows: the title opens a flyout with the stem selected and Enter renames
 test('windows: a name without a Markdown extension keeps the old one', async ({ page }) => {
   await boot(page, 'windows');
   await page.locator('.titlebar-title-button').click();
-  await page.keyboard.press('Control+A');
+  await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.type('日记');
   await page.keyboard.press('Enter');
   await expect(page.locator('.titlebar-title-button')).toContainText('日记.md');
@@ -113,7 +113,7 @@ test('windows: illegal characters and host refusals show inline and keep the fly
   await expect(flyout.getByRole('alert')).toHaveText('名称不能包含 : * ? " < > |');
   expect(await renameCalls(page)).toEqual([]);
   // Editing clears the message; a host refusal is shown the same way.
-  await page.keyboard.press('Control+A');
+  await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.type('taken');
   await expect(flyout.getByRole('alert')).toHaveCount(0);
   await page.evaluate(() => {
@@ -124,7 +124,7 @@ test('windows: illegal characters and host refusals show inline and keep the fly
   await expect(flyout).toBeVisible();
   await expect(flyout.getByRole('textbox')).toHaveValue('taken');
   // Fixing the name completes the rename on the next try.
-  await page.keyboard.press('Control+A');
+  await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.type('free');
   await page.keyboard.press('Enter');
   await expect(flyout).toBeHidden();
@@ -190,11 +190,12 @@ for (const host of ['windows', 'macos'] as const) {
   });
 }
 
-test('macos: the native title is untouched and the popover leads with the name label', async ({
+test('macos: the native rename action opens the shared popover with the name label', async ({
   page,
 }) => {
   await boot(page, 'macos');
   await expect(page.locator('.titlebar')).toHaveCount(0);
+  // AppKit hit testing is covered by titlebar-layout-native; this verifies its Shell event route.
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('rename-document'));
   const flyout = popover(page);
   await expect(flyout.locator('.document-name-label')).toHaveText('名称：');
@@ -203,3 +204,54 @@ test('macos: the native title is untouched and the popover leads with the name l
   await expect(flyout).toBeHidden();
   expect((await renameCalls(page))[0]?.args.newName).toBe('Notes.md');
 });
+
+for (const host of ['windows', 'macos'] as const) {
+  test(`${host}: editor frame text and blank space dismiss the rename popover`, async ({
+    page,
+  }) => {
+    await boot(page, host);
+    await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('rename-document'));
+    const flyout = popover(page);
+    await flyout.getByRole('textbox').fill('Moved.md');
+    await page
+      .frameLocator('.marklyra-editor-frame')
+      .locator('#write > p')
+      .click({ position: { x: 5, y: 5 } });
+    await expect(flyout).toBeHidden();
+    expect((await renameCalls(page)).map((call) => call.args.newName)).toEqual(['Moved.md']);
+
+    await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('rename-document'));
+    await expect(flyout.getByRole('textbox')).toBeFocused();
+    await page
+      .frameLocator('.marklyra-editor-frame')
+      .locator('body')
+      .click({ position: { x: 500, y: 350 } });
+    await expect(flyout).toBeHidden();
+    expect(await renameCalls(page)).toHaveLength(1);
+  });
+
+  test(`${host}: internal clicks and window blur do not dismiss, outside IME commit waits for completion`, async ({
+    page,
+  }) => {
+    await boot(page, host);
+    await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('rename-document'));
+    const flyout = popover(page);
+    const input = flyout.getByRole('textbox');
+    await input.click();
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await expect(flyout).toBeVisible();
+    expect(await renameCalls(page)).toHaveLength(0);
+
+    await input.dispatchEvent('compositionstart');
+    await input.fill('中文文稿.md');
+    await page
+      .frameLocator('.marklyra-editor-frame')
+      .locator('#write > p')
+      .click({ position: { x: 5, y: 5 } });
+    await expect(flyout).toBeVisible();
+    expect(await renameCalls(page)).toHaveLength(0);
+    await input.dispatchEvent('compositionend', { data: '中文文稿' });
+    await expect(flyout).toBeHidden();
+    expect((await renameCalls(page)).map((call) => call.args.newName)).toEqual(['中文文稿.md']);
+  });
+}
