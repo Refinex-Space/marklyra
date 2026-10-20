@@ -340,6 +340,18 @@ for (const theme of ['marklyra-light', 'marklyra-dark'])
     await expect(page.getByRole('region', { name: '智能体设置' })).toBeVisible();
   });
 
+test('a blank untitled document is not offered as AI context', async ({ page }) => {
+  await installLayout(page);
+  await page.addInitScript(mockAgents);
+  await readyLayout(page, 'marklyra-light');
+  await emitLayoutMenu(page, 'open-folder');
+  await emitLayoutMenu(page, 'view:ai');
+  await startConversation(page);
+  await expect(page.getByRole('textbox', { name: '发送给 AI 的消息' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '移除当前正文上下文' })).toHaveCount(0);
+  await expect(page.locator('.ai-composer-area .ai-context')).toHaveCount(0);
+});
+
 test('standalone snapshot, narrow layout and IME do not send implicitly', async ({
   page,
 }, info) => {

@@ -2264,6 +2264,7 @@ export function App() {
               }}
               workspace={workspaceIdentity.current}
               currentPath={doc.file?.path ?? null}
+              hasDocument={doc.file !== null || doc.snapshot.trim() !== ''}
               openDocument={(relativePath, scopeId) => {
                 const workspaceId = scopeId ?? workspaceIdentity.current?.id;
                 if (workspaceId)

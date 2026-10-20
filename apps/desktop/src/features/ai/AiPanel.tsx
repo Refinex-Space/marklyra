@@ -37,6 +37,8 @@ interface Props {
   open: boolean;
   workspace: WorkspaceFolder | null;
   currentPath: string | null;
+  /** False for an untitled document with no text: there is nothing to offer as context. */
+  hasDocument: boolean;
   snapshot: () => Promise<{
     documentId: string | null;
     path: string | null;
@@ -429,6 +431,7 @@ export function AiPanel(props: Props) {
             ensureSession={ensureSession}
             workspace={workspace}
             currentPath={props.currentPath}
+            hasDocument={props.hasDocument}
             includeCurrent={includeCurrent}
             setIncludeCurrent={setIncludeCurrent}
             standalone={!props.workspace}
@@ -480,6 +483,7 @@ function Conversation({
   ensureSession,
   workspace,
   currentPath,
+  hasDocument,
   includeCurrent,
   setIncludeCurrent,
   standalone,
@@ -498,6 +502,7 @@ function Conversation({
   ensureSession: () => AgentSession;
   workspace: WorkspaceFolder;
   currentPath: string | null;
+  hasDocument: boolean;
   includeCurrent: boolean;
   setIncludeCurrent: (value: boolean) => void;
   standalone: boolean;
@@ -639,7 +644,9 @@ function Conversation({
         message,
         references,
         active && references.includes(active) ? active : null,
-        includeCurrent && (currentPath ? !active || references.includes(active) : true),
+        includeCurrent &&
+          hasDocument &&
+          (currentPath ? !active || references.includes(active) : true),
         submittedAttachments,
         () => {
           if (epoch !== draftEpoch.current) return;
@@ -1020,21 +1027,23 @@ function Conversation({
               </button>
             </div>
           )}
-          {includeCurrent && (!currentPath || !documentLink(currentPath, workspace.path)) && (
-            <div className="ai-context">
-              <span className="ai-context-chip">
-                <span>{currentPath?.split(/[\\/]/).at(-1) ?? '未命名文稿'} · 当前正文</span>
-                <button
-                  type="button"
-                  aria-label="移除当前正文上下文"
-                  disabled={busy}
-                  onClick={() => setIncludeCurrent(false)}
-                >
-                  ×
-                </button>
-              </span>
-            </div>
-          )}
+          {includeCurrent &&
+            hasDocument &&
+            (!currentPath || !documentLink(currentPath, workspace.path)) && (
+              <div className="ai-context">
+                <span className="ai-context-chip">
+                  <span>{currentPath?.split(/[\\/]/).at(-1) ?? '未命名文稿'} · 当前正文</span>
+                  <button
+                    type="button"
+                    aria-label="移除当前正文上下文"
+                    disabled={busy}
+                    onClick={() => setIncludeCurrent(false)}
+                  >
+                    ×
+                  </button>
+                </span>
+              </div>
+            )}
           {references.length > 32 && (
             <p className="ai-error" role="alert">
               上下文最多附加 32 份文档，请移除部分引用。
