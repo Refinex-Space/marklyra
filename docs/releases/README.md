@@ -71,6 +71,10 @@ chmod 600 "$HOME/.config/marklyra-signing/updater.key"
 
 ## 每次更新版本的标准步骤
 
+### 发布分支
+
+不需要专门创建 DEV 分支。正式版本从已完成验证且与远端同步的 `main` 创建版本标签；发布工作流由标签触发，不由分支名称触发。日常开发可以使用功能分支，但应先合并回 `main` 再发布。不要将未提交改动或尚未验收的开发分支作为发布来源。
+
 ### 1. 完成改动、递增版本
 
 确保当前分支和工作区内容就是本次要发布的版本：
@@ -98,7 +102,7 @@ pnpm test:release
 node --test scripts/lib/general-preferences-source.test.mjs scripts/lib/prepare-preferences-runtime.test.mjs
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked
-cargo test --workspace --lib --bins --locked
+cargo test --workspace --lib --bins --locked -- --test-threads=1
 pnpm prepare:runtime
 pnpm exec playwright test -c playwright.desktop.config.ts tests/desktop-e2e/general-settings-layout.spec.ts tests/desktop-e2e/app-updates.spec.ts
 pnpm --filter @marklyra/desktop build
@@ -107,6 +111,8 @@ pnpm --filter @marklyra/desktop build
 浏览器测试服务器关闭了文件监视，修改代码后必须使用新启动的测试服务器，不能复用过期实例。不要关闭其他人的应用或开发实例；可使用独立端口的本地 Playwright 配置。浏览器测试使用原生 IPC 替身，不代表真实系统安装、代理和重启已验证。
 
 当前仓库已有部分 Rust PDF/导出代码的 `dead_code`、`needless_borrow` 警告；发布工作流运行 clippy 并保留诊断，暂未用 `-D warnings` 阻断既有警告。发布前应阅读输出，不把警告当作已修复。
+
+Rust 发布测试串行执行，因为文件句柄上限测试统计整个测试进程的句柄，其他并行夹具会干扰计数；串行执行不跳过测试。
 
 ### 3. 提交代码并推送版本标签
 

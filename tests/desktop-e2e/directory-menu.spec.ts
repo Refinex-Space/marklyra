@@ -168,7 +168,7 @@ const write = (page: Page) => page.frameLocator('.marklyra-editor-frame').locato
 async function start(page: Page, configuration: Configuration = {}) {
   await page.addInitScript(installMock, {
     nativeChrome: true,
-    titlebar: configuration.platform === 'windows' ? 'web' : 'appkit',
+    titlebar: configuration.platform === 'windows' ? ('web' as const) : ('appkit' as const),
   });
   await page.addInitScript(installRecoveryMock);
   await page.addInitScript(installDirectoryHistoryMock, {
