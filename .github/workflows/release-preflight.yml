@@ -1,0 +1,27 @@
+name: Verify release platform compatibility
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: release-preflight-windows-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}
+          restore-keys: release-preflight-windows-${{ hashFiles('Cargo.lock') }}-
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prepare:runtime
+      - run: cargo test --workspace --lib --bins --locked --no-fail-fast -- --test-threads=1
