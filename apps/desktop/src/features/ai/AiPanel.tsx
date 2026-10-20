@@ -2,6 +2,7 @@ import { listen } from '@tauri-apps/api/event';
 import type { ClipboardEvent } from 'react';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from '../../components/Icon.js';
+import { displayPath } from '../../services/display-path.js';
 import { desktopAvailable } from '../../services/documents.js';
 import {
   type WorkspaceDocument,
@@ -386,7 +387,10 @@ export function AiPanel(props: Props) {
           <section className="ai-session-identity" aria-label="当前会话智能体">
             <AgentIcon id={session.profile.agentId} size={18} />
             <span>{session.profile.name}</span>
-            <span className="ai-workspace-name" title={workspace?.path}>
+            <span
+              className="ai-workspace-name"
+              title={workspace ? displayPath(workspace.path) : undefined}
+            >
               {workspace?.name}
             </span>
           </section>

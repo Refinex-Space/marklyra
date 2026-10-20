@@ -1,6 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useModalFocus } from '../../components/useModalFocus.js';
+import { displayPath } from '../../services/display-path.js';
 import { type RecentListing, recentFiles } from '../../services/recent.js';
 
 export function RecentFilesPanel({ close, open }: { close(): void; open(id: string): void }) {
@@ -92,16 +93,16 @@ export function RecentFilesPanel({ close, open }: { close(): void; open(id: stri
                     close();
                     open(entry.id);
                   }}
-                  aria-label={`打开最近文件 ${entry.path}`}
+                  aria-label={`打开最近文件 ${displayPath(entry.path)}`}
                 >
                   <strong title={entry.name}>{entry.name}</strong>
                   <small>{new Date(entry.lastOpenedAt).toLocaleString()}</small>
-                  <span title={entry.path}>{entry.path}</span>
+                  <span title={displayPath(entry.path)}>{displayPath(entry.path)}</span>
                 </button>
                 <button
                   type="button"
                   disabled={busy}
-                  aria-label={`移除最近记录 ${entry.path}`}
+                  aria-label={`移除最近记录 ${displayPath(entry.path)}`}
                   onClick={() => void mutate(() => recentFiles.remove(entry.id))}
                 >
                   移除

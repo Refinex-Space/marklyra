@@ -1,3 +1,4 @@
+import { displayPath } from '../../services/display-path.js';
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -468,7 +469,7 @@ export function DirectoryTree(props: TreeProps) {
       {props.rootRow && (
         <div
           className="workspace-root-row"
-          title={props.workspace.path}
+          title={displayPath(props.workspace.path)}
           data-entry-path=""
           data-entry-kind="directory"
         >

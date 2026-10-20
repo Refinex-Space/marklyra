@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { ShellGlyph, type ShellGlyphName } from '../../components/ShellGlyph.js';
 import type { DirectoryHistoryEntry } from '../../services/directory-history.js';
+import { displayPath } from '../../services/display-path.js';
 import type { WorkspaceFolder } from '../../services/workspaces.js';
 import { DirectoryHistoryMenu } from './DirectoryHistoryMenu.js';
 import type { FileSidebarPreferences, FileSortType } from './file-preferences.js';
@@ -202,7 +203,7 @@ export function WorkspaceFooter({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        title={path ?? '打开文件夹…'}
+        title={path ? displayPath(path) : '打开文件夹…'}
         disabled={disabled}
         ref={trigger}
         onClick={() => {

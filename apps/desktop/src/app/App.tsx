@@ -38,11 +38,7 @@ import {
 import { useAutoSave } from '../features/documents/useAutoSave.js';
 import { useDocumentSession } from '../features/documents/useDocumentSession.js';
 import { useExternalChanges } from '../features/documents/useExternalChanges.js';
-import {
-  type ExportAction,
-  isExportAction,
-  useDocumentExport,
-} from '../features/export/useDocumentExport.js';
+import { isExportAction, useDocumentExport } from '../features/export/useDocumentExport.js';
 import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
 import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
 import { hostTextInputFocused, useNativeMenus } from '../features/menus/useNativeMenus.js';
@@ -70,6 +66,7 @@ import { useThemes } from '../features/themes/useThemes.js';
 import { applicationPreferences } from '../services/application-preferences.js';
 import { desktopContextHost } from '../services/context-menu.js';
 import { directoryHistory } from '../services/directory-history.js';
+import { displayPath } from '../services/display-path.js';
 import { desktopAvailable, documents } from '../services/documents.js';
 import { documentExports } from '../services/exports.js';
 import { filePreferences } from '../services/file-preferences.js';
@@ -1173,7 +1170,7 @@ export function App() {
           if (editor.current !== active || actions.current.doc.getOwner() !== owner) {
             await documents.close(imported.id);
             actions.current.doc.setMessage(
-              `已导入另存为 ${imported.path}；当前文稿已切换，请手动打开导入结果`,
+              `已导入另存为 ${displayPath(imported.path)}；当前文稿已切换，请手动打开导入结果`,
             );
             return;
           }
@@ -1663,7 +1660,10 @@ export function App() {
           >
             <Icon name="sidebar" />
           </button>
-          <div className="document-title" title={doc.file?.path ?? '未命名文档'}>
+          <div
+            className="document-title"
+            title={doc.file ? displayPath(doc.file.path) : '未命名文档'}
+          >
             {doc.file ? filename(doc.file.path) : '未命名'}
             {doc.dirty && (
               <span className="document-dirty" title="未保存">
@@ -2390,7 +2390,10 @@ export function App() {
       )}
       {!chrome.native && (
         <footer className="statusbar">
-          <span className="document-status" title={doc.message || doc.file?.path || '未命名文档'}>
+          <span
+            className="document-status"
+            title={doc.message || (doc.file ? displayPath(doc.file.path) : '未命名文档')}
+          >
             {doc.message || (doc.dirty ? '未保存更改' : doc.file ? '已保存' : '未命名文档')}
           </span>
           {desktopAvailable && (

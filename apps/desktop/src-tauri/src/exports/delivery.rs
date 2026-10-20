@@ -13,11 +13,7 @@ const REMEMBERED: usize = 16;
 /// The `\\?\` verbatim form is what the host keeps internally; people and shell APIs want the
 /// plain path.
 pub(super) fn plain(path: &Path) -> PathBuf {
-    let text = path.to_string_lossy();
-    match text.strip_prefix(r"\\?\UNC\") {
-        Some(share) => PathBuf::from(format!(r"\\{share}")),
-        None => PathBuf::from(text.strip_prefix(r"\\?\").unwrap_or(&text)),
-    }
+    crate::platform::entry_actions::plain_path(path)
 }
 
 /// The directory of the Markdown file this window edits, when it has been saved.

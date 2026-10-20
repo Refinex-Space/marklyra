@@ -1,8 +1,22 @@
 //! OS effects receive only host-verified paths. These functions never grant IO.
 use crate::{clipboard::Content, window_services::EntryActionKind};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
+/// The host keeps `canonicalize`d paths, which on Windows are the `\\?\D:\…` (or `\\?\UNC\…`)
+/// verbatim form. People and shell APIs want the ordinary drive or share path; this is for
+/// presentation and hand-off only, never for identity checks against stored records.
+pub(crate) fn plain_path(path: &Path) -> PathBuf {
+    let text = path.to_string_lossy();
+    match text.strip_prefix(r"\\?\UNC\") {
+        Some(share) => PathBuf::from(format!(r"\\{share}")),
+        None => match text.strip_prefix(r"\\?\") {
+            Some(rest) => PathBuf::from(rest),
+            None => path.to_path_buf(),
+        },
+    }
+}
 pub(crate) fn clipboard_path(path: &Path) -> Result<Content, String> {
+    let path = plain_path(path);
     let text = path
         .to_str()
         .filter(|v| !v.contains('\0'))
@@ -26,11 +40,7 @@ pub(crate) fn clipboard_path(path: &Path) -> Result<Content, String> {
 /// quoted by hand and cannot take the `\\?\` verbatim form the host keeps internally.
 #[cfg(any(windows, test))]
 fn explorer_select_argument(path: &Path) -> Result<String, String> {
-    let text = path.display().to_string();
-    let text = match text.strip_prefix(r"\\?\UNC\") {
-        Some(share) => format!(r"\\{share}"),
-        None => text.strip_prefix(r"\\?\").unwrap_or(&text).to_owned(),
-    };
+    let text = plain_path(path).display().to_string();
     if text.contains('"') {
         return Err("路径包含系统无法定位的字符".into());
     }
@@ -223,6 +233,29 @@ mod tests {
             "/select,\"D:\\plain\\a.md\""
         );
         assert!(explorer_select_argument(Path::new("D:\\bad\"name.md")).is_err());
+    }
+    #[test]
+    fn copied_paths_never_carry_the_verbatim_prefix() {
+        let drive = clipboard_path(Path::new(
+            r"\\?\D:\refinex-vault\工作空间\项目管理\Java-Base",
+        ))
+        .unwrap();
+        assert_eq!(drive.text, r"D:\refinex-vault\工作空间\项目管理\Java-Base");
+        assert_eq!(
+            drive.html.as_deref(),
+            Some(r"<span>D:\refinex-vault\工作空间\项目管理\Java-Base</span>")
+        );
+        let share = clipboard_path(Path::new(r"\\?\UNC\server\share\a.md")).unwrap();
+        assert_eq!(share.text, r"\\server\share\a.md");
+        // Ordinary and non-Windows paths pass through untouched.
+        assert_eq!(
+            plain_path(Path::new(r"D:\plain\a.md")),
+            Path::new(r"D:\plain\a.md")
+        );
+        assert_eq!(
+            plain_path(Path::new("/Users/a/b.md")),
+            Path::new("/Users/a/b.md")
+        );
     }
     #[test]
     fn path_clipboard_has_plain_and_escaped_html_without_private_markup() {

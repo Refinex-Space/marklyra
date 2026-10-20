@@ -11,6 +11,7 @@ import {
 import { Icon } from '../../components/Icon.js';
 import { ShellGlyph } from '../../components/ShellGlyph.js';
 import { type DirectoryHistoryEntry, directoryHistory } from '../../services/directory-history.js';
+import { displayPath } from '../../services/display-path.js';
 import { desktopAvailable, type SavedDocumentPreview } from '../../services/documents.js';
 import type { EntryEditorSnapshot } from '../../services/entry-actions.js';
 import {
@@ -799,7 +800,10 @@ export function WorkspaceSidebar({
     >
       {!compact && (
         <header className="workspace-folder-header">
-          <div className="workspace-folder-title" title={workspace?.path ?? '本地 Markdown 文件'}>
+          <div
+            className="workspace-folder-title"
+            title={workspace ? displayPath(workspace.path) : '本地 Markdown 文件'}
+          >
             <WorkspaceGlyph name="folder" />
             <strong>{workspace?.name ?? '文件夹'}</strong>
           </div>
@@ -867,7 +871,7 @@ export function WorkspaceSidebar({
           {workspace ? (
             <div
               className="workspace-root-row"
-              title={workspace.path}
+              title={displayPath(workspace.path)}
               data-entry-path=""
               data-entry-kind="directory"
             >

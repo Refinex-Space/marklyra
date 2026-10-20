@@ -5,6 +5,7 @@ import {
   type DirectoryHistoryEntry,
   directoryHistory,
 } from '../../services/directory-history.js';
+import { displayPath } from '../../services/display-path.js';
 import type { WorkspaceFolder } from '../../services/workspaces.js';
 import { directoryMenuLimit, directoryMenuRows } from './directory-menu-model.js';
 import { revealLabel } from './file-preferences.js';
@@ -283,7 +284,7 @@ export function DirectoryHistoryMenu({
             type="button"
             role="menuitem"
             className="directory-location-open"
-            title={entry.reopenable ? entry.path : `${entry.path}\n请重新选择此文件夹`}
+            title={displayPath(entry.reopenable ? entry.path : `${entry.path}\n请重新选择此文件夹`)}
             aria-current={entry.current ? 'location' : undefined}
             disabled={disabled || busy || !catalog || !entry.reopenable}
             onClick={(event) => {
