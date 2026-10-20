@@ -888,7 +888,9 @@ impl Workspace {
                 operation.plan = None;
                 Ok(commit)
             }
-            Err(_) if mutated => {
+            Err(_error) if mutated => {
+                #[cfg(test)]
+                eprintln!("Move failed after publication: {_error}");
                 operation.resolution = EntryMoveResolution::MutationUncertain;
                 operation.plan = None;
                 Err(IndexError::MutationUncertain)

@@ -224,10 +224,16 @@ impl Tree {
                 }
                 expected.insert(path.clone());
             }
+            let current_state = State::capture(&node.source, node.kind)?;
             if !node.state.equivalent(
-                &State::capture(&node.source, node.kind)?,
+                &current_state,
                 root_renamed && node.suffix.as_os_str().is_empty(),
             ) {
+                #[cfg(test)]
+                eprintln!(
+                    "Move snapshot changed: {:?} -> {:?}",
+                    node.state, current_state
+                );
                 return Err(stale());
             }
             if let Some(bytes) = &node.bytes {
