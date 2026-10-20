@@ -8,23 +8,38 @@ export interface MockCall {
   command: string;
   args: Record<string, unknown>;
 }
+export interface MockExportPreferences {
+  schemaVersion: 1;
+  revision: number;
+  html: Record<string, unknown>;
+  pdf: Record<string, unknown>;
+  // Groups a test does not mention hold nothing, as on a fresh install.
+  general?: Record<string, unknown>;
+  image?: Record<string, unknown>;
+  formats?: Record<string, Record<string, unknown>>;
+  custom?: { id: string; options: Record<string, unknown>; [key: string]: unknown }[];
+  pandocPath?: string;
+}
+type CompleteExportPreferences = Required<MockExportPreferences>;
+export interface MockFormatCapabilities {
+  pandoc: { status: string; path: string | null; version: string | null; message: string };
+  formats: string[];
+  writers?: string[];
+  importExtensions: string[];
+  image: boolean;
+  /** Windows hosts write the PDF themselves; macOS hands the page to the print panel. */
+  pdf?: 'direct' | 'dialog' | 'none';
+  headerFooter?: boolean;
+}
 export interface DesktopMock {
-  exportPreferences: {
-    schemaVersion: 1;
-    revision: number;
-    html: Record<string, unknown>;
-    pdf: Record<string, unknown>;
-    image?: Record<string, unknown>;
-    pandocPath?: string;
-  };
+  exportPreferences: MockExportPreferences;
   exportPreferencesError: string | null;
-  formatCapabilities?: {
-    pandoc: { status: string; path: string | null; version: string | null; message: string };
-    formats: string[];
-    importExtensions: string[];
-    image: boolean;
-  };
+  /** Makes the next write of export settings fail once with this message. */
+  exportPutError?: string | null;
+  formatCapabilities?: MockFormatCapabilities;
   selectedPandocPath?: string | null;
+  /** The path a native choose-path dialog answers with; `null` cancels the dialog. */
+  chosenPath?: string | null;
   importedDocument?: MockDocument;
   applicationPreferences: {
     schemaVersion: 1;
@@ -58,6 +73,8 @@ export interface DesktopMock {
   pendingOpens: number;
   pendingCloses: number;
   exportError: string | null;
+  /** Warnings a successful export reports alongside its file. */
+  exportWarnings: string[];
   deferExport: boolean;
   finishExport(): void;
   nextDocument: MockDocument;
@@ -101,7 +118,17 @@ export function installMock(
   const heldResponses: MessageEvent[] = [];
   let finishExport: (() => void) | undefined;
   const mock: DesktopMock = {
-    exportPreferences: { schemaVersion: 1, revision: 0, html: {}, pdf: {} },
+    exportPreferences: {
+      schemaVersion: 1,
+      revision: 0,
+      general: {},
+      html: {},
+      pdf: {},
+      image: {},
+      formats: {},
+      custom: [],
+      pandocPath: '',
+    },
     exportPreferencesError: null,
     applicationPreferences: { schemaVersion: 1, revision: 0, values: {} },
     markdownPreferences: { schemaVersion: 1, revision: 0, indentSize: 2, prettyIndent: false },
@@ -138,6 +165,7 @@ export function installMock(
     pendingOpens: 0,
     pendingCloses: 0,
     exportError: null,
+    exportWarnings: [],
     deferExport: false,
     finishExport() {
       finishExport?.();
@@ -183,8 +211,11 @@ export function installMock(
       return { context: args.context, issued: 0 };
     if (command === 'apply_application_zoom' || command === 'sync_editor_menu_state') return null;
     if (command === 'get_format_capabilities')
-      return (
-        mock.formatCapabilities ?? {
+      return {
+        pdf: 'direct',
+        headerFooter: true,
+        writers: [],
+        ...(mock.formatCapabilities ?? {
           pandoc: {
             status: 'missing',
             path: null,
@@ -194,23 +225,126 @@ export function installMock(
           formats: [],
           importExtensions: [],
           image: true,
-        }
-      );
+        }),
+      };
+    const storedExportPreferences = (): CompleteExportPreferences => {
+      const saved = localStorage.getItem('mock-export-preferences');
+      const value = saved ? (JSON.parse(saved) as MockExportPreferences) : mock.exportPreferences;
+      return {
+        general: {},
+        image: {},
+        formats: {},
+        custom: [],
+        pandocPath: '',
+        ...structuredClone(value),
+      };
+    };
+    const commitExportPreferences = (next: CompleteExportPreferences) => {
+      mock.exportPreferences = next;
+      localStorage.setItem('mock-export-preferences', JSON.stringify(next));
+      mock.emitEvent('export-preferences-changed', structuredClone(next));
+      return structuredClone(next);
+    };
     if (command === 'choose_pandoc_path') {
       if (mock.selectedPandocPath === null) return null;
-      const saved = localStorage.getItem('mock-export-preferences');
-      const before = saved
-        ? (JSON.parse(saved) as DesktopMock['exportPreferences'])
-        : mock.exportPreferences;
-      if (before.revision !== args.expectedRevision) throw Error('导出设置版本冲突');
-      mock.exportPreferences = {
+      const before = storedExportPreferences();
+      if (before.revision !== args.expectedRevision) throw Error('导出设置已由其它窗口修改，请重新打开设置');
+      return commitExportPreferences({
         ...before,
         revision: before.revision + 1,
         pandocPath: mock.selectedPandocPath ?? '/mock/pandoc',
-      };
-      localStorage.setItem('mock-export-preferences', JSON.stringify(mock.exportPreferences));
-      return structuredClone(mock.exportPreferences);
+      });
     }
+    if (command === 'choose_export_path') {
+      if (mock.chosenPath === null) return null;
+      const before = storedExportPreferences();
+      if (before.revision !== args.expectedRevision) throw Error('导出设置已由其它窗口修改，请重新打开设置');
+      const target = args.target as { kind: string; format?: string };
+      const next = structuredClone(before);
+      if (target.kind === 'folder') {
+        next.general = {
+          ...next.general,
+          folder: mock.chosenPath ?? '/mock/exports',
+          folderMode: 'custom',
+        };
+      } else {
+        const field = target.kind === 'referenceDoc' ? 'referenceDoc' : 'template';
+        const path =
+          mock.chosenPath ?? (field === 'referenceDoc' ? '/mock/ref.docx' : '/mock/template.tex');
+        const format = String(target.format);
+        if (format.startsWith('custom:')) {
+          const entry = next.custom.find((item) => item.id === format.slice(7));
+          if (!entry) throw Error('自定义导出不存在');
+          entry.options = { ...entry.options, [field]: path };
+        } else {
+          if (!['docx', 'odt', 'rtf', 'epub', 'latex', 'wiki', 'rst', 'textile', 'opml'].includes(format))
+            throw Error('导出格式未知');
+          next.formats[format] = { ...next.formats[format], [field]: path };
+        }
+      }
+      next.revision = before.revision + 1;
+      return commitExportPreferences(next);
+    }
+    if (command === 'check_export_arguments') {
+      const allowed = new Set([
+        '--toc',
+        '--table-of-contents',
+        '--toc-depth',
+        '--number-sections',
+        '--number-offset',
+        '--shift-heading-level-by',
+        '--top-level-division',
+        '--columns',
+        '--tab-stop',
+        '--preserve-tabs',
+        '--wrap',
+        '--variable',
+        '--metadata',
+        '--id-prefix',
+        '--reference-links',
+        '--reference-location',
+        '--markdown-headings',
+        '--epub-chapter-level',
+        '--section-divs',
+        '--ascii',
+        '--strip-comments',
+        '--eol',
+      ]);
+      const flags = new Set(['--toc', '--table-of-contents', '--number-sections', '--preserve-tabs', '--reference-links', '--section-divs', '--ascii', '--strip-comments']);
+      const short: Record<string, string> = { N: '--number-sections', V: '--variable', M: '--metadata', p: '--preserve-tabs' };
+      const text = String(args.text ?? '');
+      const tokens = [...text.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map((m) => m[1] ?? m[2] ?? m[3] ?? '');
+      const result: string[] = [];
+      for (let index = 0; index < tokens.length; index++) {
+        const token = tokens[index] ?? '';
+        let name = token;
+        let value: string | undefined;
+        if (token.startsWith('--')) {
+          const at = token.indexOf('=');
+          if (at > 0) {
+            name = token.slice(0, at);
+            value = token.slice(at + 1);
+          }
+        } else if (token.startsWith('-') && token.length > 1 && short[token[1] ?? '']) {
+          name = short[token[1] ?? ''] ?? '';
+          value = token.length > 2 ? token.slice(2) : undefined;
+        } else throw Error(`意外的参数“${token}”；选项必须以 - 或 -- 开头`);
+        if (!allowed.has(name)) throw Error(`不支持的选项 ${name}；仅允许版式类选项`);
+        if (flags.has(name)) {
+          if (value !== undefined) throw Error(`选项 ${name} 不接受值`);
+          result.push(name);
+          continue;
+        }
+        if (value === undefined) {
+          value = tokens[++index];
+          if (value === undefined) throw Error(`选项 ${name} 缺少值`);
+        }
+        if (name === '--toc-depth' && !/^[1-6]$/.test(value)) throw Error(`选项 ${name} 的值“${value}”无效`);
+        result.push(`${name}=${value}`);
+      }
+      return result;
+    }
+    if (command === 'reveal_export_file' || command === 'open_export_file') return null;
     if (command === 'import_document') {
       if (mock.exportError) throw mock.exportError;
       return structuredClone(
@@ -224,29 +358,56 @@ export function installMock(
     }
     if (command === 'get_export_preferences') {
       if (mock.exportPreferencesError) throw Error(mock.exportPreferencesError);
-      const saved = localStorage.getItem('mock-export-preferences');
-      if (saved) mock.exportPreferences = JSON.parse(saved);
+      mock.exportPreferences = storedExportPreferences();
       return structuredClone(mock.exportPreferences);
     }
     if (command === 'put_export_preferences') {
       if (mock.exportPreferencesError) throw Error(mock.exportPreferencesError);
-      const saved = localStorage.getItem('mock-export-preferences');
-      const before = saved
-        ? (JSON.parse(saved) as DesktopMock['exportPreferences'])
-        : mock.exportPreferences;
-      if (before.revision !== args.expectedRevision) throw Error('导出设置版本冲突');
-      const change = args.change as { key: string; value: Record<string, unknown> | string };
-      if (!['export.html', 'export.pdf', 'export.image', 'pandocPath'].includes(change.key))
-        throw Error('无效导出设置');
-      mock.exportPreferences = {
+      if (mock.exportPutError) {
+        const message = mock.exportPutError;
+        mock.exportPutError = null;
+        throw Error(message);
+      }
+      const before = storedExportPreferences();
+      if (before.revision !== args.expectedRevision) throw Error('导出设置已由其它窗口修改，请重新打开设置');
+      const change = args.change as { key: string; value: unknown };
+      const fields: Record<string, keyof CompleteExportPreferences> = {
+        'export.general': 'general',
+        'export.html': 'html',
+        'export.pdf': 'pdf',
+        'export.image': 'image',
+        'export.formats': 'formats',
+        'export.custom': 'custom',
+        pandocPath: 'pandocPath',
+      };
+      const field = fields[change.key];
+      if (!field) throw Error('无效导出设置');
+      // Paths come only from a native dialog: a typed one may only be cleared or left as stored.
+      const keep = (proposed: unknown, stored: unknown) => {
+        if (proposed !== undefined && proposed !== '' && proposed !== stored)
+          throw Error('文件与文件夹路径只能通过“选择…”对话框设置');
+      };
+      if (change.key === 'pandocPath') keep(change.value, before.pandocPath);
+      if (change.key === 'export.general')
+        keep((change.value as { folder?: string }).folder, before.general.folder);
+      if (change.key === 'export.formats')
+        for (const [key, options] of Object.entries(
+          change.value as Record<string, Record<string, unknown>>,
+        )) {
+          keep(options.referenceDoc, before.formats[key]?.referenceDoc);
+          keep(options.template, before.formats[key]?.template);
+        }
+      if (change.key === 'export.custom')
+        for (const entry of change.value as { id: string; options: Record<string, unknown> }[]) {
+          const stored = before.custom.find((item) => item.id === entry.id)?.options;
+          keep(entry.options.referenceDoc, stored?.referenceDoc);
+          keep(entry.options.template, stored?.template);
+        }
+      return commitExportPreferences({
         ...before,
         revision: before.revision + 1,
-        [change.key === 'pandocPath' ? 'pandocPath' : change.key.slice(7)]: structuredClone(
-          change.value,
-        ),
-      };
-      localStorage.setItem('mock-export-preferences', JSON.stringify(mock.exportPreferences));
-      return structuredClone(mock.exportPreferences);
+        [field]: structuredClone(change.value),
+      });
     }
     if (command === 'get_application_preferences') {
       const saved = localStorage.getItem('mock-application-preferences');
@@ -413,6 +574,7 @@ export function installMock(
         'save_export_html',
         'open_print_preview',
         'save_export_image',
+        'save_export_pdf',
         'save_export_format',
       ].includes(command)
     ) {
@@ -422,7 +584,11 @@ export function installMock(
           finishExport = resolve;
         });
       return command !== 'open_print_preview'
-        ? { path: '/mock/A.html', bytes: new TextEncoder().encode(String(args.html)).length }
+        ? {
+            path: command === 'save_export_pdf' ? '/mock/A.pdf' : '/mock/A.html',
+            bytes: new TextEncoder().encode(String(args.html ?? args.markdown)).length,
+            warnings: [...mock.exportWarnings],
+          }
         : { id: 'preview-test' };
     }
     return null;

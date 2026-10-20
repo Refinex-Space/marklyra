@@ -1,10 +1,14 @@
 node_modules/
 dist/
 target/
+# Scratch cargo target directories used for isolated builds and tests
+target-*/
 .DS_Store
 private/
 artifacts/
 test-results/
+# Machine-local Playwright configs (local browser paths)
+playwright*.local.config.ts
 playwright-report/
 *.log
 .env*

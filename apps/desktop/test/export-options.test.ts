@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { documentExportOptions } from '../src/features/export/options.js';
+import { defaultExportPreferences } from '../src/features/export/preferences.js';
 import type { ExportPreferencesSnapshot } from '../src/services/export-preferences.js';
 
 describe('confirmed export settings consumption', () => {
   const settings: ExportPreferencesSnapshot = {
-    schemaVersion: 1,
+    ...defaultExportPreferences(),
     revision: 4,
     html: { exportTheme: 'marklyra-dark' },
     pdf: {

@@ -228,7 +228,7 @@ html[data-settings-page] {
   overflow-y: auto;
   scrollbar-gutter: stable both-edges;
 }
-[data-settings-page][data-ai-settings] .pane-group > .pane {
+[data-settings-page][data-native-page] .pane-group > .pane {
   visibility: hidden;
 }
 [data-settings-page] .settings-page-heading,
@@ -706,50 +706,6 @@ html[data-settings-page] {
   margin: 0;
   font-size: 12px;
 }
-[data-settings-page] .export-config {
-  height: auto;
-  min-height: 0;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 0;
-  background: transparent;
-}
-[data-settings-page] .export-config > div:first-child {
-  flex: 0 0 152px;
-  padding: 0 !important;
-}
-[data-settings-page] .export-config > div:nth-child(2) {
-  min-width: 0;
-  height: auto !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-[data-settings-page] .export-items-list {
-  padding: 0;
-  margin: 0;
-  background: transparent;
-}
-[data-settings-page] .export-item {
-  min-height: 30px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  color: var(--settings-text);
-}
-[data-settings-page] .export-item.active,
-[data-settings-page] .export-item:hover {
-  background: var(--settings-hover);
-}
-[data-settings-page] .export-detail {
-  padding: 0;
-  background: transparent;
-  color: var(--settings-text);
-}
-[data-settings-page] .export-items-list-control {
-  margin-top: 12px;
-  padding: 4px;
-  border-radius: 6px;
-  background: var(--settings-hover);
-}
 [data-settings-page] .input-group-content pre {
   text-align: left;
   color: var(--settings-muted);
@@ -1064,12 +1020,6 @@ html[data-settings-page] {
   width: max-content;
   max-width: min(300px, calc(100vw - 16px));
   transition: opacity 80ms linear;
-}
-
-[data-settings-page] .pane > .content:has(.export-config) {
-  height: auto !important;
-  overflow: visible !important;
-  flex: none !important;
 }
 
 [data-settings-page] .settings-deferred-hint {

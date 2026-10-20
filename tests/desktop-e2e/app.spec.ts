@@ -347,7 +347,7 @@ test('HTML export uses current unsaved content and leaves the Markdown draft dir
   await focusAtDocumentEnd(page);
   await page.keyboard.type('X');
   await page.getByRole('button', { name: '导出 HTML', exact: true }).click();
-  await expect(page.locator('.statusbar')).toContainText('已导出 HTML · /mock/A.html');
+  await expect(page.locator('.notice-host')).toContainText('已导出 HTML · /mock/A.html');
   const exported = (await calls(page, 'save_export_html'))[0]?.args;
   expect(exported?.suggestedName).toBe('A.md');
   const html = String(exported?.html);
@@ -368,11 +368,11 @@ test('native export and print menu actions deliver independent read-only HTML sn
   page,
 }) => {
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('print-preview'));
-  await expect(page.locator('.statusbar')).toContainText('已打开打印预览');
+  await expect(page.locator('.notice-host')).toContainText('已打开打印预览');
   expect((await calls(page, 'open_print_preview'))[0]?.args.title).toBe('A.md');
   expect(String((await calls(page, 'open_print_preview'))[0]?.args.html)).toContain('Alpha');
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('export-html'));
-  await expect(page.locator('.statusbar')).toContainText('已导出 HTML');
+  await expect(page.locator('.notice-host')).toContainText('已导出 HTML');
   expect(await calls(page, 'save_document')).toEqual([]);
   await expect(page.locator('.document-title')).toHaveText('A.md');
 });
@@ -386,12 +386,12 @@ test('export cancellation is silent and an export write error leaves the editor 
   await page.getByRole('button', { name: '导出 HTML', exact: true }).click();
   await expect.poll(async () => (await calls(page, 'save_export_html')).length).toBe(1);
   await expect(page.getByRole('button', { name: '导出 HTML', exact: true })).toBeEnabled();
-  await expect(page.locator('.statusbar')).not.toContainText('取消');
+  await expect(page.locator('.notice-host')).not.toContainText('取消');
   await page.evaluate(() => {
     (window as TestWindow).__desktopMock.exportError = '目标文件已被外部修改';
   });
   await page.getByRole('button', { name: '导出 HTML', exact: true }).click();
-  await expect(page.locator('.statusbar')).toContainText('目标文件已被外部修改');
+  await expect(page.locator('.notice-host')).toContainText('目标文件已被外部修改');
   await focusAtDocumentEnd(page);
   await page.keyboard.type('X');
   await expect(child(page).locator('#write')).toHaveText('AlphaX');
@@ -419,7 +419,7 @@ test('pending native export suppresses duplicate actions while later edits stay 
   await focusAtDocumentEnd(page);
   await page.keyboard.type('X');
   await page.evaluate(() => (window as TestWindow).__desktopMock.finishExport());
-  await expect(page.locator('.statusbar')).toContainText('已导出 HTML');
+  await expect(page.locator('.notice-host')).toContainText('已导出 HTML');
   expect((await calls(page, 'save_export_html')).length).toBe(1);
   expect(await calls(page, 'open_print_preview')).toEqual([]);
   expect(String((await calls(page, 'save_export_html'))[0]?.args.html)).not.toContain('AlphaX');
@@ -435,7 +435,7 @@ test('synthetic composition and the unsaved-document dialog block export menu ac
     for (const action of ['export-html', 'print-preview'])
       (window as TestWindow).__desktopMock.emitMenu(action);
   });
-  await expect(page.locator('.statusbar')).toContainText('请先完成输入法候选');
+  await expect(page.locator('.notice-host')).toContainText('请先完成输入法候选');
   expect(await calls(page, 'save_export_html')).toEqual([]);
   expect(await calls(page, 'open_print_preview')).toEqual([]);
   await finishComposition(page);

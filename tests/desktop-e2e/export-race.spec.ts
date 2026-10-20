@@ -34,7 +34,7 @@ async function deferExportPreferences(page: Page) {
 
 async function expectCancelledWithoutOutput(page: Page) {
   await page.evaluate(() => (window as RaceWindow).exportPreferenceGate.release());
-  await expect(page.locator('.statusbar')).toContainText(
+  await expect(page.locator('.notice-host')).toContainText(
     '读取导出设置期间文稿已有更改，已取消导出',
   );
   expect(

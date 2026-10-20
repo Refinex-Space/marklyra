@@ -61,7 +61,54 @@ pub(super) struct Pandoc {
     pub version: String,
     pub readers: Vec<String>,
     pub writers: Vec<String>,
+    /// Extensions the Markdown reader of this build understands, without their +/- sign.
+    pub markdown_extensions: Vec<String>,
 }
+/// What a finished Pandoc run left behind.
+pub(super) struct RunOutput {
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+/// Why a run failed, with what the process itself said about it.
+pub(super) struct RunFailure {
+    pub message: String,
+    pub stderr: String,
+}
+impl From<String> for RunFailure {
+    fn from(message: String) -> Self {
+        Self {
+            message,
+            stderr: String::new(),
+        }
+    }
+}
+impl From<&str> for RunFailure {
+    fn from(message: &str) -> Self {
+        message.to_owned().into()
+    }
+}
+/// A finished export: the produced bytes and the converter's own warnings.
+pub(super) struct Converted {
+    pub bytes: Vec<u8>,
+    pub warnings: Vec<String>,
+}
+/// Markdown extensions MarkLyra documents rely on, in the order they are applied.
+const MARKDOWN_EXTENSIONS: [&str; 14] = [
+    "+tex_math_dollars",
+    "+pipe_tables",
+    "+task_lists",
+    "+strikeout",
+    "+footnotes",
+    "+yaml_metadata_block",
+    "+emoji",
+    "+mark",
+    "+superscript",
+    "+subscript",
+    "+lists_without_preceding_blankline",
+    "+east_asian_line_breaks",
+    "+autolink_bare_uris",
+    "-smart",
+];
 impl Pandoc {
     pub fn path(&self) -> &Path {
         &self.path
@@ -123,6 +170,7 @@ impl Pandoc {
             version: String::new(),
             readers: vec![],
             writers: vec![],
+            markdown_extensions: vec![],
         };
         let scratch = Scratch::new()?;
         let version = tool.run(
@@ -145,7 +193,38 @@ impl Pandoc {
         }
         tool.readers = tool.list("--list-input-formats", scratch.path())?;
         tool.writers = tool.list("--list-output-formats", scratch.path())?;
+        // Optional knowledge: an older build without the listing simply gets the plain reader.
+        tool.markdown_extensions = tool
+            .run(
+                &["--list-extensions=markdown"],
+                scratch.path(),
+                Duration::from_secs(3),
+                64 * 1024,
+            )
+            .map(|bytes| {
+                String::from_utf8_lossy(&bytes)
+                    .lines()
+                    .filter_map(|line| line.strip_prefix(['+', '-']))
+                    .map(|name| name.trim().to_owned())
+                    .filter(|name| !name.is_empty())
+                    .collect()
+            })
+            .unwrap_or_default();
         Ok(tool)
+    }
+    /// The reader specification for MarkLyra documents on this Pandoc build.
+    pub fn markdown_reader(&self) -> String {
+        let mut spec = String::from("markdown");
+        for extension in MARKDOWN_EXTENSIONS {
+            if self
+                .markdown_extensions
+                .iter()
+                .any(|known| known == &extension[1..])
+            {
+                spec.push_str(extension);
+            }
+        }
+        spec
     }
     fn list(&self, arg: &str, cwd: &Path) -> Result<Vec<String>, String> {
         let output = self.run(&[arg], cwd, Duration::from_secs(3), 64 * 1024)?;
@@ -215,6 +294,60 @@ impl Pandoc {
         }
         Ok(bytes)
     }
+    /// Converts one Markdown snapshot. The converter runs sandboxed on a private copy; its
+    /// warnings are kept so a file that is written anyway can say what was lost.
+    pub fn export(
+        &self,
+        reader: &str,
+        writer: &str,
+        input: &Path,
+        cwd: &Path,
+        extra: &[String],
+    ) -> Result<Converted, RunFailure> {
+        let writer_base = writer.split(['+', '-']).next().unwrap_or(writer);
+        if !self.writers.iter().any(|s| s == writer_base) {
+            return Err("当前Pandoc未提供所选的输出格式".into());
+        }
+        let input = input.to_str().ok_or("转换快照路径不能编码为Unicode")?;
+        let output = cwd.join(format!("result-{}", uuid::Uuid::new_v4()));
+        let output_arg = output.to_str().ok_or("转换输出路径不能编码为Unicode")?;
+        let mut args: Vec<&str> = vec![
+            "--sandbox",
+            "--standalone",
+            "--wrap=none",
+            "--from",
+            reader,
+            "--to",
+            writer,
+        ];
+        args.extend(extra.iter().map(String::as_str));
+        args.extend(["--output", output_arg, input, "+RTS", "-M512M", "-RTS"]);
+        let ran = self.run_full(
+            &args,
+            cwd,
+            Duration::from_secs(120),
+            64 * 1024,
+            Some(&output),
+        )?;
+        let metadata = fs::symlink_metadata(&output).map_err(|_| "Pandoc未产生转换文件")?;
+        if !metadata.is_file()
+            || metadata.file_type().is_symlink()
+            || metadata.len() > MAX_HTML_BYTES as u64
+        {
+            return Err("转换产物不是普通文件或超过32 MiB".into());
+        }
+        let mut bytes = Vec::with_capacity(metadata.len() as usize);
+        File::open(&output)
+            .and_then(|file| file.take(MAX_HTML_BYTES as u64 + 1).read_to_end(&mut bytes))
+            .map_err(|_| "无法读取转换产物")?;
+        if bytes.is_empty() || bytes.len() > MAX_HTML_BYTES {
+            return Err("转换产物为空或超过32 MiB".into());
+        }
+        Ok(Converted {
+            bytes,
+            warnings: summarize(&String::from_utf8_lossy(&ran.stderr), cwd, 5),
+        })
+    }
     fn run(
         &self,
         args: &[&str],
@@ -232,6 +365,18 @@ impl Pandoc {
         limit: usize,
         output: Option<&Path>,
     ) -> Result<Vec<u8>, String> {
+        self.run_full(args, cwd, timeout, limit, output)
+            .map(|ran| ran.stdout)
+            .map_err(|failure| failure.message)
+    }
+    fn run_full(
+        &self,
+        args: &[&str],
+        cwd: &Path,
+        timeout: Duration,
+        limit: usize,
+        output: Option<&Path>,
+    ) -> Result<RunOutput, RunFailure> {
         self.validate_identity()?;
         let mut command = Command::new(&self.path);
         command
@@ -326,16 +471,41 @@ impl Pandoc {
             return Err(reason.into());
         }
         if !status.map_err(|_| "转换任务状态不可用")?.success() {
-            // Do not echo converter diagnostics: a malicious input could include private file contents.
-            return Err(if errors.is_empty() {
-                "Pandoc转换失败；当前稿和目标未修改"
-            } else {
-                "Pandoc拒绝转换或产生警告；为避免遗漏内容，未保存产物"
-            }
-            .into());
+            // Import keeps the generic text; export shows `stderr` for the person's own document.
+            return Err(RunFailure {
+                message: if errors.is_empty() {
+                    "Pandoc转换失败；当前稿和目标未修改"
+                } else {
+                    "Pandoc拒绝转换或产生警告；为避免遗漏内容，未保存产物"
+                }
+                .into(),
+                stderr: String::from_utf8_lossy(&errors).into_owned(),
+            });
         }
-        Ok(output)
+        Ok(RunOutput {
+            stdout: output,
+            stderr: errors,
+        })
     }
+}
+/// The first few meaningful lines of Pandoc's diagnostics, without scratch paths, bounded so
+/// they are safe to show next to a result.
+pub(super) fn summarize(text: &str, scratch: &Path, limit: usize) -> Vec<String> {
+    let hidden = scratch.display().to_string();
+    text.lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            line.trim_start_matches("[WARNING]")
+                .trim_start_matches("[ERROR]")
+                .trim()
+                .replace(&hidden, "")
+                .replace('\\', "/")
+        })
+        .filter(|line| !line.is_empty())
+        .take(limit)
+        .map(|line| line.chars().take(240).collect())
+        .collect()
 }
 fn terminate(child: &mut std::process::Child) {
     #[cfg(unix)]
@@ -393,33 +563,57 @@ fn parse_version(text: &str) -> Result<String, String> {
     }
     Ok(version.into())
 }
+/// Where an installed Pandoc is looked for: the `PATH` first, then the usual install places.
 pub(super) fn default_paths() -> Vec<PathBuf> {
+    let name = if cfg!(windows) {
+        "pandoc.exe"
+    } else {
+        "pandoc"
+    };
+    let mut paths: Vec<PathBuf> = std::env::var_os("PATH")
+        .map(|value| {
+            std::env::split_paths(&value)
+                .filter(|directory| directory.is_absolute())
+                .map(|directory| directory.join(name))
+                .collect()
+        })
+        .unwrap_or_default();
     #[cfg(target_os = "macos")]
-    {
-        vec![
-            "/opt/homebrew/bin/pandoc".into(),
-            "/usr/local/bin/pandoc".into(),
-            "/usr/bin/pandoc".into(),
+    paths.extend(
+        [
+            "/opt/homebrew/bin/pandoc",
+            "/usr/local/bin/pandoc",
+            "/opt/local/bin/pandoc",
+            "/usr/bin/pandoc",
         ]
-    }
+        .map(PathBuf::from),
+    );
     #[cfg(windows)]
     {
-        let mut paths = Vec::new();
         for base in [
-            std::env::var_os("ProgramFiles"),
             std::env::var_os("LOCALAPPDATA"),
+            std::env::var_os("ProgramFiles"),
+            std::env::var_os("ProgramFiles(x86)"),
         ]
         .into_iter()
         .flatten()
         {
             paths.push(PathBuf::from(base).join("Pandoc/pandoc.exe"));
         }
-        paths
+        for (variable, tail) in [
+            ("USERPROFILE", "scoop/shims/pandoc.exe"),
+            ("ProgramData", "chocolatey/bin/pandoc.exe"),
+        ] {
+            if let Some(base) = std::env::var_os(variable) {
+                paths.push(PathBuf::from(base).join(tail));
+            }
+        }
     }
     #[cfg(not(any(target_os = "macos", windows)))]
-    {
-        vec!["/usr/local/bin/pandoc".into(), "/usr/bin/pandoc".into()]
-    }
+    paths.extend(["/usr/local/bin/pandoc", "/usr/bin/pandoc"].map(PathBuf::from));
+    let mut seen = std::collections::HashSet::new();
+    paths.retain(|path| seen.insert(path.clone()));
+    paths
 }
 #[cfg(test)]
 mod tests {
@@ -483,6 +677,7 @@ mod tests {
             version: "test-only".into(),
             readers: vec![],
             writers: vec![],
+            markdown_extensions: vec![],
         }
     }
     #[test]

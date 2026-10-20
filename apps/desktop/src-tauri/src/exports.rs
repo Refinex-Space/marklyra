@@ -1,23 +1,33 @@
 //! Native-only export authorization and scriptless print previews.
+pub(crate) mod arguments;
+#[cfg(windows)]
+mod cdp;
 mod converter;
+pub mod delivery;
+#[cfg(all(test, windows))]
+mod engine_tests;
 pub mod formats;
 pub mod image;
 mod image_geometry;
 #[cfg(target_os = "macos")]
 mod image_macos;
+#[cfg(windows)]
+mod image_windows;
 #[cfg(target_os = "macos")]
 mod macos;
+pub mod pdf;
+#[cfg(windows)]
+mod pdf_windows;
 mod print_options;
 #[cfg(target_os = "windows")]
 mod windows;
-use export_service::{
-    prepare_html, suggested_filename, ExportDestination, PreviewRegistry, PREVIEW_CSP,
-};
+use export_service::{prepare_html, suggested_filename, PreviewRegistry, PREVIEW_CSP};
 use print_options::PrintLayout;
 pub use print_options::PrintOptions;
 use serde::Serialize;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
+    path::PathBuf,
     sync::Mutex,
 };
 use tauri::{
@@ -40,6 +50,8 @@ pub struct ExportHost {
     owners: Mutex<HashMap<String, String>>,
     renderers: Mutex<HashMap<String, String>>,
     layouts: Mutex<HashMap<String, PrintLayout>>,
+    /// Files this run exported, so "show in folder" can only ever reach them.
+    exported: Mutex<VecDeque<PathBuf>>,
 }
 impl ExportHost {
     fn revoke(&self, token: &str) {
@@ -64,6 +76,8 @@ impl ExportHost {
 pub struct SavedExport {
     path: String,
     bytes: usize,
+    /// Things the person should know about a file that was written anyway.
+    warnings: Vec<String>,
 }
 #[derive(Serialize)]
 pub struct OpenedPreview {
@@ -88,27 +102,22 @@ pub async fn save_export_html(
     main_only(&window)?;
     tauri::async_runtime::spawn_blocking(move || {
         let prepared = prepare_html(&html).map_err(|error| error.to_string())?;
-        let selected = app
-            .dialog()
-            .file()
-            .set_parent(&window)
-            .set_title("导出为 HTML")
-            .set_file_name(suggested_filename(&suggested_name))
-            .add_filter("HTML", &["html", "htm"])
-            .blocking_save_file()
-            .ok_or("已取消导出")?;
-        let path = selected.into_path().map_err(|_| "无法读取导出路径")?;
-        main_only(&window)?;
-        formats::source_guard(&window, source_id.as_deref(), &path)?;
-        let destination = ExportDestination::authorize(&path).map_err(|error| error.to_string())?;
-        let result = SavedExport {
-            path: destination.path().to_string_lossy().into_owned(),
-            bytes: prepared.len(),
-        };
-        destination
-            .write(&prepared)
-            .map_err(|error| error.to_string())?;
-        Ok(result)
+        let path = delivery::ask_destination(
+            &app,
+            &window,
+            "导出为 HTML",
+            suggested_filename(&suggested_name),
+            ("HTML", &["html", "htm"]),
+            source_id.as_deref(),
+        )?;
+        delivery::deliver(
+            &app,
+            &window,
+            &path,
+            source_id.as_deref(),
+            prepared.as_bytes(),
+            Vec::new(),
+        )
     })
     .await
     .map_err(|_| "HTML 导出任务未能完成".to_owned())?

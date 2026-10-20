@@ -950,6 +950,9 @@ window.addEventListener(
           case 'export-html':
             result = await exporter.html(message.payload as ExportHTMLOptions);
             break;
+          case 'export-images':
+            result = await exporter.images();
+            break;
           case 'image-context':
             images.setContext(message.payload as ImageContextMessage);
             result = true;

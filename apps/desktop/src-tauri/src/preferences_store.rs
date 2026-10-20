@@ -2,6 +2,8 @@ use serde::{de::DeserializeOwned, Serialize};
 use std::marker::PhantomData;
 
 pub(crate) trait PreferenceRecord: Serialize + DeserializeOwned + Default + Clone {
+    /// The largest accepted record. Most preferences are tiny; list-like records raise it.
+    const MAX_BYTES: usize = 4 * 1024;
     fn validate(&self) -> Result<(), String>;
 }
 use cap_std::fs::{Dir, OpenOptions};
@@ -12,7 +14,6 @@ use std::{
 };
 
 const FILE: &str = "preferences.json";
-const MAX_BYTES: usize = 4 * 1024;
 static PROCESS_GATE: Mutex<()> = Mutex::new(());
 
 pub(crate) struct Store<T: PreferenceRecord>(Dir, PhantomData<T>);
@@ -57,7 +58,7 @@ impl<T: PreferenceRecord> Store<T> {
         }
         let file = self.0.open(FILE).map_err(message)?;
         let metadata = file.metadata().map_err(message)?;
-        if !metadata.is_file() || metadata.len() > MAX_BYTES as u64 {
+        if !metadata.is_file() || metadata.len() > T::MAX_BYTES as u64 {
             return Err("应用偏好损坏或超过大小限制，既有数据未修改".into());
         }
         #[cfg(unix)]
@@ -68,10 +69,10 @@ impl<T: PreferenceRecord> Store<T> {
             }
         }
         let mut bytes = Vec::new();
-        file.take(MAX_BYTES as u64 + 1)
+        file.take(T::MAX_BYTES as u64 + 1)
             .read_to_end(&mut bytes)
             .map_err(message)?;
-        if bytes.len() > MAX_BYTES {
+        if bytes.len() > T::MAX_BYTES {
             return Err("应用偏好超过大小限制".into());
         }
         let state: T = serde_json::from_slice(&bytes)
@@ -120,7 +121,7 @@ impl<T: PreferenceRecord> Store<T> {
     }
     fn write(&self, state: &T) -> Result<(), String> {
         let bytes = serde_json::to_vec(state).map_err(|error| error.to_string())?;
-        if bytes.len() > MAX_BYTES {
+        if bytes.len() > T::MAX_BYTES {
             return Err("应用偏好超过大小限制".into());
         }
         let mut pending = 0;

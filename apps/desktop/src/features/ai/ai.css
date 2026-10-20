@@ -1015,7 +1015,7 @@
   margin-top: 12px;
   font-size: 12px;
 }
-.preferences-ai-overlay {
+.preferences-native-overlay {
   position: absolute;
   inset: 4px var(--settings-gap, 8px) var(--settings-gap, 8px)
     calc(var(--settings-sidebar-width, 200px) + var(--settings-gap, 8px) * 2);

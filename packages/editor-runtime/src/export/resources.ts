@@ -86,3 +86,14 @@ export function portableCss(css: string): string {
   }
   return css;
 }
+/**
+ * Whether a hyperlink survives in a self-contained export: a fragment inside the document, or a
+ * web / mail address. A relative path or a local file would point at nothing once the document
+ * leaves its folder, and the host refuses to write one, so those are unlinked rather than kept.
+ */
+export function portableLink(value: string): boolean {
+  const href = value.trim();
+  if ([...href].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127))
+    return false;
+  return href.startsWith('#') || /^(?:https?:\/\/|mailto:)/i.test(href);
+}

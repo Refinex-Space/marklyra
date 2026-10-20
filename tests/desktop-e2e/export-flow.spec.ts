@@ -42,7 +42,7 @@ test('HTML and print menus consume their own confirmed settings without saving t
   await expect.poll(() => draftSource(page)).toBe(`${raw}X`);
   const iframe = await page.locator('.marklyra-editor-frame').getAttribute('src');
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('print-preview'));
-  await expect(page.locator('.statusbar')).toContainText('已打开打印预览');
+  await expect(page.locator('.notice-host')).toContainText('已打开打印预览');
   const printed = await page.evaluate(
     () =>
       (window as TestWindow).__desktopMock.calls
@@ -58,7 +58,7 @@ test('HTML and print menus consume their own confirmed settings without saving t
   expect(String(printed?.html)).not.toMatch(/(?:af|at):\/\//);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('export-html'));
   // The isolated renderer allows up to 15s for font/image readiness.
-  await expect(page.locator('.statusbar')).toContainText('已导出 HTML', { timeout: 20_000 });
+  await expect(page.locator('.notice-host')).toContainText('已导出 HTML', { timeout: 20_000 });
   const html = await page.evaluate(
     () =>
       (window as TestWindow).__desktopMock.calls
@@ -100,7 +100,7 @@ test('unreadable export preferences stop output and leave the current draft usab
     (window as TestWindow).__desktopMock.exportPreferencesError = '导出设置损坏';
   });
   await page.getByRole('button', { name: '导出 HTML', exact: true }).click();
-  await expect(page.locator('.statusbar')).toContainText('导出设置损坏');
+  await expect(page.locator('.notice-host')).toContainText('导出设置损坏');
   expect(
     await page.evaluate(() =>
       (window as TestWindow).__desktopMock.calls.filter(

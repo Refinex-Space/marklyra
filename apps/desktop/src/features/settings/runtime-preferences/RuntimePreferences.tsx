@@ -22,7 +22,7 @@ export function RuntimePreferences(props: RuntimePreferencesProps) {
         onPut: (key, value) => callbacks.current.onPut(key, value),
         onAction: async (name, data) => callbacks.current.onAction?.(name, data),
         onClose: () => callbacks.current.onClose(),
-        onAiPage: (active) => callbacks.current.onAiPage?.(active),
+        onNativePage: (page) => callbacks.current.onNativePage?.(page),
         onError: (error) => callbacks.current.onError(error),
       });
     } catch (error) {

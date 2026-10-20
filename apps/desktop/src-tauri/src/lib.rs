@@ -237,8 +237,13 @@ pub fn run() {
             commands::workspaces::create_workspace_file_with_dialog,
             exports::save_export_html,
             exports::open_print_preview,
+            exports::pdf::save_export_pdf,
+            exports::delivery::reveal_export_file,
+            exports::delivery::open_export_file,
             exports::formats::get_format_capabilities,
             exports::formats::choose_pandoc_path,
+            exports::formats::choose_export_path,
+            exports::formats::check_export_arguments,
             exports::formats::save_export_format,
             exports::formats::import_document,
             exports::image::save_export_image,
@@ -258,6 +263,7 @@ pub fn run() {
                 let _ = main.hide_menu();
             }
             commands::recent::refresh_native_menu(app.handle());
+            menu::exports::refresh_stored(app.handle());
             if let Err(error) = platform::window_state::setup(app.handle()) {
                 eprintln!("Window preferences were not restored: {error}");
             }

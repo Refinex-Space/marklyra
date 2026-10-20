@@ -9,12 +9,6 @@ import {
   updateEditorPreference,
 } from './editor-preferences.js';
 import {
-  type ExportPreferenceValue,
-  exportPreferenceChange,
-  exportPreferenceKeys,
-  isExportPreferenceKey,
-} from './export-preferences.js';
-import {
   filePreferenceChange,
   filePreferenceKeys,
   isFilePreferenceKey,
@@ -57,14 +51,12 @@ export const preferenceKeys = [
   ...startupEditorKeys,
   ...filePreferenceKeys,
   ...markdownPreferenceKeys,
-  ...exportPreferenceKeys,
 ] as const;
 export type PreferenceKey = (typeof preferenceKeys)[number];
-export type PreferenceValue = string | number | boolean | string[] | ExportPreferenceValue;
+export type PreferenceValue = string | number | boolean | string[];
 export type InitialPreferencesOptions = Readonly<Record<string, unknown>>;
 export type PreferenceChange = { key: PreferenceKey; value: PreferenceValue };
 export type PreferenceAction =
-  | 'choose-pandoc'
   | 'close'
   | 'open-theme-folder'
   | 'theme-gallery'
@@ -96,7 +88,6 @@ export function preferenceChange(
   if (typeof key !== 'string' || !preferenceKeys.includes(key as PreferenceKey))
     throw new Error('此设置暂不支持，不能保存。');
   if (isStartupEditorKey(key)) return applicationPreferenceChange(key, value);
-  if (isExportPreferenceKey(key)) return exportPreferenceChange(key, value);
   if (
     key === 'debugMode' ||
     key === 'quitAfterWindowClose' ||
@@ -169,7 +160,7 @@ export function initialPreferencesOptions(
         : '11.0',
     allThemes: [...themes],
     marklyraThemeActions: input.marklyraThemeActions === true,
-    marklyraAiSelected: input.marklyraAiSelected === true,
+    marklyraNativePage: input.marklyraNativePage === 'ai' ? 'ai' : '',
     marklyraReadingSpeedActions: input.marklyraReadingSpeedActions === true,
     marklyraFileActions: input.marklyraFileActions === true,
     marklyraFileTypeActions: input.marklyraFileTypeActions === true,
@@ -177,11 +168,6 @@ export function initialPreferencesOptions(
       input.marklyraFileTypeActions === true ? checkedFileTypeList(input.supportedFileTypes) : [],
     disabledFileTypes: [],
     marklyraMarkdownActions: input.marklyraMarkdownActions === true,
-    marklyraExportActions: input.marklyraExportActions === true,
-    'export.html': {},
-    'export.pdf': {},
-    'export.image': {},
-    pandocPath: '',
     indentSize: 2,
     prettyIndent: false,
     heading_style: 0,

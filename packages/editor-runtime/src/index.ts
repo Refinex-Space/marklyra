@@ -46,6 +46,7 @@ import {
 
 export type { ReloadFromDiskOptions } from './reload/contracts.js';
 
+import { embedImages, type ExportImageSet } from './export/markdown.js';
 import { type ExportHTMLOptions, exportOptions } from './export/options.js';
 
 export type { ExportHTMLOptions } from './export/options.js';
@@ -1029,10 +1030,43 @@ export class MarkLyraEditor {
   /** Captures stable source, then exports in a disposable isolated renderer. */
   async exportHTML(value: ExportHTMLOptions = {}): Promise<string> {
     const options = exportOptions(value);
+    const html = await this.withExportRenderer(options.theme, (renderer) =>
+      renderer.request('export-html', options),
+    );
+    if (typeof html !== 'string') throw new Error('HTML 导出返回值无效');
+    return html;
+  }
+  /**
+   * The Markdown source with every resolvable local image embedded as a data URL, for converters
+   * that read Markdown. Images that cannot be resolved stay as written and are listed in `missing`.
+   */
+  async exportMarkdown(): Promise<{ markdown: string; missing: string[] }> {
+    const { source, value } = await this.withExportRenderer(
+      undefined,
+      async (renderer, source) => ({ source, value: await renderer.request('export-images') }),
+    );
+    const set = value as Partial<ExportImageSet> | null;
+    if (
+      !set ||
+      typeof set.images !== 'object' ||
+      set.images === null ||
+      !Array.isArray(set.missing) ||
+      Object.values(set.images).some(
+        (item) => typeof item !== 'string' || !item.startsWith('data:'),
+      )
+    )
+      throw new Error('图片内嵌返回值无效');
+    return { markdown: embedImages(source, set.images), missing: set.missing.map(String) };
+  }
+  /** Runs `work` against a disposable isolated copy of the current stable document. */
+  private async withExportRenderer<T>(
+    theme: ExportHTMLOptions['theme'],
+    work: (renderer: MarkLyraEditor, source: string) => Promise<T>,
+  ): Promise<T> {
     await this.ready;
     this.assertAvailable();
     const source = await this.flush();
-    if (this.exportRenderers.size) throw new Error('已有 HTML 导出正在进行');
+    if (this.exportRenderers.size) throw new Error('已有导出正在进行');
     const generation = this.images.capture();
     const revision = this.documentRevision;
     const container = this.element.ownerDocument.createElement('div');
@@ -1051,14 +1085,14 @@ export class MarkLyraEditor {
       markdownPreferences: { ...this.activeMarkdownPreferences },
       documentContext: generation.context,
       styles:
-        options.theme === undefined || options.theme === this.activeTheme
+        theme === undefined || theme === this.activeTheme
           ? this.activeStyles
           : { baseUser: this.activeStyles.baseUser },
       configuration: {
         ...this.options.configuration,
         sourceBOM: this.sourceBOM,
         nativeMenus: false,
-        theme: options.theme ?? this.activeTheme,
+        theme: theme ?? this.activeTheme,
       },
       ...(this.options.host?.images ? { host: { images: this.options.host.images } } : {}),
     });
@@ -1066,15 +1100,14 @@ export class MarkLyraEditor {
     try {
       await renderer.ready;
       this.images.assert(generation);
-      const html = await renderer.request('export-html', options);
+      const result = await work(renderer, source);
       this.assertAvailable();
       this.images.assert(generation);
       const current = await this.flush();
       this.images.assert(generation);
       if (this.documentRevision !== revision || current !== source || this.pendingChanges)
         throw new Error('导出期间文档已有更改，已取消旧快照导出，请重试');
-      if (typeof html !== 'string') throw new Error('HTML 导出返回值无效');
-      return html;
+      return result;
     } finally {
       this.exportRenderers.delete(renderer);
       renderer.destroy();

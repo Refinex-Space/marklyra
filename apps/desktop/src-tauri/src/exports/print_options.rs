@@ -7,6 +7,8 @@ use serde::Deserialize;
 pub struct PrintOptions {
     paper_size: String,
     custom_paper_size_mm: Option<[f64; 2]>,
+    /// Turns a known paper size on its side; the system default paper stays as it is.
+    landscape: bool,
     margins_mm: Option<PrintMargins>,
     header: String,
     footer: String,
@@ -44,6 +46,11 @@ impl PrintOptions {
             "Tabloid" => Some([279.0, 432.0]),
             "custom" => Some(self.custom_paper_size_mm.unwrap_or([210.0, 297.0])),
             _ => return Err("打印纸型无效".into()),
+        };
+        let paper_mm = if self.landscape {
+            paper_mm.map(|[width, height]| [height, width])
+        } else {
+            paper_mm
         };
         if paper_mm.is_some_and(|size| {
             size.into_iter()
@@ -124,6 +131,20 @@ mod tests {
                 .validate()
                 .is_err());
         }
+    }
+
+    #[test]
+    fn landscape_swaps_a_known_paper_and_leaves_the_system_default_alone() {
+        let layout = serde_json::from_str::<PrintOptions>(r#"{"paperSize":"A4","landscape":true}"#)
+            .unwrap()
+            .validate()
+            .unwrap();
+        assert_eq!(layout.paper_mm, Some([297.0, 210.0]));
+        let layout = serde_json::from_str::<PrintOptions>(r#"{"landscape":true}"#)
+            .unwrap()
+            .validate()
+            .unwrap();
+        assert_eq!(layout.paper_mm, None);
     }
 
     #[test]

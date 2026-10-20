@@ -2,8 +2,6 @@ import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import './runtime-preferences/settings-theme.css';
 import { SidebarResize } from '../../components/SidebarResize.js';
 import { applicationPreferences } from '../../services/application-preferences.js';
-import { exportPreferences } from '../../services/export-preferences.js';
-import { documentExports } from '../../services/exports.js';
 import { type FilePreferences, filePreferences } from '../../services/file-preferences.js';
 import {
   isMarkdownPreferenceKey,
@@ -17,6 +15,7 @@ import { type StartupPreferences, startupPreferences } from '../../services/star
 import { themeFiles } from '../../services/themes.js';
 import { editorChrome } from '../../services/ui-chrome.js';
 import { AgentSettings } from '../ai/AgentSettings.js';
+import { ExportSettings } from '../export/settings/ExportSettings.js';
 import { resolveThemeId, storedTheme, type ThemeCatalog } from '../themes/model.js';
 import { readAutoSavePreference } from './auto-save-preference.js';
 import { filenameImageStorageFolder } from './image-storage.js';
@@ -30,16 +29,11 @@ import {
 } from './runtime-preferences/application-preferences.js';
 import { editorPreferencesOptions } from './runtime-preferences/editor-preferences.js';
 import {
-  type ExportPreferencesSnapshot,
-  exportPreferenceChange,
-  exportPreferencesOptions,
-  isExportPreferenceKey,
-} from './runtime-preferences/export-preferences.js';
-import {
   filePreferenceChange,
   filePreferencesOptions,
   isFilePreferenceKey,
 } from './runtime-preferences/file-preferences.js';
+import type { NativePage } from './runtime-preferences/host.js';
 import {
   type PreferenceKey,
   type PreferenceValue,
@@ -62,7 +56,6 @@ function options(
   startup: StartupPreferences,
   markdown: MarkdownPreferencesSnapshot,
   application: ApplicationPreferencesSnapshot,
-  exports: ExportPreferencesSnapshot,
 ) {
   const value = readPreferences();
   const folder = value.imageStorageFolder;
@@ -76,7 +69,7 @@ function options(
   }
   return {
     locale: 'zh-Hans',
-    marklyraAiSelected: sessionStorage.getItem('marklyra.settings.ai') === 'true',
+    marklyraNativePage: sessionStorage.getItem('marklyra.settings.ai') === 'true' ? 'ai' : '',
     allThemes: catalog.themes.map((entry) => `${entry.id}.css`),
     marklyraThemeActions: true,
     marklyraReadingSpeedActions: true,
@@ -116,7 +109,6 @@ function options(
     ...filePreferencesOptions(files),
     ...startupPreferencesOptions(startup),
     ...markdownPreferencesOptions(markdown),
-    ...exportPreferencesOptions(exports),
   };
 }
 
@@ -144,7 +136,7 @@ export function PreferencesWindow({
   onSidebarWidthChange?: (width: number) => void;
   onSidebarDragWidthChange?: (width: number | null) => void;
 } = {}) {
-  const [aiPage, setAiPage] = useState(false);
+  const [nativePage, setNativePage] = useState<NativePage | null>(null);
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   useEffect(() => {
     const resize = () => setViewportWidth(window.innerWidth);
@@ -162,7 +154,6 @@ export function PreferencesWindow({
   const confirmedStartup = useRef<StartupPreferences | null>(null);
   const confirmedApplication = useRef<ApplicationPreferencesSnapshot | null>(null);
   const confirmedMarkdown = useRef<MarkdownPreferencesSnapshot | null>(null);
-  const confirmedExports = useRef<ExportPreferencesSnapshot | null>(null);
   useEffect(() => {
     let alive = true;
     void Promise.all([
@@ -172,16 +163,14 @@ export function PreferencesWindow({
       startupPreferences.get(),
       markdownPreferences.get(),
       applicationPreferences.get(),
-      exportPreferences.get(),
     ]).then(
-      ([runtime, catalog, files, startup, markdown, application, exports]) => {
+      ([runtime, catalog, files, startup, markdown, application]) => {
         if (alive) {
           confirmedFiles.current = files;
           confirmedStartup.current = startup;
           confirmedMarkdown.current = markdown;
           confirmedApplication.current = application;
-          confirmedExports.current = exports;
-          setInitialOptions(options(catalog, files, startup, markdown, application, exports));
+          setInitialOptions(options(catalog, files, startup, markdown, application));
           setPlatform(runtime.platform);
           setRuntimeUrl(new URL('./preferences/setting.html', runtime.url).href);
         }
@@ -223,15 +212,6 @@ export function PreferencesWindow({
   const put = async (key: PreferenceKey, value: PreferenceValue) => {
     const change = preferenceChange(key, value, preferenceThemeFiles(initialOptions?.allThemes));
     const current = readPreferences();
-    if (isExportPreferenceKey(change.key)) {
-      const before = confirmedExports.current;
-      if (!before) throw new Error('导出设置尚未初始化。');
-      confirmedExports.current = await exportPreferences.put(
-        before.revision,
-        exportPreferenceChange(change.key, change.value),
-      );
-      return;
-    }
     if (change.key === 'darkTheme') {
       await themeFiles.requestPreference(String(change.value).replace(/\.css$/, ''), 'dark');
       confirmedApplication.current = await applicationPreferences.get();
@@ -399,19 +379,12 @@ export function PreferencesWindow({
             embedded ? { sidebarWidth: pageSidebarWidth, dark, sidebarBackground } : undefined
           }
           closeRequest={closeRequest + externalCloseRequest}
-          onAiPage={(active) => {
-            setAiPage(active);
+          onNativePage={(page) => {
+            setNativePage(page);
             sessionStorage.removeItem('marklyra.settings.ai');
           }}
           onPut={put}
           onAction={async (name, data) => {
-            if (name === 'choose-pandoc') {
-              const before = confirmedExports.current;
-              if (!before) throw new Error('导出设置尚未初始化。');
-              const next = await documentExports.choosePandoc(before.revision);
-              if (next) confirmedExports.current = next;
-              return next;
-            }
             if (name === 'open-theme-folder') await themeFiles.openFolder();
             else if (name === 'theme-gallery') await themeFiles.openGallery();
             else if (name === 'clear-recent-history') return filePreferences.clearRecentHistory();
@@ -446,9 +419,14 @@ export function PreferencesWindow({
           }}
         />
       )}
-      {aiPage && (
-        <div className="preferences-ai-overlay" data-settings-dark={dark}>
+      {nativePage === 'ai' && (
+        <div className="preferences-native-overlay" data-settings-dark={dark}>
           <AgentSettings />
+        </div>
+      )}
+      {nativePage === 'export' && (
+        <div className="preferences-native-overlay" data-settings-dark={dark}>
+          <ExportSettings dark={dark} />
         </div>
       )}
       {error && (

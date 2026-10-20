@@ -1,11 +1,6 @@
-import { setupAiPage } from './ai-page.js';
-import {
-  exportPreferenceControlSupported,
-  isExportPreferenceKey,
-  originalImageExportValue,
-} from './export-preferences.js';
 import { filePreferencesOptions, filePreferencesSnapshot } from './file-preferences.js';
 import { isMarkdownPreferenceKey } from './markdown-preferences.js';
+import { setupNativePages } from './native-pages.js';
 import {
   initialPreferencesOptions,
   isRecord,
@@ -170,46 +165,8 @@ function fieldKey(element: Element): string | undefined {
   // This internal key is guarded by the exact runtime React vendor hash at build time.
   const key = Object.keys(element).find((name) => name.startsWith('__reactInternalInstance$'));
   let fiber = key ? (element as unknown as Record<string, ReactFiber>)[key] : undefined;
-  if (element.closest('.export-config')) {
-    // The selected tab's fixed identity stays valid when React reuses format
-    // controls. A reused control's fiber can still retain the previous group.
-    const active = document.querySelector('.export-item.active');
-    const activeKey =
-      active && Object.keys(active).find((name) => name.startsWith('__reactInternalInstance$'));
-    let tabFiber =
-      active && activeKey
-        ? (active as unknown as Record<string, ReactFiber>)[activeKey]
-        : undefined;
-    let activeGroup: string | undefined;
-    for (let depth = 0; tabFiber && depth < 12; depth++, tabFiber = tabFiber.return)
-      if (typeof tabFiber.memoizedProps?.tab === 'string') {
-        activeGroup = tabFiber.memoizedProps.tab;
-        break;
-      }
-    let field: string | undefined;
-    for (let depth = 0, current = fiber; current && depth < 24; depth++, current = current.return) {
-      const props = current.memoizedProps;
-      if (!field && typeof props?.keyName === 'string') field = props.keyName;
-      if (field === 'pandocPath') return 'pandocPath';
-      if (typeof props?.groupId === 'string' && field) {
-        // The original paper widget's plain numeric inputs do not carry keyName.
-        // Its fixed rows place custom margins before the width/height pair.
-        if (field === 'paper' && element instanceof HTMLInputElement && element.type === 'number') {
-          const inputs = [
-            ...(element.closest('table')?.querySelectorAll('input[type="number"]') ?? []),
-          ];
-          const index = inputs.indexOf(element);
-          field =
-            inputs.length === 6 && index >= 0 && index < 4
-              ? `paper.margin${['Top', 'Bottom', 'Left', 'Right'][index]}`
-              : 'paper.custom';
-        }
-        return `export.${activeGroup ?? props.groupId}:${field}`;
-      }
-    }
-    // General / after-export controls have no format schema owner and remain disabled.
-    return undefined;
-  }
+  // Export settings are drawn by the host (see native-pages.ts); the original panel is unused.
+  if (element.closest('.export-config')) return undefined;
   for (let index = 0; fiber && index < 18; index++, fiber = fiber.return) {
     const props = fiber.memoizedProps;
     if (typeof props?.keyName === 'string') return props.keyName;
@@ -228,12 +185,6 @@ function fieldKey(element: Element): string | undefined {
 }
 
 function supported(key: string | undefined): boolean {
-  if (key?.startsWith('export.')) {
-    if (runtime._options.marklyraExportActions !== true) return false;
-    if (isExportPreferenceKey(key)) return true;
-    const [group, field] = key.slice(7).split(':');
-    return !!group && !!field && exportPreferenceControlSupported(group, field);
-  }
   if (key && isMarkdownPreferenceKey(key)) return runtime._options.marklyraMarkdownActions === true;
   return !!key && preferenceKeys.includes(key as (typeof preferenceKeys)[number]);
 }
@@ -381,10 +332,6 @@ function protectControls() {
       !controlActionPending
     )
       element.checked = runtime._options.save_file_on_switch === true;
-    if (key === 'pandocPath' && element instanceof HTMLInputElement) {
-      element.readOnly = true;
-      element.title = '通过右侧选择按钮验证已安装的Pandoc程序；清空可恢复自动探测。';
-    }
     availabilityHint(
       element,
       failed
@@ -405,12 +352,6 @@ function protectControls() {
         if (option.disabled) option.title = '此设置暂不支持';
       }
     }
-    if (element instanceof HTMLSelectElement && key?.endsWith(':exportTheme')) {
-      for (const option of element.options) {
-        option.disabled = !['', 'marklyra-light', 'marklyra-dark'].includes(option.value);
-        if (option.disabled) option.title = '指定导出主题暂不支持；可选择当前主题继承已授权样式。';
-      }
-    }
   }
   for (const element of document.querySelectorAll<HTMLElement>(
     '.pane button,.pane .btn,.pane .icon-button,.pane a,.pane .select-pin-input-group .dir-path,.pane .btn-split-left,.pane .btn-split-right,.pane li',
@@ -420,13 +361,6 @@ function protectControls() {
     if (element.matches('.label-hint > a')) {
       element.removeAttribute('href');
       element.removeAttribute('target');
-      element.removeAttribute('aria-disabled');
-      availabilityHint(element, null);
-      continue;
-    }
-    // Export format rows only navigate the original page. Their nested command,
-    // rename and add controls are still guarded separately below.
-    if (element.matches('.export-items-list > li') && element.querySelector('.export-item')) {
       element.removeAttribute('aria-disabled');
       availabilityHint(element, null);
       continue;
@@ -441,12 +375,6 @@ function protectControls() {
     if (reading) element.dataset.marklyraReadingSpeed = String(reading.value);
     else delete element.dataset.marklyraReadingSpeed;
     const startup = startupFolderAction(element);
-    const pandoc =
-      runtime._options.marklyraExportActions === true &&
-      key === 'pandocPath' &&
-      (element.classList.contains('icon-folder') || !!element.querySelector('.icon-folder'));
-    if (pandoc) element.dataset.marklyraPandocAction = 'choose';
-    else delete element.dataset.marklyraPandocAction;
     if (startup) element.dataset.marklyraStartupAction = 'choose-folder';
     else delete element.dataset.marklyraStartupAction;
     if (key === 'pinFolder' && element.classList.contains('dir-path')) {
@@ -472,7 +400,6 @@ function protectControls() {
         !!action ||
         !!clear ||
         startup ||
-        pandoc ||
         (supported(key) &&
           !element.classList.contains('icon-folder') &&
           !element.querySelector('.icon-folder') &&
@@ -486,7 +413,6 @@ function protectControls() {
           : (!supported(key) && !action && !clear && !startup && !reading && !zoom) ||
               element.tagName === 'A' ||
               (!startup &&
-                !pandoc &&
                 (element.classList.contains('icon-folder') ||
                   element.querySelector('.icon-folder')))
             ? '此操作暂不支持'
@@ -569,7 +495,6 @@ function changePreference(component: RuntimeComponent | undefined, key: unknown,
     report(new Error('此设置暂不支持，不能保存。'));
     return;
   }
-  if (key === 'export.image') value = originalImageExportValue(value);
   // Preserve controlled-input drafts during fast typing; committed state advances only on host ACK.
   component?.setState({ [key]: value });
   queueMicrotask(protectControls);
@@ -771,41 +696,6 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
   document.addEventListener(
     'click',
     (event) => {
-      const pandoc =
-        event.target instanceof Element
-          ? event.target.closest<HTMLElement>('[data-marklyra-pandoc-action]')
-          : null;
-      if (pandoc) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        if (!failed && !controlActionPending && pandoc.getAttribute('aria-disabled') !== 'true') {
-          controlActionPending = true;
-          pending++;
-          protectControls();
-          progress();
-          const epoch = generation;
-          sequence = sequence
-            .then(async () => {
-              if (disposed || failed || epoch !== generation) return;
-              const result = await request('export-tool-action', { name: 'choose-pandoc' });
-              if (disposed || epoch !== generation) return;
-              if (result !== null) {
-                if (!isRecord(result) || typeof result.pandocPath !== 'string')
-                  throw new Error('Pandoc选择回执无效。');
-                runtime._options.pandocPath = result.pandocPath;
-                restoreConfirmedView();
-              }
-            })
-            .catch(report)
-            .finally(() => {
-              controlActionPending = false;
-              pending--;
-              protectControls();
-              progress();
-            });
-        }
-        return;
-      }
       const zoomElement =
         event.target instanceof Element
           ? event.target.closest<HTMLElement>('[data-marklyra-zoom-reset]')
@@ -915,9 +805,9 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     true,
   );
   document.addEventListener('submit', (event) => event.preventDefault(), true);
-  const updateAiPage = setupAiPage(
-    (active) => send('ai-page', active),
-    runtime._options.marklyraAiSelected === true,
+  const updateNativePages = setupNativePages(
+    (page) => send('native-page', page),
+    runtime._options.marklyraNativePage === 'ai' ? 'ai' : null,
   );
   await loadScript('./static/js/0.99879679.chunk.js');
   await loadScript('./static/js/Preferences.962926a4.d7f6a912.chunk.js');
@@ -927,7 +817,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     const observer = new MutationObserver(() => {
       protectControls();
       updatePage?.();
-      updateAiPage();
+      updateNativePages();
       if (document.querySelector('.nav-group-item')) {
         observer.disconnect();
         resolve();
@@ -951,7 +841,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
     ) {
       protectControls();
       updatePage?.();
-      updateAiPage();
+      updateNativePages();
     }
   }).observe(document.getElementById('root') ?? document.body, {
     childList: true,
@@ -961,7 +851,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
   });
   protectControls();
   updatePage?.();
-  updateAiPage();
+  updateNativePages();
   if (disposed) return;
   ready = true;
   send('initialized');

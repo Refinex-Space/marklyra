@@ -1,5 +1,5 @@
 html[data-settings-page],
-.preferences-ai-overlay {
+.preferences-native-overlay {
   --settings-sidebar-bg: #fafafa;
   --settings-bg: #fff;
   --settings-text: #292b2f;
@@ -20,7 +20,7 @@ html[data-settings-page],
   color-scheme: light;
 }
 html[data-settings-dark="true"],
-.preferences-ai-overlay[data-settings-dark="true"] {
+.preferences-native-overlay[data-settings-dark="true"] {
   --settings-sidebar-bg: #161b22;
   --settings-bg: #0d1117;
   --settings-text: #e6edf3;
@@ -35,13 +35,13 @@ html[data-settings-dark="true"],
 
 @media (max-width: 900px) {
   html[data-settings-page],
-  .preferences-ai-overlay {
+  .preferences-native-overlay {
     --settings-content-padding: 28px 22px 48px;
   }
 }
 @media (max-width: 800px) {
   html[data-settings-page],
-  .preferences-ai-overlay {
+  .preferences-native-overlay {
     --settings-content-padding: 32px 20px 48px;
   }
 }

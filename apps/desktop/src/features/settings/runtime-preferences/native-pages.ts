@@ -1,21 +1,39 @@
-/** Navigation only. The isolated settings page never receives agent IPC or credentials. */
-export function setupAiPage(select: (active: boolean) => void, initiallySelected: boolean) {
-  let active = initiallySelected;
+export type NativePage = 'ai' | 'export';
+
+/** The original sidebar's fixed index of its 导出 category. */
+const EXPORT_INDEX = '4';
+
+/**
+ * Navigation only. Two settings pages are drawn by the trusted host on top of this isolated page:
+ * 智能体 (an extra sidebar entry added here) and 导出 (the original entry, whose own panel is
+ * never shown). The isolated page never receives agent IPC, credentials or export settings.
+ */
+export function setupNativePages(
+  select: (page: NativePage | null) => void,
+  initiallySelected: NativePage | null,
+) {
+  let page = initiallySelected;
+  const exportItem = () =>
+    document.querySelector<HTMLElement>(`.nav-group-item[data-index="${EXPORT_INDEX}"]`);
   const syncSelection = () => {
+    const native = exportItem();
     for (const item of document.querySelectorAll<HTMLElement>('.nav-group-item')) {
       const selected = item.hasAttribute('data-ai-settings-navigation')
-        ? active
-        : !active && item.classList.contains('active');
+        ? page === 'ai'
+        : page === null
+          ? item.classList.contains('active')
+          : page === 'export' && item === native;
       item.setAttribute('aria-current', selected ? 'page' : 'false');
     }
   };
-  const set = (value: boolean) => {
-    active = value;
-    document.documentElement.toggleAttribute('data-ai-settings', active);
+  const set = (value: NativePage | null) => {
+    page = value;
+    if (value) document.documentElement.dataset.nativePage = value;
+    else delete document.documentElement.dataset.nativePage;
     const button = document.querySelector<HTMLElement>('[data-ai-settings-navigation]');
-    button?.classList.toggle('active', active);
+    button?.classList.toggle('active', value === 'ai');
     syncSelection();
-    select(active);
+    select(value);
   };
   document.addEventListener(
     'click',
@@ -23,19 +41,24 @@ export function setupAiPage(select: (active: boolean) => void, initiallySelected
       if (!(event.target instanceof Element)) return;
       if (event.target.closest('[data-ai-settings-navigation]')) {
         event.preventDefault();
-        set(true);
-      } else if (event.target.closest('.nav-group-item,.settings-back')) set(false);
+        set('ai');
+      } else if (event.target.closest(`.nav-group-item[data-index="${EXPORT_INDEX}"]`)) {
+        // The original click still runs, so the original panel keeps tracking the selection.
+        set('export');
+      } else if (event.target.closest('.nav-group-item,.settings-back')) set(null);
     },
     true,
   );
   document.addEventListener('input', (event) => {
-    if (event.target instanceof Element && event.target.matches('.search-input')) set(false);
+    if (event.target instanceof Element && event.target.matches('.search-input')) set(null);
   });
   const style = document.createElement('style');
+  // The original export panel is replaced by the host page, including in search results.
   // Standalone legacy preferences do not use the shared page stylesheet.
   style.textContent =
     '[data-ai-settings-navigation]{appearance:none;background:transparent;width:100%;text-align:left;cursor:pointer;border:0;box-shadow:none;font:inherit;}' +
-    'html:not([data-settings-page])[data-ai-settings] .nav-group-item.active:not([data-ai-settings-navigation]){background:transparent!important;color:inherit!important;font-weight:400}';
+    `.pane > .content[data-index="${EXPORT_INDEX}"]{display:none!important}` +
+    'html:not([data-settings-page])[data-native-page="ai"] .nav-group-item.active:not([data-ai-settings-navigation]){background:transparent!important;color:inherit!important;font-weight:400}';
   document.head.append(style);
   return () => {
     const sidebar = document.querySelector('.pane-sm.sidebar');
@@ -65,6 +88,6 @@ export function setupAiPage(select: (active: boolean) => void, initiallySelected
     button.append(icon, document.createTextNode('智能体'));
     button.setAttribute('aria-label', '智能体');
     sidebar.append(button);
-    set(active);
+    set(page);
   };
 }

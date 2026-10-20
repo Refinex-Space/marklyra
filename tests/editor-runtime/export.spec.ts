@@ -464,3 +464,52 @@ for (const [name, source] of Object.entries({
     await expect(page.locator('.marklyra-editor-frame')).toHaveCount(1);
   });
 }
+
+test('Markdown export embeds the document images and leaves code samples alone', async ({
+  page,
+}) => {
+  const source =
+    '---\ntitle: T\n---\n\n# Heading\n\n![pixel](images/pixel.png)\n\n```\n![code](images/pixel.png)\n```\n';
+  await createImageEditor(page, { source, context: 'doc-a' });
+  await expectDecodedImage(page);
+  const before = await snapshot(page);
+  const result = await page.evaluate(() =>
+    (window as ImageTestWindow).imageHostFixture.editors[0]?.exportMarkdown(),
+  );
+  expect(result?.markdown).toMatch(/!\[pixel\]\(data:image\/png;base64,[A-Za-z0-9+/=]+\)/);
+  expect(result?.markdown).toContain('```\n![code](images/pixel.png)\n```');
+  expect(result?.markdown).toContain('title: T');
+  expect(result?.missing).toEqual([]);
+  expect(await snapshot(page)).toEqual(before);
+});
+
+test('Markdown export keeps unresolvable images as written and reports them', async ({ page }) => {
+  const source = '# Heading\n\n![gone](images/missing.png)\n';
+  await createImageEditor(page, { source, context: 'doc-a', resolve: 'missing' });
+  const result = await page.evaluate(() =>
+    (window as ImageTestWindow).imageHostFixture.editors[0]?.exportMarkdown(),
+  );
+  expect(result?.markdown).toBe(source);
+  expect(result?.missing).toEqual(['images/missing.png']);
+});
+
+test('HTML export unlinks relative document links instead of failing the export', async ({
+  page,
+}) => {
+  const source =
+    '# Title\n\nSee [next](02-next.md), [up](../up/doc.md#part), [web](https://example.test/a) and [here](#title).\n';
+  await createImageEditor(page, { source, context: 'doc-a' });
+  const html = await page.evaluate(() =>
+    (window as ImageTestWindow).imageHostFixture.editors[0]?.exportHTML(),
+  );
+  const links = await page.evaluate((html) => {
+    const doc = new DOMParser().parseFromString(html ?? '', 'text/html');
+    return [...doc.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
+  }, html);
+  expect(links).toEqual([
+    ['next', null],
+    ['up', null],
+    ['web', 'https://example.test/a'],
+    ['here', '#title'],
+  ]);
+});

@@ -4,9 +4,48 @@ import {
   type ExportPreferencesSnapshot,
   exportPreferenceChange,
   exportPreferencesSnapshot,
-} from '../features/settings/runtime-preferences/export-preferences.js';
+} from '../features/export/preferences.js';
 
 export type { ExportPreferenceChange, ExportPreferencesSnapshot };
+
+function committed(snapshot: ExportPreferencesSnapshot, change: ExportPreferenceChange): unknown {
+  switch (change.key) {
+    case 'export.general':
+      return snapshot.general;
+    case 'export.html':
+      return snapshot.html;
+    case 'export.pdf':
+      return snapshot.pdf;
+    case 'export.image':
+      return snapshot.image;
+    case 'export.formats':
+      return snapshot.formats;
+    case 'export.custom':
+      return snapshot.custom;
+    case 'pandocPath':
+      return snapshot.pandocPath;
+  }
+}
+
+/** Structural equality that ignores object key order. */
+export function sameValue(left: unknown, right: unknown): boolean {
+  if (Array.isArray(left) || Array.isArray(right))
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) => sameValue(item, right[index]))
+    );
+  if (left && right && typeof left === 'object' && typeof right === 'object') {
+    const a = Object.entries(left);
+    const b = Object.entries(right);
+    return (
+      a.length === b.length &&
+      a.every(([key, value]) => Object.hasOwn(right, key) && sameValue(value, Reflect.get(right, key)))
+    );
+  }
+  return left === right;
+}
 
 /** Persistence and revision ownership stay in Rust; read failures block export. */
 export const exportPreferences = {
@@ -26,26 +65,11 @@ export const exportPreferences = {
         change: checked,
       }),
     );
-    const actual =
-      checked.key === 'export.html'
-        ? result.html
-        : checked.key === 'export.pdf'
-          ? result.pdf
-          : checked.key === 'export.image'
-            ? (result.image ?? {})
-            : (result.pandocPath ?? '');
-    if (checked.key === 'pandocPath') {
-      if (result.revision !== expectedRevision + 1 || actual !== checked.value)
-        throw new Error('Pandoc路径保存未确认。');
-      return result;
-    }
-    const expected = checked.value as Record<string, unknown>;
+    // The host answers with the record it committed. Anything other than exactly the requested
+    // value at the next revision is an unconfirmed write that must not be replayed.
     if (
       result.revision !== expectedRevision + 1 ||
-      Object.keys(actual).length !== Object.keys(expected).length ||
-      Object.entries(actual).some(
-        ([key, value]) => JSON.stringify(value) !== JSON.stringify(expected[key]),
-      )
+      !sameValue(committed(result, checked), checked.value)
     )
       throw new Error('导出设置保存结果未确认，请重新打开设置；不得重放。');
     return result;

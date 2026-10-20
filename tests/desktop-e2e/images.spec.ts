@@ -138,6 +138,30 @@ function installImageMock({ png, imageUrl }: { png: string; imageUrl?: string })
           };
         if (command === 'resolve_document_image')
           return { source: args.reference, url: imageUrl ?? `data:image/png;base64,${png}` };
+        if (command === 'get_export_preferences')
+          return {
+            schemaVersion: 1,
+            revision: 0,
+            general: {},
+            html: {},
+            pdf: {},
+            image: {},
+            formats: {},
+            custom: [],
+            pandocPath: '',
+          };
+        if (command === 'get_format_capabilities')
+          return {
+            pandoc: { status: 'available', path: '/mock/pandoc', version: '3.0', message: '' },
+            formats: ['docx'],
+            writers: ['docx'],
+            importExtensions: [],
+            image: true,
+            pdf: 'direct',
+            headerFooter: true,
+          };
+        if (command === 'save_export_format')
+          return { path: '/mock/A.docx', bytes: 1, warnings: [] };
         if (command === 'import_document_image')
           return { source: 'assets/pixel%20sample.png', url: `data:image/png;base64,${png}` };
         return null;
@@ -438,4 +462,18 @@ test('React Shell preserves image action capabilities through Native menu execut
     'data-src',
     'http://127.0.0.1:4197/pixel.png',
   );
+});
+
+test('Word export hands the converter Markdown with the document images embedded', async ({
+  page,
+}) => {
+  await start(page, '# Title\n\n![pic](assets/pic.png)\n');
+  await expect(child(page).locator('#write img').first()).toHaveAttribute('src', /^data:image\/png/);
+  await page.evaluate(() => (window as ImageWindow).__imageMock.menu('export-docx'));
+  await expect
+    .poll(async () => (await calls(page, 'save_export_format')).length, { timeout: 30_000 })
+    .toBe(1);
+  const call = (await calls(page, 'save_export_format'))[0];
+  expect(String(call?.args.markdown)).toContain(`![pic](data:image/png;base64,${png})`);
+  expect(call?.args.target).toBe('docx');
 });

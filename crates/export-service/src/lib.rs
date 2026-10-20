@@ -1,7 +1,7 @@
 //! Self-contained HTML export and bounded, disposable print-preview resources.
 mod formats;
 mod html;
-pub use formats::{import_reader, ConversionFormat};
+pub use formats::{import_reader, validate_converted, ConversionFormat};
 mod storage;
 
 pub use html::{prepare_html, PreparedHtml, HTML_CSP, PREVIEW_CSP};

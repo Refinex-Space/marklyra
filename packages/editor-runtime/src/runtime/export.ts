@@ -5,8 +5,9 @@ import {
   MAX_EXPORT_RESOURCE_BYTES,
   sameRuntimeOrigin,
 } from '../export/options.js';
+import { type ExportImageSet, MAX_EXPORT_IMAGES } from '../export/markdown.js';
 import { printArtifactStyles } from '../export/print-styles.js';
-import { imageData, portableCss, resourceBytes } from '../export/resources.js';
+import { imageData, portableCss, portableLink, resourceBytes } from '../export/resources.js';
 import { cssUrlTokens, stripLocalFontSources } from '../styles/css-resources.js';
 import type { LegacyGlobals } from './legacy-types.js';
 
@@ -71,11 +72,21 @@ export class RuntimeExport {
         const data = imageData(url);
         return this.encode(data.bytes, data.mime);
       }
-      const response = await fetch(parsed.href, {
-        signal: this.abort.signal,
-        credentials: 'omit',
-        redirect: 'error',
-      });
+      let response: Response;
+      try {
+        response = await fetch(parsed.href, {
+          signal: this.abort.signal,
+          credentials: 'omit',
+          redirect: 'error',
+        });
+      } catch (error) {
+        if (this.abort.signal.aborted) throw error;
+        // A bare "Failed to fetch" says nothing; name the resource that could not be read.
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `导出${type === 'font' ? '字体' : '图片'}读取失败（${parsed.protocol}//${parsed.host}${parsed.pathname.slice(0, 80)}）：${reason}`,
+        );
+      }
       if (!response.ok) throw new Error(`导出资源读取失败：${response.status}`);
       const contentType =
         (response.headers.get('content-type') ?? '').split(';')[0]?.toLowerCase() ?? '';
@@ -170,6 +181,68 @@ export class RuntimeExport {
     }
     return output.join('\n');
   }
+  /**
+   * The images a Markdown converter needs, as data URLs keyed by their Markdown destination.
+   * Unlike HTML export, a picture that cannot be resolved does not stop the export: it is
+   * reported so the converter can say what is missing.
+   */
+  async images(): Promise<ExportImageSet> {
+    if (this.busy || this.deps.loading() || this.deps.composing())
+      throw new Error('请先完成当前编辑操作');
+    const editor = this.deps.runtime.editor;
+    if (!editor) throw new Error('编辑器尚未初始化');
+    this.busy = true;
+    try {
+      // The same preparation HTML export performs, so pictures outside the view still load.
+      editor.export.beforeExport(false);
+      const started = Date.now();
+      const root = editor.writingArea;
+      // The image host decorates each picture with its state shortly after rendering; a picture
+      // is settled once it says so. One the host never claims is reported as missing.
+      for (;;) {
+        const pending = [...root.querySelectorAll<HTMLElement>('.md-image')].some((wrapper) => {
+          const state = wrapper.dataset.marklyraImageState;
+          const image = wrapper.querySelector('img');
+          return (
+            state === 'loading' ||
+            (state === 'ready' && image !== null && !image.complete) ||
+            (!state && Date.now() - started < 3_000)
+          );
+        });
+        if (!pending) break;
+        if (Date.now() - started > 15_000) throw new Error('图片未在 15 秒内加载完成，导出已停止');
+        await this.pause();
+      }
+      const images: Record<string, string> = {};
+      const missing: string[] = [];
+      for (const wrapper of root.querySelectorAll<HTMLElement>('.md-image')) {
+        const source = wrapper.dataset.marklyraImageSource ?? wrapper.dataset.src;
+        if (!source || source in images || missing.includes(source)) continue;
+        const image = wrapper.querySelector('img');
+        const state = wrapper.dataset.marklyraImageState;
+        if (
+          !image ||
+          state === 'unavailable' ||
+          state === 'error' ||
+          !image.complete ||
+          image.naturalWidth === 0 ||
+          Object.keys(images).length >= MAX_EXPORT_IMAGES
+        ) {
+          missing.push(source);
+          continue;
+        }
+        try {
+          images[source] = await this.dataUrl(image.src, 'image');
+        } catch (error) {
+          if (this.abort.signal.aborted) throw error;
+          missing.push(source);
+        }
+      }
+      return { images, missing };
+    } finally {
+      this.busy = false;
+    }
+  }
   async html(value: ExportHTMLOptions): Promise<string> {
     if (this.busy || this.deps.loading() || this.deps.composing())
       throw new Error('请先完成当前编辑操作');
@@ -253,12 +326,7 @@ export class RuntimeExport {
           }
         }
         if (element.matches('input')) element.setAttribute('disabled', '');
-        if (
-          element.matches('a[href]') &&
-          /^(?:javascript|vbscript|data|blob|file|runtime):/i.test(
-            element.getAttribute('href')?.trim() ?? '',
-          )
-        )
+        if (element.matches('a[href]') && !portableLink(element.getAttribute('href') ?? ''))
           element.removeAttribute('href');
       }
       for (const image of doc.querySelectorAll(

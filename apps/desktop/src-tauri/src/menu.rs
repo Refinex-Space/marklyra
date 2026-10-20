@@ -7,6 +7,7 @@ use tauri::{
 };
 #[cfg(any(windows, test))]
 pub(crate) mod accelerator;
+pub(crate) mod exports;
 pub(crate) mod recent;
 mod shortcuts;
 pub(crate) mod state;
@@ -36,6 +37,7 @@ const FILE: &[MenuEntry] = &[
     Action("print-preview", "打印预览…", Some("CmdOrCtrl+P")),
 ];
 const EXPORT: &[MenuEntry] = &[
+    Action("export-pdf", "PDF…", None),
     Action("export-html", "HTML…", None),
     Action("export-html-plain", "HTML（无样式）…", None),
     Action("export-image", "图像…", None),
@@ -307,7 +309,7 @@ fn action_for_id(id: &str) -> Option<&str> {
     if themes::theme_id(id).is_some() {
         return Some(id);
     }
-    if recent::record_id(id).is_some() {
+    if recent::record_id(id).is_some() || exports::custom_id(id).is_some() {
         return Some(id);
     }
     GROUPS
@@ -620,7 +622,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            72 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            73 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {

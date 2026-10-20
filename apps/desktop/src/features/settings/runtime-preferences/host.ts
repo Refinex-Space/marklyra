@@ -1,4 +1,3 @@
-import { isExportPreferenceKey } from './export-preferences.js';
 import {
   type FilePreferences,
   filePreferencesOptions,
@@ -19,6 +18,8 @@ import {
 } from './policy.js';
 import { startupPreferenceAction, startupPreferencesSnapshot } from './startup-preferences.js';
 
+export type NativePage = 'ai' | 'export';
+
 export interface RuntimePreferencesOptions {
   runtimeUrl: string;
   platform?: 'macos' | 'windows' | 'browser';
@@ -29,7 +30,8 @@ export interface RuntimePreferencesOptions {
   onPut: (key: PreferenceKey, value: PreferenceValue) => Promise<void | FilePreferences>;
   onAction?: (name: PreferenceAction, data: unknown) => Promise<unknown>;
   onClose: () => void;
-  onAiPage?: (active: boolean) => void;
+  /** The settings page is drawn by the host (智能体, 导出) instead of by the isolated page. */
+  onNativePage?: (page: NativePage | null) => void;
   onError: (error: Error) => void;
 }
 
@@ -165,8 +167,8 @@ export class RuntimePreferencesHost {
       if (this.closeRequested) this.requestClose();
       return;
     }
-    if (kind === 'ai-page' && typeof payload === 'boolean') {
-      this.options.onAiPage?.(payload);
+    if (kind === 'native-page' && (payload === null || payload === 'ai' || payload === 'export')) {
+      this.options.onNativePage?.(payload);
       return;
     }
     if (kind === 'error') {
@@ -202,8 +204,6 @@ export class RuntimePreferencesHost {
               this.initial.marklyraMarkdownActions !== true
             )
               throw new Error('Markdown缩进应用能力尚未就绪。');
-            if (isExportPreferenceKey(change.key) && this.initial.marklyraExportActions !== true)
-              throw new Error('导出设置应用能力尚未就绪。');
             if (
               (change.key === 'disabledFileTypes' || change.key === 'removeCustomFileType') &&
               this.initial.marklyraFileTypeActions !== true
@@ -218,19 +218,6 @@ export class RuntimePreferencesHost {
             if (change.key === 'wordsPerMinute') this.initial.customWordsPerMinute = true;
             if (change.key === 'customWordsPerMinute' && change.value === false)
               this.initial.wordsPerMinute = 382;
-          } else if (request.operation === 'export-tool-action') {
-            if (
-              this.initial.marklyraExportActions !== true ||
-              request.name !== 'choose-pandoc' ||
-              !this.options.onAction
-            )
-              throw new Error('Pandoc选择不可用。');
-            result = await this.options.onAction('choose-pandoc', null);
-            if (result !== null) {
-              if (!isRecord(result) || typeof result.pandocPath !== 'string')
-                throw new Error('Pandoc选择回执无效。');
-              this.initial.pandocPath = result.pandocPath;
-            }
           } else if (request.operation === 'theme-action') {
             if (
               this.initial.marklyraThemeActions !== true ||
@@ -269,9 +256,8 @@ export class RuntimePreferencesHost {
             {
               id,
               ok: true,
-              ...(['put', 'startup-action', 'export-tool-action'].includes(
-                String(request.operation),
-              ) && result !== undefined
+              ...(['put', 'startup-action'].includes(String(request.operation)) &&
+              result !== undefined
                 ? { result }
                 : {}),
             },

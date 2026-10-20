@@ -39,8 +39,8 @@ import { useAutoSave } from '../features/documents/useAutoSave.js';
 import { useDocumentSession } from '../features/documents/useDocumentSession.js';
 import { useExternalChanges } from '../features/documents/useExternalChanges.js';
 import {
-  conversionExportActions,
   type ExportAction,
+  isExportAction,
   useDocumentExport,
 } from '../features/export/useDocumentExport.js';
 import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
@@ -323,7 +323,6 @@ export function App() {
     owner: doc.getOwner,
     sourceId: () => doc.getFile()?.id,
     unavailable: doc.working || !!doc.pending || !ready || themeSystem.working,
-    report: doc.setMessage,
   });
   const trackSession = (): Promise<void> => {
     if (!desktopAvailable) return Promise.resolve();
@@ -919,8 +918,10 @@ export function App() {
       statisticsOpen,
       availableFormats: [
         'html-plain',
+        ...(exporter.capabilities && exporter.capabilities.pdf !== 'none' ? ['pdf'] : []),
         ...(exporter.capabilities?.image ? ['image'] : []),
         ...(exporter.capabilities?.formats ?? []),
+        ...exporter.customFormats,
       ],
       canImport: (exporter.capabilities?.importExtensions.length ?? 0) > 0,
     },
@@ -1180,16 +1181,10 @@ export function App() {
         }, '导入未完成');
         return;
       }
-      if (
-        value === 'export-html' ||
-        value === 'export-html-plain' ||
-        value === 'export-image' ||
-        value === 'print-preview' ||
-        conversionExportActions.has(value as ExportAction)
-      ) {
+      if (isExportAction(value)) {
         setRecoveryOpen(false);
         setRecentOpen(false);
-        void actions.current.exporter.run(value as ExportAction);
+        void actions.current.exporter.run(value);
         return;
       }
       if (['open', 'save', 'save-as', 'new', 'close'].includes(value)) {

@@ -62,11 +62,12 @@ impl MenuStates {
         if value.serial > 9_007_199_254_740_991 || value.serial == 0 {
             return Err("菜单状态序号无效".into());
         }
-        if value.available_formats.len() > 16
+        if value.available_formats.len() > 32
             || value.available_formats.iter().any(|format| {
                 ![
                     "html",
                     "html-plain",
+                    "pdf",
                     "image",
                     "docx",
                     "odt",
@@ -79,6 +80,7 @@ impl MenuStates {
                     "opml",
                 ]
                 .contains(&format.as_str())
+                    && !super::exports::is_custom_format(format)
             })
         {
             return Err("菜单导出格式无效".into());
@@ -307,6 +309,16 @@ pub(super) fn update<R: Runtime>(
                 } else {
                     state.enabled(id)
                 })?;
+                if super::exports::custom_id(id).is_some() {
+                    let available = id.strip_prefix("export-").is_some_and(|format| {
+                        state.available_formats.iter().any(|item| item == format)
+                    });
+                    let text = item.text()?;
+                    let next = super::exports::availability_label(&text, available);
+                    if next != text {
+                        item.set_text(next)?;
+                    }
+                }
                 if let Some(label) = dependent_format_label(id) {
                     let available = id.strip_prefix("export-").is_some_and(|format| {
                         state.available_formats.iter().any(|item| item == format)
