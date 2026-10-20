@@ -131,7 +131,10 @@ export async function emitLayoutMenu(page: Page, action: string) {
 
 export async function readyLayout(page: Page, theme: string) {
   await page.goto('/');
-  await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
+  // A cold WebKit on hosted macOS runners can take over five seconds to initialize.
+  await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false', {
+    timeout: 15_000,
+  });
   await expect(page.locator('.shell')).toHaveAttribute('data-native-chrome', 'true');
   await emitLayoutMenu(page, `theme:${theme}`);
   await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', theme);
