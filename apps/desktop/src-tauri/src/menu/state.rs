@@ -54,6 +54,9 @@ pub struct Snapshot {
     /// The open document is saved on disk, so its file can be renamed from the title or menu.
     #[serde(default)]
     can_rename: bool,
+    /// The first-screen home view covers the editor, so commands that edit it do nothing.
+    #[serde(default)]
+    home: bool,
     #[serde(default)]
     text_input_focused: bool,
 }
@@ -139,6 +142,9 @@ impl Snapshot {
         let Some(editor) = self.active() else {
             return false;
         };
+        if self.home && crate::editor_commands::is_editor_action(action) {
+            return false;
+        }
         if self.text_input_focused
             && crate::editor_commands::is_editor_action(action)
             && !matches!(action, "find" | "replace")
@@ -539,6 +545,26 @@ mod tests {
         for action in ["new", "new-window", "preferences"] {
             assert!(!state.enabled(action));
         }
+    }
+    #[test]
+    fn the_home_view_keeps_start_actions_but_not_commands_on_the_hidden_editor() {
+        let mut state = ready();
+        state.home = true;
+        for action in [
+            "new",
+            "open",
+            "open-folder",
+            "quick-open",
+            "recent-files",
+            "preferences",
+        ] {
+            assert!(state.enabled(action), "{action}");
+        }
+        for action in ["undo", "format:strong", "heading:1", "find", "view:source"] {
+            assert!(!state.enabled(action), "{action}");
+        }
+        state.home = false;
+        assert!(state.enabled("find"));
     }
     #[test]
     fn an_open_statistics_panel_keeps_its_own_close_action_available() {

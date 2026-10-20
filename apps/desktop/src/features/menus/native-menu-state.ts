@@ -15,6 +15,8 @@ export interface NativeMenuPresentation {
   canImport?: boolean;
   /** The open document is saved on disk and its file can be renamed. */
   canRename?: boolean;
+  /** The home view covers the editor. */
+  home?: boolean;
   textInputFocused?: boolean;
 }
 /** Same state rules as the original menus and Rust; a stale native check is no authority. */
@@ -75,6 +77,7 @@ export class NativeMenuPublisher {
       availableFormats: [...(value.availableFormats ?? [])],
       canImport: value.canImport === true,
       canRename: value.canRename === true,
+      home: value.home === true,
       editor: value.editor
         ? {
             ...value.editor,

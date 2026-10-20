@@ -22,6 +22,10 @@ type ImageWindow = Window & typeof globalThis & { __imageMock: ImageMock };
 
 function installImageMock({ png, imageUrl }: { png: string; imageUrl?: string }) {
   if (window !== window.top) return;
+  // These specs edit a document; start where "新建笔记" on the home view leaves a person.
+  new MutationObserver(() => {
+    document.querySelector<HTMLButtonElement>('.home-screen .home-action')?.click();
+  }).observe(document, { childList: true, subtree: true });
   let serial = 0;
   const callbacks = new Map<number, (event: unknown) => void>();
   const listeners = new Map<number, { name: string; handler: number }>();

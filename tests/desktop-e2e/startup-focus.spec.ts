@@ -73,7 +73,7 @@ test('a shell control focused during runtime loading keeps focus when the editor
     await gate;
     await route.continue();
   });
-  await page.addInitScript(installMock);
+  await page.addInitScript(installMock, { home: true });
   await page.addInitScript(installRecoveryMock);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const control = page.getByRole('button', { name: '搜索', exact: true });
@@ -198,7 +198,7 @@ test('native foreground authority permits initial input when DOM focus reports f
 });
 
 test('native background authority suppresses the initial SDK focus request', async ({ page }) => {
-  await page.addInitScript(installMock);
+  await page.addInitScript(installMock, { home: true });
   await page.addInitScript(installRecoveryMock);
   await page.addInitScript(() => {
     if (window !== window.top) {
@@ -237,7 +237,7 @@ test('native background authority suppresses the initial SDK focus request', asy
 test('background startup retries once on native activation and later activations preserve Shell focus', async ({
   page,
 }) => {
-  await page.addInitScript(installMock);
+  await page.addInitScript(installMock, { home: true });
   await page.addInitScript(installRecoveryMock);
   await page.addInitScript(() => {
     if (window !== window.top) {
@@ -272,14 +272,11 @@ test('background startup retries once on native activation and later activations
   const count = () =>
     frame.locator('body').evaluate(() => Reflect.get(window, '__initialFocusRequests'));
   expect(await count()).toBe(0);
+  // The home view covers the editor, so activation must not ask it for focus.
   await page.evaluate(() => {
     Reflect.set(window, '__nativeForeground', true);
     (window as TestWindow).__desktopMock.emitEvent('tauri://focus', true);
   });
-  await expect(frame.locator('#write')).toBeFocused();
-  await expect.poll(count).toBe(1);
-  await page.keyboard.type('Activated');
-  await expect(frame.locator('#write')).toHaveText('Activated');
   const control = page.getByRole('button', { name: '搜索', exact: true });
   await control.focus();
   await page.evaluate(() => {
@@ -287,5 +284,11 @@ test('background startup retries once on native activation and later activations
     (window as TestWindow).__desktopMock.emitEvent('tauri://focus', true);
   });
   await expect(control).toBeFocused();
-  expect(await count()).toBe(1);
+  expect(await count()).toBe(0);
+  // Starting a note hands the editor its one focus request, and typing lands in it.
+  await page.getByRole('button', { name: /新建笔记/ }).click();
+  await expect(frame.locator('#write')).toBeFocused();
+  await expect.poll(count).toBe(1);
+  await page.keyboard.type('Activated');
+  await expect(frame.locator('#write')).toHaveText('Activated');
 });

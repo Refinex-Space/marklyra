@@ -25,6 +25,7 @@ const FILE: &[MenuEntry] = &[
     #[cfg(target_os = "macos")]
     Action("new-tab", "新建标签页", Some("CmdOrCtrl+T")),
     Action("open", "打开…", Some("CmdOrCtrl+O")),
+    Action("quick-open", "快速打开…", Some("CmdOrCtrl+Shift+P")),
     Action("recent-files", "最近文件…", None),
     Action("marklyra-drafts", "恢复草稿…", None),
     Action("open-folder", "打开文件夹…", None),
@@ -623,7 +624,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            74 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            75 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {

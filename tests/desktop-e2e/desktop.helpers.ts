@@ -101,7 +101,7 @@ export type TestWindow = Window & typeof globalThis & { __desktopMock: DesktopMo
 export function installMock(
   configuration:
     | string
-    | { label?: string; nativeChrome?: boolean; titlebar?: 'appkit' | 'web' } = 'main',
+    | { label?: string; nativeChrome?: boolean; titlebar?: 'appkit' | 'web'; home?: boolean } = 'main',
 ) {
   if (window !== window.top) return;
   const windowLabel =
@@ -109,6 +109,13 @@ export function installMock(
   const nativeChrome = typeof configuration === 'object' && configuration.nativeChrome === true;
   // 'web' models the Windows host: the WebView draws titlebar, menu entry points and caption buttons.
   const titlebar = typeof configuration === 'object' ? (configuration.titlebar ?? 'appkit') : 'appkit';
+  // Most specs exercise the editor itself. They start where a person lands after pressing
+  // "新建笔记" on the home view; only specs about the home view itself pass `home: true`.
+  if (!(typeof configuration === 'object' && configuration.home === true)) {
+    new MutationObserver(() => {
+      document.querySelector<HTMLButtonElement>('.home-screen .home-action')?.click();
+    }).observe(document, { childList: true, subtree: true });
+  }
   const menuTitles = ['MarkLyra', '文件', '编辑', '段落', '格式', '显示', '主题', '窗口'];
   let serial = 1;
   const callbacks = new Map<number, (event: unknown) => void>();

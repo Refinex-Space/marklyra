@@ -40,6 +40,14 @@ import { useDocumentSession } from '../features/documents/useDocumentSession.js'
 import { DocumentNamePopover } from '../features/documents/DocumentNamePopover.js';
 import { useDocumentRename } from '../features/documents/useDocumentRename.js';
 import { useExternalChanges } from '../features/documents/useExternalChanges.js';
+import { HomeScreen } from '../features/home/HomeScreen.js';
+import { QuickOpen } from '../features/quick-open/QuickOpen.js';
+import type { QuickTab } from '../features/quick-open/quick-open-model.js';
+import {
+  loadQuickNotes,
+  type QuickNotes,
+  quickItems,
+} from '../features/quick-open/quick-sources.js';
 import { isExportAction, useDocumentExport } from '../features/export/useDocumentExport.js';
 import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
 import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
@@ -142,6 +150,13 @@ export function App() {
   // AppKit's titlebar is 28pt; the Windows caption band is the standard 32px.
   const titlebarHeight = webTitlebar ? 32 : 28;
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  // The editor has been restored (or found empty); only then can the home view decide to show.
+  const [startupSettled, setStartupSettled] = useState(false);
+  const [homeDismissed, setHomeDismissed] = useState(false);
+  const [quickOpen, setQuickOpen] = useState<{ tab: QuickTab } | null>(null);
+  const [quickNotes, setQuickNotes] = useState<QuickNotes | null>(null);
+  /** Application menu handler; the search window runs its actions through the same guards. */
+  const menuHandler = useRef<(value: string) => void>(() => {});
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [settingsEffectNotice, setSettingsEffectNotice] = useState(0);
   useEffect(() => {
@@ -386,6 +401,10 @@ export function App() {
           .catch((error) => doc.setMessage(`缩放未确认：${String(error)}`));
       return;
     }
+    if (value === 'new' && homeVisible) {
+      startWriting();
+      return;
+    }
     if (value === 'new' || value === 'new-window') {
       void newWindow(value === 'new' ? 'document' : 'window');
       return;
@@ -488,6 +507,7 @@ export function App() {
         active.revision !== revision ||
         active.hasPendingChanges ||
         actions.current.blockedEditorCommand ||
+        actions.current.editorObscured ||
         actions.current.doc.working ||
         actions.current.exporter.working ||
         importingImageRef.current
@@ -521,7 +541,8 @@ export function App() {
             !current.doc.working &&
             !current.doc.pending &&
             !current.preferencesOpen &&
-            !current.statisticsOpen
+            !current.statisticsOpen &&
+            !current.editorObscured
           );
         },
         () => startupControl.current,
@@ -547,6 +568,59 @@ export function App() {
     setOutlinePanelOpen(false);
     if (aiPanelOpen) void editor.current?.focus().catch((error) => doc.setMessage(String(error)));
   };
+  // The first screen of a window with nothing open. It covers the editor, which stays mounted but
+  // inert underneath, so no input or command can reach text nobody can see.
+  const homeVisible =
+    windowIdentity.primary &&
+    startupSettled &&
+    !homeDismissed &&
+    !doc.file &&
+    !doc.dirty &&
+    !doc.pending &&
+    doc.snapshot === '';
+  const startWriting = () => setHomeDismissed(true);
+  const openQuickOpen = (tab: QuickTab = 'all') => {
+    if (!ready || preferencesOpen || statisticsOpen || recoveryOpen || recentOpen) return;
+    if (doc.working || doc.pending || editor.current?.isComposing) return;
+    setQuickNotes(null);
+    setQuickOpen({ tab });
+  };
+  const closeQuickOpen = () => {
+    setQuickOpen(null);
+    window.setTimeout(() => {
+      const home = document.querySelector<HTMLElement>('.home-screen');
+      if (home) home.focus({ preventScroll: true });
+      else void editor.current?.focus().catch((error) => doc.setMessage(String(error)));
+    });
+  };
+  const searchOpen = quickOpen !== null;
+  useEffect(() => {
+    if (!searchOpen) return;
+    let alive = true;
+    void loadQuickNotes(workspaceIdentity.current, {
+      workspace: (workspaceId, relativePath) =>
+        void actions.current.doc.request({ kind: 'workspace', workspaceId, relativePath }),
+      recent: (id) => void actions.current.doc.request({ kind: 'recent', id }),
+    }).then(
+      (notes) => {
+        if (alive) setQuickNotes(notes);
+      },
+      () => {
+        if (alive) setQuickNotes({ items: [] });
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [searchOpen]);
+  const wasHome = useRef(false);
+  useEffect(() => {
+    documentAreaElement.current
+      ?.querySelector('.runtime-editor-mount')
+      ?.toggleAttribute('inert', homeVisible);
+    if (wasHome.current && !homeVisible) void editor.current?.focus().catch(() => {});
+    wasHome.current = homeVisible;
+  }, [homeVisible]);
   const rename = useDocumentRename({
     file:
       doc.file && doc.file.locationState !== 'trashed'
@@ -609,6 +683,7 @@ export function App() {
   };
   const actions = useRef({
     openRename,
+    openQuickOpen,
     action,
     toggleAiPanel,
     command,
@@ -634,6 +709,8 @@ export function App() {
       recoveryOpen ||
       recentOpen ||
       closingPanel,
+    // The editor is covered (home view or search window): nothing may edit text nobody can see.
+    editorObscured: homeVisible || quickOpen !== null,
     blockedEditorCommand:
       !ready ||
       !editor.current ||
@@ -648,6 +725,7 @@ export function App() {
   });
   actions.current = {
     openRename,
+    openQuickOpen,
     action,
     toggleAiPanel,
     command,
@@ -673,6 +751,8 @@ export function App() {
       recoveryOpen ||
       recentOpen ||
       closingPanel,
+    // The editor is covered (home view or search window): nothing may edit text nobody can see.
+    editorObscured: homeVisible || quickOpen !== null,
     blockedEditorCommand:
       !ready ||
       !editor.current ||
@@ -935,6 +1015,7 @@ export function App() {
           documentOwner: actions.current.doc.getOwner(),
           blocked:
             actions.current.blockedEditorCommand ||
+            actions.current.editorObscured ||
             !actions.current.doc.acceptsEditorCommands() ||
             composing ||
             (hostTextInputFocused(active) && action !== 'find' && action !== 'replace'),
@@ -965,6 +1046,7 @@ export function App() {
       ready,
       blocked:
         actions.current.blockedEditorCommand ||
+        actions.current.editorObscured ||
         doc.working ||
         exporter.working ||
         importingImage ||
@@ -986,6 +1068,7 @@ export function App() {
       ],
       canImport: (exporter.capabilities?.importExtensions.length ?? 0) > 0,
       canRename: rename.canRename,
+      home: homeVisible,
     },
     async () => {
       const bridge = nativeCommandBridge.current;
@@ -1113,6 +1196,10 @@ export function App() {
           void actions.current.dismissAuxiliaryPanel();
         return;
       }
+      if (value === 'quick-open') {
+        actions.current.openQuickOpen('all');
+        return;
+      }
       if (value === 'view:sidebar') {
         setSidebar((visible) => !visible);
         return;
@@ -1209,6 +1296,7 @@ export function App() {
         if (
           !active ||
           actions.current.blockedEditorCommand ||
+          actions.current.editorObscured ||
           actions.current.doc.working ||
           active.isComposing ||
           active.menuState?.sourceMode
@@ -1278,6 +1366,7 @@ export function App() {
       const [name, argument] = value.split(':');
       if (name === 'theme' && argument) changeTheme(argument);
     };
+    menuHandler.current = menu;
     if (desktopAvailable) {
       const nativeWindow = getCurrentWindow();
       const tabLayoutListener = nativeWindow
@@ -2254,7 +2343,10 @@ export function App() {
                         actions.current.doc.setMessage(`图片暂存尚未就绪：${String(error)}`);
                       }
                       await focusStartup(instance, true);
-                      if (editor.current === instance) setOsOpenReady(true);
+                      if (editor.current === instance) {
+                        setStartupSettled(true);
+                        setOsOpenReady(true);
+                      }
                     }
                   })();
                 }}
@@ -2318,6 +2410,15 @@ export function App() {
             >
               <Icon name="scrollTop" />
             </button>
+          )}
+          {homeVisible && (
+            <HomeScreen
+              mac={runtime?.platform === 'macos'}
+              onNew={startWriting}
+              onOpenNote={() => openQuickOpen('note')}
+              onOpenRecent={(id) => void doc.request({ kind: 'recent', id })}
+              onViewAll={() => menuHandler.current('recent-files')}
+            />
           )}
         </main>
         <DocumentDetailsPanel
@@ -2458,6 +2559,30 @@ export function App() {
         <div role="status" className="native-document-notice">
           {nativeNotice}
         </div>
+      )}
+      {quickOpen && (
+        <QuickOpen
+          initialTab={quickOpen.tab}
+          items={quickItems({
+            mac: runtime?.platform === 'macos',
+            hasDocument: !homeVisible,
+            canRename: rename.canRename,
+            availableFormats: [
+              ...(exporter.capabilities && exporter.capabilities.pdf !== 'none' ? ['pdf'] : []),
+              'html',
+              ...(exporter.capabilities?.image ? ['image'] : []),
+              ...(exporter.capabilities?.formats ?? []),
+            ],
+            run: (action) => menuHandler.current(action),
+            openAiSettings: () => {
+              sessionStorage.setItem('marklyra.settings.ai', 'true');
+              actions.current.openPreferences();
+            },
+          })}
+          notes={quickNotes?.items ?? null}
+          {...(quickNotes?.hint ? { notesHint: quickNotes.hint } : {})}
+          onClose={closeQuickOpen}
+        />
       )}
       <NoticeHost />
       {markdownSystem.initial && markdownSystem.error && (
