@@ -91,8 +91,22 @@ fn ancestor_rename_retargets_all_open_descendants_and_mounted_roots() {
         &token.entry_token,
         "New",
         &operation(),
-    )
-    .unwrap();
+    );
+    if cfg!(windows) {
+        let error = result.err().expect("an open directory must remain pinned");
+        assert!(error.contains("占用") || error.contains("使用"), "{error}");
+        assert!(root.join("Old/nested/note.md").is_file());
+        assert!(!root.join("New").exists());
+        assert!(services
+            .get_documents("main")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get_metadata(&a.id)
+            .is_ok());
+        return;
+    }
+    let result = result.unwrap();
     assert_eq!(result.documents.len(), 2);
     assert_eq!(result.workspaces.len(), 2);
     assert!(result.uncertain_documents.is_empty());

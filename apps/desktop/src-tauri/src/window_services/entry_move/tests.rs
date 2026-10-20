@@ -110,11 +110,7 @@ fn cross_parent_moves_all_aliases_keeps_baselines_and_undo_follows_own_save() {
     for (label, doc) in [("main", a), ("other", b)] {
         let registry = s.get_documents(label).unwrap();
         let service = registry.lock().unwrap();
-        assert!(service
-            .get_metadata(&doc.id)
-            .unwrap()
-            .path
-            .ends_with("/from/A.md"));
+        assert!(Path::new(&service.get_metadata(&doc.id).unwrap().path).ends_with("from/A.md"));
     }
 }
 #[test]
@@ -154,7 +150,7 @@ fn replace_keeps_two_equal_byte_cohorts_and_undo_restores_both_latest_publicatio
         .get_metadata(&b.id)
         .unwrap()
         .path;
-    assert!(source_path.ends_with("/to/A.md"));
+    assert!(Path::new(&source_path).ends_with("to/A.md"));
     assert_ne!(source_path, backup_path);
     assert!(Path::new(&backup_path).is_file());
     s.write_document("main", |d| d.save(&a.id, "source latest"))
@@ -178,15 +174,16 @@ fn replace_keeps_two_equal_byte_cohorts_and_undo_restores_both_latest_publicatio
         fs::read(root.path().join("to/A.md")).unwrap(),
         b"\xef\xbb\xbftarget latest"
     );
-    assert!(s
-        .get_documents("other")
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get_metadata(&b.id)
-        .unwrap()
-        .path
-        .ends_with("/to/A.md"));
+    assert!(Path::new(
+        &s.get_documents("other")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get_metadata(&b.id)
+            .unwrap()
+            .path
+    )
+    .ends_with("to/A.md"));
 }
 #[test]
 fn directory_move_retargets_nested_mount_and_live_document_then_undo_rebinds_both() {
@@ -240,37 +237,55 @@ fn directory_move_retargets_nested_mount_and_live_document_then_undo_rebinds_bot
             &fs::canonicalize(root.path().join("to")).unwrap(),
         )
         .unwrap();
-    let result = s
-        .move_workspace_entry(
-            request,
-            destination,
-            EntryMoveConflictPolicy::Cancel,
-            |_| Ok(()),
-            |_, _| vec![],
-        )
-        .unwrap();
+    let result = s.move_workspace_entry(
+        request,
+        destination,
+        EntryMoveConflictPolicy::Cancel,
+        |_| Ok(()),
+        |_, _| vec![],
+    );
+    if cfg!(windows) {
+        let error = result
+            .err()
+            .expect("a mounted directory must remain pinned");
+        assert!(error.contains("占用") || error.contains("使用"), "{error}");
+        let metadata = s
+            .get_documents("other")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get_metadata(&doc.id)
+            .unwrap();
+        assert!(Path::new(&metadata.path).ends_with("from/Folder/doc.md"));
+        assert!(root.path().join("from/Folder/doc.md").is_file());
+        assert!(!root.path().join("to/Folder").exists());
+        return;
+    }
+    let result = result.unwrap();
     assert!(result.receipt.is_some());
-    assert!(s
-        .get_workspaces("other")
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get(&other.id)
-        .unwrap()
-        .display_root_snapshot()
-        .unwrap()
-        .to_string_lossy()
-        .trim_end_matches('/')
-        .ends_with("/to/Folder"));
-    assert!(s
-        .get_documents("other")
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get_metadata(&doc.id)
-        .unwrap()
-        .path
-        .ends_with("/to/Folder/doc.md"));
+    assert!(Path::new(
+        &s.get_workspaces("other")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get(&other.id)
+            .unwrap()
+            .display_root_snapshot()
+            .unwrap()
+            .to_string_lossy()
+            .trim_end_matches('/')
+    )
+    .ends_with("to/Folder"));
+    assert!(Path::new(
+        &s.get_documents("other")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get_metadata(&doc.id)
+            .unwrap()
+            .path
+    )
+    .ends_with("to/Folder/doc.md"));
     let slot = s
         .get_file_undo("other", &other.id)
         .unwrap()
@@ -293,18 +308,19 @@ fn directory_move_retargets_nested_mount_and_live_document_then_undo_rebinds_bot
         restored.resolution,
         FileUndoResolution::Committed { .. }
     ));
-    assert!(s
-        .get_workspaces("other")
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get(&other.id)
-        .unwrap()
-        .display_root_snapshot()
-        .unwrap()
-        .to_string_lossy()
-        .trim_end_matches('/')
-        .ends_with("/from/Folder"));
+    assert!(Path::new(
+        &s.get_workspaces("other")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get(&other.id)
+            .unwrap()
+            .display_root_snapshot()
+            .unwrap()
+            .to_string_lossy()
+            .trim_end_matches('/')
+    )
+    .ends_with("from/Folder"));
     assert_eq!(
         fs::read(root.path().join("from/Folder/doc.md")).unwrap(),
         b"![blue](blue.svg)\r\n"
@@ -454,15 +470,16 @@ fn actual_volume_host_coordinates_directory_alias_mount_resources_save_and_undo(
     );
     assert!(root.path().join("from/Folder/blue.svg").is_file());
     assert!(!destination.join("Folder").exists());
-    assert!(s
-        .get_documents("other")
-        .unwrap()
-        .lock()
-        .unwrap()
-        .get_metadata(&b.id)
-        .unwrap()
-        .path
-        .ends_with("/from/Folder/doc.md"));
+    assert!(Path::new(
+        &s.get_documents("other")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get_metadata(&b.id)
+            .unwrap()
+            .path
+    )
+    .ends_with("from/Folder/doc.md"));
     println!(
         "owned host cross-volume destination retained: {}",
         destination.display()

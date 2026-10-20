@@ -187,7 +187,11 @@ mod tests {
         let copy = preview_copy(root.path(), "main", b"copy", "png").unwrap();
         let original = copy.path.parent().unwrap().to_path_buf();
         let moved = root.path().join("moved");
-        fs::rename(&original, &moved).unwrap();
+        if !crate::test_support::rename_retained_directory(&original, &moved) {
+            drop(copy);
+            assert!(!original.join("image.png").exists());
+            return;
+        }
         fs::create_dir(&original).unwrap();
         fs::write(original.join("image.png"), b"retain").unwrap();
         drop(copy);

@@ -175,7 +175,11 @@ fn directory_rename_handles_closed_descendants_and_ignores_old_tombstone_keys() 
         &moved,
         file_index::EntryKind::Directory,
     ));
-    fs::rename(&fixture.left, &moved).unwrap();
+    if !crate::test_support::rename_retained_directory(&fixture.left, &moved) {
+        drop(plan);
+        fixture.assert_cold(&b, &uri);
+        return;
+    }
     assert!(plan.commit().is_empty());
     fixture.assert_cold(&moved.join("B.md"), &uri);
 }
@@ -480,7 +484,11 @@ fn retained_directory_move_carries_closed_descendants_without_copying_sibling_gr
     let held = Arc::new(File::from_std(
         cap(&old).try_clone().unwrap().into_std_file(),
     ));
-    fs::rename(&old, &new).unwrap();
+    if !crate::test_support::rename_retained_directory(&old, &new) {
+        drop(plan);
+        fixture.assert_cold(&old.join("A.md"), &uri);
+        return;
+    }
     let receipt = publication(
         &old,
         &new,

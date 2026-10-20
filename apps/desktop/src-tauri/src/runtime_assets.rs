@@ -520,7 +520,7 @@ mod tests {
                     cmd: "fixture".to_owned(),
                     callback: CallbackFn(0),
                     error: CallbackFn(1),
-                    url: "tauri://localhost".parse().unwrap(),
+                    url: window.url().unwrap(),
                     body: InvokeBody::default(),
                     headers: Default::default(),
                     invoke_key: key.to_owned(),

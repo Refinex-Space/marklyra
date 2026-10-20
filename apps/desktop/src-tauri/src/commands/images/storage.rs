@@ -317,7 +317,9 @@ fn snapshot_view(snapshot: &ImageDraftSnapshot) -> Result<SnapshotView, String> 
             .map_err(|_| "图片暂存引用无效")?
             .to_file_path()
             .map_err(|_| "图片暂存引用无效")?;
-        if expected.parent() != Some(view.directory.path()) {
+        if expected.parent()
+            != Some(crate::native_paths::comparison_path(view.directory.path()).as_path())
+        {
             return Err("图片暂存引用已越界".into());
         }
         let portable = format!("staged/{}/{}", view.id, image.reference);
@@ -373,7 +375,7 @@ fn staged_sources(
             .unwrap_or(candidate.len());
         insert_source(&mut sources, &candidate[..end])?;
     }
-    let staged = display_root.join("staged");
+    let staged = crate::native_paths::comparison_path(&display_root.join("staged"));
     for (offset, _) in text.match_indices("file://") {
         let candidate = &text[offset..];
         let end = candidate

@@ -30,7 +30,12 @@ fn document(path: &Path) -> DocumentBookmark {
     let doc = service.open_authorized(path).unwrap();
     service.bookmark(&doc.id).unwrap()
 }
-fn publish(old: &Path, new: &Path, kind: RenameKind, copied: bool) -> NativeMovePublication {
+fn publish(
+    old: &Path,
+    new: &Path,
+    kind: RenameKind,
+    copied: bool,
+) -> Option<NativeMovePublication> {
     let descendant = |root: &Path, suffix: &str| {
         if suffix.is_empty() {
             root.to_owned()
@@ -58,11 +63,18 @@ fn publish(old: &Path, new: &Path, kind: RenameKind, copied: bool) -> NativeMove
         } else {
             fs::copy(old, new).unwrap();
         }
-        fs::rename(
-            old,
-            old.with_file_name(format!("retained-{}", Uuid::new_v4())),
-        )
-        .unwrap();
+        let retained = old.with_file_name(format!("retained-{}", Uuid::new_v4()));
+        if kind == RenameKind::Directory {
+            if !crate::test_support::rename_retained_directory(old, &retained) {
+                return None;
+            }
+        } else {
+            fs::rename(old, retained).unwrap();
+        }
+    } else if kind == RenameKind::Directory {
+        if !crate::test_support::rename_retained_directory(old, new) {
+            return None;
+        }
     } else {
         fs::rename(old, new).unwrap();
     }
@@ -79,16 +91,18 @@ fn publish(old: &Path, new: &Path, kind: RenameKind, copied: bool) -> NativeMove
             .unwrap()
         })
         .collect();
-    NativeMovePublication::verify(
-        Uuid::new_v4(),
-        cap(old.parent().unwrap()),
-        Path::new(old.file_name().unwrap()),
-        cap(new.parent().unwrap()),
-        Path::new(new.file_name().unwrap()),
-        kind,
-        entries,
+    Some(
+        NativeMovePublication::verify(
+            Uuid::new_v4(),
+            cap(old.parent().unwrap()),
+            Path::new(old.file_name().unwrap()),
+            cap(new.parent().unwrap()),
+            Path::new(new.file_name().unwrap()),
+            kind,
+            entries,
+        )
+        .unwrap(),
     )
-    .unwrap()
 }
 
 #[test]
@@ -144,7 +158,11 @@ fn typed_recipes_cover_file_and_directory_parent_changes_and_copied_identity_map
                 );
                 assert!(input.affects_document(&doc_path));
                 assert!(!input.affects_document(&old.with_file_name("old-neighbor/note.md")));
-                let publication = publish(&old, &new, kind, copied);
+                let Some(publication) = publish(&old, &new, kind, copied) else {
+                    assert!(doc.probe().unwrap());
+                    assert_eq!(fs::read(&doc_path).unwrap(), bytes);
+                    continue;
+                };
                 let mapping = input.finalize(&[&publication]).unwrap();
                 let next = mapping.document(&doc);
                 let expected = if kind == RenameKind::Directory {
@@ -198,7 +216,11 @@ fn dropped_or_wrong_publication_recipes_do_not_write_metadata_or_upgrade_old_aut
     let unrelated_new = root.join("right/unrelated-new");
     fs::create_dir_all(unrelated.join("child")).unwrap();
     fs::write(unrelated.join("child/note.md"), b"Source").unwrap();
-    let wrong = publish(&unrelated, &unrelated_new, RenameKind::Directory, false);
+    let Some(wrong) = publish(&unrelated, &unrelated_new, RenameKind::Directory, false) else {
+        assert_eq!(fs::read(&persisted).unwrap(), original);
+        book.reopen().unwrap();
+        return;
+    };
     assert!(input.finalize(&[&wrong]).is_err());
     assert_eq!(fs::read(&persisted).unwrap(), original);
     assert_eq!(book.path(), old);
@@ -227,7 +249,11 @@ fn an_old_same_byte_directory_bookmark_cannot_grant_its_replacement() {
     assert!(input.document(&old_document).is_err());
     input.directory(&new_book).unwrap();
     input.document(&new_document).unwrap();
-    let publication = publish(&old, &new, RenameKind::Directory, true);
+    let Some(publication) = publish(&old, &new, RenameKind::Directory, true) else {
+        assert!(new_document.probe().unwrap());
+        assert!(old_document.probe().is_err() || !old_document.probe().unwrap());
+        return;
+    };
     let mapping = input.finalize(&[&publication]).unwrap();
     assert_eq!(mapping.directory(&old_book), old_book);
     assert_eq!(mapping.document(&old_document), old_document);

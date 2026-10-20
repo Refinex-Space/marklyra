@@ -391,7 +391,9 @@ mod tests {
             if checks.get() == 1 {
                 assert_eq!(identity(&parent_path), parent);
                 assert_eq!(identity(&path), leaf);
-                fs::rename(&parent_path, &retained).unwrap();
+                if !crate::test_support::rename_retained_directory(&parent_path, &retained) {
+                    return Ok(());
+                }
                 fs::create_dir(&parent_path).unwrap();
                 fs::hard_link(retained.join("A.md"), &path).unwrap();
                 fs::write(
@@ -402,6 +404,12 @@ mod tests {
             }
             Ok(())
         });
+        if cfg!(windows) {
+            assert!(result.is_ok());
+            assert_eq!(fs::read(&path).unwrap(), b"keep current\r\n");
+            assert!(documents.resolve_image(&current.id, "foreign.svg").is_err());
+            return;
+        }
         assert!(result.is_err());
         assert_eq!(
             checks.get(),

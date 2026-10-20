@@ -14,12 +14,15 @@ mod file_preferences;
 mod markdown_preferences;
 mod menu;
 mod move_metadata;
+mod native_paths;
 mod os_open;
 mod platform;
 mod preferences_store;
 mod rename_metadata;
 mod runtime_assets;
 mod startup;
+#[cfg(test)]
+mod test_support;
 mod themes;
 mod window_services;
 mod windows;
