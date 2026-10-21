@@ -62,8 +62,10 @@ test('arrow keys move the choice while Escape keeps the typed text and does not 
   await expect(option(page, 'image')).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('Escape');
   await expect(menu(page)).toBeHidden();
+  // Arrows move the caret in every engine; on macOS WebKit the plain End key scrolls
+  // instead of moving the caret, so it cannot position the type-back point here.
   await page.keyboard.press('ArrowLeft');
-  await page.keyboard.press('End');
+  await page.keyboard.press('ArrowRight');
   await page.waitForTimeout(50);
   await expect(menu(page)).toBeHidden();
   await page.keyboard.type('x');

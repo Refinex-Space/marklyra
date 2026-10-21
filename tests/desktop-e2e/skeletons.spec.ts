@@ -54,7 +54,9 @@ test('the first screen shows the page and the folder list as skeletons, never lo
   expect(Math.abs((cover?.width ?? -9) - (box?.width ?? 0))).toBeLessThanOrEqual(3);
   expect(Math.abs((cover?.height ?? -9) - (box?.height ?? 0))).toBeLessThanOrEqual(3);
 
-  await expect(page.getByRole('region', { name: '开始' })).toBeVisible();
+  // A cold browser booting the runtime page for the first time can outlast the
+  // default wait; the skeleton assertions above keep their own short timeouts.
+  await expect(page.getByRole('region', { name: '开始' })).toBeVisible({ timeout: 15_000 });
   await expect(document).toHaveCount(0);
   await expect(page.locator('.sidebar-skeleton')).toHaveCount(0);
 });
@@ -69,7 +71,7 @@ test('the skeleton is a polite status region and honours reduced motion', async 
   const bar = skeleton.locator('.skeleton-bar').first();
   await expect(bar).toBeVisible();
   expect(await bar.evaluate((element) => getComputedStyle(element).animationName)).toBe('none');
-  await expect(page.getByRole('region', { name: '开始' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '开始' })).toBeVisible({ timeout: 15_000 });
 });
 
 test('the recent list on the home view is a skeleton while it is read', async ({ page }) => {
