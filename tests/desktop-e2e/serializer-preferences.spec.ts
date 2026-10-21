@@ -42,6 +42,10 @@ for (const sourcePrefix of ['\uFEFF', '']) {
     page,
     context,
   }) => {
+    // The CAS roundtrips need live JavaScript in both the editor page and the preferences
+    // page; WebKit throttles whichever runs in the background tab, so the whole flow takes
+    // well over the default budget there while Chromium finishes in seconds.
+    test.slow();
     let serial = 0;
     const tickets = new Map<
       string,

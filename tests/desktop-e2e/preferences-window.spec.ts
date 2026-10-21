@@ -36,6 +36,9 @@ async function selectParagraphText(page: Page, start: number, end: number) {
 test('original preferences controls persist typed values and affect the existing real editor', async ({
   page,
 }) => {
+  // The two-page roundtrips run one page in a background tab; WebKit throttles background
+  // timers hard, so this flow needs far more than the default budget there.
+  test.slow();
   await page.addInitScript(installMock, { nativeChrome: true });
   await page.addInitScript(installRecoveryMock);
   await page.goto('/');
