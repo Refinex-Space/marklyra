@@ -397,6 +397,14 @@ impl Pandoc {
             command.process_group(0);
         }
         #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            // CREATE_NO_WINDOW: the app has no console of its own, so a console child such as
+            // Pandoc would otherwise open (and close) a terminal window for every run. Each
+            // capability inspection runs it five times.
+            command.creation_flags(0x0800_0000);
+        }
+        #[cfg(windows)]
         if let Some(root) = std::env::var_os("SystemRoot") {
             command.env("SystemRoot", root);
         }
