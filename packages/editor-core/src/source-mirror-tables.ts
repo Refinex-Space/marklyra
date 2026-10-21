@@ -112,13 +112,13 @@ export function tableDelimiterRuns(text: string): Map<number, { to: number; key:
       )
         fence = undefined;
       else {
+        // Like the serializer, accept a closer at any deeper indentation.
         const close = /^(`{3,}|~{3,})[ \t]*$/u.exec(current.body);
         if (
           current.quote === fence.quote &&
           !current.markerWidth &&
           close?.[1]?.[0] === fence.marker &&
-          close[1].length >= fence.length &&
-          current.indent - fence.indent <= 3
+          close[1].length >= fence.length
         )
           fence = undefined;
         previous = undefined;

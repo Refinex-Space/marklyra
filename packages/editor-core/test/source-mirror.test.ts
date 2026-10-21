@@ -279,6 +279,21 @@ describe('SourceMirror source preservation', () => {
     expect(() => mirror.canonicalToSource(100)).toThrow();
   });
 
+  it.each(['      ```', '    ```', '\t```', '      ~~~'])(
+    'follows the serializer when an indented %j closer ends a fence before a list',
+    (closer) => {
+      const marker = closer.trim();
+      // Observed runtime output: the indented closer ends the fence and is rewritten to column 0.
+      const source = `${marker}yaml\na\n      ${marker}json\n      x\n${closer}\n- item\n${marker}\n`;
+      const canonical = `${marker}yaml\na\n      ${marker}json\n      x\n${marker}\n- item\n${marker}\n`;
+      const mirror = new SourceMirror(source, canonical);
+      expect(mirror.source).toBe(source);
+      expect(checkedUpdate(mirror, canonical.replace('- item', '- item!'))).toBe(
+        source.replace('- item', '- item!'),
+      );
+    },
+  );
+
   it('accepts large pure insertions without running an expensive edit-distance search', () => {
     const mirror = new SourceMirror('before\r\n', 'before\n', { maxEditLength: 0 });
     const text = '中文😀'.repeat(10_000);

@@ -593,6 +593,18 @@ test('rejected serializer normalization rolls back raw source, original view and
   await expectSource(page, '# Stable\n\nAlphaX\n');
 });
 
+test('an indented fence closer loads with the runtime fence boundary and exact source', async ({
+  page,
+}) => {
+  const source = '```yaml\na\n      ```json\n      x\n      ```\n- item\n```\n';
+  await load(page, source);
+  await expectSource(page, source);
+  await expect(child(page).locator('#write > ul')).toContainText('item');
+  await selectBlock(page, '#write > ul li p');
+  await page.keyboard.type('X');
+  await expectSource(page, source.replace('- item', '- itemX'));
+});
+
 test('synthetic copy supplies event data synchronously; not a system clipboard test', async ({
   page,
 }) => {

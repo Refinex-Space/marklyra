@@ -333,16 +333,14 @@ function listPrefixes(text: string): Map<number, { to: number; key: symbol }> {
       if (/^(?:---|\.\.\.)[ \t]*$/.test(value)) frontMatter = false;
       continue;
     }
-    const delimiter = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(value);
     if (fence) {
-      if (
-        delimiter?.[1]?.[0] === fence.marker &&
-        delimiter[1].length >= fence.length &&
-        !delimiter[2]?.trim()
-      )
-        fence = undefined;
+      // The serializer closes a fence at any indentation (and rewrites it to
+      // column 0), so a deeply indented closer must end the fence here too.
+      const close = /^[ \t]*(`{3,}|~{3,})[ \t]*$/.exec(value)?.[1];
+      if (close?.[0] === fence.marker && close.length >= fence.length) fence = undefined;
       continue;
     }
+    const delimiter = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(value);
     if (delimiter?.[1]) {
       fence = { marker: delimiter[1][0] ?? '`', length: delimiter[1].length };
       continue;

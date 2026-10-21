@@ -109,6 +109,11 @@ describe('context-checked table delimiter dash correspondence', () => {
     expect(project(tab, spaces).source).toBe(tab);
     expect(() => project(tab, spaces.replace(declaration, short))).toThrow();
   });
+  it('ends a fence at an indented closer like the serializer before aliasing a table', () => {
+    const source = `\`\`\`\na\n      \`\`\`\n\n${table}`,
+      canonical = `\`\`\`\na\n\`\`\`\n\n${table.replace(declaration, short)}`;
+    expect(new SourceMirror(source, canonical).source).toBe(source);
+  });
   it('fuzzes width-only normalization with exact source preservation', () => {
     fc.assert(
       fc.property(
