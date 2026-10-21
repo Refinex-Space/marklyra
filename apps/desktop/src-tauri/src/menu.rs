@@ -310,6 +310,22 @@ pub fn register_native_menu<R: Runtime>(menu: &Menu<R>) -> tauri::Result<()> {
         .set_as_windows_menu_for_nsapp()
 }
 
+/// The application menu accelerator for an action, so other menus print the same shortcut.
+pub(crate) fn accelerator(id: &str) -> Option<&'static str> {
+    GROUPS
+        .iter()
+        .flat_map(|entries| entries.iter())
+        .find_map(|entry| match entry {
+            Action(action, _, accelerator) if *action == id => *accelerator,
+            _ => None,
+        })
+}
+
+#[cfg(test)]
+pub(crate) fn is_action(id: &str) -> bool {
+    action_for_id(id).is_some()
+}
+
 fn action_for_id(id: &str) -> Option<&str> {
     if themes::theme_id(id).is_some() {
         return Some(id);

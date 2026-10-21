@@ -13,7 +13,8 @@ import type {
   ContextExecutionResult,
 } from '../context-menu/execution.js';
 import type { ImageHostAction } from '../images/contracts.js';
-import type { RuntimeConfiguration } from '../protocol.js';
+import type { MarkLyraMenuState } from '../menu-state.js';
+import type { MarkLyraCommand, RuntimeConfiguration } from '../protocol.js';
 import {
   clipboardMarkupEvent,
   clipboardMarkupHTML,
@@ -21,7 +22,11 @@ import {
   clipboardSelectionMarkupHTML,
 } from './clipboard-html.js';
 import type { CodeLineRange } from './code-line-source.js';
-import { type ContextMenuFacts, contextMenuItems } from './context-menu-items.js';
+import {
+  type ContextMenuFacts,
+  contextMenuItems,
+  editingContextCommand,
+} from './context-menu-items.js';
 import {
   type ContextSelection,
   captureContextSelection,
@@ -29,6 +34,7 @@ import {
   restoreContextSelection,
 } from './context-menu-selection.js';
 import type { LegacyEditor, LegacyGlobals } from './legacy-types.js';
+import { readRuntimeMenuState } from './menu-state.js';
 import {
   type TableAxis,
   type TableControlAction,
@@ -57,6 +63,8 @@ interface Binding {
   link: string | undefined;
   lineWise: boolean;
   image?: { wrapper: HTMLElement; source: string; syntax: string };
+  /** Style facts at the right-click selection. Stamps prove they are still current. */
+  editing?: MarkLyraMenuState;
   codeLines?: {
     value: string;
     text: string;
@@ -86,6 +94,8 @@ export interface ContextMenuDependencies {
   imageActions?(): readonly ImageHostAction[];
   imageReference?(source: string): string;
   imageStorageContext?(): { referenceRoot: string; storageFolder?: string };
+  /** The runtime's own command dispatcher, the same one the application menu uses. */
+  command?(value: MarkLyraCommand): void;
 }
 const copyActions = new Set<ContextAction>([
   'edit.copy',
@@ -333,6 +343,7 @@ export class RuntimeContextMenu {
         link: this.linkFor(target),
         lineWise: !selection.selected && this.lineWiseOption(selection),
         ...this.imageFor(target),
+        ...this.editingFor(selection),
       };
       const items = contextMenuItems(this.facts(binding));
       if (!items.length) return;
@@ -492,6 +503,12 @@ export class RuntimeContextMenu {
       };
     }
     this.restore(binding);
+    const editing = editingContextCommand(request.actionId);
+    if (editing) {
+      if (!this.deps.command) throw Error('宿主尚未提供编辑命令');
+      this.deps.command(editing);
+      return {};
+    }
     const editor = binding.editor;
     const finishTableCursor = [
       'table.insertColumnBefore',
@@ -878,6 +895,14 @@ export class RuntimeContextMenu {
     if (!source) return {};
     return { image: { wrapper, source, syntax: wrapper.getAttribute('md-inline') ?? '' } };
   }
+  private editingFor(selection: ContextSelection): Pick<Binding, 'editing'> {
+    if (selection.cm || this.deps.runtime.editor?.sourceView.inSourceMode) return {};
+    try {
+      return { editing: readRuntimeMenuState(this.deps.runtime) };
+    } catch {
+      return {};
+    }
+  }
   private facts(binding: Binding): ContextMenuFacts {
     const caps = this.deps.capabilities();
     const point = binding.selection.anchor?.node;
@@ -920,6 +945,7 @@ export class RuntimeContextMenu {
       clipboardRead: Boolean(caps?.clipboardRead),
       clipboardWrite: Boolean(caps?.clipboardWrite),
       openExternal: Boolean(caps?.openExternal),
+      ...(binding.editing ? { editing: binding.editing } : {}),
       ...(binding.image
         ? {
             image: {

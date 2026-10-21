@@ -71,6 +71,11 @@ export function browserContextMenu(owner: Document): ContextMenuAdapter {
           button.textContent = item.label;
           button.style.cssText =
             'display:block;width:100%;border:0;border-radius:3px;padding:5px 12px;text-align:left;font:inherit;white-space:nowrap;background:transparent;color:inherit;';
+          if (item.type === 'item' && item.checked !== undefined) {
+            button.setAttribute('role', 'menuitemcheckbox');
+            button.setAttribute('aria-checked', String(item.checked));
+            if (item.checked) button.textContent = `✓ ${item.label}`;
+          }
           button.disabled = item.type === 'item' && !item.enabled;
           if (button.disabled) button.style.opacity = '.45';
           const open = () => {

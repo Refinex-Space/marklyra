@@ -9,7 +9,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tauri::{
-    menu::{ContextMenu, Menu, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu},
+    menu::{CheckMenuItem, ContextMenu, Menu, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu},
     AppHandle, LogicalPosition, Manager, State, WebviewWindow, Window, WindowEvent,
 };
 
@@ -106,6 +106,50 @@ fn main_only(window: &WebviewWindow) -> Result<(), String> {
     }
     Ok(())
 }
+/// The application menu action that runs the same editing command as a context action.
+fn menu_action(action_id: &str) -> Option<&'static str> {
+    Some(match action_id {
+        "format.strong" => "format:strong",
+        "format.em" => "format:em",
+        "format.underline" => "format:underline",
+        "format.del" => "format:del",
+        "format.highlight" => "format:highlight",
+        "format.code" => "format:code",
+        "format.inlineMath" => "format:inline_math",
+        "format.superscript" => "format:superscript",
+        "format.subscript" => "format:subscript",
+        "format.link" => "format:link",
+        "paragraph.body" => "heading:0",
+        "paragraph.heading1" => "heading:1",
+        "paragraph.heading2" => "heading:2",
+        "paragraph.heading3" => "heading:3",
+        "paragraph.heading4" => "heading:4",
+        "paragraph.heading5" => "heading:5",
+        "paragraph.heading6" => "heading:6",
+        "paragraph.blockquote" => "list:blockquote",
+        "paragraph.ul" => "list:ul",
+        "paragraph.ol" => "list:ol",
+        "paragraph.tasklist" => "list:tasklist",
+        "paragraph.indent" => "indent",
+        "paragraph.outdent" => "outdent",
+        "insert.table" => "insert-table",
+        "insert.codeBlock" => "code-block",
+        "insert.mathBlock" => "math-block",
+        "insert.hr" => "hr",
+        "insert.image" => "format:image",
+        _ => return None,
+    })
+}
+/// Display-only shortcut hints, borrowed from the application menu for the same command. A
+/// context menu is never installed on a window, so these register no accelerator.
+fn accelerator(action_id: &str) -> Option<&'static str> {
+    match action_id {
+        "edit.cut" => Some("CmdOrCtrl+X"),
+        "edit.copy" => Some("CmdOrCtrl+C"),
+        "edit.paste" => Some("CmdOrCtrl+V"),
+        _ => menu_action(action_id).and_then(crate::menu::accelerator),
+    }
+}
 fn build_items(
     app: &AppHandle,
     values: &[Item],
@@ -133,17 +177,21 @@ fn build_items(
                 action_id,
                 label,
                 enabled,
+                checked,
             } => {
                 let id = format!("{PREFIX}{generation}:{}", *serial);
                 *serial += 1;
                 actions.insert(id.clone(), (action_id.clone(), *enabled));
-                items.push(MenuItemKind::MenuItem(MenuItem::with_id(
-                    app,
-                    id,
-                    label.replace('&', "&&"),
-                    *enabled,
-                    None::<&str>,
-                )?));
+                let label = label.replace('&', "&&");
+                let shortcut = accelerator(action_id);
+                items.push(match checked {
+                    Some(checked) => MenuItemKind::Check(CheckMenuItem::with_id(
+                        app, id, label, *enabled, *checked, shortcut,
+                    )?),
+                    None => MenuItemKind::MenuItem(MenuItem::with_id(
+                        app, id, label, *enabled, shortcut,
+                    )?),
+                });
             }
         }
     }
@@ -308,6 +356,22 @@ mod tests {
             .into(),
             _menu: (),
         }
+    }
+    #[test]
+    fn editing_actions_show_the_application_menu_shortcut_for_the_same_command() {
+        for action in schema::ACTIONS.iter().filter(|action| {
+            ["format.", "paragraph.", "insert."]
+                .iter()
+                .any(|prefix| action.starts_with(prefix))
+        }) {
+            let id = menu_action(action).unwrap_or_else(|| panic!("{action} has no menu action"));
+            assert!(crate::menu::is_action(id), "{action} maps to unknown {id}");
+        }
+        assert_eq!(accelerator("format.strong"), Some("CmdOrCtrl+B"));
+        assert_eq!(accelerator("paragraph.heading3"), Some("CmdOrCtrl+3"));
+        assert_eq!(accelerator("insert.hr"), Some("CmdOrCtrl+Shift+Minus"));
+        assert_eq!(accelerator("insert.image"), None);
+        assert_eq!(accelerator("table.delete"), None);
     }
     #[test]
     fn late_native_event_remains_valid_and_is_delivered_at_most_once() {

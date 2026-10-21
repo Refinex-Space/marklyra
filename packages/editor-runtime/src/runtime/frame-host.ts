@@ -44,6 +44,7 @@ import { type RuntimeDocumentSnapshot, RuntimeReload } from './reload.js';
 import { RuntimeRenderTickets } from './render-tickets.js';
 import { RuntimeScrollNavigation } from './scroll-navigation.js';
 import { readSelectionText } from './selection-text.js';
+import { RuntimeSlashMenu } from './slash-menu.js';
 import { parserSource } from './source-prefix.js';
 import { RuntimeSourceTracking } from './source-tracking.js';
 import { RuntimeStatistics } from './statistics.js';
@@ -244,6 +245,7 @@ const contextMenu = new RuntimeContextMenu({
   imageActions: () => images.actions,
   imageReference: (source) => images.reference(source),
   imageStorageContext: () => images.storageContext(),
+  command: (value) => command(value),
 });
 const tableControls = new RuntimeTableControls({
   runtime,
@@ -253,6 +255,29 @@ const tableControls = new RuntimeTableControls({
     focus.command(work, false);
     notifyChange();
   },
+  onError: (error) => send('runtime-error', String(error)),
+});
+const slashMenu = new RuntimeSlashMenu({
+  runtime,
+  available: () => !disposed && !loading && !runtime.File?._onInitParse,
+  composing: () => composing(),
+  mac: () =>
+    configuration.platform === 'macos' ||
+    (configuration.platform === 'browser' && /Mac/.test(navigator.platform)),
+  menuState: () => {
+    try {
+      return readRuntimeMenuState(runtime);
+    } catch {
+      return undefined;
+    }
+  },
+  normalizeSelection: () => tracking.normalizePlainSelection(),
+  armReplacement: (text, type) => tracking.armAuthorizedReplacement(text, type),
+  execute: (work) => {
+    focus.command(work, false);
+    notifyChange();
+  },
+  command: (value) => command(value),
   onError: (error) => send('runtime-error', String(error)),
 });
 runtime.__MARKLYRA_REPLAY_SOURCE_CONTEXT__ = (cm, event, execute) =>
@@ -557,6 +582,7 @@ for (const name of disabled)
 
 function command(value: MarkLyraCommand) {
   tableControls.reset();
+  slashMenu.reset();
   contextMenu.invalidate();
   const editor = runtime.editor,
     file = runtime.File;
@@ -852,6 +878,7 @@ window.addEventListener(
             if (!file) throw new Error('Runtime not initialized');
             documentGeneration++;
             tableControls.reset();
+            slashMenu.reset();
             scrollNavigation.reset();
             contextMenu.invalidate();
             loading = true;
@@ -946,6 +973,7 @@ window.addEventListener(
           case 'restore': {
             documentGeneration++;
             tableControls.reset();
+            slashMenu.reset();
             contextMenu.invalidate();
             const value = message.payload as {
               source: string;
@@ -959,6 +987,7 @@ window.addEventListener(
           case 'reload-from-disk':
             documentGeneration++;
             tableControls.reset();
+            slashMenu.reset();
             contextMenu.invalidate();
             result = await reloads.reload(message.payload as RuntimeReloadRequest);
             break;
@@ -1069,6 +1098,7 @@ window.addEventListener(
           case 'destroy':
             disposed = true;
             tableControls.destroy();
+            slashMenu.destroy();
             focus.destroy();
             contextMenu.destroy();
             if (timer) clearTimeout(timer);
@@ -1308,6 +1338,7 @@ async function ready() {
   scrollNavigation.install();
   contextMenu.install();
   tableControls.install();
+  slashMenu.install();
   reloads.install();
   imageLayout = new RuntimeImageLayout(runtime.editor, {
     onError: (error) => send('runtime-error', String(error)),

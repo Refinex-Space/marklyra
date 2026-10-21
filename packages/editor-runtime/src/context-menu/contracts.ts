@@ -47,10 +47,45 @@ export const CONTEXT_ACTIONS = [
   'code.copy',
   'code.format',
   'code.formatSelection',
+  'format.strong',
+  'format.em',
+  'format.underline',
+  'format.del',
+  'format.highlight',
+  'format.code',
+  'format.inlineMath',
+  'format.superscript',
+  'format.subscript',
+  'format.link',
+  'paragraph.body',
+  'paragraph.heading1',
+  'paragraph.heading2',
+  'paragraph.heading3',
+  'paragraph.heading4',
+  'paragraph.heading5',
+  'paragraph.heading6',
+  'paragraph.blockquote',
+  'paragraph.ul',
+  'paragraph.ol',
+  'paragraph.tasklist',
+  'paragraph.indent',
+  'paragraph.outdent',
+  'insert.table',
+  'insert.codeBlock',
+  'insert.mathBlock',
+  'insert.hr',
+  'insert.image',
 ] as const;
 export type ContextAction = (typeof CONTEXT_ACTIONS)[number];
 export type ContextMenuItem =
-  | { type: 'item'; actionId: ContextAction; label: string; enabled: boolean }
+  | {
+      type: 'item';
+      actionId: ContextAction;
+      label: string;
+      enabled: boolean;
+      /** Present only for state items; renders a check mark, never a toggle authority. */
+      checked?: boolean;
+    }
   | { type: 'submenu'; label: string; items: ContextMenuItem[] }
   | { type: 'separator' };
 export interface ContextMenuRequest {
@@ -104,6 +139,8 @@ export function nativeClipboardImages(content: ClipboardContent): ClipboardConte
     throw new TypeError('Invalid native clipboard image capability');
   return images;
 }
+/** Shared with Rust context_menu/schema.rs. */
+export const MAX_CONTEXT_MENU_ITEMS = 128;
 export const MAX_CLIPBOARD_CHARS = 8 * 1024 * 1024;
 function hasControl(value: string): boolean {
   for (let index = 0; index < value.length; index++)
@@ -175,7 +212,8 @@ export function contextMenuRequest(value: unknown): ContextMenuRequest {
     if (!Array.isArray(values) || !values.length || depth > 3)
       throw new TypeError('Invalid menu items');
     return values.map((raw: unknown): ContextMenuItem => {
-      if (++count > 80 || !raw || typeof raw !== 'object') throw new TypeError('Invalid menu item');
+      if (++count > MAX_CONTEXT_MENU_ITEMS || !raw || typeof raw !== 'object')
+        throw new TypeError('Invalid menu item');
       const item = raw as Partial<ContextMenuItem>;
       if (item.type === 'separator') return { type: 'separator' };
       if (item.type === 'submenu')
@@ -184,6 +222,7 @@ export function contextMenuRequest(value: unknown): ContextMenuRequest {
         item.type !== 'item' ||
         !CONTEXT_ACTIONS.includes(item.actionId as ContextAction) ||
         typeof item.enabled !== 'boolean' ||
+        (item.checked !== undefined && typeof item.checked !== 'boolean') ||
         actions.has(item.actionId as string)
       )
         throw new TypeError('Invalid context menu action');
@@ -193,6 +232,7 @@ export function contextMenuRequest(value: unknown): ContextMenuRequest {
         actionId: item.actionId as ContextAction,
         label: label(item.label),
         enabled: item.enabled,
+        ...(item.checked === undefined ? {} : { checked: item.checked }),
       };
     });
   };

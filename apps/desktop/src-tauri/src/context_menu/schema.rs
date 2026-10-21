@@ -43,7 +43,37 @@ pub const ACTIONS: &[&str] = &[
     "code.copy",
     "code.format",
     "code.formatSelection",
+    "format.strong",
+    "format.em",
+    "format.underline",
+    "format.del",
+    "format.highlight",
+    "format.code",
+    "format.inlineMath",
+    "format.superscript",
+    "format.subscript",
+    "format.link",
+    "paragraph.body",
+    "paragraph.heading1",
+    "paragraph.heading2",
+    "paragraph.heading3",
+    "paragraph.heading4",
+    "paragraph.heading5",
+    "paragraph.heading6",
+    "paragraph.blockquote",
+    "paragraph.ul",
+    "paragraph.ol",
+    "paragraph.tasklist",
+    "paragraph.indent",
+    "paragraph.outdent",
+    "insert.table",
+    "insert.codeBlock",
+    "insert.mathBlock",
+    "insert.hr",
+    "insert.image",
 ];
+/// Shared with the SDK contract (MAX_CONTEXT_MENU_ITEMS).
+pub const MAX_ITEMS: usize = 128;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -67,6 +97,9 @@ pub enum Item {
         action_id: String,
         label: String,
         enabled: bool,
+        /// A state item; presentation only, the selection still runs the bound action.
+        #[serde(default)]
+        checked: Option<bool>,
     },
     Submenu {
         label: String,
@@ -113,7 +146,7 @@ fn validate_items<'a>(
     }
     for item in items {
         *count += 1;
-        if *count > 80 {
+        if *count > MAX_ITEMS {
             return Err("右键菜单项过多".to_owned());
         }
         match item {
@@ -150,6 +183,7 @@ mod tests {
                 action_id: "edit.copy".into(),
                 label: "复制".into(),
                 enabled: true,
+                checked: None,
             }],
         }
     }
@@ -179,6 +213,7 @@ mod tests {
                 action_id: (*action).into(),
                 label: "图片操作".into(),
                 enabled: true,
+                checked: None,
             }];
             assert!(value.validate().is_ok());
         }
@@ -193,9 +228,33 @@ mod tests {
                 action_id: action.into(),
                 label: "图片操作".into(),
                 enabled: true,
+                checked: None,
             }];
             assert!(value.validate().is_err());
         }
+    }
+    #[test]
+    fn state_items_carry_an_optional_boolean_check_only() {
+        let item: Item = serde_json::from_str(
+            r#"{"type":"item","actionId":"paragraph.heading1","label":"一级标题","enabled":true,"checked":true}"#,
+        )
+        .unwrap();
+        assert!(matches!(
+            item,
+            Item::Action {
+                checked: Some(true),
+                ..
+            }
+        ));
+        let item: Item = serde_json::from_str(
+            r#"{"type":"item","actionId":"insert.table","label":"表格","enabled":true}"#,
+        )
+        .unwrap();
+        assert!(matches!(item, Item::Action { checked: None, .. }));
+        assert!(serde_json::from_str::<Item>(
+            r#"{"type":"item","actionId":"format.strong","label":"加粗","enabled":true,"checked":"yes"}"#
+        )
+        .is_err());
     }
     #[test]
     fn rejects_arbitrary_actions_duplicates_extra_fields_and_invalid_ids() {
@@ -211,6 +270,7 @@ mod tests {
             action_id: "window.runCommand".into(),
             label: "run".into(),
             enabled: true,
+            checked: None,
         }];
         assert!(value.validate().is_err());
         assert!(serde_json::from_str::<Item>(
@@ -232,10 +292,11 @@ mod tests {
                 action_id: "edit.copy".into(),
                 label,
                 enabled: false,
+                checked: None,
             }];
             assert!(value.validate().is_err());
         }
-        value.items = vec![Item::Separator; 81];
+        value.items = vec![Item::Separator; MAX_ITEMS + 1];
         assert!(value.validate().is_err());
         value = request();
         for _ in 0..4 {

@@ -1,5 +1,12 @@
 import type { ContextAction, ContextMenuItem } from '../context-menu/contracts.js';
 import type { ImageHostAction } from '../images/contracts.js';
+import type { MarkLyraMenuState } from '../menu-state.js';
+import {
+  type EditingCommandId,
+  editingCommand,
+  editingCommandAllowed,
+  editingCommandChecked,
+} from './editing-commands.js';
 export interface ContextMenuFacts {
   tokens: readonly string[];
   selected: boolean;
@@ -23,8 +30,47 @@ export interface ContextMenuFacts {
   clipboardWrite: boolean;
   openExternal: boolean;
   image?: { source: string; syntax: string; actions: readonly ImageHostAction[] };
+  /** Original style facts read at capture time; absent outside ordinary rich text. */
+  editing?: MarkLyraMenuState;
 }
-const labels: Record<ContextAction, string> = {
+/** Context actions that run one shared editing command at the restored menu selection. */
+export const EDITING_CONTEXT_ACTIONS = {
+  'format.strong': 'strong',
+  'format.em': 'em',
+  'format.underline': 'underline',
+  'format.del': 'del',
+  'format.highlight': 'highlight',
+  'format.code': 'code',
+  'format.inlineMath': 'inlineMath',
+  'format.superscript': 'superscript',
+  'format.subscript': 'subscript',
+  'format.link': 'link',
+  'paragraph.body': 'paragraph',
+  'paragraph.heading1': 'heading1',
+  'paragraph.heading2': 'heading2',
+  'paragraph.heading3': 'heading3',
+  'paragraph.heading4': 'heading4',
+  'paragraph.heading5': 'heading5',
+  'paragraph.heading6': 'heading6',
+  'paragraph.blockquote': 'blockquote',
+  'paragraph.ul': 'ul',
+  'paragraph.ol': 'ol',
+  'paragraph.tasklist': 'tasklist',
+  'paragraph.indent': 'indent',
+  'paragraph.outdent': 'outdent',
+  'insert.table': 'table',
+  'insert.codeBlock': 'codeBlock',
+  'insert.mathBlock': 'mathBlock',
+  'insert.hr': 'hr',
+  'insert.image': 'image',
+} as const satisfies Partial<Record<ContextAction, EditingCommandId>>;
+export type EditingContextAction = keyof typeof EDITING_CONTEXT_ACTIONS;
+export function editingContextCommand(action: ContextAction) {
+  return Object.hasOwn(EDITING_CONTEXT_ACTIONS, action)
+    ? editingCommand(EDITING_CONTEXT_ACTIONS[action as EditingContextAction]).command
+    : undefined;
+}
+const labels: Record<Exclude<ContextAction, EditingContextAction>, string> = {
   'edit.copy': '复制',
   'edit.cut': '剪切',
   'edit.paste': '粘贴',
@@ -70,7 +116,9 @@ export function contextMenuItems(f: ContextMenuFacts): ContextMenuItem[] {
   const item = (actionId: ContextAction, enabled = true): ContextMenuItem => ({
     type: 'item',
     actionId,
-    label: labels[actionId],
+    label: Object.hasOwn(EDITING_CONTEXT_ACTIONS, actionId)
+      ? editingCommand(EDITING_CONTEXT_ACTIONS[actionId as EditingContextAction]).label
+      : labels[actionId as Exclude<ContextAction, EditingContextAction>],
     enabled,
   });
   const separator: ContextMenuItem = { type: 'separator' },
@@ -129,6 +177,8 @@ export function contextMenuItems(f: ContextMenuFacts): ContextMenuItem[] {
         ],
       });
   }
+  const editing = editingGroups(f);
+  if (editing.length) items.push(separator, ...editing);
   const table = f.table;
   if (f.tokens.includes('table') && table) {
     items.push(separator, {
@@ -174,4 +224,74 @@ export function contextMenuItems(f: ContextMenuFacts): ContextMenuItem[] {
     blocks.push(item('block.delete', f.writable && !f.sourceMode));
   if (blocks.length) items.push(separator, ...blocks);
   return items;
+}
+/** Format, paragraph and insert groups use the application menu's names, order and rules, so
+ * the right-click menu teaches the same commands and shortcuts. Empty groups are omitted. */
+function editingGroups(f: ContextMenuFacts): ContextMenuItem[] {
+  const state = f.editing;
+  if (!state || !f.writable || f.sourceMode || f.codeMirror || !f.tokens.includes('normal'))
+    return [];
+  const separator: ContextMenuItem = { type: 'separator' };
+  const entry = (actionId: EditingContextAction, check = true): ContextMenuItem => {
+    const { label, command } = editingCommand(EDITING_CONTEXT_ACTIONS[actionId]);
+    return {
+      type: 'item',
+      actionId,
+      label,
+      enabled: editingCommandAllowed(state, command),
+      ...(check ? { checked: editingCommandChecked(state, command) } : {}),
+    };
+  };
+  const group = (label: string, values: (ContextMenuItem | 'separator')[]): ContextMenuItem[] => {
+    const children = values.map((value) => (value === 'separator' ? separator : value));
+    return children.some((child) => child.type === 'item' && child.enabled)
+      ? [{ type: 'submenu', label, items: children }]
+      : [];
+  };
+  const inList = ['ul', 'ol', 'tasklist'].some((style) => state.blockStyles.includes(style));
+  return [
+    ...group('格式', [
+      entry('format.strong'),
+      entry('format.em'),
+      entry('format.underline'),
+      entry('format.del'),
+      entry('format.highlight'),
+      entry('format.code'),
+      'separator',
+      entry('format.inlineMath'),
+      entry('format.superscript'),
+      entry('format.subscript'),
+      'separator',
+      entry('format.link', false),
+    ]),
+    ...group('段落', [
+      entry('paragraph.body'),
+      entry('paragraph.heading1'),
+      entry('paragraph.heading2'),
+      entry('paragraph.heading3'),
+      entry('paragraph.heading4'),
+      entry('paragraph.heading5'),
+      entry('paragraph.heading6'),
+      'separator',
+      entry('paragraph.blockquote'),
+      entry('paragraph.ul'),
+      entry('paragraph.ol'),
+      entry('paragraph.tasklist'),
+      ...(inList
+        ? ([
+            'separator',
+            entry('paragraph.indent', false),
+            entry('paragraph.outdent', false),
+          ] as const)
+        : []),
+    ]),
+    ...group('插入', [
+      entry('insert.table', false),
+      entry('insert.codeBlock', false),
+      entry('insert.mathBlock', false),
+      entry('insert.hr', false),
+      'separator',
+      entry('insert.image', false),
+    ]),
+  ];
 }
