@@ -26,6 +26,7 @@ export function DailySettings({ dark }: { dark: boolean }) {
   const [folderError, setFolderError] = useState('');
   const folderId = useId();
   const folderHint = useId();
+  const templateId = useId();
   const update = (change: Partial<DailyPreferences>) =>
     setPreferences((current) => ({ ...current, daily: { ...current.daily, ...change } }));
   const today = todayKey();
@@ -116,20 +117,26 @@ export function DailySettings({ dark }: { dark: boolean }) {
             title="新日程模板"
             description="新的一天以此为初始内容；未改动的模板不会保存成文件。可用变量：{{date}} {{weekday}} {{week}} {{title}} {{lunar}}。"
           >
-            <TextArea
-              label="新日程模板"
-              rows={6}
-              value={daily.template}
-              maxLength={DAILY_TEMPLATE_LIMIT}
-              placeholder={'## 待办\n- [ ] \n\n## 记录\n'}
-              onCommit={(template) => update({ template })}
-            />
-            {daily.template && (
-              <p className="es-note">
-                预览（今天）：
-                {applyDailyTemplate(daily.template, today).split('\n')[0] || '（首行为空）'}
-              </p>
-            )}
+            <Row
+              stacked
+              label="初始内容"
+              htmlFor={templateId}
+              hint={
+                daily.template
+                  ? `预览（今天）首行：${applyDailyTemplate(daily.template, today).split('\n')[0] || '（空行）'}`
+                  : '留空时，新的一天从空白开始。'
+              }
+            >
+              <TextArea
+                id={templateId}
+                label="新日程模板"
+                rows={6}
+                value={daily.template}
+                maxLength={DAILY_TEMPLATE_LIMIT}
+                placeholder={'## 待办\n- [ ] \n\n## 记录\n'}
+                onCommit={(template) => update({ template })}
+              />
+            </Row>
           </Card>
           <Card title="日历">
             <Row label="日历形态" hint="也可以在日历标题栏切换；收起时只显示今天。">

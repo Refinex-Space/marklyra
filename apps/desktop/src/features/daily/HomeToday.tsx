@@ -40,7 +40,7 @@ export function HomeToday({
           今日日程 <span className="home-today-date">{subtitle}</span>
         </h2>
         <button type="button" className="home-link" onClick={onOpenDay}>
-          {note ? '打开' : '开始记录'}
+          <span className="home-today-action">{note ? '打开' : '开始记录'}</span>
           <kbd>{mac ? '⌘⇧D' : 'Ctrl Shift D'}</kbd>
         </button>
       </div>

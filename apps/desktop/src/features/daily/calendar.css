@@ -334,15 +334,24 @@ span.daily-calendar-title {
   color: var(--muted);
   font-weight: 400;
 }
+/* Baselines, not boxes: the CJK label and the smaller Latin shortcut share one text line. */
 .home-today .home-link {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
+}
+/* Only the action is a link; the shortcut is a hint and stays un-underlined. */
+.home-today .home-link:hover {
+  text-decoration: none;
+}
+.home-today .home-link:hover .home-today-action {
+  text-decoration: underline;
 }
 .home-today .home-link kbd {
   color: var(--muted);
   font: inherit;
   font-size: 11px;
+  line-height: inherit;
 }
 .home-today-time {
   flex: 0 0 auto;
