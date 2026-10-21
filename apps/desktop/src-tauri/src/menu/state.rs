@@ -126,6 +126,27 @@ impl MenuStates {
     }
 }
 
+/// The home view covers a blank editor. Only actions that start or reach a document, or change
+/// the application around it, run there; the rest would act on the hidden blank document.
+fn home_action(action: &str) -> bool {
+    matches!(
+        action,
+        "new"
+            | "open"
+            | "quick-open"
+            | "recent-files"
+            | "marklyra-drafts"
+            | "open-folder"
+            | "preferences"
+            | "view:sidebar"
+            | "view:files"
+            | "view:articles"
+            | "view:workspace-search"
+            | "view:fullscreen"
+    ) || super::themes::theme_id(action).is_some()
+        || super::recent::record_id(action).is_some()
+}
+
 impl Snapshot {
     pub(super) fn active(&self) -> Option<&EditorFacts> {
         self.editor
@@ -142,7 +163,7 @@ impl Snapshot {
         let Some(editor) = self.active() else {
             return false;
         };
-        if self.home && crate::editor_commands::is_editor_action(action) {
+        if self.home && !home_action(action) {
             return false;
         }
         if self.text_input_focused
@@ -300,12 +321,13 @@ pub(super) fn update<R: Runtime>(
                 match menu.id().as_ref() {
                     "paragraph-menu" | "format-menu" => menu.set_enabled(
                         !preview
+                            && !state.home
                             && state
                                 .active()
                                 .is_some_and(|editor| !editor.source_mode && !editor.locked),
                     )?,
                     "export-menu" | "find-menu" => {
-                        menu.set_enabled(!preview && state.active().is_some())?
+                        menu.set_enabled(!preview && !state.home && state.active().is_some())?
                     }
                     _ => {}
                 }
@@ -564,10 +586,41 @@ mod tests {
         ] {
             assert!(state.enabled(action), "{action}");
         }
+        // Application-level choices need no visible document.
+        for action in [
+            "theme:marklyra-dark",
+            "view:sidebar",
+            "view:files",
+            "view:fullscreen",
+            "recent-open:01234567-89ab-cdef-0123-456789abcdef",
+        ] {
+            assert!(state.enabled(action), "{action}");
+        }
         assert!(!state.enabled("close-document"));
-        for action in ["undo", "format:strong", "heading:1", "find", "view:source"] {
+        for action in [
+            "undo",
+            "format:strong",
+            "heading:1",
+            "find",
+            "view:source",
+            "save",
+            "save-as",
+            "rename-document",
+            "export-html",
+            "print-preview",
+            "view:outline",
+            "view:statistics",
+            "new-window",
+            "import-document",
+        ] {
             assert!(!state.enabled(action), "{action}");
         }
+        // Work in progress still blocks everything on the home view.
+        state.blocked = true;
+        for action in ["new", "open", "preferences", "theme:marklyra-dark"] {
+            assert!(!state.enabled(action), "{action}");
+        }
+        state.blocked = false;
         state.home = false;
         assert!(state.enabled("find"));
         assert!(state.enabled("close-document"));

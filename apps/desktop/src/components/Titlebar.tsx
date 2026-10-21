@@ -168,16 +168,11 @@ export function Titlebar(props: TitlebarProps) {
       style={style}
     >
       <div className="titlebar-leading" ref={leading}>
-        <button
-          type="button"
-          className="titlebar-app"
-          aria-label="MarkLyra"
-          title="MarkLyra"
-          aria-haspopup="menu"
-          onClick={(event) => popup(0, event.currentTarget)}
-        >
+        {/* Brand only. Windows keeps settings and exit in File and About in Help, where people
+            look for them, instead of behind an icon that does not look clickable. */}
+        <span className="titlebar-app" data-tauri-drag-region="" aria-hidden="true">
           <img src={appIcon} alt="" draggable={false} width={16} height={16} />
-        </button>
+        </span>
         {compact ? (
           <button
             type="button"
@@ -191,15 +186,15 @@ export function Titlebar(props: TitlebarProps) {
           </button>
         ) : (
           <div className="titlebar-menus" role="menubar" aria-label="应用菜单" onKeyDown={menuKeys}>
-            {titles.slice(1).map((label, offset) => (
+            {titles.map((label, index) => (
               <button
                 type="button"
                 role="menuitem"
                 aria-haspopup="menu"
                 className="titlebar-menu"
                 key={label}
-                tabIndex={offset === 0 ? 0 : -1}
-                onClick={(event) => popup(offset + 1, event.currentTarget)}
+                tabIndex={index === 0 ? 0 : -1}
+                onClick={(event) => popup(index, event.currentTarget)}
               >
                 {label}
               </button>

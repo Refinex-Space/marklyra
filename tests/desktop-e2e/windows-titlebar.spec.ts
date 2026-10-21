@@ -49,6 +49,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       '显示',
       '主题',
       '窗口',
+      '帮助',
     ]);
     await expect(page.getByRole('toolbar', { name: '窗口控制' }).getByRole('button')).toHaveCount(
       3,
@@ -66,12 +67,19 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
 test('titlebar menus pop up the existing native menus below their controls', async ({ page }) => {
   await ready(page);
   await page.locator('.titlebar-menu', { hasText: '格式' }).click();
+  await page.locator('.titlebar-menu', { hasText: '帮助' }).click();
+  // The app icon is brand only; settings, exit and About live in File and Help.
   await page.locator('.titlebar-app').click();
+  await expect(page.getByRole('button', { name: 'MarkLyra', exact: true })).toHaveCount(0);
   const popups = await calls(page, 'popup_app_menu');
   expect(popups).toHaveLength(2);
-  expect(popups[0]?.args).toMatchObject({ index: 4, viewportWidth: 1280 });
+  expect(popups[0]?.args).toMatchObject({ index: 3, viewportWidth: 1280 });
   expect(popups[0]?.args.y).toBe(28);
-  expect(popups[1]?.args).toMatchObject({ index: 0 });
+  expect(popups[1]?.args).toMatchObject({ index: 7 });
+  // A keyboard-opened title shows its own menu.
+  await page.locator('.titlebar-menu', { hasText: '文件' }).focus();
+  await page.keyboard.press('ArrowDown');
+  expect((await calls(page, 'popup_app_menu'))[2]?.args).toMatchObject({ index: 0 });
   // The titles come from the native menu model; React StrictMode may mount the effect twice.
   expect((await calls(page, 'list_app_menu')).length).toBeGreaterThanOrEqual(1);
 });
@@ -83,7 +91,7 @@ test('compact windows fold the menu titles into one menu button', async ({ page 
   const [popup] = await calls(page, 'popup_app_menu');
   expect(popup?.args).toMatchObject({ index: null });
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(page.locator('.titlebar-menu')).toHaveCount(7);
+  await expect(page.locator('.titlebar-menu')).toHaveCount(8);
 });
 
 test('the word count menu follows the AppKit unit menu and persists the choice', async ({ page }) => {
@@ -164,7 +172,7 @@ test('settings page hides document controls but keeps menus and caption buttons'
   await expect(page.locator('.shell')).toHaveAttribute('data-settings-page', 'true');
   await expect(page.locator('header.titlebar')).toHaveAttribute('data-settings', 'true');
   await expect(page.locator('.titlebar-title, .titlebar-actions')).toHaveCount(0);
-  await expect(page.locator('.titlebar-menu')).toHaveCount(7);
+  await expect(page.locator('.titlebar-menu')).toHaveCount(8);
   await expect(page.getByRole('toolbar', { name: '窗口控制' })).toBeVisible();
   const frame = page.frameLocator('iframe.runtime-preferences-frame');
   await expect(frame.locator('.nav-group-item').first()).toBeVisible();

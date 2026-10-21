@@ -301,3 +301,22 @@ test('any window returns to the home view after its document is closed', async (
   await backHome(page).click();
   await expect(home(page)).toBeVisible();
 });
+
+test('the home view leaves application menus such as themes to the native home rules', async ({
+  page,
+}) => {
+  await boot(page);
+  await expect(home(page)).toBeVisible();
+  const latest = async () =>
+    (await calls(page, 'sync_editor_menu_state')).at(-1)?.args.snapshot as
+      | { home?: boolean; blocked?: boolean; ready?: boolean }
+      | undefined;
+  // Home is its own fact; it must not disable the whole native menu as a block.
+  await expect.poll(latest).toMatchObject({ ready: true, home: true, blocked: false });
+  await menu(page, 'quick-open');
+  await expect(search(page)).toBeVisible();
+  await expect.poll(latest).toMatchObject({ home: true, blocked: true });
+  await page.keyboard.press('Escape');
+  await expect(search(page)).toBeHidden();
+  await expect.poll(latest).toMatchObject({ home: true, blocked: false });
+});

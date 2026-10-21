@@ -1070,9 +1070,11 @@ export function App() {
     ready ? editor.current : null,
     {
       ready,
+      // The home view is reported as `home`, where native rules keep start and application
+      // actions such as themes available; only the quick open overlay blocks the menus.
       blocked:
         actions.current.blockedEditorCommand ||
-        actions.current.editorObscured ||
+        quickOpen !== null ||
         doc.working ||
         exporter.working ||
         importingImage ||

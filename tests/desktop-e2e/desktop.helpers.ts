@@ -116,7 +116,7 @@ export function installMock(
       document.querySelector<HTMLButtonElement>('.home-screen .home-action')?.click();
     }).observe(document, { childList: true, subtree: true });
   }
-  const menuTitles = ['MarkLyra', '文件', '编辑', '段落', '格式', '显示', '主题', '窗口'];
+  const menuTitles = ['文件', '编辑', '段落', '格式', '显示', '主题', '窗口', '帮助'];
   let serial = 1;
   const callbacks = new Map<number, (event: unknown) => void>();
   const listeners = new Map<

@@ -231,6 +231,17 @@ fn submenu<R: Runtime>(
 
 pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let file = submenu(app, "文件", FILE)?;
+    // Windows has no application menu: settings and exit close the File menu as usual there,
+    // and About lives in Help. The titlebar app icon is decorative, not a hidden menu.
+    #[cfg(not(target_os = "macos"))]
+    {
+        for entry in APPLICATION {
+            if let Action(id, label, accelerator) = entry {
+                file.append(&tauri::menu::PredefinedMenuItem::separator(app)?)?;
+                file.append(&item(app, id, label, *accelerator)?)?;
+            }
+        }
+    }
     // SDK history is authoritative. Native undo would mutate DOM outside its transactions.
     let mut edit = SubmenuBuilder::new(app, "编辑");
     for entry in HISTORY {
@@ -261,14 +272,14 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         }
     }
     let window = window.build()?;
-    let mut application = SubmenuBuilder::new(app, "MarkLyra")
-        .item(&about::menu_item(app)?)
-        .separator();
-    for entry in APPLICATION {
-        if let Action(id, label, accelerator) = entry {
-            if *id == "quit" {
-                #[cfg(target_os = "macos")]
-                {
+    #[cfg(target_os = "macos")]
+    {
+        let mut application = SubmenuBuilder::new(app, "MarkLyra")
+            .item(&about::menu_item(app)?)
+            .separator();
+        for entry in APPLICATION {
+            if let Action(id, label, accelerator) = entry {
+                if *id == "quit" {
                     application = application
                         .separator()
                         .services_with_text("服务")
@@ -278,23 +289,34 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
                         .show_all_with_text("显示全部")
                         .separator();
                 }
+                application = application.item(&item(app, id, label, *accelerator)?);
             }
-            application = application.item(&item(app, id, label, *accelerator)?);
         }
+        let application = application.build()?;
+        MenuBuilder::new(app)
+            .items(&[
+                &application,
+                &file,
+                &edit,
+                &paragraph,
+                &format,
+                &view,
+                &themes,
+                &window,
+            ])
+            .build()
     }
-    let application = application.build()?;
-    MenuBuilder::new(app)
-        .items(&[
-            &application,
-            &file,
-            &edit,
-            &paragraph,
-            &format,
-            &view,
-            &themes,
-            &window,
-        ])
-        .build()
+    #[cfg(not(target_os = "macos"))]
+    {
+        let help = SubmenuBuilder::with_id(app, "help-menu", "帮助")
+            .item(&about::menu_item(app)?)
+            .build()?;
+        MenuBuilder::new(app)
+            .items(&[
+                &file, &edit, &paragraph, &format, &view, &themes, &window, &help,
+            ])
+            .build()
+    }
 }
 
 #[cfg(target_os = "macos")]
