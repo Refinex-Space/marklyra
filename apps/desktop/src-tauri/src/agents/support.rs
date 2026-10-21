@@ -59,7 +59,7 @@ pub(super) fn write_text_atomic(path: &Path, text: &str) -> Result<(), std::io::
     result
 }
 
-pub(super) fn authorized_workspace(
+pub(crate) fn authorized_workspace(
     window: &WebviewWindow,
     id: &str,
 ) -> Result<Arc<file_index::Workspace>, String> {

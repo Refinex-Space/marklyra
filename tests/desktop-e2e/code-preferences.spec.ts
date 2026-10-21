@@ -65,7 +65,7 @@ test('original code controls keep restart-only settings out of the current WebVi
     await preferences.addInitScript(installMock, { label: 'preferences', nativeChrome: true });
     await preferences.goto('/?view=preferences');
     const ui = preferences.frameLocator('.runtime-preferences-frame');
-    await expect(ui.locator('.nav-group-item')).toHaveCount(7);
+    await expect(ui.locator('.nav-group-item')).toHaveCount(11);
     await ui.locator('.nav-group-item').nth(3).click();
     await ui.locator('[data-marklyra-preference="show_line_numbers_for_fence"]').check();
     await expect(ui.locator('#marklyra-preferences-status')).toBeHidden();

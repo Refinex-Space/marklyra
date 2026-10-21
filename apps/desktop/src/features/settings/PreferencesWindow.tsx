@@ -19,6 +19,7 @@ import { editorChrome } from '../../services/ui-chrome.js';
 import { AgentSettings } from '../ai/AgentSettings.js';
 import { DailySettings } from '../daily/DailySettings.js';
 import { ExportSettings } from '../export/settings/ExportSettings.js';
+import { GitSettings } from '../git/GitSettings.js';
 import { resolveThemeId, storedTheme, type ThemeCatalog } from '../themes/model.js';
 import { readAutoSavePreference } from './auto-save-preference.js';
 import { filenameImageStorageFolder } from './image-storage.js';
@@ -74,7 +75,12 @@ function options(
   }
   return {
     locale: 'zh-Hans',
-    marklyraNativePage: sessionStorage.getItem('marklyra.settings.ai') === 'true' ? 'ai' : '',
+    marklyraNativePage:
+      sessionStorage.getItem('marklyra.settings.ai') === 'true'
+        ? 'ai'
+        : sessionStorage.getItem('marklyra.settings.page') === 'git'
+          ? 'git'
+          : '',
     allThemes: catalog.themes.map((entry) => `${entry.id}.css`),
     marklyraThemeActions: true,
     marklyraUpdateActions: true,
@@ -411,6 +417,7 @@ export function PreferencesWindow({
           onNativePage={(page) => {
             setNativePage(page);
             sessionStorage.removeItem('marklyra.settings.ai');
+            sessionStorage.removeItem('marklyra.settings.page');
           }}
           onPut={put}
           onAction={async (name, data) => {
@@ -461,6 +468,11 @@ export function PreferencesWindow({
       {nativePage === 'daily' && (
         <div className="preferences-native-overlay" data-settings-dark={dark}>
           <DailySettings dark={dark} />
+        </div>
+      )}
+      {nativePage === 'git' && (
+        <div className="preferences-native-overlay" data-settings-dark={dark}>
+          <GitSettings dark={dark} />
         </div>
       )}
       {nativePage === 'sponsorship' && (

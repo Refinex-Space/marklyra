@@ -1,7 +1,7 @@
 use super::*;
 
 /// Resolve configured proxies only; never scan ports or disable TLS verification.
-pub(super) fn proxy() -> Option<String> {
+pub(crate) fn proxy() -> Option<String> {
     for key in [
         "HTTPS_PROXY",
         "https_proxy",
@@ -24,7 +24,7 @@ fn valid(value: &str) -> bool {
     })
 }
 #[cfg(target_os = "macos")]
-fn system_proxy() -> Option<String> {
+pub(crate) fn system_proxy() -> Option<String> {
     let output = Command::new("/usr/sbin/scutil")
         .arg("--proxy")
         .output()
@@ -32,7 +32,7 @@ fn system_proxy() -> Option<String> {
     parse_macos(&String::from_utf8(output.stdout).ok()?)
 }
 #[cfg(target_os = "windows")]
-fn system_proxy() -> Option<String> {
+pub(crate) fn system_proxy() -> Option<String> {
     use std::os::windows::process::CommandExt;
     let output = Command::new("reg.exe")
         .creation_flags(0x08000000)
@@ -67,7 +67,7 @@ fn system_proxy() -> Option<String> {
     valid(&value).then_some(value)
 }
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-fn system_proxy() -> Option<String> {
+pub(crate) fn system_proxy() -> Option<String> {
     None
 }
 #[cfg(any(target_os = "macos", test))]

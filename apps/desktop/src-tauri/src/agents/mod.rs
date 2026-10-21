@@ -3,7 +3,7 @@
 pub mod attachments;
 pub mod auth;
 mod catalog;
-mod support;
+pub(crate) mod support;
 use support::*;
 mod client_tools;
 mod context;
@@ -13,7 +13,7 @@ mod editor_document;
 mod history;
 pub mod image_preview;
 mod install_task;
-mod network;
+pub(crate) mod network;
 mod profiles;
 use install_task::InstallTask;
 pub mod mcp;

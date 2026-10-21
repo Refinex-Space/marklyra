@@ -166,7 +166,10 @@ export function initialPreferencesOptions(
     marklyraThemeActions: input.marklyraThemeActions === true,
     marklyraUpdateActions: input.marklyraUpdateActions === true,
     marklyraRepositoryAction: input.marklyraRepositoryAction === true,
-    marklyraNativePage: input.marklyraNativePage === 'ai' ? 'ai' : '',
+    marklyraNativePage:
+      input.marklyraNativePage === 'ai' || input.marklyraNativePage === 'git'
+        ? input.marklyraNativePage
+        : '',
     marklyraReadingSpeedActions: input.marklyraReadingSpeedActions === true,
     marklyraFileActions: input.marklyraFileActions === true,
     marklyraFileTypeActions: input.marklyraFileTypeActions === true,

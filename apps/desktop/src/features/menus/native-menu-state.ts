@@ -24,6 +24,10 @@ export interface NativeMenuPresentation {
   dailyOpen?: boolean;
   /** The calendar is expanded below the file list. */
   calendar?: boolean;
+  /** The Git view covers the document. */
+  gitView?: boolean;
+  /** The open folder is a usable Git repository. */
+  gitRepository?: boolean;
 }
 /** Same state rules as the original menus and Rust; a stale native check is no authority. */
 export function nativeMenuCommandAllowed(
@@ -87,6 +91,8 @@ export class NativeMenuPublisher {
       dailyAvailable: value.dailyAvailable === true,
       dailyOpen: value.dailyOpen === true,
       calendar: value.calendar === true,
+      gitView: value.gitView === true,
+      gitRepository: value.gitRepository === true,
       editor: value.editor
         ? {
             ...value.editor,

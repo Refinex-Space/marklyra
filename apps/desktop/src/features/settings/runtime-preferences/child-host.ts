@@ -844,7 +844,9 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
   document.addEventListener('submit', (event) => event.preventDefault(), true);
   const updateNativePages = setupNativePages(
     (page) => send('native-page', page),
-    runtime._options.marklyraNativePage === 'ai' ? 'ai' : null,
+    runtime._options.marklyraNativePage === 'ai' || runtime._options.marklyraNativePage === 'git'
+      ? runtime._options.marklyraNativePage
+      : null,
   );
   await loadScript('./static/js/0.99879679.chunk.js');
   await loadScript('./static/js/Preferences.962926a4.d7f6a912.chunk.js');

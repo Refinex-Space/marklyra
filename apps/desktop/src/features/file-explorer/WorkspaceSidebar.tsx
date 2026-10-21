@@ -93,6 +93,8 @@ export interface WorkspaceSidebarProps {
   onFilePreferencesChange?: (value: FileSidebarPreferences) => void;
   /** Docked below the file list (日程日历); hidden while searching. */
   renderCalendar?: ((context: SidebarCalendarContext) => ReactNode) | undefined;
+  /** Shown beside the folder name, e.g. the Git branch button. */
+  headerAccessory?: ReactNode;
 }
 export interface SidebarCalendarContext {
   workspace: WorkspaceFolder;
@@ -127,6 +129,7 @@ export function WorkspaceSidebar({
   filePreferences,
   onFilePreferencesChange,
   renderCalendar,
+  headerAccessory,
 }: WorkspaceSidebarProps) {
   const [workspace, setWorkspace] = useState<WorkspaceFolder | null>(null);
   const [selecting, setSelecting] = useState(false);
@@ -831,6 +834,7 @@ export function WorkspaceSidebar({
             <WorkspaceGlyph name="folder" />
             <strong>{workspace?.name ?? '文件夹'}</strong>
           </div>
+          {workspace && headerAccessory}
           {workspace && (
             <div className="workspace-tabs" role="tablist" aria-label="目录面板">
               {(['files', 'search'] as const).map((item) => (
@@ -907,6 +911,7 @@ export function WorkspaceSidebar({
           ) : (
             <span className="workspace-navigation-spacer" aria-hidden="true" />
           )}
+          {workspace && headerAccessory}
           {workspace && (
             <button
               id={`${searchTargetId}-trigger`}

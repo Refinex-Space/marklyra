@@ -11,6 +11,7 @@ mod export_preferences;
 mod exports;
 mod external_links;
 mod file_preferences;
+mod git;
 mod markdown_preferences;
 mod menu;
 mod move_metadata;
@@ -83,6 +84,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(app_update::UpdateHost::default())
         .manage(agents::AgentHostState::default())
+        .manage(git::GitHost::default())
         .invoke_handler(tauri::generate_handler![
             app_update::app_update_status,
             app_update::app_update_automatic,
@@ -264,6 +266,52 @@ pub fn run() {
             exports::image::save_export_image,
             export_preferences::get_export_preferences,
             export_preferences::put_export_preferences,
+            git::git_probe,
+            git::git_init,
+            git::git_trust_directory,
+            git::git_status,
+            git::git_branches,
+            git::git_log,
+            git::git_commit_details,
+            git::git_compare,
+            git::git_file_text,
+            git::git_commit,
+            git::git_rollback,
+            git::git_fetch,
+            git::git_update,
+            git::git_push,
+            git::git_sync,
+            git::git_cancel,
+            git::git_checkout,
+            git::git_create_branch,
+            git::git_rename_branch,
+            git::git_delete_branch,
+            git::git_delete_remote_branch,
+            git::git_update_branch,
+            git::git_set_upstream,
+            git::git_merge,
+            git::git_rebase,
+            git::git_operation,
+            git::git_cherry_pick,
+            git::git_revert,
+            git::git_reset,
+            git::git_create_tag,
+            git::git_delete_tag,
+            git::git_conflicts,
+            git::git_resolve,
+            git::git_stash_list,
+            git::git_stash_push,
+            git::git_stash_apply,
+            git::git_stash_drop,
+            git::git_remote_add,
+            git::git_remote_set_url,
+            git::git_remote_remove,
+            git::git_remote_test,
+            git::git_set_identity,
+            git::git_detect_proxy,
+            git::git_credentials_list,
+            git::git_credentials_save,
+            git::git_credentials_remove,
         ])
         .setup(|app| {
             debug_tools::initialise(app.handle());

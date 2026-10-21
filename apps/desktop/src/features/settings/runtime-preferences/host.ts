@@ -18,7 +18,7 @@ import {
 } from './policy.js';
 import { startupPreferenceAction, startupPreferencesSnapshot } from './startup-preferences.js';
 
-export type NativePage = 'ai' | 'daily' | 'export' | 'sponsorship';
+export type NativePage = 'ai' | 'daily' | 'export' | 'git' | 'sponsorship';
 
 export interface RuntimePreferencesOptions {
   runtimeUrl: string;
@@ -176,6 +176,7 @@ export class RuntimePreferencesHost {
         payload === 'ai' ||
         payload === 'daily' ||
         payload === 'export' ||
+        payload === 'git' ||
         payload === 'sponsorship')
     ) {
       this.options.onNativePage?.(payload);

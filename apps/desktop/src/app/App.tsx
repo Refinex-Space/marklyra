@@ -53,6 +53,10 @@ import { useDocumentSession } from '../features/documents/useDocumentSession.js'
 import { useExternalChanges } from '../features/documents/useExternalChanges.js';
 import { isExportAction, useDocumentExport } from '../features/export/useDocumentExport.js';
 import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
+import { BranchWidget } from '../features/git/BranchWidget.js';
+import { GitFileDecorations, GitOverlays } from '../features/git/GitOverlays.js';
+import { type GitContextValue, GitProvider } from '../features/git/GitProvider.js';
+import { GitWorkbench } from '../features/git/GitWorkbench.js';
 import { HomeScreen } from '../features/home/HomeScreen.js';
 import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
 import { hostTextInputFocused, useNativeMenus } from '../features/menus/useNativeMenus.js';
@@ -171,6 +175,10 @@ export function App() {
   const [homeAllowed, setHomeAllowed] = useState(windowIdentity.primary);
   const [quickOpen, setQuickOpen] = useState<{ tab: QuickTab } | null>(null);
   const [quickNotes, setQuickNotes] = useState<QuickNotes | null>(null);
+  /** The Git view covers the document like the home view; the editor is inert under it. */
+  const [gitViewOpen, setGitViewOpen] = useState(false);
+  const [gitRepository, setGitRepository] = useState(false);
+  const gitApi = useRef<GitContextValue | null>(null);
   /** Application menu handler; the search window runs its actions through the same guards. */
   const menuHandler = useRef<(value: string) => void>(() => {});
   const [preferencesReady, setPreferencesReady] = useState(false);
@@ -261,6 +269,8 @@ export function App() {
     }
   };
   const disk = useExternalChanges(doc);
+  const diskCheck = useRef(disk.check);
+  diskCheck.current = disk.check;
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [recentOpen, setRecentOpenState] = useState(false);
   const recentRequested = useRef(false);
@@ -685,10 +695,11 @@ export function App() {
   useEffect(() => {
     documentAreaElement.current
       ?.querySelector('.runtime-editor-mount')
-      ?.toggleAttribute('inert', homeVisible);
-    if (wasHome.current && !homeVisible) void editor.current?.focus().catch(() => {});
-    wasHome.current = homeVisible;
-  }, [homeVisible]);
+      ?.toggleAttribute('inert', homeVisible || gitViewOpen);
+    if (wasHome.current && !homeVisible && !gitViewOpen)
+      void editor.current?.focus().catch(() => {});
+    wasHome.current = homeVisible || gitViewOpen;
+  }, [homeVisible, gitViewOpen]);
   const rename = useDocumentRename({
     file:
       doc.file && doc.file.locationState !== 'trashed'
@@ -749,6 +760,70 @@ export function App() {
     const center = area ? (area.left + area.right) / 2 : document.documentElement.clientWidth / 2;
     rename.begin({ left: center - 60, right: center + 60, bottom: 28 });
   };
+  /** Native Git menu items, run against the provider of this window. */
+  const gitMenu = (value: string) => {
+    const git = gitApi.current;
+    if (!git) return;
+    const anchor = () =>
+      document.querySelector('.git-branch-widget')?.getBoundingClientRect() ??
+      new DOMRect(16, (chrome.native ? titlebarHeight : 0) + 8, 0, 0);
+    switch (value) {
+      case 'git:panel':
+        if (git.view) git.closeView();
+        else git.openView('commit');
+        return;
+      case 'git:commit':
+        git.openView('commit');
+        return;
+      case 'git:log':
+        git.openView('log');
+        return;
+      case 'git:branches':
+        if (!sidebar) setSidebar(true);
+        window.setTimeout(() => git.openBranches(anchor()));
+        return;
+      case 'git:sync':
+        void git.sync('manual');
+        return;
+      case 'git:update':
+        void git.update();
+        return;
+      case 'git:fetch':
+        void git.fetch();
+        return;
+      case 'git:push':
+        git.openDialog({ kind: 'push' });
+        return;
+      case 'git:conflicts':
+        git.openDialog({ kind: 'conflicts' });
+        return;
+      case 'git:history': {
+        const root = git.probe?.repository?.root;
+        const path = doc.getFile()?.path;
+        if (!root || !path) {
+          notify('当前文档不在 Git 仓库中', 'info');
+          return;
+        }
+        const normalize = (text: string) => text.replaceAll('\\', '/').replace(/\/$/, '');
+        const base = normalize(root);
+        const file = normalize(path);
+        const windows = runtime?.platform === 'windows';
+        const inside = windows
+          ? file.toLowerCase().startsWith(`${base.toLowerCase()}/`)
+          : file.startsWith(`${base}/`);
+        if (!inside) {
+          notify('当前文档不在 Git 仓库中', 'info');
+          return;
+        }
+        git.openView('log', { path: file.slice(base.length + 1) });
+        return;
+      }
+      case 'git:settings':
+        sessionStorage.setItem('marklyra.settings.page', 'git');
+        actions.current.openPreferences();
+        return;
+    }
+  };
   const actions = useRef({
     closeDocument,
     openRename,
@@ -779,7 +854,7 @@ export function App() {
       recentOpen ||
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
-    editorObscured: homeVisible || quickOpen !== null,
+    editorObscured: homeVisible || quickOpen !== null || gitViewOpen,
     blockedEditorCommand:
       !ready ||
       !editor.current ||
@@ -793,6 +868,7 @@ export function App() {
     statisticsOpen,
     daily,
     toggleCalendar,
+    gitMenu: (value: string) => gitMenu(value),
   });
   actions.current = {
     closeDocument,
@@ -824,7 +900,7 @@ export function App() {
       recentOpen ||
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
-    editorObscured: homeVisible || quickOpen !== null,
+    editorObscured: homeVisible || quickOpen !== null || gitViewOpen,
     blockedEditorCommand:
       !ready ||
       !editor.current ||
@@ -838,6 +914,7 @@ export function App() {
     statisticsOpen,
     daily,
     toggleCalendar,
+    gitMenu: (value: string) => gitMenu(value),
   };
   const inputModalOpen = recoveryOpen || recentOpen || !!doc.pending;
   const previousInputModal = useRef(false);
@@ -1145,6 +1222,8 @@ export function App() {
       canImport: (exporter.capabilities?.importExtensions.length ?? 0) > 0,
       canRename: rename.canRename,
       home: homeVisible,
+      gitView: gitViewOpen,
+      gitRepository,
       dailyAvailable: !!daily.location,
       dailyOpen: !!daily.activeKey,
       calendar: calendarShown,
@@ -1277,6 +1356,10 @@ export function App() {
       }
       if (value === 'quick-open') {
         actions.current.openQuickOpen('all');
+        return;
+      }
+      if (value.startsWith('git:')) {
+        actions.current.gitMenu(value);
         return;
       }
       if (value === 'view:sidebar') {
@@ -1852,6 +1935,47 @@ export function App() {
     ['查找', { type: 'find' }, 'search'],
     ['源码', { type: 'toggleSource' }, 'source'],
   ];
+  // Git work never saves on the person's behalf in the background: automatic synchronization
+  // waits while the open document has unsaved changes; a command they start saves it first.
+  const gitHooks = {
+    prepare: async (automatic: boolean) => {
+      const active = editor.current;
+      const current = actions.current.doc;
+      if (!active || current.working || current.pending || active.isComposing) {
+        if (!automatic) notify('请先完成当前文档操作或输入法候选', 'warning');
+        return false;
+      }
+      await nativeCommandBridge.current?.synchronize();
+      await editorCommandWork.current;
+      await active.flush();
+      const latest = actions.current.doc;
+      if (!latest.getFile() || !latest.hasUnsavedChanges()) return true;
+      if (automatic) return false;
+      return latest.save(false);
+    },
+    workTreeChanged: () => {
+      diskCheck.current();
+    },
+    openSettings: () => gitMenu('git:settings'),
+  };
+  // Saves of the same file advance this counter; opening another file does not.
+  const savedFile = useRef({
+    id: null as string | null,
+    text: undefined as string | undefined,
+    serial: 0,
+  });
+  if (doc.file?.id !== savedFile.current.id)
+    savedFile.current = {
+      id: doc.file?.id ?? null,
+      text: doc.file?.text,
+      serial: savedFile.current.serial,
+    };
+  else if (doc.file && doc.file.text !== savedFile.current.text)
+    savedFile.current = {
+      id: doc.file.id,
+      text: doc.file.text,
+      serial: savedFile.current.serial + 1,
+    };
   return (
     <div
       className="shell"
@@ -2253,6 +2377,7 @@ export function App() {
                 return latest.getFile() !== null || latest.hasUnsavedChanges();
               }}
               initialWorkspace={initialWorkspace}
+              headerAccessory={desktopAvailable ? <BranchWidget /> : undefined}
               onWorkspaceChange={(workspace) => {
                 workspaceIdentity.current = workspace;
                 setSessionWorkspace(workspace?.id ?? null);
@@ -2586,6 +2711,13 @@ export function App() {
               }
             />
           )}
+          <GitWorkbench
+            openDocument={(relativePath) => {
+              const workspaceId = workspaceIdentity.current?.id;
+              if (workspaceId) void doc.request({ kind: 'workspace', workspaceId, relativePath });
+            }}
+            openSettings={() => gitMenu('git:settings')}
+          />
         </main>
         <DocumentDetailsPanel
           open={outlinePanelOpen || aiPanelOpen}
@@ -2758,6 +2890,20 @@ export function App() {
           onClose={closeQuickOpen}
         />
       )}
+      <GitProvider
+        workspace={sessionWorkspace ? workspaceIdentity.current : null}
+        preferences={preferences.git}
+        onPreferences={(change) =>
+          setPreferences((current) => ({ ...current, git: { ...current.git, ...change } }))
+        }
+        hooks={gitHooks}
+        savedRevision={savedFile.current.serial}
+        apiRef={gitApi}
+        onViewChange={setGitViewOpen}
+        onRepositoryChange={setGitRepository}
+      />
+      <GitFileDecorations />
+      <GitOverlays />
       <NoticeHost />
       {markdownSystem.initial && markdownSystem.error && (
         <div

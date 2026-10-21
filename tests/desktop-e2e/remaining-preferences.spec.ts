@@ -123,7 +123,7 @@ test('remaining controls persist while the removed dialog reset stays unavailabl
   await page.addInitScript(installMock, { label: 'preferences', nativeChrome: true });
   await page.goto('/?view=preferences');
   const ui = page.frameLocator('.runtime-preferences-frame');
-  await expect(ui.locator('.nav-group-item')).toHaveCount(7);
+  await expect(ui.locator('.nav-group-item')).toHaveCount(11);
   await expect(ui.locator('[data-marklyra-preference="can_collapse_outline_panel"]')).toHaveCount(
     0,
   );

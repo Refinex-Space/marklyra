@@ -53,7 +53,7 @@ test('original preferences controls persist typed values and affect the existing
       'title',
       'MarkLyra 偏好设置',
     );
-    await expect(original.locator('.nav-group-item')).toHaveCount(8);
+    await expect(original.locator('.nav-group-item')).toHaveCount(11);
     await expect(original.getByRole('button', { name: '智能体', exact: true })).toBeVisible();
     await original.locator('.nav-group-item').nth(5).click();
     await original.locator('[data-marklyra-preference="useCustomFontSize"][value="true"]').check();
@@ -150,7 +150,7 @@ test('failed font persistence restores the confirmed value instead of retaining 
   });
   await page.goto('/?view=preferences');
   const original = page.frameLocator('.runtime-preferences-frame');
-  await expect(original.locator('.nav-group-item')).toHaveCount(8);
+  await expect(original.locator('.nav-group-item')).toHaveCount(11);
   await original.locator('.nav-group-item').nth(5).click();
   const size = original.locator('[data-marklyra-preference="customFontSize"]');
   await size.fill('20');
@@ -192,7 +192,7 @@ test('original Markdown pairing control applies after warm caches and retains on
     await preferences.addInitScript(installMock, { label: 'preferences', nativeChrome: true });
     await preferences.goto('/?view=preferences');
     const original = preferences.frameLocator('.runtime-preferences-frame');
-    await expect(original.locator('.nav-group-item')).toHaveCount(8);
+    await expect(original.locator('.nav-group-item')).toHaveCount(11);
     await original.locator('.nav-group-item').nth(1).click();
     const pairing = original.locator('[data-marklyra-preference="match_pari_markdown"]');
     await expect(pairing).toBeEnabled();

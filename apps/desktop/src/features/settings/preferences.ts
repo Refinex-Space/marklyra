@@ -13,6 +13,11 @@ import {
   type FileSidebarPreferences,
   normalizeFileSidebarPreferences,
 } from '../file-explorer/file-preferences.js';
+import {
+  defaultGitPreferences,
+  type GitPreferences,
+  normalizeGitPreferences,
+} from '../git/git-preferences.js';
 import { defaultImageStorageFolder, normalizeImageStorageFolder } from './image-storage.js';
 
 export type StatisticsUnit = 'words' | 'characters' | 'lines' | 'readingMinutes';
@@ -32,6 +37,7 @@ export interface Preferences {
   editorPreferences: MarkLyraEditorPreferences;
   fileSidebar: FileSidebarPreferences;
   daily: DailyPreferences;
+  git: GitPreferences;
 }
 export const defaultPreferences: Preferences = {
   sidebarWidth: 270,
@@ -49,6 +55,7 @@ export const defaultPreferences: Preferences = {
   editorPreferences: { ...defaultMarkLyraEditorPreferences },
   fileSidebar: { ...defaultFileSidebarPreferences },
   daily: { ...defaultDailyPreferences },
+  git: { ...defaultGitPreferences },
 };
 export const preferencesKey = 'marklyra-preferences-v1';
 export function normalizePreferences(value: unknown): Preferences {
@@ -62,6 +69,7 @@ export function normalizePreferences(value: unknown): Preferences {
   return {
     fileSidebar: normalizeFileSidebarPreferences(input.fileSidebar),
     daily: normalizeDailyPreferences(input.daily),
+    git: normalizeGitPreferences(input.git),
     editorPreferences,
     imageStorageFolder: normalizeImageStorageFolder(input.imageStorageFolder),
     customImageStorageFolder: normalizeImageStorageFolder(

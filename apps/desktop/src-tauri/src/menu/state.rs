@@ -68,6 +68,12 @@ pub struct Snapshot {
     /// The calendar is expanded below the file list.
     #[serde(default)]
     calendar: bool,
+    /// The Git view covers the document; like the home view, document commands do nothing.
+    #[serde(default)]
+    git_view: bool,
+    /// The open folder is a usable Git repository.
+    #[serde(default)]
+    git_repository: bool,
 }
 
 #[derive(Default)]
@@ -174,7 +180,11 @@ impl Snapshot {
         let Some(editor) = self.active() else {
             return false;
         };
-        if self.home && !home_action(action) {
+        if let Some(git) = action.strip_prefix("git:") {
+            // Git acts on the folder, not the document; settings work without a repository.
+            return git == "settings" || self.git_repository;
+        }
+        if (self.home || self.git_view) && !home_action(action) {
             return false;
         }
         if self.text_input_focused
@@ -262,6 +272,7 @@ impl Snapshot {
             "view:statistics" => self.statistics_open,
             "view:calendar" => self.calendar,
             "view:fullscreen" => self.fullscreen,
+            "git:panel" => self.git_view,
             _ => {
                 if let Some(style) = action.strip_prefix("format:") {
                     return editor.inline_styles.iter().any(|item| item == style);
@@ -306,6 +317,7 @@ pub(super) fn checkable(action: &str) -> bool {
                 | "view:statistics"
                 | "view:calendar"
                 | "view:fullscreen"
+                | "git:panel"
         )
 }
 pub(super) fn current<R: Runtime>(app: &AppHandle<R>) -> Snapshot {
@@ -558,6 +570,29 @@ mod tests {
         assert!(state.checked("view:calendar"));
         assert!(checkable("view:calendar"));
         assert!(!checkable("daily:today"));
+    }
+    #[test]
+    fn git_actions_need_a_repository_and_the_git_view_covers_document_commands() {
+        let mut state = ready();
+        for action in ["git:panel", "git:sync", "git:push", "git:history"] {
+            assert!(!state.enabled(action), "{action}");
+        }
+        assert!(state.enabled("git:settings"));
+        state.git_repository = true;
+        assert!(state.enabled("git:sync"));
+        assert!(state.enabled("save"));
+        state.git_view = true;
+        assert!(state.enabled("git:commit"));
+        assert!(state.checked("git:panel"));
+        assert!(checkable("git:panel"));
+        assert!(!state.enabled("save"));
+        assert!(!state.enabled("format:strong"));
+        assert!(state.enabled("view:sidebar"));
+        state.home = true;
+        state.git_view = false;
+        assert!(state.enabled("git:panel"));
+        state.blocked = true;
+        assert!(!state.enabled("git:sync"));
     }
     #[test]
     fn late_snapshot_does_not_reverse_newer_same_context() {

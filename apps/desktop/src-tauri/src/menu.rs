@@ -137,6 +137,22 @@ const VIEW: &[MenuEntry] = &[
     Separator,
     Action("view:fullscreen", "全屏幕", Some("CmdOrCtrl+Ctrl+F")),
 ];
+const GIT: &[MenuEntry] = &[
+    Action("git:panel", "Git 视图", Some("CmdOrCtrl+Shift+G")),
+    Action("git:branches", "分支…", None),
+    Separator,
+    Action("git:commit", "提交…", None),
+    Action("git:sync", "同步", Some("CmdOrCtrl+Shift+K")),
+    Action("git:update", "更新项目", None),
+    Action("git:fetch", "获取", None),
+    Action("git:push", "推送…", None),
+    Separator,
+    Action("git:log", "显示日志", None),
+    Action("git:history", "当前文件历史", None),
+    Action("git:conflicts", "解决冲突…", None),
+    Separator,
+    Action("git:settings", "Git 同步设置…", None),
+];
 const THEMES: &[MenuEntry] = &[
     Action("theme:marklyra-light", "MarkLyra Light", None),
     Action("theme:marklyra-dark", "MarkLyra Dark", None),
@@ -170,6 +186,7 @@ const GROUPS: &[&[MenuEntry]] = &[
     LIST_INDENTATION,
     FORMAT,
     VIEW,
+    GIT,
     THEMES,
     WINDOW,
     APPLICATION,
@@ -201,6 +218,7 @@ fn submenu<R: Runtime>(
         "导出" => "export-menu",
         "文件" => "file-menu",
         "显示" => "view-menu",
+        "Git" => "git-menu",
         _ => label,
     };
     let mut builder = SubmenuBuilder::with_id(app, id, label);
@@ -266,6 +284,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let paragraph = submenu(app, "段落", PARAGRAPH)?;
     let format = submenu(app, "格式", FORMAT)?;
     let view = submenu(app, "显示", VIEW)?;
+    let git = submenu(app, "Git", GIT)?;
     let themes = themes::build(app)?;
     let mut window = SubmenuBuilder::with_id(app, WINDOW_SUBMENU_ID, "窗口")
         .minimize_with_text("最小化")
@@ -306,6 +325,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
                 &paragraph,
                 &format,
                 &view,
+                &git,
                 &themes,
                 &window,
             ])
@@ -318,7 +338,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             .build()?;
         MenuBuilder::new(app)
             .items(&[
-                &file, &edit, &paragraph, &format, &view, &themes, &window, &help,
+                &file, &edit, &paragraph, &format, &view, &git, &themes, &window, &help,
             ])
             .build()
     }
@@ -593,6 +613,9 @@ mod tests {
             "daily:today",
             "daily:previous",
             "daily:next",
+            "git:panel",
+            "git:sync",
+            "git:settings",
         ] {
             assert_eq!(action_for_id(id), Some(id));
         }
@@ -647,6 +670,7 @@ mod tests {
             "theme:../custom",
             "view:unknown",
             "daily:unknown",
+            "git:unknown",
             "list:unknown",
             "copy",
             "paste",
@@ -685,7 +709,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            80 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            91 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {
@@ -708,5 +732,7 @@ mod tests {
         assert!(shortcuts.contains(&"CmdOrCtrl+/"));
         assert!(shortcuts.contains(&"CmdOrCtrl+Shift+Z"));
         assert!(shortcuts.contains(&"CmdOrCtrl+Shift+D"));
+        assert!(shortcuts.contains(&"CmdOrCtrl+Shift+G"));
+        assert!(shortcuts.contains(&"CmdOrCtrl+Shift+K"));
     }
 }

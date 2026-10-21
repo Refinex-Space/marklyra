@@ -1,11 +1,11 @@
-export type NativePage = 'ai' | 'daily' | 'export' | 'sponsorship';
+export type NativePage = 'ai' | 'daily' | 'export' | 'git' | 'sponsorship';
 
 /** The original sidebar's fixed index of its 导出 category. */
 const EXPORT_INDEX = '4';
 
 /**
  * Navigation only. Additional settings pages are drawn by the trusted host on top of this isolated page:
- * 日程、智能体、赞助 (extra sidebar entries added here) and 导出 (the original entry, whose own panel is
+ * 日程、Git 同步、智能体、赞助 (extra sidebar entries added here) and 导出 (the original entry, whose own panel is
  * never shown). The isolated page never receives agent IPC, credentials or export settings.
  */
 export function setupNativePages(
@@ -22,11 +22,13 @@ export function setupNativePages(
         ? page === 'ai'
         : item.hasAttribute('data-daily-settings-navigation')
           ? page === 'daily'
-          : item.hasAttribute('data-sponsorship-navigation')
-            ? page === 'sponsorship'
-            : page === null
-              ? item.classList.contains('active')
-              : page === 'export' && item === native;
+          : item.hasAttribute('data-git-settings-navigation')
+            ? page === 'git'
+            : item.hasAttribute('data-sponsorship-navigation')
+              ? page === 'sponsorship'
+              : page === null
+                ? item.classList.contains('active')
+                : page === 'export' && item === native;
       item.setAttribute('aria-current', selected ? 'page' : 'false');
     }
   };
@@ -39,6 +41,9 @@ export function setupNativePages(
     document
       .querySelector('[data-daily-settings-navigation]')
       ?.classList.toggle('active', value === 'daily');
+    document
+      .querySelector('[data-git-settings-navigation]')
+      ?.classList.toggle('active', value === 'git');
     document
       .querySelector('[data-sponsorship-navigation]')
       ?.classList.toggle('active', value === 'sponsorship');
@@ -55,6 +60,9 @@ export function setupNativePages(
       } else if (event.target.closest('[data-daily-settings-navigation]')) {
         event.preventDefault();
         set('daily');
+      } else if (event.target.closest('[data-git-settings-navigation]')) {
+        event.preventDefault();
+        set('git');
       } else if (event.target.closest('[data-sponsorship-navigation]')) {
         event.preventDefault();
         set('sponsorship');
@@ -72,9 +80,9 @@ export function setupNativePages(
   // The original export panel is replaced by the host page, including in search results.
   // Standalone legacy preferences do not use the shared page stylesheet.
   style.textContent =
-    '[data-ai-settings-navigation],[data-daily-settings-navigation],[data-sponsorship-navigation]{appearance:none;background:transparent;width:100%;text-align:left;cursor:pointer;border:0;box-shadow:none;font:inherit;}' +
+    '[data-ai-settings-navigation],[data-daily-settings-navigation],[data-git-settings-navigation],[data-sponsorship-navigation]{appearance:none;background:transparent;width:100%;text-align:left;cursor:pointer;border:0;box-shadow:none;font:inherit;}' +
     `.pane > .content[data-index="${EXPORT_INDEX}"]{display:none!important}` +
-    'html:not([data-settings-page])[data-native-page="ai"] .nav-group-item.active:not([data-ai-settings-navigation]),html:not([data-settings-page])[data-native-page="daily"] .nav-group-item.active:not([data-daily-settings-navigation]),html:not([data-settings-page])[data-native-page="sponsorship"] .nav-group-item.active:not([data-sponsorship-navigation]){background:transparent!important;color:inherit!important;font-weight:400}';
+    'html:not([data-settings-page])[data-native-page="ai"] .nav-group-item.active:not([data-ai-settings-navigation]),html:not([data-settings-page])[data-native-page="daily"] .nav-group-item.active:not([data-daily-settings-navigation]),html:not([data-settings-page])[data-native-page="git"] .nav-group-item.active:not([data-git-settings-navigation]),html:not([data-settings-page])[data-native-page="sponsorship"] .nav-group-item.active:not([data-sponsorship-navigation]){background:transparent!important;color:inherit!important;font-weight:400}';
   document.head.append(style);
   return () => {
     const sidebar = document.querySelector('.pane-sm.sidebar');
@@ -102,6 +110,36 @@ export function setupNativePages(
       button.append(icon, document.createTextNode('日程'));
       button.setAttribute('aria-label', '日程');
       sidebar.append(button);
+      changed = true;
+    }
+    if (!sidebar.querySelector('[data-git-settings-navigation]')) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'nav-group-item';
+      button.dataset.gitSettingsNavigation = 'true';
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      icon.setAttribute('aria-hidden', 'true');
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.style.fill = 'none';
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '1.6');
+      svg.setAttribute('stroke-linejoin', 'round');
+      svg.setAttribute('stroke-linecap', 'round');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute(
+        'd',
+        'M6 3v12 M18 9a3 3 0 1 0 0-.01 M6 21a3 3 0 1 0 0-.01 M18 12c0 4-6 3-11 6',
+      );
+      svg.append(path);
+      icon.append(svg);
+      button.append(icon, document.createTextNode('Git 同步'));
+      button.setAttribute('aria-label', 'Git 同步');
+      // Keep the documented order: 日程, Git 同步, then 智能体 and 赞助.
+      const after = sidebar.querySelector('[data-daily-settings-navigation]');
+      if (after) after.after(button);
+      else sidebar.append(button);
       changed = true;
     }
     if (!sidebar.querySelector('[data-ai-settings-navigation]')) {

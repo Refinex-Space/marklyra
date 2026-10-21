@@ -342,7 +342,7 @@ test('a committed native preference with a lost reply is never replayed and is r
   });
   await page.goto('/?view=preferences');
   const ui = page.frameLocator('.runtime-preferences-frame');
-  await expect(ui.locator('.nav-group-item')).toHaveCount(7);
+  await expect(ui.locator('.nav-group-item')).toHaveCount(11);
   await ui.locator('.nav-group-item').nth(5).click();
   const custom = ui.locator('[data-marklyra-preference="useCustomFontSize"][value="true"]');
   await custom.click();
@@ -363,7 +363,7 @@ test('a committed native preference with a lost reply is never replayed and is r
     ),
   ).toBe(true);
   await page.reload();
-  await expect(ui.locator('.nav-group-item')).toHaveCount(7);
+  await expect(ui.locator('.nav-group-item')).toHaveCount(11);
   await ui.locator('.nav-group-item').nth(5).click();
   await expect(custom).toBeChecked();
 });
@@ -374,7 +374,7 @@ test('original reading-speed reset and presets atomically confirm the speed and 
   await page.addInitScript(installMock, { label: 'preferences', nativeChrome: true });
   await page.goto('/?view=preferences');
   const ui = page.frameLocator('.runtime-preferences-frame');
-  await expect(ui.locator('.nav-group-item')).toHaveCount(7);
+  await expect(ui.locator('.nav-group-item')).toHaveCount(11);
   await ui.locator('.nav-group-item').nth(5).click();
 
   await expect(ui.locator('.btn-split-left[data-marklyra-reading-speed]')).toHaveCount(1);
@@ -402,7 +402,7 @@ test('original reading-speed reset and presets atomically confirm the speed and 
     await expect(ui.locator('.btn-split-group ul.dropdown-menu')).not.toHaveClass(/\bshown\b/);
   }
   await page.reload();
-  await expect(ui.locator('.nav-group-item')).toHaveCount(7);
+  await expect(ui.locator('.nav-group-item')).toHaveCount(11);
   await ui.locator('.nav-group-item').nth(5).click();
   await expect(ui.locator('[data-marklyra-preference="wordsPerMinute"]')).toHaveValue('382');
 });
@@ -462,7 +462,7 @@ test('original zoom reset uses the fixed typed value and keeps other reset butto
   await page.addInitScript(installMock, { label: 'preferences', nativeChrome: true });
   await page.goto('/?view=preferences');
   const ui = page.frameLocator('.runtime-preferences-frame');
-  await expect(ui.locator('.nav-group-item')).toHaveCount(7);
+  await expect(ui.locator('.nav-group-item')).toHaveCount(11);
   await ui.locator('.nav-group-item').nth(5).click();
   await ui.locator('[data-marklyra-preference="zoomFactor"]').selectOption('1.25');
   await expect
@@ -508,7 +508,7 @@ for (const focus of ['wrapper', 'child'] as const) {
     });
     await page.goto('/?view=preferences');
     const ui = page.frameLocator('.runtime-preferences-frame');
-    await expect(ui.locator('.nav-group-item')).toHaveCount(7);
+    await expect(ui.locator('.nav-group-item')).toHaveCount(11);
     await ui.locator('.nav-group-item').nth(5).click();
     await ui.locator('[data-marklyra-preference="useCustomFontSize"][value="true"]').check();
     await expect
