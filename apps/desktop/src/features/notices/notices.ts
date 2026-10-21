@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 
-export type NoticeKind = 'info' | 'error';
+export type NoticeKind = 'info' | 'success' | 'warning' | 'error';
 
 /** A button on a notice, for the one obvious follow-up (e.g. showing an exported file). */
 export interface NoticeAction {
@@ -15,7 +15,12 @@ export interface Notice {
   actions: readonly NoticeAction[];
 }
 
-const LIFETIME: Record<NoticeKind, number> = { info: 4500, error: 7000 };
+const LIFETIME: Record<NoticeKind, number> = {
+  info: 4500,
+  success: 4500,
+  warning: 6000,
+  error: 7000,
+};
 /** A notice with buttons stays long enough to be read and used. */
 const ACTION_LIFETIME = 10_000;
 const VISIBLE = 3;

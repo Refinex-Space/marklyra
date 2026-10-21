@@ -225,11 +225,6 @@ button[aria-pressed="true"] {
   bottom: 12px;
   z-index: 7;
   max-width: min(460px, calc(100vw - 32px));
-  padding: 6px 12px;
-  border-radius: 3px;
-  background: var(--sidebar);
-  color: var(--muted);
-  font-size: 12px;
 }
 .preferences-window {
   height: 100dvh;

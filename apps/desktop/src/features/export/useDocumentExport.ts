@@ -194,9 +194,12 @@ export function useDocumentExport(
       const documentTitle = fields.title ?? titleFromName(title);
       const report = (saved: SavedExport, label: string) => {
         if (!alive.current) return;
-        notify(`已导出 ${label} · ${saved.path}`, 'info', { actions: followUps(saved) });
+        notify(`已导出 ${label} · ${saved.path}`, 'success', { actions: followUps(saved) });
         if (saved.warnings.length)
-          notify(`导出时的提示：\n${saved.warnings.map((line) => `• ${line}`).join('\n')}`, 'info');
+          notify(
+            `导出时的提示：\n${saved.warnings.map((line) => `• ${line}`).join('\n')}`,
+            'warning',
+          );
       };
 
       if (conversion) {

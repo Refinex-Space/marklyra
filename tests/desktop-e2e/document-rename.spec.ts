@@ -158,7 +158,7 @@ test('windows: rename warnings reach the status message', async ({ page }) => {
   await page.locator('.titlebar-title-button').click();
   await page.keyboard.type('x');
   await page.keyboard.press('Enter');
-  await expect(page.locator('.native-document-notice')).toContainText('部分最近记录未能更新');
+  await expect(page.locator('.notice-host .notice')).toContainText('部分最近记录未能更新');
 });
 
 test('an untitled document has no rename entry and the menu item changes nothing', async ({

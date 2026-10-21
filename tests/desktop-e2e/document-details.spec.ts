@@ -269,7 +269,7 @@ test('both side panels resize live within their limits and keep thin dividers wi
   // The handle is the whole gap between the panes; drag relative to where it was grabbed.
   await page.mouse.move(box.x + box.width / 2 - 100, box.y + 100, { steps: 6 });
   await expect(
-    page.locator('.native-document-notice').filter({ hasText: 'ResizeObserver' }),
+    page.locator('.notice-host .notice').filter({ hasText: 'ResizeObserver' }),
   ).toHaveCount(0);
   await expect(handle).toHaveAttribute('aria-valuenow', '380');
   await expect.poll(async () => (await details(page).boundingBox())?.width).toBe(380);

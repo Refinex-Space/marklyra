@@ -116,7 +116,7 @@ test('stale current document search retains the live caret and dirty source', as
   await expect(frame.locator('#write > p').first()).toHaveText('前🙂 needleX');
   const history = await layoutHistory(page);
   await page.locator('.workspace-results button').click();
-  await expect(page.locator('.native-document-notice')).toContainText('未跳转到旧位置');
+  await expect(page.locator('.notice-host .notice')).toContainText('未跳转到旧位置');
   expect(await layoutHistory(page)).toBe(history);
   expect(
     await frame.locator('#write').evaluate(() => ({
@@ -148,7 +148,7 @@ test('disk change between search and open does not jump to stale coordinates', a
   await emitLayoutMenu(page, 'view:workspace-search');
   await page.getByRole('searchbox', { name: '搜索文件', exact: true }).fill('needle');
   await page.locator('.workspace-results button').click();
-  await expect(page.locator('.native-document-notice')).toContainText('未跳转到旧位置');
+  await expect(page.locator('.notice-host .notice')).toContainText('未跳转到旧位置');
   await expect(
     page.frameLocator('.marklyra-editor-frame').locator('#write > p').first(),
   ).toHaveText('前🙂 changed');

@@ -395,7 +395,10 @@ test('cross-parent alias metadata preserves separate real editors and histories 
       );
     }
     await publish(page, 'original-a', '/mock/Creation/Existing.md', 'trashed', 3);
-    await expect(page.getByRole('status').filter({ hasText: '文件已移入回收站' })).toBeVisible();
+    const trashed = page.locator('.notice-host .notice-warning').filter({ hasText: '文件已移入回收站' });
+    await expect(trashed).toBeVisible();
+    await trashed.getByRole('button', { name: '关闭提示' }).click();
+    await expect(trashed).toHaveCount(0);
     await publish(alias, 'alias-b', '/mock/Trash/Existing 2.md', 'available', 3);
     await publish(page, 'original-a', '/mock/Creation/Existing.md', 'available', 4);
     await publish(alias, 'alias-b', '/mock/Creation/Existing.md', 'available', 4);

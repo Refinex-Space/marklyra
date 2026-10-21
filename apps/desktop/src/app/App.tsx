@@ -54,6 +54,7 @@ import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index
 import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
 import { hostTextInputFocused, useNativeMenus } from '../features/menus/useNativeMenus.js';
 import { NoticeHost } from '../features/notices/NoticeHost.js';
+import { notify, useNotice } from '../features/notices/notices.js';
 import { useOsOpenEvents } from '../features/os-integration/useOsOpenEvents.js';
 import { OutlinePanel } from '../features/outline/OutlinePanel.js';
 import { RecentFilesPanel } from '../features/recent-files/RecentFilesPanel.js';
@@ -174,7 +175,6 @@ export function App() {
   const preferencesSession = useRef<Promise<boolean> | null>(null);
   const preferencesQuit = useRef<string | null>(null);
   const [statisticsOpen, setStatisticsOpen] = useState(false);
-  const [nativeNotice, setNativeNotice] = useState('');
   const [closingPanel, setClosingPanel] = useState(false);
   const closingPanelRef = useRef(false);
   const panelEditorOrigin = useRef({ preferences: false, statistics: false });
@@ -1058,7 +1058,7 @@ export function App() {
         if (hostTextInputFocused(expectedEditor) && value.type !== 'find') return;
         await actions.current.command(value, true);
       },
-      onError: (error) => setNativeNotice(`无法完成上一条编辑操作，暂未保存：${error.message}`),
+      onError: (error) => notify(`无法完成上一条编辑操作，暂未保存：${error.message}`, 'error'),
     });
     nativeCommandBridge.current = bridge;
     return () => {
@@ -1175,7 +1175,7 @@ export function App() {
       (value) => {
         if (alive) {
           setRuntime(value);
-          if (value.nativeInputWarning) setNativeNotice(value.nativeInputWarning);
+          if (value.nativeInputWarning) notify(value.nativeInputWarning, 'warning');
         }
       },
       (error) => {
@@ -1639,12 +1639,8 @@ export function App() {
         actions.current.doc.setMessage(`大纲跟随设置失败：${String(error)}`),
       );
   }, [ready, outlinePanelOpen]);
-  useEffect(() => {
-    if (!chrome.native || !doc.message) return;
-    setNativeNotice(doc.message);
-    const timer = setTimeout(() => setNativeNotice(''), 6000);
-    return () => clearTimeout(timer);
-  }, [chrome.native, doc.message]);
+  // Native chrome has no status bar; document messages use the shared toast.
+  useNotice(chrome.native ? doc.message : '', 'warning');
   useEffect(() => {
     if (!chrome.native) return;
     let alive = true;
@@ -2595,11 +2591,6 @@ export function App() {
           )}
         </DocumentDetailsPanel>
       </div>
-      {chrome.native && nativeNotice && (
-        <div role="status" className="native-document-notice">
-          {nativeNotice}
-        </div>
-      )}
       {quickOpen && (
         <QuickOpen
           initialTab={quickOpen.tab}
@@ -2626,9 +2617,18 @@ export function App() {
       )}
       <NoticeHost />
       {markdownSystem.initial && markdownSystem.error && (
-        <div role="alert" id="markdown-preferences-sync-status" className="native-document-notice">
+        <div
+          role="alert"
+          id="markdown-preferences-sync-status"
+          className="notice notice-error native-document-notice"
+        >
           {markdownSystem.error}{' '}
-          <button type="button" disabled={markdownSystem.working} onClick={markdownSystem.retry}>
+          <button
+            type="button"
+            className="notice-action"
+            disabled={markdownSystem.working}
+            onClick={markdownSystem.retry}
+          >
             重试同步
           </button>
         </div>
