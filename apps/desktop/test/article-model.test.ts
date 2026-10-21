@@ -32,15 +32,18 @@ describe('article projection', () => {
 });
 
 describe('file sorting', () => {
+  // The fixture was recorded under an English default locale; the app itself follows the
+  // person's language (zh-CN collation orders é before e), so the recording locale is pinned.
+  const english = new Intl.Collator('en').compare;
   for (const row of sortCases.rows)
     it(`${row.left} / ${row.right}`, () => {
       const left = { name: row.left, modifiedAt: 1000, createdAt: 5000 };
       const right = { name: row.right, modifiedAt: 2000, createdAt: 1000 };
       for (const sort of fileSortTypes) {
-        expect(Math.sign(compareFiles(left, right, sort)) || 0).toBe(
+        expect(Math.sign(compareFiles(left, right, sort, false, english)) || 0).toBe(
           Math.sign(row.mac[String(sort) as keyof typeof row.mac]),
         );
-        expect(Math.sign(compareFiles(left, right, sort, true)) || 0).toBe(
+        expect(Math.sign(compareFiles(left, right, sort, true, english)) || 0).toBe(
           Math.sign(row.winBranch[String(sort) as keyof typeof row.winBranch]),
         );
       }

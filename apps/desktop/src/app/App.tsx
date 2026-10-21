@@ -24,11 +24,23 @@ import { SidebarResize } from '../components/SidebarResize.js';
 import { Titlebar } from '../components/Titlebar.js';
 import { useModalFocus } from '../components/useModalFocus.js';
 import { AiPanel } from '../features/ai/AiPanel.js';
+import { CalendarPanel } from '../features/daily/CalendarPanel.js';
+import { DailyHeader } from '../features/daily/DailyHeader.js';
+import {
+  type DailyPreferences,
+  dailyRelativePath,
+  effectiveWeekStart,
+} from '../features/daily/daily-preferences.js';
+import { HomeToday } from '../features/daily/HomeToday.js';
+import { dateQuickItems } from '../features/daily/quick-dates.js';
+import { useDailyController } from '../features/daily/useDailyController.js';
 import { DocumentDetailsPanel } from '../features/document-details/DocumentDetailsPanel.js';
 import {
   documentDetailsTransitionMs,
   useDocumentDetailsLayout,
 } from '../features/document-details/useDocumentDetailsLayout.js';
+import { DocumentNamePopover } from '../features/documents/DocumentNamePopover.js';
+import { DocumentSkeleton } from '../features/documents/DocumentSkeleton.js';
 import { ExternalChangeNotice } from '../features/documents/ExternalChangeNotice.js';
 import { RecoveryPanel } from '../features/documents/RecoveryPanel.js';
 import {
@@ -36,12 +48,18 @@ import {
   searchPositionIsCurrent,
 } from '../features/documents/search-position.js';
 import { useAutoSave } from '../features/documents/useAutoSave.js';
-import { useDocumentSession } from '../features/documents/useDocumentSession.js';
-import { DocumentNamePopover } from '../features/documents/DocumentNamePopover.js';
-import { DocumentSkeleton } from '../features/documents/DocumentSkeleton.js';
 import { useDocumentRename } from '../features/documents/useDocumentRename.js';
+import { useDocumentSession } from '../features/documents/useDocumentSession.js';
 import { useExternalChanges } from '../features/documents/useExternalChanges.js';
+import { isExportAction, useDocumentExport } from '../features/export/useDocumentExport.js';
+import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
 import { HomeScreen } from '../features/home/HomeScreen.js';
+import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
+import { hostTextInputFocused, useNativeMenus } from '../features/menus/useNativeMenus.js';
+import { NoticeHost } from '../features/notices/NoticeHost.js';
+import { notify, useNotice } from '../features/notices/notices.js';
+import { useOsOpenEvents } from '../features/os-integration/useOsOpenEvents.js';
+import { OutlinePanel } from '../features/outline/OutlinePanel.js';
 import { QuickOpen } from '../features/quick-open/QuickOpen.js';
 import type { QuickTab } from '../features/quick-open/quick-open-model.js';
 import {
@@ -49,25 +67,17 @@ import {
   type QuickNotes,
   quickItems,
 } from '../features/quick-open/quick-sources.js';
-import { isExportAction, useDocumentExport } from '../features/export/useDocumentExport.js';
-import { SidebarHeader, WorkspaceSidebar } from '../features/file-explorer/index.js';
-import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
-import { hostTextInputFocused, useNativeMenus } from '../features/menus/useNativeMenus.js';
-import { NoticeHost } from '../features/notices/NoticeHost.js';
-import { notify, useNotice } from '../features/notices/notices.js';
-import { useOsOpenEvents } from '../features/os-integration/useOsOpenEvents.js';
-import { OutlinePanel } from '../features/outline/OutlinePanel.js';
 import { RecentFilesPanel } from '../features/recent-files/RecentFilesPanel.js';
 import { editorSessionPreferences } from '../features/settings/editor-session-preferences.js';
 import { PreferencesPanel } from '../features/settings/PreferencesPanel.js';
 import { PreferencesWindow } from '../features/settings/PreferencesWindow.js';
-import { SettingsSkeleton } from '../features/settings/SettingsSkeleton.js';
 import type { StatisticsUnit } from '../features/settings/preferences.js';
 import {
   applicationEditorPreferences,
   applicationStatisticsPreferences,
 } from '../features/settings/runtime-preferences/application-preferences.js';
 import { startupEditorConfiguration } from '../features/settings/runtime-preferences/startup-editor-preferences.js';
+import { SettingsSkeleton } from '../features/settings/SettingsSkeleton.js';
 import { useApplicationPreferences } from '../features/settings/useApplicationPreferences.js';
 import { useMarkdownPreferences } from '../features/settings/useMarkdownPreferences.js';
 import { usePreferences } from '../features/settings/usePreferences.js';
@@ -230,6 +240,12 @@ export function App() {
       await editorCommandWork.current;
     },
   );
+  // A day's unsaved draft is already named after the file it becomes.
+  const documentName = doc.file
+    ? filename(doc.file.path)
+    : doc.dailyDraft
+      ? `${doc.dailyDraft.key}.md`
+      : '未命名';
   const cancelDocumentAction = async () => {
     if (doc.working || !doc.pending || cancellingDocumentRef.current) return;
     cancellingDocumentRef.current = true;
@@ -338,7 +354,7 @@ export function App() {
   const detailsLayout = useDocumentDetailsLayout(outlinePanelOpen || aiPanelOpen, detailsMode);
   const [chooseRequest, setChooseRequest] = useState(0);
   const exporter = useDocumentExport(editor, {
-    title: doc.file ? filename(doc.file.path) : '未命名',
+    title: documentName,
     owner: doc.getOwner,
     sourceId: () => doc.getFile()?.id,
     unavailable: doc.working || !!doc.pending || !ready || themeSystem.working,
@@ -576,13 +592,41 @@ export function App() {
   // A start that has reported a problem stops presenting itself as loading: the skeleton gives
   // way to the message and its retry instead of waiting for something that is not coming.
   const startupFailed = Boolean(applicationSystem.error || markdownSystem.error || doc.message);
+  const daily = useDailyController(
+    doc,
+    sessionWorkspace ? workspaceIdentity.current : null,
+    preferences.daily,
+    () => void editor.current?.focus().catch((error) => doc.setMessage(String(error))),
+  );
+  const changeDailyPreferences = (next: DailyPreferences) =>
+    setPreferences((current) => ({ ...current, daily: next }));
+  const calendarShown =
+    !!daily.location &&
+    sidebar &&
+    tab === 'files' &&
+    preferences.daily.calendarView !== 'collapsed';
+  /** 显示 → 日历: reveal the calendar (opening the sidebar if needed), or collapse it. */
+  const toggleCalendar = () => {
+    const settings = preferences.daily;
+    if (!settings.enabled) return;
+    if (calendarShown) {
+      changeDailyPreferences({ ...settings, calendarView: 'collapsed' });
+      return;
+    }
+    setSidebar(true);
+    setTab('files');
+    if (settings.calendarView === 'collapsed')
+      changeDailyPreferences({ ...settings, calendarView: settings.expandedView });
+  };
   // The first screen of a window with nothing open. It covers the editor, which stays mounted but
-  // inert underneath, so no input or command can reach text nobody can see.
+  // inert underneath, so no input or command can reach text nobody can see. A day's unsaved draft
+  // is a document being written, never the home view.
   const homeVisible =
     homeAllowed &&
     startupSettled &&
     !homeDismissed &&
     !doc.file &&
+    !doc.dailyDraft &&
     !doc.dirty &&
     !doc.pending &&
     doc.snapshot === '';
@@ -747,6 +791,8 @@ export function App() {
       closingPanel,
     preferencesOpen,
     statisticsOpen,
+    daily,
+    toggleCalendar,
   });
   actions.current = {
     closeDocument,
@@ -790,6 +836,8 @@ export function App() {
       closingPanel,
     preferencesOpen,
     statisticsOpen,
+    daily,
+    toggleCalendar,
   };
   const inputModalOpen = recoveryOpen || recentOpen || !!doc.pending;
   const previousInputModal = useRef(false);
@@ -1097,6 +1145,9 @@ export function App() {
       canImport: (exporter.capabilities?.importExtensions.length ?? 0) > 0,
       canRename: rename.canRename,
       home: homeVisible,
+      dailyAvailable: !!daily.location,
+      dailyOpen: !!daily.activeKey,
+      calendar: calendarShown,
     },
     async () => {
       const bridge = nativeCommandBridge.current;
@@ -1234,6 +1285,18 @@ export function App() {
       }
       if (value === 'view:ai') {
         actions.current.toggleAiPanel();
+        return;
+      }
+      if (value === 'daily:today') {
+        actions.current.daily.openToday();
+        return;
+      }
+      if (value === 'daily:previous' || value === 'daily:next') {
+        actions.current.daily.step(value === 'daily:previous' ? -1 : 1);
+        return;
+      }
+      if (value === 'view:calendar') {
+        actions.current.toggleCalendar();
         return;
       }
       if (value === 'view:outline' || value === 'view:outline-popover') {
@@ -1588,10 +1651,8 @@ export function App() {
   }, [themeSystem.dark]);
   useEffect(() => {
     if (desktopAvailable && !chrome.native)
-      void getCurrentWindow().setTitle(
-        `${doc.dirty ? '● ' : ''}${doc.file ? filename(doc.file.path) : '未命名'} — MarkLyra`,
-      );
-  }, [doc.file, doc.dirty, chrome.native]);
+      void getCurrentWindow().setTitle(`${doc.dirty ? '● ' : ''}${documentName} — MarkLyra`);
+  }, [documentName, doc.dirty, chrome.native]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: Native resolves the same ID to its new path after a metadata generation change.
   useEffect(() => {
     if (!chrome.native) return;
@@ -1607,6 +1668,7 @@ export function App() {
         viewMode,
         aiPanelOpen,
         !homeVisible,
+        doc.file ? undefined : documentName,
       )
       .catch((error: unknown) =>
         actions.current.doc.setMessage(`标题栏更新失败：${String(error)}`),
@@ -1614,6 +1676,7 @@ export function App() {
   }, [
     chrome.native,
     doc.file?.id,
+    documentName,
     doc.file?.metadataRevision,
     doc.dirty,
     statistics.value,
@@ -1806,7 +1869,7 @@ export function App() {
       )}
       {webTitlebar && (
         <Titlebar
-          title={doc.file ? filename(doc.file.path) : '未命名'}
+          title={documentName}
           dirty={doc.dirty}
           hasFile={!!doc.file}
           onRename={rename.canRename ? openRename : undefined}
@@ -1858,7 +1921,7 @@ export function App() {
             className="document-title"
             title={doc.file ? displayPath(doc.file.path) : '未命名文档'}
           >
-            {doc.file ? filename(doc.file.path) : '未命名'}
+            {documentName}
             {doc.dirty && (
               <span className="document-dirty" title="未保存">
                 {' •'}
@@ -2205,6 +2268,33 @@ export function App() {
               onOpenDocument={(workspaceId, relativePath, match) => {
                 void doc.request({ kind: 'workspace', workspaceId, relativePath, match });
               }}
+              renderCalendar={
+                preferences.daily.enabled
+                  ? (context) => (
+                      <CalendarPanel
+                        location={{
+                          workspaceId: context.workspace.id,
+                          folder: preferences.daily.folder,
+                          layout: preferences.daily.layout,
+                        }}
+                        preferences={preferences.daily}
+                        onPreferencesChange={changeDailyPreferences}
+                        today={daily.today}
+                        activeKey={daily.activeKey}
+                        liveText={
+                          daily.activeKey && doc.file
+                            ? { key: daily.activeKey, text: doc.snapshot }
+                            : null
+                        }
+                        refresh={context.refresh}
+                        platform={runtime?.platform ?? 'browser'}
+                        disabled={context.disabled || !ready || !!doc.pending}
+                        onOpen={daily.open}
+                        onEntryAction={context.entryAction}
+                      />
+                    )
+                  : undefined
+              }
               onCurrentDocument={(match) => {
                 if (match) {
                   const active = editor.current;
@@ -2315,6 +2405,25 @@ export function App() {
                 重试
               </button>
             </div>
+          )}
+          {daily.activeKey && !homeVisible && (
+            <DailyHeader
+              noteKey={daily.activeKey}
+              today={daily.today}
+              lunar={preferences.daily.lunar}
+              draftPath={
+                doc.dailyDraft
+                  ? dailyRelativePath(
+                      doc.dailyDraft.location.folder,
+                      doc.dailyDraft.location.layout,
+                      doc.dailyDraft.key,
+                    )
+                  : null
+              }
+              disabled={!ready || doc.working || !!doc.pending}
+              onStep={daily.step}
+              onToday={daily.openToday}
+            />
           )}
           <div className="runtime-editor-mount">
             {runtime && doc.recoveryReady && markdownSystem.initial && applicationSystem.value ? (
@@ -2456,6 +2565,25 @@ export function App() {
               onOpenNote={() => openQuickOpen('note')}
               onOpenRecent={(id) => void doc.request({ kind: 'recent', id })}
               onViewAll={() => menuHandler.current('recent-files')}
+              today={
+                daily.location ? (
+                  <HomeToday
+                    location={daily.location}
+                    today={daily.today}
+                    lunar={preferences.daily.lunar}
+                    mac={runtime?.platform === 'macos'}
+                    onOpenDay={daily.openToday}
+                    onOpenItem={(relativePath, item) =>
+                      void doc.request({
+                        kind: 'workspace',
+                        workspaceId: daily.location?.workspaceId ?? '',
+                        relativePath,
+                        match: { line: item.line, column: item.column, matchLength: 0 },
+                      })
+                    }
+                  />
+                ) : undefined
+              }
             />
           )}
         </main>
@@ -2606,12 +2734,25 @@ export function App() {
               ...(exporter.capabilities?.image ? ['image'] : []),
               ...(exporter.capabilities?.formats ?? []),
             ],
+            daily: !!daily.location,
+            dailyOpen: !!daily.activeKey,
             run: (action) => menuHandler.current(action),
             openAiSettings: () => {
               sessionStorage.setItem('marklyra.settings.ai', 'true');
               actions.current.openPreferences();
             },
           })}
+          dates={
+            daily.location
+              ? (query, tab) =>
+                  dateQuickItems(query, tab, {
+                    today: daily.today,
+                    weekStart: effectiveWeekStart(preferences.daily.weekStart),
+                    weekly: preferences.daily.weekly,
+                    open: (key) => actions.current.daily.open(key),
+                  })
+              : undefined
+          }
           notes={quickNotes?.items ?? null}
           {...(quickNotes?.hint ? { notesHint: quickNotes.hint } : {})}
           onClose={closeQuickOpen}

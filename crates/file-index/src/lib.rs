@@ -4,6 +4,7 @@ mod articles;
 mod catalog;
 mod counts;
 mod creation;
+mod daily;
 #[cfg(test)]
 mod directory_test_support;
 mod duplicate;
@@ -25,6 +26,9 @@ pub use articles::{
 pub use catalog::WorkspaceCatalogSnapshot;
 pub use counts::DocumentCounts;
 pub use creation::{CreatedWorkspaceEntry, CreationRenamePlan};
+pub use daily::{
+    daily_relative_path, DailyLayout, DailyNote, MAX_DAILY_KEYS, MAX_DAILY_TEXT_BYTES,
+};
 pub use duplicate::{EntryDuplicateReceipt, EntryDuplicateResolution};
 pub use entry_move::{
     EntryMoveCommit, EntryMoveConflictPolicy, EntryMoveDestination, EntryMovePlacement,
@@ -83,6 +87,16 @@ pub enum IndexError {
     NotMarkdown,
     #[error("工作区数量已达上限，请先关闭不需要的工作区")]
     TooManyWorkspaces,
+    #[error("日程日期无效，应为真实日期 YYYY-MM-DD 或 ISO 周 YYYY-Www")]
+    InvalidDailyKey,
+    #[error(
+        "日程文件夹必须是工作区内的相对路径，不能为空，也不能包含隐藏目录、上级目录或系统保留字符"
+    )]
+    InvalidDailyFolder,
+    #[error("一次最多读取 64 个日程")]
+    TooManyDailyKeys,
+    #[error("该日期的日程文件已存在")]
+    DailyNoteExists,
     #[error("搜索词必须为 1–256 个字符，且不包含换行或空字符")]
     InvalidQuery,
     #[error("文件操作已执行，但文件或目录身份随后变化；旧写权限必须撤销，请刷新核对或另存当前正文，未自动回滚")]

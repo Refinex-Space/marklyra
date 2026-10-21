@@ -1,6 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import {
   type KeyboardEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -13,7 +14,7 @@ import { ShellGlyph } from '../../components/ShellGlyph.js';
 import { type DirectoryHistoryEntry, directoryHistory } from '../../services/directory-history.js';
 import { displayPath } from '../../services/display-path.js';
 import { desktopAvailable, type SavedDocumentPreview } from '../../services/documents.js';
-import type { EntryEditorSnapshot } from '../../services/entry-actions.js';
+import type { EntryAction, EntryEditorSnapshot } from '../../services/entry-actions.js';
 import {
   type WorkspaceEntryPresence,
   type WorkspaceEntryRenamed,
@@ -90,6 +91,14 @@ export interface WorkspaceSidebarProps {
   searchTargetId?: string;
   filePreferences?: FileSidebarPreferences;
   onFilePreferencesChange?: (value: FileSidebarPreferences) => void;
+  /** Docked below the file list (日程日历); hidden while searching. */
+  renderCalendar?: ((context: SidebarCalendarContext) => ReactNode) | undefined;
+}
+export interface SidebarCalendarContext {
+  workspace: WorkspaceFolder;
+  refresh: number;
+  disabled: boolean;
+  entryAction(relativePath: string, action: EntryAction): void;
 }
 
 export function WorkspaceSidebar({
@@ -117,6 +126,7 @@ export function WorkspaceSidebar({
   searchTargetId = DEFAULT_SIDEBAR_SEARCH_TARGET,
   filePreferences,
   onFilePreferencesChange,
+  renderCalendar,
 }: WorkspaceSidebarProps) {
   const [workspace, setWorkspace] = useState<WorkspaceFolder | null>(null);
   const [selecting, setSelecting] = useState(false);
@@ -765,6 +775,16 @@ export function WorkspaceSidebar({
   useNotice(entryActions.message, 'error');
   useNotice(rename.message, 'error');
   useNotice(creation.message, 'error');
+  const calendar =
+    workspace && renderCalendar
+      ? renderCalendar({
+          workspace,
+          refresh,
+          disabled: mutationDisabled,
+          entryAction: (relativePath, action) =>
+            void entryActions.start({ relativePath, kind: 'file' }, action),
+        })
+      : null;
 
   return (
     <section
@@ -772,6 +792,7 @@ export function WorkspaceSidebar({
       aria-label="目录与全文搜索"
       data-mode={activeTab}
       data-empty={!workspace || undefined}
+      data-calendar={(!!calendar && activeTab === 'files') || undefined}
       onDragStart={move.dragStart}
       onDragEnd={move.dragEnd}
       onDragOver={move.dragOver}
@@ -1097,6 +1118,7 @@ export function WorkspaceSidebar({
           contextPoint={contextPoint}
         />
       )}
+      {activeTab === 'files' && calendar}
       <WorkspaceEntryMenu request={entryMenu.request} dismiss={entryMenu.dismiss} />
     </section>
   );

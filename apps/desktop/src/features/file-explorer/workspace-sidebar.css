@@ -707,7 +707,8 @@
   animation: workspace-footer-reveal 0.5s;
 }
 /* Stays in flow; relative only turns the footer into the anchor of its upward popup. */
-.sidebar[data-file-view="tree"] .workspace-footer {
+.sidebar[data-file-view="tree"] .workspace-footer,
+.workspace-sidebar[data-calendar] .workspace-footer {
   position: relative;
 }
 .sidebar[data-file-view="tree"]:hover .workspace-directory-tree {

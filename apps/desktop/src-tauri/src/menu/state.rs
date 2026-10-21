@@ -59,6 +59,15 @@ pub struct Snapshot {
     home: bool,
     #[serde(default)]
     text_input_focused: bool,
+    /// 日程 is enabled and a folder is open, so a day can be opened.
+    #[serde(default)]
+    daily_available: bool,
+    /// The open document (or unsaved draft) is a day or week note.
+    #[serde(default)]
+    daily_open: bool,
+    /// The calendar is expanded below the file list.
+    #[serde(default)]
+    calendar: bool,
 }
 
 #[derive(Default)]
@@ -137,6 +146,8 @@ fn home_action(action: &str) -> bool {
             | "recent-files"
             | "marklyra-drafts"
             | "open-folder"
+            | "daily:today"
+            | "view:calendar"
             | "preferences"
             | "view:sidebar"
             | "view:files"
@@ -174,6 +185,12 @@ impl Snapshot {
         }
         if action == "import-document" {
             return self.can_import;
+        }
+        if matches!(action, "daily:today" | "view:calendar") {
+            return self.daily_available;
+        }
+        if matches!(action, "daily:previous" | "daily:next") {
+            return self.daily_available && self.daily_open;
         }
         if action == "close-document" {
             // Back to the home view; there is nothing to close while it is already showing.
@@ -243,6 +260,7 @@ impl Snapshot {
             }
             "view:workspace-search" => self.sidebar && self.sidebar_tab == SidebarTab::Search,
             "view:statistics" => self.statistics_open,
+            "view:calendar" => self.calendar,
             "view:fullscreen" => self.fullscreen,
             _ => {
                 if let Some(style) = action.strip_prefix("format:") {
@@ -286,6 +304,7 @@ pub(super) fn checkable(action: &str) -> bool {
                 | "view:articles"
                 | "view:workspace-search"
                 | "view:statistics"
+                | "view:calendar"
                 | "view:fullscreen"
         )
 }
@@ -511,6 +530,34 @@ mod tests {
         state.outline_panel_open = true;
         assert!(state.checked("view:outline"));
         assert!(!state.sidebar);
+    }
+    #[test]
+    fn daily_actions_follow_availability_open_note_and_home() {
+        let mut state = ready();
+        for action in [
+            "daily:today",
+            "view:calendar",
+            "daily:previous",
+            "daily:next",
+        ] {
+            assert!(!state.enabled(action), "{action}");
+        }
+        state.daily_available = true;
+        assert!(state.enabled("daily:today"));
+        assert!(state.enabled("view:calendar"));
+        assert!(!state.enabled("daily:previous"));
+        state.daily_open = true;
+        assert!(state.enabled("daily:previous"));
+        assert!(state.enabled("daily:next"));
+        state.home = true;
+        assert!(state.enabled("daily:today"));
+        assert!(state.enabled("view:calendar"));
+        assert!(!state.enabled("daily:next"));
+        assert!(!state.checked("view:calendar"));
+        state.calendar = true;
+        assert!(state.checked("view:calendar"));
+        assert!(checkable("view:calendar"));
+        assert!(!checkable("daily:today"));
     }
     #[test]
     fn late_snapshot_does_not_reverse_newer_same_context() {

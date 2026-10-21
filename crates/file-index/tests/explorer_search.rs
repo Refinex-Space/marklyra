@@ -43,6 +43,17 @@ fn browse_articles_and_search_share_name_and_opened_handle_filters() {
     .unwrap();
     let package = same_file::Handle::from_file(package.into_std_file()).unwrap();
     let hidden = same_file::Handle::from_path(root.path().join("system-hidden.md")).unwrap();
+    // macOS and Linux ask the host filter about an opened handle; Windows never calls it and
+    // classifies entries by their own hidden/system attributes, so mark them for real there.
+    #[cfg(windows)]
+    for entry in ["package.fixture", "system-hidden.md"] {
+        let status = std::process::Command::new("attrib")
+            .arg("+h")
+            .arg(root.path().join(entry))
+            .status()
+            .unwrap();
+        assert!(status.success(), "attrib +h {entry}");
+    }
     let include = |handle: &fs::File| {
         let identity = same_file::Handle::from_file(handle.try_clone().unwrap()).unwrap();
         identity != package && identity != hidden

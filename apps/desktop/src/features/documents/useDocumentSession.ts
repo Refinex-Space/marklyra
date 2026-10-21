@@ -1,6 +1,7 @@
 import { type MarkLyraEditor, rewriteImageReferences } from '@marklyra/editor-runtime';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { type MutableRefObject, useEffect, useRef, useState } from 'react';
+import { DAILY_EXISTS, type DailyLocation, dailyNotes } from '../../services/daily.js';
 import {
   type ChangedDocument,
   type DocumentFile,
@@ -19,6 +20,7 @@ import {
   fenceImageSave,
   imageSaves,
   provisionalImageSources,
+  setDraftImageHandoff,
 } from '../../services/images.js';
 import { recentFiles } from '../../services/recent.js';
 import {
@@ -45,7 +47,15 @@ export type DocumentAction =
       workspaceId: string;
       relativePath: string;
       match?: WorkspaceMatchPosition | undefined;
-    };
+    }
+  | { kind: 'daily'; location: DailyLocation; key: string; template: string };
+/** A day without a file: an untitled draft that is created at its fixed path on first save. */
+export interface DailyDraft {
+  location: DailyLocation;
+  key: string;
+}
+const DAILY_CONFLICT =
+  '该日日程已在磁盘上创建（可能来自同步或其他窗口），未覆盖。当前内容保留为未命名草稿，请打开已有日程后合并。';
 interface SaveAttempt {
   source: string | null;
   revision?: number;
@@ -98,6 +108,12 @@ export function useDocumentSession(
   }, []);
   const replacing = useRef(false);
   const reloadingView = useRef(false);
+  const daily = useRef<DailyDraft | null>(null);
+  const [dailyDraft, setDailyDraftState] = useState<DailyDraft | null>(null);
+  const setDailyDraft = (value: DailyDraft | null) => {
+    daily.current = value;
+    setDailyDraftState(value);
+  };
   const [file, setFile] = useState<DocumentFile | null>(null);
   const [savedPreview, setSavedPreview] = useState<SavedDocumentPreview>();
   const [dirty, setDirty] = useState(restored.current && source.current !== '');
@@ -403,6 +419,7 @@ export function useDocumentSession(
     replacing.current = false;
     documentOwner.current = {};
     current.current = document;
+    setDailyDraft(null);
     imageContext.current = nextImages;
     imageContextDraft.current = !document;
     if (previousImages && previousImages !== nextImages) {
@@ -453,7 +470,9 @@ export function useDocumentSession(
     if (!as && document?.locationState === 'trashed')
       throw new Error('文件已移入回收站，请先撤销文件操作或使用“另存为”，未重新创建旧文件');
     const previous = document;
-    const suggestedName = previous ? undefined : await active.getSuggestedFileName();
+    // A day's draft has one fixed, host-computed location: no dialog, no image staging.
+    const dailyTarget = !as && !previous && !nativeClose ? daily.current : null;
+    const suggestedName = previous || dailyTarget ? undefined : await active.getSuggestedFileName();
     assertOwner();
     if (attempt) {
       attempt.source = text;
@@ -463,7 +482,7 @@ export function useDocumentSession(
     let imageWarning: string | undefined;
     let preserveReferences = false;
     let references: string[] = [];
-    if (as || !previous) {
+    if ((as || !previous) && !dailyTarget) {
       try {
         references = (await active.getImageReferences()).filter(
           (reference) => !/^(?:https?:|\/\/|data:)/i.test(reference),
@@ -566,6 +585,16 @@ export function useDocumentSession(
         default:
           throw new Error('原生保存确认返回了未知结果，已保留文稿');
       }
+    } else if (dailyTarget) {
+      try {
+        result = await dailyNotes.create(dailyTarget.location, dailyTarget.key, text);
+      } catch (error) {
+        if (String(error).includes(DAILY_EXISTS) && daily.current === dailyTarget) {
+          setDailyDraft(null);
+          throw new Error(DAILY_CONFLICT);
+        }
+        throw error;
+      }
     } else {
       result =
         as || !previous
@@ -590,6 +619,7 @@ export function useDocumentSession(
     assertOwner();
     current.current = result;
     document = result;
+    setDailyDraft(null);
     restoredMetadata.current = null;
     saved.current = text;
     setFile(result);
@@ -710,6 +740,89 @@ export function useDocumentSession(
     });
     return work;
   };
+  // The draft owner keeps resolving to its new file until the editor has adopted it.
+  const imageHandoff = useRef<{ draft: string; next: string } | null>(null);
+  const materializeForImage = (draft: string): string | Promise<string> => {
+    if (imageHandoff.current?.draft === draft) return imageHandoff.current.next;
+    const target = daily.current;
+    if (!target || !imageContextDraft.current || imageContext.current !== draft) return draft;
+    return createForImage(draft, target);
+  };
+  const createForImage = async (draft: string, target: DailyDraft): Promise<string> => {
+    if (busy.current) throw new Error('文档操作进行中，请稍后再插入图片');
+    busy.current = true;
+    setWorking(true);
+    try {
+      // No flush: the editor is waiting for this image. Its later edits stay unsaved.
+      const text = source.current;
+      let result: DocumentFile;
+      try {
+        result = await dailyNotes.create(target.location, target.key, text);
+      } catch (error) {
+        if (String(error).includes(DAILY_EXISTS) && daily.current === target) {
+          setDailyDraft(null);
+          throw new Error(DAILY_CONFLICT);
+        }
+        throw error;
+      }
+      if (daily.current !== target || imageContext.current !== draft) {
+        await documents.close(result.id).catch(() => {});
+        throw new Error('日程文件已创建，但当前文稿已更换；请从日历重新打开该日');
+      }
+      try {
+        await reconcileMetadata(result);
+      } catch {
+        mergeMetadata(result);
+      }
+      imageHandoff.current = { draft, next: result.id };
+      current.current = result;
+      setDailyDraft(null);
+      restoredMetadata.current = null;
+      saved.current = text;
+      setFile(result);
+      setSavedPreview({ path: result.path, sourcePrefix: text.slice(0, 500) });
+      setDirty(source.current !== text);
+      protect();
+      void remember(result).then((warning) => warning && setMessage(warning));
+      return result.id;
+    } finally {
+      busy.current = false;
+      setWorking(false);
+    }
+  };
+  const settleImageHandoff = (draft: string, next: string) => {
+    // A macrotask later the editor has inserted the image under its old generation.
+    setTimeout(() => {
+      void (async () => {
+        const active = editor.current;
+        if (imageHandoff.current?.next !== next) return;
+        try {
+          if (!active || current.current?.id !== next) return;
+          await flush(active).catch(() => {});
+          await active.setDocumentContext(next);
+          const warning = await activateImages(next);
+          if (warning) return;
+          imageContext.current = next;
+          imageContextDraft.current = false;
+          await closeUntitledImageOwner(draft).catch(() => {});
+        } catch (error) {
+          setMessage(`日程已创建；图片上下文未交接，请重试保存：${String(error)}`);
+        } finally {
+          if (imageHandoff.current?.next === next) imageHandoff.current = null;
+        }
+      })();
+    }, 0);
+  };
+  const handoffHandlers = useRef({ materializeForImage, settleImageHandoff });
+  handoffHandlers.current = { materializeForImage, settleImageHandoff };
+  useEffect(
+    () =>
+      setDraftImageHandoff({
+        materialize: (draft) => handoffHandlers.current.materializeForImage(draft),
+        settle: (draft, next) => handoffHandlers.current.settleImageHandoff(draft, next),
+      }),
+    [],
+  );
   const initializeImageContext = async (active: MarkLyraEditor) => {
     if (!desktopAvailable || current.current || imageContext.current) return;
     const id = await createUntitledImageOwner();
@@ -760,9 +873,14 @@ export function useDocumentSession(
   };
   const autoSave = async (): Promise<'saved' | 'deferred' | 'skipped' | 'failed'> => {
     const active = editor.current;
-    if (!desktopAvailable || !current.current || source.current === saved.current) return 'skipped';
-    if (current.current.locationState === 'trashed') return 'skipped';
-    if (uncertainDocuments.current.has(current.current.id)) return 'skipped';
+    if (
+      !desktopAvailable ||
+      (!current.current && !daily.current) ||
+      source.current === saved.current
+    )
+      return 'skipped';
+    if (current.current?.locationState === 'trashed') return 'skipped';
+    if (current.current && uncertainDocuments.current.has(current.current.id)) return 'skipped';
     if (
       !active ||
       busy.current ||
@@ -840,6 +958,7 @@ export function useDocumentSession(
     const previous = current.current;
     if (target) mergeMetadata(target);
     current.current = target;
+    setDailyDraft(null);
     imageContext.current = nextImages;
     imageContextDraft.current = !target;
     if (previousImages && previousImages !== nextImages) {
@@ -924,14 +1043,32 @@ export function useDocumentSession(
       source: source.current,
       revision: active.revision,
     };
-    const next =
-      action.kind === 'open'
-        ? await documents.open()
-        : action.kind === 'native-input'
-          ? action.document
-          : action.kind === 'recent'
-            ? await recentFiles.open(action.id)
-            : await workspaces.open(action.workspaceId, action.relativePath);
+    let next: DocumentFile;
+    if (action.kind === 'daily') {
+      const [note] = await dailyNotes.read(action.location, [action.key]);
+      if (!note) {
+        await flush(active);
+        if (
+          active.revision !== opening.revision ||
+          current.current?.id !== opening.id ||
+          active.hasPendingChanges ||
+          source.current !== opening.source
+        )
+          throw new Error('打开期间当前文档已有更改，已保留当前内容，请重试。');
+        await accept(null, action.template);
+        setDailyDraft({ location: action.location, key: action.key });
+        return;
+      }
+      next = await workspaces.open(action.location.workspaceId, note.relativePath);
+    } else
+      next =
+        action.kind === 'open'
+          ? await documents.open()
+          : action.kind === 'native-input'
+            ? action.document
+            : action.kind === 'recent'
+              ? await recentFiles.open(action.id)
+              : await workspaces.open(action.workspaceId, action.relativePath);
     try {
       await flush(active);
     } catch (error) {
@@ -991,7 +1128,7 @@ export function useDocumentSession(
         return;
       }
       if (source.current !== saved.current) {
-        if (desktopAvailable && action.kind === 'close' && !current.current) {
+        if (desktopAvailable && action.kind === 'close' && !current.current && !daily.current) {
           await run(async () => {
             const owner = documentOwner.current;
             const attempt: SaveAttempt = { source: null };
@@ -1019,10 +1156,10 @@ export function useDocumentSession(
           return;
         }
         if (
-          current.current &&
-          ['workspace', 'recent', 'open', 'native-input'].includes(action.kind)
+          (current.current || daily.current) &&
+          ['workspace', 'recent', 'open', 'native-input', 'daily'].includes(action.kind)
         ) {
-          const id = current.current.id;
+          const owner = documentOwner.current;
           const success = await run(async () => {
             let automatic = false;
             try {
@@ -1042,7 +1179,7 @@ export function useDocumentSession(
             }
             await proceedWork(action);
           });
-          if (!success && current.current?.id === id) pendingAction(action);
+          if (!success && documentOwner.current === owner) pendingAction(action);
           return;
         }
         pendingAction(action);
@@ -1299,6 +1436,8 @@ export function useDocumentSession(
     source,
     file,
     getFile: () => current.current,
+    dailyDraft,
+    getDailyDraft: () => daily.current,
     getOwner: () => documentOwner.current,
     acceptsEditorCommands: () => !replacing.current && !reloadingView.current,
     hasUnsavedChanges: () => source.current !== saved.current,

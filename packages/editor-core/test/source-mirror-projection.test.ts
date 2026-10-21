@@ -8,6 +8,7 @@ import {
   type SourceMirrorRebase,
 } from '../src/index.js';
 import type { Patch } from '../src/types.js';
+import { PROPERTY_TIMEOUT } from './property-timeout.js';
 
 function applied(text: string, patches: readonly Patch[]): string {
   for (const patch of [...patches].reverse())
@@ -609,7 +610,9 @@ describe('one content edit with an additional trusted serializer projection', ()
   });
 });
 
-it('preserves independently calculated raw and journal checkpoints through randomized primary edits with virtual separators', () => {
+it('preserves independently calculated raw and journal checkpoints through randomized primary edits with virtual separators', {
+  timeout: PROPERTY_TIMEOUT,
+}, () => {
   fc.assert(
     fc.property(
       fc.array(
@@ -680,7 +683,9 @@ it('preserves independently calculated raw and journal checkpoints through rando
   );
 });
 
-it('retains exact Unicode raw checkpoints through randomized edits, projections, external adoption and arbitrary history jumps', () => {
+it('retains exact Unicode raw checkpoints through randomized edits, projections, external adoption and arbitrary history jumps', {
+  timeout: PROPERTY_TIMEOUT,
+}, () => {
   const operations = fc.array(
     fc.record({
       kind: fc.constantFrom('edit', 'project', 'history', 'external'),

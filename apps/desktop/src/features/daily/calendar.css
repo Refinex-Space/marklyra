@@ -1,0 +1,360 @@
+.daily-calendar {
+  --daily-accent: var(--focus);
+  --daily-cell-height: 30px;
+  container: daily-sidebar / inline-size;
+  flex-shrink: 0;
+  padding: 6px 8px 8px;
+  border-top: var(--marklyra-sidebar-border, 1px solid var(--border));
+  background: var(--sidebar);
+  color: var(--marklyra-sidebar-text, var(--text));
+  font-size: 12px;
+  line-height: 1.2;
+  user-select: none;
+}
+.daily-calendar[data-view="collapsed"] {
+  padding-bottom: 6px;
+}
+.daily-calendar button {
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.daily-calendar button:hover {
+  background: var(--hover);
+}
+.daily-calendar button:focus-visible {
+  outline: 2px solid var(--daily-accent);
+  outline-offset: -2px;
+}
+.daily-calendar .ui-icon {
+  width: 14px;
+  height: 14px;
+}
+.daily-calendar-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  margin-bottom: 2px;
+}
+.daily-calendar-title {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 3px 4px;
+  overflow: hidden;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+span.daily-calendar-title {
+  color: var(--muted);
+}
+.daily-calendar-title .ui-icon {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+}
+.daily-calendar-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 1px;
+  margin-left: auto;
+}
+.daily-calendar-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  color: var(--muted);
+}
+.daily-calendar-actions button:hover {
+  color: var(--text);
+}
+.daily-calendar-actions .daily-calendar-today {
+  padding: 0 6px;
+  color: var(--daily-accent);
+  font-size: 11px;
+}
+.daily-calendar-actions .daily-calendar-warning {
+  color: var(--es-danger, #c2410c);
+}
+.daily-calendar-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.daily-calendar-grid th,
+.daily-calendar-grid td {
+  padding: 0;
+  font-weight: inherit;
+  text-align: center;
+  vertical-align: middle;
+}
+.daily-calendar-weekdays th {
+  height: 22px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.daily-calendar-weekdays [data-weekend] {
+  opacity: 0.75;
+}
+.daily-calendar-grid .daily-calendar-week {
+  width: 22px;
+  height: var(--daily-cell-height);
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.daily-calendar-weekdays .daily-calendar-week {
+  height: 22px;
+}
+.daily-calendar-grid tbody .daily-calendar-week {
+  /* Same bottom room as a day keeps the number on the day numbers' baseline. */
+  padding-bottom: 4px;
+  opacity: 0.7;
+}
+.daily-calendar-week button {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}
+.daily-calendar-week button[data-note] {
+  color: var(--daily-accent);
+}
+.daily-calendar-week button[data-selected] {
+  background: var(--selected);
+}
+.daily-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 34px;
+  height: var(--daily-cell-height);
+  padding: 0 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+.daily-calendar-grid td .daily-day {
+  margin: 0 auto;
+}
+.daily-day:has(.daily-day-lunar) {
+  --daily-cell-height: 36px;
+}
+.daily-day-number {
+  font-size: 12px;
+  line-height: 1;
+}
+.daily-day-lunar {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.daily-day[data-weekend]:not([data-today]) .daily-day-number {
+  color: var(--muted);
+}
+.daily-day[data-outside] {
+  opacity: 0.38;
+}
+.daily-day[data-today] {
+  color: var(--daily-accent);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--daily-accent) 55%, transparent);
+}
+.daily-day[data-selected] {
+  background: color-mix(in srgb, var(--daily-accent) 18%, transparent);
+}
+.daily-day[data-selected]:hover {
+  background: color-mix(in srgb, var(--daily-accent) 24%, transparent);
+}
+.daily-day[aria-disabled="true"] {
+  cursor: default;
+}
+/* Always present so marks arriving later never move the numbers. */
+.daily-day-mark {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+.daily-day-mark[data-mark="note"] {
+  background: var(--muted);
+  opacity: 0.85;
+}
+.daily-day-mark[data-mark="open"] {
+  background: var(--daily-accent);
+  opacity: 1;
+}
+.daily-calendar-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 6px;
+  text-align: left;
+}
+.daily-calendar-summary[data-selected] {
+  background: color-mix(in srgb, var(--daily-accent) 18%, transparent);
+}
+.daily-calendar-summary-count {
+  flex-shrink: 0;
+  color: var(--daily-accent);
+  font-size: 11px;
+}
+.daily-calendar-picker {
+  padding: 2px 0;
+}
+.daily-calendar-picker-year {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 26px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.daily-calendar-picker-year button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  color: var(--muted);
+}
+.daily-calendar-months {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+.daily-calendar-months button {
+  height: 32px;
+}
+.daily-calendar-months button[data-current] {
+  color: var(--daily-accent);
+  font-weight: 700;
+}
+.daily-calendar-months button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--daily-accent) 18%, transparent);
+}
+/* A narrow sidebar keeps the seven days readable by dropping week numbers. */
+@container daily-sidebar (max-width: 219px) {
+  .daily-calendar .daily-calendar-week {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-day-mark {
+    transition: none;
+  }
+}
+.daily-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+}
+.daily-header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.daily-header button:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--hover);
+}
+.daily-header button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.daily-header .ui-icon {
+  width: 15px;
+  height: 15px;
+}
+.daily-header-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+.daily-header-title span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+.daily-header .daily-header-today {
+  color: var(--focus);
+  font-size: 12px;
+}
+.daily-header-draft {
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.home-today-date {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.home-today .home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-today .home-link kbd {
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+}
+.home-today-time {
+  flex: 0 0 auto;
+  color: var(--focus);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.home-today-list .home-today-more {
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+.home-today .home-empty .home-link {
+  margin-left: 8px;
+}

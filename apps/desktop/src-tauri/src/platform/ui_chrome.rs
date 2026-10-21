@@ -140,6 +140,9 @@ pub struct ChromeUpdate {
     /// A document is open, so the titlebar offers a way back to the home view.
     #[serde(default)]
     can_close_document: bool,
+    /// Title for a document without a file yet (a day's draft is named after its file).
+    #[serde(default)]
+    untitled_name: Option<String>,
 }
 
 #[derive(Clone, Copy, Deserialize, Debug, Default, PartialEq, Eq)]
@@ -192,6 +195,19 @@ pub(super) struct DocumentChrome {
     ai_panel_open: bool,
     source_mode: Option<bool>,
     can_close_document: bool,
+    /// Display text only; never a path or an IO grant.
+    untitled_name: Option<String>,
+}
+impl DocumentChrome {
+    /// The file name, the draft's own name, or 未命名.
+    pub(super) fn title(&self) -> String {
+        self.path
+            .as_deref()
+            .and_then(std::path::Path::file_name)
+            .map(|name| name.to_string_lossy().into_owned())
+            .or_else(|| self.untitled_name.clone())
+            .unwrap_or_else(|| "未命名".into())
+    }
 }
 
 fn require_editor(window: &WebviewWindow) -> Result<(), String> {
@@ -228,6 +244,15 @@ fn document_chrome(
     {
         return Err("字数统计标签无效".into());
     }
+    if update.untitled_name.as_deref().is_some_and(|name| {
+        name.is_empty()
+            || name.chars().count() > 255
+            || name
+                .chars()
+                .any(|c| c.is_control() || matches!(c, '/' | '\\'))
+    }) {
+        return Err("未命名文稿标题无效".into());
+    }
     let documents = services.get_documents(label)?;
     let presentation = update
         .document_id
@@ -253,6 +278,7 @@ fn document_chrome(
         ai_panel_open: update.ai_panel_open,
         source_mode: update.source_mode,
         can_close_document: update.can_close_document,
+        untitled_name: update.untitled_name,
     })
 }
 
@@ -740,8 +766,11 @@ mod tests {
             ai_panel_open: false,
             source_mode: None,
             can_close_document: false,
+            untitled_name: Some("2026-10-21.md".into()),
         };
         let value = document_chrome(&services, "main", payload()).unwrap();
+        // A real file always names the window; the draft name is only a fallback.
+        assert_eq!(value.title(), "中文 note.md");
         assert_eq!(value.path, Some(path.canonicalize().unwrap()));
         assert!(value.dirty);
         assert!(document_chrome(&services, "editor-other", payload()).is_err());
@@ -800,10 +829,41 @@ mod tests {
                     ai_panel_open: false,
                     source_mode: None,
                     can_close_document: false,
+                    untitled_name: None,
                 }
             )
             .is_err());
         }
+        let untitled = |name: Option<&str>| ChromeUpdate {
+            document_id: None,
+            dirty: false,
+            statistics_label: "0 词".into(),
+            statistics: StatisticsSnapshot::default(),
+            always_show_word_count: true,
+            dark: false,
+            outline_panel_open: false,
+            ai_panel_open: false,
+            source_mode: None,
+            can_close_document: false,
+            untitled_name: name.map(str::to_owned),
+        };
+        assert_eq!(
+            document_chrome(&services, "main", untitled(None))
+                .unwrap()
+                .title(),
+            "未命名"
+        );
+        assert_eq!(
+            document_chrome(&services, "main", untitled(Some("2026-10-21.md")))
+                .unwrap()
+                .title(),
+            "2026-10-21.md"
+        );
+        for name in ["", "a/b.md", "a\\b.md", "line\nline"] {
+            assert!(document_chrome(&services, "main", untitled(Some(name))).is_err());
+        }
+        let long = "日".repeat(256);
+        assert!(document_chrome(&services, "main", untitled(Some(&long))).is_err());
         assert!(require_preferences("main").is_err());
         assert!(require_preferences("preview-1").is_err());
         assert!(require_preferences("preferences").is_ok());
@@ -854,6 +914,7 @@ mod tests {
             ai_panel_open: false,
             source_mode: Some(false),
             can_close_document: false,
+            untitled_name: None,
         };
         let chrome = document_chrome(&services, "main", payload())
             .expect("Trashed is an expected display state, not a titlebar failure");

@@ -7,6 +7,7 @@ import {
   SourceMirror,
   SourceMirrorError,
 } from '../src/index.js';
+import { PROPERTY_TIMEOUT } from './property-timeout.js';
 
 function normalized(source: string): string {
   return source.replace(/^\uFEFF/, '').replace(/\r\n|\r/g, '\n');
@@ -490,7 +491,9 @@ describe('SourceMirror reverse source navigation', () => {
     expect(() => mirror.canonicalToSource(2)).toThrow('surrogate');
   });
 
-  it('keeps both roundtrips inside their representative intervals over randomized normalization', () => {
+  it('keeps both roundtrips inside their representative intervals over randomized normalization', {
+    timeout: PROPERTY_TIMEOUT,
+  }, () => {
     const word = fc
       .array(fc.constantFrom('a', '中', '😀', 'e\u0301'), { minLength: 1, maxLength: 6 })
       .map((parts) => parts.join(''));

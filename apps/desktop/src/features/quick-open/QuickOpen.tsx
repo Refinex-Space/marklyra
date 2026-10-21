@@ -25,13 +25,19 @@ export interface QuickOpenProps {
   notes: readonly QuickItem[] | null;
   /** Why the note list may be incomplete. */
   notesHint?: string;
+  /** Days understood from the query (今天, 下周一, 10-21); absent when 日程 is unavailable. */
+  dates?: ((query: string, tab: QuickTab) => QuickItem[]) | undefined;
   /** Closes the window; the host decides where focus goes. */
   onClose(): void;
 }
 
 /** One search window for notes and commands: type to filter, ↑↓ to move, Enter to open. */
 export function QuickOpen(props: QuickOpenProps) {
-  const { initialTab, items, notes, notesHint, onClose } = props;
+  const { initialTab, items, notes, notesHint, dates, onClose } = props;
+  const tabs = useMemo(
+    () => (dates ? quickTabs : quickTabs.filter((entry) => entry.id !== 'date')),
+    [dates],
+  );
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<QuickTab>(initialTab);
   const [active, setActive] = useState(0);
@@ -40,8 +46,8 @@ export function QuickOpen(props: QuickOpenProps) {
   const composing = useRef(false);
 
   const groups = useMemo(
-    () => arrange([...(notes ?? []), ...items], query, tab),
-    [notes, items, query, tab],
+    () => arrange([...(dates?.(query, tab) ?? []), ...(notes ?? []), ...items], query, tab),
+    [dates, notes, items, query, tab],
   );
   const flat = useMemo(() => flatten(groups), [groups]);
   const loadingNotes = notes === null && (tab === 'note' || tab === 'all');
@@ -68,8 +74,8 @@ export function QuickOpen(props: QuickOpenProps) {
     if (flat.length) setActive((value) => (value + delta + flat.length) % flat.length);
   };
   const cycleTab = (delta: number) => {
-    const index = quickTabs.findIndex((entry) => entry.id === tab);
-    setTab(quickTabs[(index + delta + quickTabs.length) % quickTabs.length]?.id ?? 'all');
+    const index = tabs.findIndex((entry) => entry.id === tab);
+    setTab(tabs[(index + delta + tabs.length) % tabs.length]?.id ?? 'all');
   };
   const keys = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (composing.current || event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -131,7 +137,9 @@ export function QuickOpen(props: QuickOpenProps) {
             aria-controls="quick-open-list"
             aria-activedescendant={flat[active] ? `quick-open-${flat[active].item.id}` : undefined}
             aria-label="输入命令或搜索"
-            placeholder="输入命令或搜索笔记…"
+            placeholder={
+              dates ? '输入命令、搜索笔记或日期（如 明天、下周一、10-21）…' : '输入命令或搜索笔记…'
+            }
             spellCheck={false}
             autoComplete="off"
             value={query}
@@ -145,7 +153,7 @@ export function QuickOpen(props: QuickOpenProps) {
           />
         </label>
         <div className="quick-open-tabs" role="tablist" aria-label="范围">
-          {quickTabs.map((entry) => (
+          {tabs.map((entry) => (
             <button
               type="button"
               role="tab"

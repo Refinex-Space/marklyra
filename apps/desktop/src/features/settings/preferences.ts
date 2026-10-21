@@ -4,6 +4,11 @@ import {
   marklyraEditorPreferences,
 } from '@marklyra/editor-runtime';
 import {
+  type DailyPreferences,
+  defaultDailyPreferences,
+  normalizeDailyPreferences,
+} from '../daily/daily-preferences.js';
+import {
   defaultFileSidebarPreferences,
   type FileSidebarPreferences,
   normalizeFileSidebarPreferences,
@@ -26,6 +31,7 @@ export interface Preferences {
   customWordsPerMinute: boolean;
   editorPreferences: MarkLyraEditorPreferences;
   fileSidebar: FileSidebarPreferences;
+  daily: DailyPreferences;
 }
 export const defaultPreferences: Preferences = {
   sidebarWidth: 270,
@@ -42,6 +48,7 @@ export const defaultPreferences: Preferences = {
   customWordsPerMinute: false,
   editorPreferences: { ...defaultMarkLyraEditorPreferences },
   fileSidebar: { ...defaultFileSidebarPreferences },
+  daily: { ...defaultDailyPreferences },
 };
 export const preferencesKey = 'marklyra-preferences-v1';
 export function normalizePreferences(value: unknown): Preferences {
@@ -54,6 +61,7 @@ export function normalizePreferences(value: unknown): Preferences {
   }
   return {
     fileSidebar: normalizeFileSidebarPreferences(input.fileSidebar),
+    daily: normalizeDailyPreferences(input.daily),
     editorPreferences,
     imageStorageFolder: normalizeImageStorageFolder(input.imageStorageFolder),
     customImageStorageFolder: normalizeImageStorageFolder(

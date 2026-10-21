@@ -18,6 +18,12 @@ export interface NativeMenuPresentation {
   /** The home view covers the editor. */
   home?: boolean;
   textInputFocused?: boolean;
+  /** 日程 is enabled and a folder is open. */
+  dailyAvailable?: boolean;
+  /** A day or week note (or its unsaved draft) is open. */
+  dailyOpen?: boolean;
+  /** The calendar is expanded below the file list. */
+  calendar?: boolean;
 }
 /** Same state rules as the original menus and Rust; a stale native check is no authority. */
 export function nativeMenuCommandAllowed(
@@ -78,6 +84,9 @@ export class NativeMenuPublisher {
       canImport: value.canImport === true,
       canRename: value.canRename === true,
       home: value.home === true,
+      dailyAvailable: value.dailyAvailable === true,
+      dailyOpen: value.dailyOpen === true,
+      calendar: value.calendar === true,
       editor: value.editor
         ? {
             ...value.editor,

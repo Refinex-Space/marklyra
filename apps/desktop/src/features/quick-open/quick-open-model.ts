@@ -1,26 +1,35 @@
 import type { IconName } from '../../components/Icon.js';
 
 /** What the quick-open window can list. A tab is a filter over these kinds. */
-export type QuickKind = 'note' | 'action' | 'workspace' | 'setting';
+export type QuickKind = 'note' | 'date' | 'action' | 'workspace' | 'setting';
 export type QuickTab = 'all' | QuickKind;
 
 export const quickTabs: readonly { id: QuickTab; label: string }[] = [
   { id: 'all', label: '全部' },
   { id: 'action', label: '操作' },
   { id: 'note', label: '笔记' },
+  { id: 'date', label: '日期' },
   { id: 'workspace', label: '工作区' },
   { id: 'setting', label: '设置' },
 ];
 export const quickGroupLabels: Record<QuickKind, string> = {
   note: '笔记',
+  date: '日程',
   action: '操作',
   workspace: '工作区',
   setting: '设置',
 };
 /** The "all" tab shows a few of each kind; a dedicated tab shows more. */
-const ALL_LIMITS: Record<QuickKind, number> = { note: 8, action: 6, workspace: 4, setting: 4 };
+const ALL_LIMITS: Record<QuickKind, number> = {
+  date: 4,
+  note: 8,
+  action: 6,
+  workspace: 4,
+  setting: 4,
+};
 const TAB_LIMIT = 100;
-const ORDER: readonly QuickKind[] = ['note', 'action', 'workspace', 'setting'];
+// A recognised date is an explicit intent, so it leads.
+const ORDER: readonly QuickKind[] = ['date', 'note', 'action', 'workspace', 'setting'];
 
 export interface QuickItem {
   /** Stable within one list; used as the option id. */
@@ -126,7 +135,8 @@ export function arrange(items: readonly QuickItem[], query: string, tab: QuickTa
   const scored = new Map<QuickKind, { result: QuickResult; score: number; order: number }[]>();
   items.forEach((item, order) => {
     if (tab !== 'all' && item.kind !== tab) return;
-    const found = scoreItem(item, query);
+    // Date entries are generated from the query itself; their titles need not contain it.
+    const found = item.kind === 'date' ? { score: 0, ranges: [] } : scoreItem(item, query);
     if (!found) return;
     const list = scored.get(item.kind) ?? [];
     list.push({ result: { item, ranges: found.ranges }, score: found.score, order });
@@ -136,7 +146,8 @@ export function arrange(items: readonly QuickItem[], query: string, tab: QuickTa
   for (const kind of ORDER) {
     const list = scored.get(kind);
     if (!list?.length) continue;
-    if (query.trim()) list.sort((a, b) => b.score - a.score || a.order - b.order);
+    if (query.trim() && kind !== 'date')
+      list.sort((a, b) => b.score - a.score || a.order - b.order);
     const limit = tab === 'all' ? ALL_LIMITS[kind] : TAB_LIMIT;
     groups.push({
       kind,

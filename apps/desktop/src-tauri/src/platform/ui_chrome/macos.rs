@@ -526,12 +526,7 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
             }
             chrome.dark = Some(update.dark);
         }
-        let title = update
-            .path
-            .as_deref()
-            .and_then(std::path::Path::file_name)
-            .map(|name| name.to_string_lossy().into_owned())
-            .unwrap_or_else(|| "未命名".into());
+        let title = update.title();
         let url = update
             .path
             .as_deref()

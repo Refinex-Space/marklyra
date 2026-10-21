@@ -50,14 +50,7 @@ pub(super) fn popup(
 
 /// Mirrors the macOS native window state: the OS-owned taskbar title and frame theme.
 pub(super) fn update(window: &WebviewWindow, update: &super::DocumentChrome) -> Result<(), String> {
-    let name = update
-        .path
-        .as_deref()
-        .and_then(std::path::Path::file_name)
-        .map_or_else(
-            || "未命名".into(),
-            |name| name.to_string_lossy().into_owned(),
-        );
+    let name = update.title();
     let marker = if update.dirty { "● " } else { "" };
     window
         .set_title(&format!("{marker}{name} — MarkLyra"))

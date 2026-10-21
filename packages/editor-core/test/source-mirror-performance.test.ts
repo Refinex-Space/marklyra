@@ -2,6 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { SourceMirror } from '../src/source-mirror.js';
 import { updateEqualCorrespondence } from '../src/source-mirror-ranges.js';
+import { PROPERTY_TIMEOUT } from './property-timeout.js';
 
 /** Public mapping invariants across inserted/deleted (zero-width) whitespace spans. */
 function assertIntervals(mirror: SourceMirror): void {
@@ -279,7 +280,9 @@ describe('local equal-span reuse and owned history text', () => {
     ).toThrow('Unknown history checkpoint');
   });
 
-  it('matches fresh full correspondence through randomized Unicode word edits and distant shifts', () => {
+  it('matches fresh full correspondence through randomized Unicode word edits and distant shifts', {
+    timeout: PROPERTY_TIMEOUT,
+  }, () => {
     fc.assert(
       fc.property(
         fc.array(

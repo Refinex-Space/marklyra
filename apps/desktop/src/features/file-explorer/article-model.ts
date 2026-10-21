@@ -170,7 +170,14 @@ function chunks(value: string): string[] {
   if (current) result.push(current);
   return result;
 }
-export function naturalFileCompare(left: string, right: string): number {
+/** Text order follows the person's language, as the original helpers did through localeCompare. */
+export type TextCompare = (left: string, right: string) => number;
+const localeText: TextCompare = (left, right) => left.localeCompare(right);
+export function naturalFileCompare(
+  left: string,
+  right: string,
+  compareText: TextCompare = localeText,
+): number {
   const a = chunks(left),
     b = chunks(right);
   for (let index = 0; index < Math.min(a.length, b.length); index++) {
@@ -189,7 +196,7 @@ export function naturalFileCompare(left: string, right: string): number {
       };
       const xm = month(x),
         ym = month(y);
-      comparison = xm >= 0 && ym >= 0 ? xm - ym : x.localeCompare(y);
+      comparison = xm >= 0 && ym >= 0 ? xm - ym : compareText(x, y);
     }
     if (comparison !== 0 && !Number.isNaN(comparison)) return comparison;
   }
@@ -202,9 +209,16 @@ export function compareFiles(
   right: SortableFile,
   sort: FileSortType,
   windows = false,
+  compareText: TextCompare = localeText,
 ): number {
   if (sort < 0)
-    return compareFiles(right, left, (sort === -10 ? 0 : -sort) as FileSortType, windows);
+    return compareFiles(
+      right,
+      left,
+      (sort === -10 ? 0 : -sort) as FileSortType,
+      windows,
+      compareText,
+    );
   const mode = Math.abs(sort);
   let comparison: number;
   if (mode === 2 || mode === 3) {
@@ -219,8 +233,8 @@ export function compareFiles(
     };
     const x = stem(a) === stem(b) ? a : stem(a),
       y = stem(a) === stem(b) ? b : stem(b);
-    comparison = windows ? (left.name === right.name ? 0 : x <= y ? -1 : 1) : x.localeCompare(y);
-  } else comparison = naturalFileCompare(left.name, right.name);
+    comparison = windows ? (left.name === right.name ? 0 : x <= y ? -1 : 1) : compareText(x, y);
+  } else comparison = naturalFileCompare(left.name, right.name, compareText);
   return comparison;
 }
 export function sortedDirectory(

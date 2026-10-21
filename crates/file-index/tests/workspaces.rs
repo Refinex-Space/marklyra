@@ -336,15 +336,17 @@ fn search_query_validation_and_unicode_preview_are_bounded() {
 }
 
 #[test]
-fn directory_and_file_scan_limits_report_truncation() {
+fn directory_scan_limit_reports_truncation_while_search_covers_every_file() {
     let root = tempfile::tempdir().unwrap();
     for index in 0..2001 {
         fs::write(root.path().join(format!("{index}.md")), "none").unwrap();
     }
     let workspace = setup(root.path());
+    // The per-search file cap is MAX_SEARCH_FILES (200,000); its truncation is unit-tested with
+    // injected limits. A vault of a few thousand notes is searched completely.
     let result = search(&workspace, "missing");
-    assert_eq!(result.scanned_files, 2000);
-    assert!(result.truncated);
+    assert_eq!(result.scanned_files, 2001);
+    assert!(!result.truncated);
     // Additional unsupported entries also count toward the listing work bound.
     for index in 0..MAX_DIRECTORY_ENTRIES {
         fs::write(root.path().join(format!("{index}.bin")), "").unwrap();

@@ -1,5 +1,5 @@
 import { listen } from '@tauri-apps/api/event';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { SkeletonRows } from '../../components/Skeleton.js';
 import { displayPath } from '../../services/display-path.js';
@@ -42,11 +42,13 @@ export interface HomeScreenProps {
   onOpenRecent(id: string): void;
   /** The complete recent-files list. */
   onViewAll(): void;
+  /** Today's 日程, when it is enabled and a folder is open. */
+  today?: ReactNode;
 }
 
 /** What the window shows before any document is open: where to start and what was last open. */
 export function HomeScreen(props: HomeScreenProps) {
-  const { mac, onNew, onOpenNote, onOpenRecent, onViewAll } = props;
+  const { mac, onNew, onOpenNote, onOpenRecent, onViewAll, today } = props;
   const [entries, setEntries] = useState<RecentFile[] | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const { title, hint } = greeting(new Date().getHours());
@@ -110,6 +112,7 @@ export function HomeScreen(props: HomeScreenProps) {
             </button>
           </div>
         </header>
+        {today}
         <section className="home-section" aria-labelledby="home-recent">
           <div className="home-section-head">
             <h2 id="home-recent">最近查看</h2>

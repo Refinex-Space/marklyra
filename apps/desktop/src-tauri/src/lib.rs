@@ -248,6 +248,8 @@ pub fn run() {
             commands::workspaces::resolve_workspace_entry_trash,
             commands::workspaces::finish_workspace_creation,
             commands::workspaces::create_workspace_file_with_dialog,
+            commands::workspaces::read_daily_notes,
+            commands::workspaces::create_daily_note,
             exports::save_export_html,
             exports::open_print_preview,
             exports::pdf::save_export_pdf,

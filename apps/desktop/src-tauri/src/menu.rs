@@ -30,6 +30,7 @@ const FILE: &[MenuEntry] = &[
     Action("recent-files", "最近文件…", None),
     Action("marklyra-drafts", "恢复草稿…", None),
     Action("open-folder", "打开文件夹…", None),
+    Action("daily:today", "打开今日日程", Some("CmdOrCtrl+Shift+D")),
     Separator,
     Action("save", "保存", Some("CmdOrCtrl+S")),
     Action("save-as", "另存为…", Some("CmdOrCtrl+Shift+S")),
@@ -129,6 +130,10 @@ const VIEW: &[MenuEntry] = &[
     Action("view:workspace-search", "搜索", Some("CmdOrCtrl+Shift+F")),
     Separator,
     Action("view:statistics", "字数统计", None),
+    Separator,
+    Action("view:calendar", "日历", None),
+    Action("daily:previous", "前一天日程", None),
+    Action("daily:next", "后一天日程", None),
     Separator,
     Action("view:fullscreen", "全屏幕", Some("CmdOrCtrl+Ctrl+F")),
 ];
@@ -585,6 +590,9 @@ mod tests {
             "math-block",
             "hr",
             "preferences",
+            "daily:today",
+            "daily:previous",
+            "daily:next",
         ] {
             assert_eq!(action_for_id(id), Some(id));
         }
@@ -609,7 +617,14 @@ mod tests {
             ("list", &["ul", "ol", "tasklist", "blockquote"][..]),
             (
                 "view",
-                &["source", "focus", "typewriter", "sidebar", "outline"][..],
+                &[
+                    "source",
+                    "focus",
+                    "typewriter",
+                    "sidebar",
+                    "outline",
+                    "calendar",
+                ][..],
             ),
             ("theme", &["marklyra-light", "marklyra-dark"][..]),
         ] {
@@ -631,6 +646,7 @@ mod tests {
             "format:anything",
             "theme:../custom",
             "view:unknown",
+            "daily:unknown",
             "list:unknown",
             "copy",
             "paste",
@@ -669,7 +685,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            76 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            80 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {
@@ -691,5 +707,6 @@ mod tests {
         assert!(shortcuts.contains(&"CmdOrCtrl+P"));
         assert!(shortcuts.contains(&"CmdOrCtrl+/"));
         assert!(shortcuts.contains(&"CmdOrCtrl+Shift+Z"));
+        assert!(shortcuts.contains(&"CmdOrCtrl+Shift+D"));
     }
 }

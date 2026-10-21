@@ -45,7 +45,7 @@ export function useAutoSave(
       if (
         !current.enabled ||
         current.conflict ||
-        !doc.file ||
+        (!doc.file && !doc.dailyDraft) ||
         !doc.dirty ||
         doc.pending ||
         doc.working ||
