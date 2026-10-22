@@ -378,6 +378,7 @@ pub fn run() {
                 api.prevent_exit();
             }
             tauri::RunEvent::Exit => {
+                app_update::trace_exit(app);
                 app.state::<agents::AgentHostState>().shutdown();
                 platform::window_state::handle_exit(app);
             }

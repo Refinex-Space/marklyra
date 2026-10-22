@@ -7,7 +7,14 @@ use objc2_app_kit::{
     NSResponder, NSWindow, NSWindowStyleMask, NSWindowTabbingMode, NSWindowUserTabbingPreference,
 };
 use objc2_foundation::{MainThreadMarker, NSObjectProtocol, NSString};
-use std::{cell::RefCell, collections::HashMap};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    sync::{
+        mpsc::{self, Sender},
+        OnceLock,
+    },
+};
 use tauri::{AppHandle, Manager, WebviewWindow};
 
 const EDITOR_GROUP: &str = "dev.refinex.marklyra.editor";
@@ -58,6 +65,36 @@ struct TabLayout {
     overlay: bool,
 }
 
+/// `refresh_all` runs inside AppKit/KVO callbacks, which fire synchronously while Tauri is
+/// closing a window and still holds its window table mutably borrowed. Emitting from the main
+/// thread evaluates the script inline and re-enters that table (a `RefCell` panic that aborts
+/// the app, e.g. during the quit before an update). One ordered worker hands the events to the
+/// event loop through its proxy instead.
+fn emit_layout_later(app: &AppHandle, label: String, overlay: bool) {
+    static QUEUE: OnceLock<Sender<(AppHandle, String, bool)>> = OnceLock::new();
+    let queue = QUEUE.get_or_init(|| {
+        let (sender, receiver) = mpsc::channel::<(AppHandle, String, bool)>();
+        let worker = std::thread::Builder::new()
+            .name("native-tab-layout".into())
+            .spawn(move || {
+                for (app, label, overlay) in receiver {
+                    // A window closed in the meantime is simply no longer an editor.
+                    let _ = crate::windows::emit_to_editor(
+                        &app,
+                        &label,
+                        "native-tab-layout",
+                        TabLayout { overlay },
+                    );
+                }
+            });
+        if let Err(error) = worker {
+            eprintln!("Native tab layout worker unavailable: {error}");
+        }
+        sender
+    });
+    let _ = queue.send((app.clone(), label, overlay));
+}
+
 // AppKit drag, detach and close can change both the old and the new group.
 // Clone native owners before changing style masks: resize notifications may reenter.
 fn refresh_all() {
@@ -83,12 +120,7 @@ fn refresh_all() {
             style.set(NSWindowStyleMask::FullSizeContentView, overlay);
             ns.setStyleMask(style);
         }
-        let _ = crate::windows::emit_to_editor(
-            &responder.ivars().app,
-            &label,
-            "native-tab-layout",
-            TabLayout { overlay },
-        );
+        emit_layout_later(&responder.ivars().app, label, overlay);
         if ns.isKeyWindow() {
             if let Some(menu) = responder.ivars().app.menu() {
                 for action in ["tab:next", "tab:previous", "tab:detach"] {

@@ -2,11 +2,12 @@
 use crate::preferences_store::{PreferenceRecord, Store};
 use serde::{Deserialize, Serialize};
 use std::{
+    io::Write,
     sync::{
         atomic::{AtomicBool, Ordering},
         Mutex,
     },
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 use tauri_plugin_updater::{Error, Update, UpdaterExt};
@@ -43,6 +44,7 @@ pub struct UpdateHost {
     busy: AtomicBool,
     install_requested: AtomicBool,
     installing: AtomicBool,
+    restarting: AtomicBool,
     pending: Mutex<Pending>,
 }
 struct Operation<'a>(&'a AtomicBool);
@@ -57,6 +59,47 @@ impl UpdateHost {
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .map(|_| Operation(&self.busy))
             .map_err(|_| "更新操作正在进行，请稍候。".into())
+    }
+}
+const LOG_FILE: &str = "update.log";
+const LOG_LIMIT: u64 = 256 * 1024;
+/// Append-only diagnostics for check/download/install/restart. A packaged app has no
+/// console, and `failure` keeps the user-facing text generic, so the real cause would be lost.
+/// Lines are `<unix-millis> pid=<pid> <event>`; no document content or secrets are written.
+pub(crate) fn trace<R: tauri::Runtime>(app: &AppHandle<R>, event: impl AsRef<str>) {
+    let Ok(dir) = crate::app_paths::data_dir(app).map(|root| root.join("updates")) else {
+        return;
+    };
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join(LOG_FILE);
+    if std::fs::metadata(&path).is_ok_and(|meta| meta.len() > LOG_LIMIT) {
+        let _ = std::fs::rename(&path, dir.join("update.log.1"));
+    }
+    let mut options = std::fs::OpenOptions::new();
+    options.create(true).append(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    if let Ok(mut file) = options.open(path) {
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_millis());
+        let _ = writeln!(
+            file,
+            "{stamp} pid={} {}",
+            std::process::id(),
+            event.as_ref()
+        );
+    }
+}
+/// Called from `RunEvent::Exit`; only logs when an update restart is in flight.
+pub(crate) fn trace_exit(app: &AppHandle) {
+    if let Some(host) = app.try_state::<UpdateHost>() {
+        if host.restarting.load(Ordering::Acquire) {
+            trace(app, "exit: RunEvent::Exit reached after restart request");
+        }
     }
 }
 fn store(app: &AppHandle) -> Result<Store<Preferences>, String> {
@@ -149,6 +192,7 @@ async fn check(app: &AppHandle) -> Result<(), String> {
     if host.install_requested.load(Ordering::Acquire) || host.installing.load(Ordering::Acquire) {
         return Err("正在准备安装更新。".into());
     }
+    trace(app, "check: begin");
     // A periodic check must never discard a verified download waiting for the user.
     if host
         .pending
@@ -188,12 +232,23 @@ async fn check(app: &AppHandle) -> Result<(), String> {
                 .as_ref()
                 .is_some_and(|update| !safe_download_url(&update.download_url))
             {
+                trace(
+                    app,
+                    "check: rejected download url outside the official repository",
+                );
                 change(app, |pending| {
                     pending.snapshot.phase = "error".into();
                     pending.snapshot.message = "更新包地址不属于 MarkLyra 官方仓库。".into();
                 });
                 return Err("更新包地址不属于 MarkLyra 官方仓库。".into());
             }
+            trace(
+                app,
+                format!(
+                    "check: ok available={}",
+                    update.as_ref().map_or("none", |item| item.version.as_str())
+                ),
+            );
             change(app, |pending| {
                 pending.snapshot.phase = if update.is_some() {
                     "available"
@@ -207,6 +262,7 @@ async fn check(app: &AppHandle) -> Result<(), String> {
             Ok(())
         }
         Err(error) => {
+            trace(app, format!("check: failed {error:?}"));
             change(app, |pending| {
                 pending.snapshot.phase = "error".into();
                 pending.snapshot.message = failure(&error).into();
@@ -243,6 +299,10 @@ pub async fn app_update_download(
     let mut result = None;
     for direct in [false, true] {
         update.no_proxy = direct;
+        trace(
+            &app,
+            format!("download: begin version={} direct={direct}", update.version),
+        );
         change(&app, |pending| {
             pending.snapshot.phase = "downloading".into();
             pending.snapshot.downloaded = 0;
@@ -275,6 +335,7 @@ pub async fn app_update_download(
     }
     match result.expect("download attempted") {
         Ok(bytes) => {
+            trace(&app, format!("download: verified bytes={}", bytes.len()));
             change(&app, |pending| {
                 pending.bytes = Some(bytes);
                 pending.snapshot.phase = "ready".into();
@@ -282,6 +343,7 @@ pub async fn app_update_download(
             Ok(())
         }
         Err(error) => {
+            trace(&app, format!("download: failed {error:?}"));
             change(&app, |pending| {
                 pending.snapshot.phase = "error".into();
                 pending.snapshot.message = failure(&error).into();
@@ -308,21 +370,28 @@ pub fn app_update_install(
         return Err("请先下载并验证更新。".into());
     }
     host.install_requested.store(true, Ordering::Release);
+    trace(&app, "install: requested, starting quit protocol");
     crate::windows::request_quit(&app); // Existing save/IME/recovery/quit cancellation protocol.
     Ok(())
 }
 pub(crate) fn cancel_install<R: tauri::Runtime>(app: &AppHandle<R>) {
     if let Some(host) = app.try_state::<UpdateHost>() {
-        host.install_requested.store(false, Ordering::Release);
+        if host.install_requested.swap(false, Ordering::AcqRel) {
+            trace(app, "install: cancelled before exit");
+        }
     }
 }
 /// Called only after every editor completed its existing close protocol.
 pub(crate) fn intercept_exit(app: &AppHandle) -> bool {
     let host = app.state::<UpdateHost>();
     if host.installing.load(Ordering::Acquire) {
+        trace(app, "exit: requested while installing, kept alive");
         return true;
     }
     if !host.install_requested.swap(false, Ordering::AcqRel) {
+        if host.restarting.load(Ordering::Acquire) {
+            trace(app, "exit: restart exit request passed through");
+        }
         return false;
     }
     host.installing.store(true, Ordering::Release);
@@ -331,21 +400,42 @@ pub(crate) fn intercept_exit(app: &AppHandle) -> bool {
         .lock()
         .ok()
         .and_then(|mut pending| Some((pending.update.take()?, pending.bytes.take()?)));
+    trace(
+        app,
+        format!(
+            "install: exit intercepted, staged={} exe={:?}",
+            staged.is_some(),
+            std::env::current_exe().ok()
+        ),
+    );
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let result = staged
             .ok_or_else(|| "已验证的更新包不可用。".to_owned())
             .and_then(|(update, bytes)| {
-                update
-                    .install(bytes)
-                    .map_err(|error| failure(&error).into())
+                trace(
+                    &app,
+                    format!(
+                        "install: begin version={} bytes={}",
+                        update.version,
+                        bytes.len()
+                    ),
+                );
+                update.install(bytes).map_err(|error| {
+                    trace(&app, format!("install: failed {error:?}"));
+                    failure(&error).into()
+                })
             });
         if result.is_ok() {
-            app.state::<UpdateHost>()
-                .installing
-                .store(false, Ordering::Release);
+            trace(&app, "install: replaced bundle, restarting");
+            let host = app.state::<UpdateHost>();
+            host.restarting.store(true, Ordering::Release);
+            host.installing.store(false, Ordering::Release);
             app.restart();
         } else {
+            if let Err(reason) = &result {
+                trace(&app, format!("install: aborted, showing dialog: {reason}"));
+            }
             app.state::<UpdateHost>()
                 .installing
                 .store(false, Ordering::Release);
@@ -359,7 +449,10 @@ pub(crate) fn intercept_exit(app: &AppHandle) -> bool {
             app.dialog()
                 .message("更新安装失败，请重新打开 MarkLyra 后重试，或手动下载安装包。")
                 .title("MarkLyra 更新")
-                .show(move |_| app.exit(0));
+                .show(move |_| {
+                    trace(&app, "install: failure dialog closed, exiting");
+                    app.exit(0);
+                });
         }
     });
     true
