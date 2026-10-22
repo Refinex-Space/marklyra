@@ -42,6 +42,7 @@ import {
 import { DocumentNamePopover } from '../features/documents/DocumentNamePopover.js';
 import { DocumentSkeleton } from '../features/documents/DocumentSkeleton.js';
 import { ExternalChangeNotice } from '../features/documents/ExternalChangeNotice.js';
+import { resolveLinkTarget } from '../features/documents/link-target.js';
 import { RecoveryPanel } from '../features/documents/RecoveryPanel.js';
 import {
   STALE_SEARCH_POSITION,
@@ -2631,6 +2632,23 @@ export function App() {
                 host={{
                   ...desktopContextHost,
                   onAction: (value) => actions.current.action(value),
+                  onOpenLink: (link) => {
+                    const target = resolveLinkTarget(
+                      link.url,
+                      link.anchor,
+                      actions.current.doc.getFile()?.path ?? null,
+                      workspaceIdentity.current?.path ?? null,
+                    );
+                    if (!target.ok) {
+                      actions.current.doc.setMessage(target.reason);
+                      return;
+                    }
+                    void actions.current.doc.request({
+                      kind: 'workspace',
+                      workspaceId: workspaceIdentity.current?.id ?? '',
+                      relativePath: target.relativePath,
+                    });
+                  },
                   images: documentImages,
                 }}
               />

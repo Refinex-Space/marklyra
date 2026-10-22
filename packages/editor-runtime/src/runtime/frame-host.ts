@@ -459,6 +459,18 @@ function respond(name: string, data: unknown): unknown {
     };
   if (name === 'clipboard.readText') return clipboard?.clipboardData?.getData('text/plain') ?? '';
   if (name === 'path.currentFilePath' || name === 'document.currentFilePath') return '';
+  // A local document link carries no authority of its own: the shell resolves it against the
+  // current document and the open folder, and reports a refusal itself. Answering true keeps the
+  // original "cannot open location, create file?" prompt for links that really are unknown.
+  if (name === 'path.openFile') {
+    const link = data as { url?: unknown; anchor?: unknown } | null;
+    if (!link || typeof link.url !== 'string' || !link.url || link.url.length > 4096) return false;
+    send('open-link', {
+      url: link.url,
+      anchor: typeof link.anchor === 'string' && link.anchor.length <= 1024 ? link.anchor : '',
+    });
+    return true;
+  }
   if (name === 'document.save' || name === 'controller.saveDocument') {
     action('save');
     return null;

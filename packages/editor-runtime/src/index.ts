@@ -159,6 +159,8 @@ export {
 export interface MarkLyraHostAdapter extends ContextMenuHostOptions {
   images?: ImageHostAdapter;
   onAction?: (action: HostAction) => void;
+  /** A Cmd/Ctrl-click on a link to a local file. The url is exactly what the document wrote. */
+  onOpenLink?: (link: { url: string; anchor: string }) => void;
   onUnsupportedCapability?: (name: string) => void;
 }
 export type MarkLyraViewMode = 'wysiwyg' | 'source';
@@ -2150,6 +2152,14 @@ export class MarkLyraEditor {
     }
     if (message.kind === 'host-action')
       this.options.host?.onAction?.(message.payload as HostAction);
+    if (message.kind === 'open-link') {
+      const link = message.payload as { url?: unknown; anchor?: unknown } | null;
+      if (link && typeof link.url === 'string')
+        this.options.host?.onOpenLink?.({
+          url: link.url,
+          anchor: typeof link.anchor === 'string' ? link.anchor : '',
+        });
+    }
     if (message.kind === 'unsupported-host-call' && typeof message.payload === 'string')
       this.options.host?.onUnsupportedCapability?.(message.payload);
     if (message.kind === 'runtime-error')

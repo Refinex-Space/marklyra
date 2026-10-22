@@ -46,6 +46,7 @@ export function MarkLyraMarkdownEditor(props: MarkLyraMarkdownEditorProps) {
       host: {
         ...latest.current.host,
         onAction: (action) => latest.current.host?.onAction?.(action),
+        onOpenLink: (link) => latest.current.host?.onOpenLink?.(link),
         onUnsupportedCapability: (name) => latest.current.host?.onUnsupportedCapability?.(name),
         images: {
           nativeDrop: Boolean(latest.current.host?.images?.nativeDrop),
