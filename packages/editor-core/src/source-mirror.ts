@@ -165,6 +165,18 @@ function apply(source: string, patches: readonly Patch[]): string {
 }
 
 /** Own history text without retaining a tiny slice's entire previous document. */
+/** Shape of a history/canonical disagreement, never its content (documents are private). */
+function describeMismatch(journal: string, editor: string): string {
+  let first = 0;
+  while (first < journal.length && first < editor.length && journal[first] === editor[first])
+    first++;
+  const endings = (text: string) => {
+    const crlf = text.match(/\r\n/g)?.length ?? 0;
+    return `CRLF ${crlf}/LF ${(text.match(/\n/g)?.length ?? 0) - crlf}/CR ${(text.match(/\r/g)?.length ?? 0) - crlf}`;
+  };
+  return `journal ${journal.length} chars (${endings(journal)}), editor ${editor.length} chars (${endings(editor)}), first difference at ${first}`;
+}
+
 function ownText(text: string): string {
   if (!text.length) return '';
   const chunks: string[] = [];
@@ -680,7 +692,10 @@ export class SourceMirror {
       const projection = hint.canonicalProjection;
       if (projection) this.projectedCanonical(restored.canonical, nextCanonical, projection);
       else if (restored.canonical !== nextCanonical)
-        throw new SourceMirrorError('INVALID_HINT', 'History checkpoint does not match canonical');
+        throw new SourceMirrorError(
+          'INVALID_HINT',
+          `History checkpoint does not match canonical (${describeMismatch(restored.canonical, nextCanonical)})`,
+        );
       return this.restore(
         target,
         restored,
