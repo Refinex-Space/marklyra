@@ -276,8 +276,10 @@ export class MarkLyraEditor {
     this.element = container.ownerDocument.createElement('iframe');
     this.element.className = 'marklyra-editor-frame';
     this.element.title = 'Markdown 编辑器';
+    // A host-page selection (e.g. Select All while focus is outside the frame) must not tint the
+    // whole editor with the selection colour; the frame's own document keeps its selection.
     this.element.style.cssText =
-      'display:block;width:100%;height:100%;border:0;background:transparent;';
+      'display:block;width:100%;height:100%;border:0;background:transparent;-webkit-user-select:none;user-select:none;';
     this.element.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     this.element.setAttribute('referrerpolicy', 'no-referrer');
     this.contextMenu = new HostContextMenu({

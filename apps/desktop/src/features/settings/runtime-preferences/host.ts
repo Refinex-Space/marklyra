@@ -79,7 +79,8 @@ export class RuntimePreferencesHost {
     this.element = container.ownerDocument.createElement('iframe');
     this.element.title = 'MarkLyra 偏好设置';
     this.element.className = 'runtime-preferences-frame';
-    this.element.style.cssText = 'width:100%;height:100%;display:block;border:0;';
+    this.element.style.cssText =
+      'width:100%;height:100%;display:block;border:0;-webkit-user-select:none;user-select:none;';
     if (options.presentation) this.element.style.visibility = 'hidden';
     this.element.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     this.element.setAttribute('referrerpolicy', 'no-referrer');
