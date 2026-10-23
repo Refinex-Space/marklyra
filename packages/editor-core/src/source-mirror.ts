@@ -177,6 +177,17 @@ function describeMismatch(journal: string, editor: string): string {
   return `journal ${journal.length} chars (${endings(journal)}), editor ${editor.length} chars (${endings(editor)}), first difference at ${first}`;
 }
 
+/** Same text once line endings are unified, apart from how many consecutive blank lines there are. */
+function differsOnlyInBlankLines(journal: string, editor: string): boolean {
+  const kinds = (text: string) =>
+    `${/\r\n/.test(text)}${/(?<!\r)\n/.test(text)}${/\r(?!\n)/.test(text)}`;
+  if (kinds(journal) !== kinds(editor)) return false;
+  const unify = (text: string) => text.replace(/\r\n|\r/g, '\n');
+  const a = unify(journal),
+    b = unify(editor);
+  return a !== b && a.replace(/\n+/g, '\n') === b.replace(/\n+/g, '\n');
+}
+
 function ownText(text: string): string {
   if (!text.length) return '';
   const chunks: string[] = [];
@@ -691,11 +702,18 @@ export class SourceMirror {
       const restored = this.restoreCandidate(target);
       const projection = hint.canonicalProjection;
       if (projection) this.projectedCanonical(restored.canonical, nextCanonical, projection);
-      else if (restored.canonical !== nextCanonical)
+      else if (restored.canonical !== nextCanonical) {
+        if (
+          target > this.#cursor &&
+          !this.#projectionAware &&
+          differsOnlyInBlankLines(restored.canonical, nextCanonical)
+        )
+          return this.redoWithBlankLines(target, restored, nextCanonical);
         throw new SourceMirrorError(
           'INVALID_HINT',
           `History checkpoint does not match canonical (${describeMismatch(restored.canonical, nextCanonical)})`,
         );
+      }
       return this.restore(
         target,
         restored,
@@ -806,6 +824,54 @@ export class SourceMirror {
       projectionEpoch,
       this.#projectionAware || projection !== undefined,
     );
+  }
+
+  /**
+   * The serializer can spell the same blocks with a different number of blank lines on Redo than it
+   * did when the checkpoint was journaled (a paragraph and an empty fence it just produced are tight
+   * once, separated the next time). Restore the journaled state, then take the editor's real content
+   * as an ordinary edit of it, so the raw source gains exactly the blank-line difference and the
+   * mirror stays consistent. Any failure leaves the mirror untouched.
+   */
+  private redoWithBlankLines(
+    target: number,
+    restored: MirrorHistoryCandidate,
+    nextCanonical: string,
+  ): SourceMirrorUpdate {
+    const saved = {
+      source: this.#source,
+      canonical: this.#canonical,
+      historyCanonical: this.#historyCanonical,
+      ranges: this.#ranges,
+      cursor: this.#cursor,
+      projectionEpoch: this.#projectionEpoch,
+      history: [...this.#history],
+      ids: [...this.#ids],
+      serial: this.#serial,
+    };
+    const before = this.source;
+    try {
+      this.restore(
+        target,
+        restored,
+        normalize(restored.canonical, this.#options.canonicalBOM),
+        this.#projectionEpoch,
+        false,
+      );
+      this.update(nextCanonical);
+      return this.result(diffText(before, this.source, this.#options));
+    } catch (error) {
+      this.#source = saved.source;
+      this.#canonical = saved.canonical;
+      this.#historyCanonical = saved.historyCanonical;
+      this.#ranges = saved.ranges;
+      this.#cursor = saved.cursor;
+      this.#projectionEpoch = saved.projectionEpoch;
+      this.#history = saved.history;
+      this.#ids = saved.ids;
+      this.#serial = saved.serial;
+      throw error;
+    }
   }
 
   private commit(

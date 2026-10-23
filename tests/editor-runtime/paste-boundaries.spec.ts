@@ -62,3 +62,47 @@ for (const reverse of [false, true]) {
     });
   }
 }
+
+for (const eol of ['\n', '\r\n'])
+  test(`Redo of a mid-paragraph fenced paste keeps the serializer blank line (${JSON.stringify(eol)})`, async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('/');
+    const source = ['# T', '', 'Alpha beta gamma', '', 'After', ''].join(eol);
+    await page.evaluate(async (text) => {
+      const target = window as Host;
+      await target.marklyraEditor.ready;
+      target.pasteErrors = [];
+      Reflect.get(target.marklyraEditor, 'options').onError = (error: Error) =>
+        target.pasteErrors.push(error.message);
+      await target.marklyraEditor.load(text);
+    }, source);
+    const block = page.frameLocator('.marklyra-editor-frame').locator('#write > p').first();
+    await block.evaluate((element) => {
+      element.closest<HTMLElement>('#write')?.focus();
+      const text = document.createTreeWalker(element, NodeFilter.SHOW_TEXT).nextNode() as Text;
+      getSelection()?.setBaseAndExtent(text, text.length, text, text.length);
+    });
+    // The opening fence is not at a line start, so the closing one opens an empty block.
+    await block.evaluate((element) => {
+      const data = new DataTransfer();
+      data.setData('text/plain', '```js\ncode\n```\n');
+      element.dispatchEvent(
+        new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data }),
+      );
+    });
+    const flush = () => page.evaluate(() => (window as Host).marklyraEditor.flush());
+    await expect.poll(flush).not.toBe(source);
+    await page.evaluate(() => (window as Host).marklyraEditor.execute({ type: 'undo' }));
+    expect(await flush()).toBe(source);
+    await page.evaluate(() => (window as Host).marklyraEditor.execute({ type: 'redo' }));
+    const redone = await flush();
+    expect(redone).toContain('code');
+    expect(redone.replace(/\r\n/g, '\n')).toMatch(/code\n\n```\n```\n\nAfter/);
+    await page.evaluate(() => (window as Host).marklyraEditor.execute({ type: 'undo' }));
+    expect(await flush()).toBe(source);
+    expect(await page.evaluate(() => (window as Host).pasteErrors)).toEqual([]);
+    expect(errors).toEqual([]);
+  });
