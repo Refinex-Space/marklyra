@@ -374,3 +374,37 @@ test('Markdown HTML keeps finite task state without transporting live input cont
   expect(clean).toContain('class="md-task-list-item task-list-not-done"');
   expect(clean).not.toMatch(/input|onclick|cid=|custom|private/);
 });
+
+test('private widget projection retains inert TeX, code language and finite block spacing', async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const html = (window as Host).ClipboardTools.clipboardMarkupHTML(
+      '<p mdtype="paragraph" tail="1"><span md-inline="inline_math"><span>$</span><span><mjx-container><b>duplicate rendering</b></mjx-container><script type="math/tex">x^2 < y</script></span><span>$</span></span><script>globalThis.badClipboard=1</script></p>' +
+        '<pre mdtype="fences" lang="typescript" ahead="2" tail="-1" onclick="void 0">const x = 1;</pre>' +
+        '<p mdtype="paragraph" ahead="999999999999" tail="NaN">After</p>',
+    );
+    return { html, executed: Reflect.get(window, 'badClipboard') };
+  });
+  expect(result.html).toContain('$');
+  expect(result.html).toContain('x^2 &lt; y');
+  expect(result.html).toContain('lang="typescript"');
+  expect(result.html).toContain('ahead="2"');
+  expect(result.html).toContain('tail="1"');
+  expect(result.html).not.toMatch(
+    /<script\b|onclick|mjx-container|duplicate rendering|999999999999|NaN|tail="-1"/,
+  );
+  expect(result.executed).toBeUndefined();
+});
+
+test('private block spacing cannot expand a small payload beyond the clipboard text budget', async ({
+  page,
+}) => {
+  await expect(
+    page.evaluate(() =>
+      (window as Host).ClipboardTools.clipboardMarkupHTML(
+        '<p mdtype="paragraph" tail="999999">x</p>'.repeat(5),
+      ),
+    ),
+  ).rejects.toThrow('空行展开超出大小限制');
+});

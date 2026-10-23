@@ -16,6 +16,7 @@ import type { ImageHostAction } from '../images/contracts.js';
 import type { MarkLyraMenuState } from '../menu-state.js';
 import type { MarkLyraCommand, RuntimeConfiguration } from '../protocol.js';
 import {
+  ClipboardMarkupAddressError,
   clipboardMarkupEvent,
   clipboardMarkupHTML,
   clipboardSelectionHTML,
@@ -1010,15 +1011,20 @@ export class RuntimeContextMenu {
         restoreContextSelection(editor, binding.selection);
         const selected = editor.writingArea.ownerDocument.getSelection();
         if (selected?.rangeCount === 1) {
+          const project = (html: string) => editor.UserOp.prepMarkHtml(html, editor).html();
           if (html === undefined)
-            html = clipboardSelectionHTML(editor.writingArea, selected.getRangeAt(0), (value) =>
-              this.deps.clipboardHTML(value),
+            html = clipboardSelectionHTML(
+              editor.writingArea,
+              selected.getRangeAt(0),
+              (value) => this.deps.clipboardHTML(value),
+              project,
             );
           if (markHtml !== undefined)
             markHtml = clipboardSelectionMarkupHTML(
               editor.writingArea,
               selected.getRangeAt(0),
               (value) => this.deps.clipboardHTML(value),
+              project,
             );
         }
       }
@@ -1028,6 +1034,19 @@ export class RuntimeContextMenu {
         ...(html === undefined ? {} : { html }),
         ...(markHtml === undefined ? {} : { markHtml }),
       });
+    } catch (error) {
+      if (!(error instanceof ClipboardMarkupAddressError)) throw error;
+      this.collecting = {};
+      try {
+        editor.UserOp.copyAsMarkdown(editor);
+      } catch (fallbackError) {
+        // The native Markdown writer also offers a private rich flavor. Its
+        // address remains forbidden; captureClipboardWrite retains text first.
+        if (!(fallbackError instanceof ClipboardMarkupAddressError)) throw fallbackError;
+      }
+      const text = this.collecting['text/plain'];
+      if (!text) throw new Error('未生成完整的 Markdown 剪贴板文本，已保留正文');
+      return clipboardContent({ text });
     } finally {
       this.collecting = undefined;
     }

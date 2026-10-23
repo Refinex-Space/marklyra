@@ -212,6 +212,7 @@ export interface LegacyEditor {
     reformatTable(): void;
   };
   UserOp: {
+    prepMarkHtml(html: string, editor: LegacyEditor): { html(): string };
     copyHandler(editor: LegacyEditor): void;
     copyAsMarkdown(editor: LegacyEditor): void;
     copyAsHTMLSource(editor: LegacyEditor): void;

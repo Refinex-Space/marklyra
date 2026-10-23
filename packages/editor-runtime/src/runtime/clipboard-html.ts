@@ -1,3 +1,4 @@
+import { MAX_CLIPBOARD_CHARS } from '../context-menu/contracts.js';
 import { displayImageUrl, imageHostReference, VIRTUAL_DOCUMENT_PATH } from '../images/contracts.js';
 
 const semanticAncestors = new Set(['STRONG', 'EM', 'DEL', 'CODE', 'A', 'U', 'MARK', 'SUB', 'SUP']);
@@ -13,11 +14,34 @@ const privateAttributes = new Set([
   'draggable',
 ]);
 
+/** Incoming rich content still rejects these addresses. Local copy may retain
+ * the same document source only through the existing plain Markdown writer. */
+export class ClipboardMarkupAddressError extends Error {
+  constructor() {
+    super('剪贴板 Markdown HTML 包含不允许的地址');
+  }
+}
+
+/** MathJax's non-executable source carrier is text, never clipboard DOM. Keep
+ * only its TeX body and discard the duplicate rendered/assistive presentation. */
+function clipboardMathText(root: DocumentFragment | HTMLElement): void {
+  for (const math of root.querySelectorAll('[md-inline="inline_math"]')) {
+    const sources = math.querySelectorAll('script[type="math/tex"]');
+    if (sources.length !== 1) continue;
+    const source = sources[0];
+    if (!source) continue;
+    source.replaceWith(root.ownerDocument.createTextNode(source.textContent ?? ''));
+    for (const rendered of math.querySelectorAll('mjx-container')) rendered.remove();
+  }
+}
+
 /** The private flavor needs Markdown markers/type boundaries, never executable
  * DOM, editor identities, live capabilities or arbitrary widget attributes. */
 export function clipboardMarkupHTML(html: string): string {
+  if (html.length > MAX_CLIPBOARD_CHARS) throw new Error('剪贴板 Markdown HTML 超出大小限制');
   const template = document.createElement('template');
   template.innerHTML = html;
+  clipboardMathText(template.content);
   for (const node of template.content.querySelectorAll(
     'script,style,iframe,frame,object,embed,link,meta,base,form,input,textarea,button,select,option,svg,math,template,video,audio,source',
   ))
@@ -61,6 +85,7 @@ export function clipboardMarkupHTML(html: string): string {
     'TD',
     'TH',
   ]);
+  let projectedSize = html.length;
   for (const node of template.content.querySelectorAll('*')) {
     if (!tags.has(node.tagName)) {
       node.replaceWith(...node.childNodes);
@@ -104,9 +129,18 @@ export function clipboardMarkupHTML(html: string): string {
         key === 'mdtype' ||
         key === 'md-inline' ||
         key === 'title' ||
+        (node.hasAttribute('mdtype') &&
+          (key === 'ahead' || key === 'tail') &&
+          /^\d{1,6}$/u.test(attribute.value)) ||
         (node.tagName === 'A' && key === 'href') ||
         (node.tagName === 'IMG' && (key === 'src' || key === 'alt')) ||
+        (node.tagName === 'PRE' && node.getAttribute('mdtype') === 'fences' && key === 'lang') ||
         (node.tagName === 'OL' && key === 'start');
+      if (allowed && (key === 'ahead' || key === 'tail')) {
+        projectedSize += Number(attribute.value) * 2;
+        if (projectedSize > MAX_CLIPBOARD_CHARS)
+          throw new Error('剪贴板 Markdown HTML 的空行展开超出大小限制');
+      }
       if (!allowed) node.removeAttribute(attribute.name);
       else if (
         (key === 'href' || key === 'src') &&
@@ -124,7 +158,7 @@ export function clipboardMarkupHTML(html: string): string {
             .join(''),
         )
       ) {
-        throw Error('剪贴板 Markdown HTML 包含不允许的地址');
+        throw new ClipboardMarkupAddressError();
       }
     }
   }
@@ -152,6 +186,7 @@ export function clipboardSelectionMarkupHTML(
   area: HTMLElement,
   range: Range,
   normalize: (html: string) => string,
+  project: (html: string) => string = (html) => html,
 ): string | undefined {
   if (range.collapsed || !area.contains(range.startContainer) || !area.contains(range.endContainer))
     return;
@@ -204,7 +239,7 @@ export function clipboardSelectionMarkupHTML(
   }
   const container = document.createElement('div');
   container.append(fragment);
-  return clipboardMarkupHTML(normalize(container.innerHTML));
+  return clipboardMarkupHTML(normalize(project(container.innerHTML)));
 }
 
 /** Project exactly the selected DOM into clipboard HTML. Range.cloneContents
@@ -215,6 +250,7 @@ export function clipboardSelectionHTML(
   area: HTMLElement,
   range: Range,
   restoreImageURLs: (html: string) => string,
+  project: (html: string) => string = (html) => html,
 ): string | undefined {
   if (range.collapsed || !area.contains(range.startContainer) || !area.contains(range.endContainer))
     return;
@@ -244,7 +280,8 @@ export function clipboardSelectionHTML(
   container.append(fragment);
   // Resolve image capabilities while the copied wrappers still have their
   // source metadata. The callback operates on detached HTML, never the document.
-  container.innerHTML = restoreImageURLs(container.innerHTML);
+  container.innerHTML = restoreImageURLs(project(container.innerHTML));
+  clipboardMathText(container);
   for (const unwanted of container.querySelectorAll(removedElements)) unwanted.remove();
   for (const copied of container.querySelectorAll('*')) {
     for (const attribute of [...copied.attributes]) {
@@ -252,6 +289,13 @@ export function clipboardSelectionHTML(
       const imageSource = copied.tagName === 'IMG' && name === 'data-marklyra-image-source';
       if (
         privateAttributes.has(name) ||
+        name === 'ahead' ||
+        name === 'tail' ||
+        name === 'pattern' ||
+        name === 'patternend' ||
+        name === 'prespace' ||
+        name === 'markindent' ||
+        name === 'isfixed' ||
         name.startsWith('on') ||
         name.startsWith('aria-') ||
         (name.startsWith('data-') && !imageSource) ||

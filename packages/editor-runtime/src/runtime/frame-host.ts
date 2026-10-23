@@ -15,6 +15,7 @@ import {
 import type { RuntimeReloadRequest } from '../reload/contracts.js';
 import { marklyraStartupPreferences } from '../startup-preferences.js';
 import {
+  ClipboardMarkupAddressError,
   clipboardMarkupEvent,
   clipboardSelectionHTML,
   clipboardSelectionMarkupHTML,
@@ -1230,6 +1231,9 @@ for (const name of ['copy', 'cut', 'paste'] as const)
     name,
     (event) => {
       clipboard = event;
+      queueMicrotask(() => {
+        if (clipboard === event) clipboard = null;
+      });
       const editor = runtime.editor;
       const target = event.target instanceof Element ? event.target : null;
       if (name === 'paste' && editor && !composing() && target?.closest('#write'))
@@ -1248,24 +1252,42 @@ for (const name of ['copy', 'cut', 'paste'] as const)
       ) {
         // Browser clipboard writes must happen before the event returns; the
         // original native bridge finishes its copy work on a later timer.
-        const html = clipboardSelectionHTML(editor.writingArea, selected.getRangeAt(0), (html) =>
-          images.clipboardHTML(html),
-        );
-        const markup = clipboardSelectionMarkupHTML(
-          editor.writingArea,
-          selected.getRangeAt(0),
-          (value) => images.clipboardHTML(value),
-        );
-        if (html !== undefined) event.clipboardData.setData('text/html', html);
-        if (name === 'cut') runtime.File?.cut();
-        else editor.UserOp.copyHandler(editor);
-        if (markup !== undefined) event.clipboardData.setData('text/markhtml', markup);
+        // Claim cut before any projection can fail: neither the browser's
+        // default action nor the original listener may delete an unwritten copy.
         event.preventDefault();
         event.stopImmediatePropagation();
+        try {
+          const project = (html: string) => editor.UserOp.prepMarkHtml(html, editor).html();
+          const html = clipboardSelectionHTML(
+            editor.writingArea,
+            selected.getRangeAt(0),
+            (html) => images.clipboardHTML(html),
+            project,
+          );
+          const markup = clipboardSelectionMarkupHTML(
+            editor.writingArea,
+            selected.getRangeAt(0),
+            (value) => images.clipboardHTML(value),
+            project,
+          );
+          if (html !== undefined) event.clipboardData.setData('text/html', html);
+          if (name === 'cut') runtime.File?.cut();
+          else editor.UserOp.copyHandler(editor);
+          if (markup !== undefined) event.clipboardData.setData('text/markhtml', markup);
+        } catch (error) {
+          if (!(error instanceof ClipboardMarkupAddressError)) throw error;
+          // A document can contain a local-file link while clipboard HTML is
+          // forbidden from carrying that capability. Preserve its complete
+          // Markdown as inert text, and write it before any cut deletes data.
+          event.clipboardData.clearData();
+          editor.UserOp.copyAsMarkdown(editor);
+          event.clipboardData.clearData('text/html');
+          event.clipboardData.clearData('text/markhtml');
+          if (!event.clipboardData.getData('text/plain'))
+            throw new Error('未生成完整的 Markdown 剪贴板文本，已保留正文');
+          if (name === 'cut') editor.UserOp.backspaceHandler(editor, null, 'delSelection');
+        }
       }
-      queueMicrotask(() => {
-        clipboard = null;
-      });
     },
     { capture: true, signal: abort.signal },
   );
