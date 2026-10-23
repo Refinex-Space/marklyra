@@ -17,6 +17,41 @@ interface TitlebarLayout {
 }
 let pendingTitleLayout: TitlebarLayout | undefined;
 let titleLayoutWork: Promise<void> | undefined;
+interface ChromeRequest {
+  payload: Record<string, unknown>;
+  resolve(): void;
+  reject(error: unknown): void;
+}
+let pendingChrome: ChromeRequest | undefined;
+let updatingChrome = false;
+
+function updateChrome(payload: Record<string, unknown>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // A queued snapshot replaced by a newer one needs no native work.
+    pendingChrome?.resolve();
+    pendingChrome = { payload, resolve, reject };
+    if (updatingChrome) return;
+    updatingChrome = true;
+    void (async () => {
+      try {
+        while (pendingChrome) {
+          const current = pendingChrome;
+          pendingChrome = undefined;
+          try {
+            // Native completion order must match publication order, including Save
+            // and document switches. Statistics can replace queued snapshots.
+            await invoke<void>('update_editor_chrome', { payload: current.payload });
+            current.resolve();
+          } catch (error) {
+            current.reject(error);
+          }
+        }
+      } finally {
+        updatingChrome = false;
+      }
+    })();
+  });
+}
 
 export const editorChrome = {
   updateTitleLayout(layout: TitlebarLayout): Promise<void> {
@@ -69,25 +104,23 @@ export const editorChrome = {
   ) {
     const values = statistics ?? { words: 0, characters: 0, lines: 0, readingMinutes: 0 };
     const labels = { words: '词', characters: '字符', lines: '行', readingMinutes: '分钟' };
-    return invoke<void>('update_editor_chrome', {
-      payload: {
-        documentId,
-        dirty,
-        alwaysShowWordCount,
-        dark,
-        outlinePanelOpen,
-        aiPanelOpen,
-        canCloseDocument,
-        ...(untitledName ? { untitledName } : {}),
-        sourceMode: viewMode === undefined ? undefined : viewMode === 'source',
-        statisticsLabel: `${values[unit].toLocaleString()} ${labels[unit]}`,
-        statistics: {
-          words: values.words,
-          characters: values.characters,
-          lines: values.lines,
-          readingMinutes: values.readingMinutes,
-          unit,
-        },
+    return updateChrome({
+      documentId,
+      dirty,
+      alwaysShowWordCount,
+      dark,
+      outlinePanelOpen,
+      aiPanelOpen,
+      canCloseDocument,
+      ...(untitledName ? { untitledName } : {}),
+      sourceMode: viewMode === undefined ? undefined : viewMode === 'source',
+      statisticsLabel: `${values[unit].toLocaleString()} ${labels[unit]}`,
+      statistics: {
+        words: values.words,
+        characters: values.characters,
+        lines: values.lines,
+        readingMinutes: values.readingMinutes,
+        unit,
       },
     });
   },

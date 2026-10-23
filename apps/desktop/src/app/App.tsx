@@ -1740,9 +1740,12 @@ export function App() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: Native resolves the same ID to its new path after a metadata generation change.
   useEffect(() => {
     if (!chrome.native) return;
+    let current = true;
+    const documentId = doc.file?.id ?? null;
+    const owner = doc.getOwner();
     void editorChrome
       .update(
-        doc.file?.id ?? null,
+        documentId,
         doc.dirty,
         statistics.value,
         preferences.statisticsUnit,
@@ -1754,9 +1757,17 @@ export function App() {
         !homeVisible,
         doc.file ? undefined : documentName,
       )
-      .catch((error: unknown) =>
-        actions.current.doc.setMessage(`标题栏更新失败：${String(error)}`),
-      );
+      .catch((error: unknown) => {
+        if (
+          current &&
+          actions.current.doc.getOwner() === owner &&
+          (actions.current.doc.file?.id ?? null) === documentId
+        )
+          actions.current.doc.setMessage(`标题栏更新失败：${String(error)}`);
+      });
+    return () => {
+      current = false;
+    };
   }, [
     chrome.native,
     doc.file?.id,
