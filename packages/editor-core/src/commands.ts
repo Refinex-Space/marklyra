@@ -30,31 +30,40 @@ function localEnding(source: string, line: SourceLine): string {
   return '\n';
 }
 
-/** A conservative fence/front-matter guard, not a Markdown parser. */
-function isLiteralLine(source: string, line: SourceLine): boolean {
-  const preceding = source
-    .slice(0, line.from)
-    .replace(/^\uFEFF/, '')
-    .split(/\r\n|\r|\n/);
-  let frontMatter = preceding[0] === '---';
+/** A conservative guard for ascending lines, including both literal delimiters. */
+function literalLineGuard(source: string): (line: SourceLine) => boolean {
+  let offset = 0;
+  let frontMatter = false;
   let fence: { marker: string; length: number } | undefined;
-  for (let index = 0; index < preceding.length; index += 1) {
-    const text = preceding[index] ?? '';
-    if (frontMatter) {
-      if (index > 0 && /^(?:---|\.\.\.)\s*$/.test(text)) frontMatter = false;
-      continue;
+  let literal = false;
+  return (line) => {
+    // Advance once across the source instead of rescanning every selected line's prefix.
+    while (offset <= line.from) {
+      const current = lineAt(source, offset);
+      const text = current.from === 0 ? current.text.replace(/^\uFEFF/, '') : current.text;
+      literal = frontMatter || fence !== undefined;
+      if (current.from === 0 && text === '---') {
+        frontMatter = true;
+        literal = true;
+      } else if (frontMatter) {
+        if (/^(?:---|\.\.\.)\s*$/.test(text)) frontMatter = false;
+      } else {
+        const match = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(text);
+        if (match?.[1]) {
+          const marker = match[1][0] ?? '';
+          if (fence) {
+            if (marker === fence.marker && match[1].length >= fence.length && !match[2]?.trim())
+              fence = undefined;
+          } else if (marker !== '`' || !match[2]?.includes('`')) {
+            fence = { marker, length: match[1].length };
+            literal = true;
+          }
+        }
+      }
+      offset = current.to + Math.max(1, current.ending.length);
     }
-    const match = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(text);
-    if (!match?.[1]) continue;
-    const marker = match[1][0] ?? '';
-    if (fence) {
-      if (marker === fence.marker && match[1].length >= fence.length && !match[2]?.trim())
-        fence = undefined;
-    } else if (marker !== '`' || !match[2]?.includes('`')) {
-      fence = { marker, length: match[1].length };
-    }
-  }
-  return frontMatter || fence !== undefined;
+    return literal;
+  };
 }
 
 function selectionFromRange(from: number, to: number, original: Selection): Selection {
@@ -78,7 +87,7 @@ function paragraph(state: EditorState): Transaction {
   const to = Math.max(state.selection.anchor, state.selection.head);
   const line = lineAt(state.source, from);
   const ending = localEnding(state.source, line);
-  if (isLiteralLine(state.source, line)) return replaceSelection(state, ending);
+  if (literalLineGuard(state.source)(line)) return replaceSelection(state, ending);
   const bom = line.from === 0 && line.text.startsWith('\uFEFF') ? '\uFEFF' : '';
   const text = line.text.slice(bom.length);
   const quote = /^[ \t]*(?:>[ \t]?)+/.exec(text)?.[0] ?? '';
@@ -197,8 +206,9 @@ function heading(state: EditorState, level: number): Transaction {
   const end = Math.max(state.selection.anchor, state.selection.head);
   const patches: Patch[] = [];
   let line = lineAt(state.source, start);
+  const isLiteralLine = literalLineGuard(state.source);
   do {
-    if (!isLiteralLine(state.source, line)) {
+    if (!isLiteralLine(line)) {
       const prefix = /^(?:\uFEFF)?(?:[ \t]*(?:>[ \t]?)+)? {0,3}/.exec(line.text)?.[0] ?? '';
       const current = /^#{1,6}(?:[ \t]+|$)/.exec(line.text.slice(prefix.length))?.[0] ?? '';
       const insert = level === 0 ? '' : `${'#'.repeat(level)} `;
