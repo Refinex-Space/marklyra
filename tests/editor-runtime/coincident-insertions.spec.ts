@@ -8,6 +8,7 @@ type Host = Window & {
   batch: {
     errors: string[];
     changes: RuntimeChange[];
+    states: { canonical: string; tracking: RuntimeState['tracking'] }[];
   };
 };
 type Child = Window & {
@@ -18,16 +19,30 @@ type Child = Window & {
   notificationGate?: { held: Map<number, () => void>; release(): void };
 };
 const scenarios = [
-  { name: 'LF tail', source: '**Tail**\n', added: '\n', ending: '\n' },
+  { name: 'LF tail', source: '**Tail**\n', added: '\n', ending: '\n', proof: 'root' },
   {
     name: 'BOM and mixed EOL',
     source: '\uFEFFAlpha\r\n\r\nKeep\n\n**Tail**\n',
     added: '\n',
     ending: '\n',
+    canonicalEnding: '\r\n',
+    proof: 'either',
   },
-  { name: 'CRLF tail', source: '**Tail**\r\n', added: '\r\n', ending: '\r\n' },
-  { name: 'existing empty cid', source: '**Tail**\n\n', added: '\n\n', ending: '\n' },
-];
+  {
+    name: 'CRLF tail',
+    source: '**Tail**\r\n',
+    added: '\r\n',
+    ending: '\r\n',
+    proof: 'root',
+  },
+  {
+    name: 'existing empty cid',
+    source: '**Tail**\n\n',
+    added: '\n\n',
+    ending: '\n',
+    proof: 'coincident',
+  },
+] as const;
 async function mount(page: Page, source: string) {
   await page.goto('/');
   await page.waitForFunction(() => Boolean((window as unknown as Host).marklyraEditor));
@@ -39,7 +54,7 @@ async function mount(page: Page, source: string) {
       root = old.element.parentElement;
     if (!root) throw Error('Missing mount');
     old.destroy();
-    host.batch = { errors: [], changes: [] };
+    host.batch = { errors: [], changes: [], states: [] };
     host.marklyraEditor = new Constructor(root, {
       runtimeUrl: 'http://127.0.0.1:4174/index.html',
       markdown: source,
@@ -48,10 +63,13 @@ async function mount(page: Page, source: string) {
     window.addEventListener('message', (event) => {
       if (event.source !== host.marklyraEditor.element.contentWindow) return;
       const payload = event.data?.payload as
-        | { state?: RuntimeState; tracking?: RuntimeState['tracking'] }
+        | { state?: RuntimeState; tracking?: RuntimeState['tracking']; canonical?: string }
         | undefined;
       const tracking = payload?.state?.tracking ?? payload?.tracking;
       if (tracking?.changes.length) host.batch.changes.push(...structuredClone(tracking.changes));
+      const canonical = payload?.state?.canonical ?? payload?.canonical;
+      if (tracking && typeof canonical === 'string')
+        host.batch.states.push({ canonical, tracking: structuredClone(tracking) });
     });
     await host.marklyraEditor.ready;
     await host.marklyraEditor.flush();
@@ -125,8 +143,9 @@ async function batchEnterAndPaste(page: Page) {
     await frame.evaluate(() => (window as unknown as Child).notificationGate?.held.size ?? 0),
   ).toBeGreaterThan(0);
   // The original native paste entry can execute in the same unpublished batch
-  // as Enter. Going through the SDK context menu would capture Enter first and
-  // would no longer exercise coincident serializer partition insertions.
+  // as Enter. Root receipts can prove Enter before publication; the other
+  // fixtures still require coincident serializer partition insertion checks.
+  // Going through the SDK context menu would split that native unpublished batch.
   await frame.evaluate(() => {
     const editor = (window as unknown as Child).editor;
     editor.UserOp.pasteHandler(editor, '<strong>Bravo</strong>', false);
@@ -144,10 +163,63 @@ for (const scenario of scenarios)
     const intermediate = scenario.source + scenario.added;
     const expected = intermediate + '**Bravo**' + scenario.ending;
     expect(await flush(page)).toBe(expected);
+    const states = await page.evaluate(() => (window as unknown as Host).batch.states);
+    await info.attach('actual-tracking-chain', {
+      body: JSON.stringify(states, null, 2),
+      contentType: 'application/json',
+    });
     const proofs = await page.evaluate(() =>
       (window as unknown as Host).batch.changes.filter((change) => change.placementChecks?.length),
     );
-    expect(proofs.length).toBeGreaterThan(0);
+    if (scenario.proof === 'root' || (scenario.proof === 'either' && proofs.length === 0)) {
+      // Exact root receipts can precede publication, including the mixed-EOL
+      // fixture. Missing coincident checks require both complete direct steps;
+      // the existing-empty-cid fixture must still exercise the coincident path.
+      expect(proofs).toEqual([]);
+      const before = states.filter((state) => state.tracking.changes.length === 0).at(-1);
+      const after = states.at(-1);
+      if (!before || !after) throw Error('Missing native batch canonical states');
+      const ending = 'canonicalEnding' in scenario ? scenario.canonicalEnding : scenario.ending;
+      const initialCanonical = scenario.source
+        .replace(/^\uFEFF/u, '')
+        .replace(/\r\n|\r|\n/g, ending);
+      const enteredCanonical = initialCanonical + ending;
+      const pastedCanonical = enteredCanonical + '**Bravo**' + ending;
+      expect(before.canonical).toBe(initialCanonical);
+      const checkpoint = before.tracking.checkpoint;
+      const point = initialCanonical.length - ending.length;
+      expect(after.tracking.changes).toEqual([
+        {
+          baseCheckpoint: checkpoint,
+          checkpoint: checkpoint + 1,
+          baseProjectionEpoch: before.tracking.projectionEpoch,
+          patches: [{ from: point, to: point, insert: ending }],
+        },
+        {
+          baseCheckpoint: checkpoint + 1,
+          checkpoint: checkpoint + 2,
+          baseProjectionEpoch: before.tracking.projectionEpoch,
+          patches: [
+            {
+              from: enteredCanonical.length,
+              to: enteredCanonical.length,
+              insert: `**Bravo**${ending}`,
+            },
+          ],
+          placementRanges: [{ from: enteredCanonical.length, to: enteredCanonical.length }],
+        },
+      ]);
+      let canonical = before.canonical;
+      const chain = after.tracking.changes.map((change) => {
+        for (const patch of [...change.patches].reverse())
+          canonical = canonical.slice(0, patch.from) + patch.insert + canonical.slice(patch.to);
+        return canonical;
+      });
+      expect(chain).toEqual([enteredCanonical, pastedCanonical]);
+      expect(after.canonical).toBe(canonical);
+      expect(after.tracking.checkpoint).toBe(checkpoint + 2);
+      expect(after.tracking.projectionEpoch).toBe(before.tracking.projectionEpoch);
+    } else expect(proofs.length).toBeGreaterThan(0);
     for (const proof of proofs) {
       const checks = proof.placementChecks ?? [];
       const point = checks[0]?.patch.from;
