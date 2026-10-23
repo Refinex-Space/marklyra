@@ -32,6 +32,7 @@ import { validHTMLMessage } from './html-messages.js';
 import { RuntimeImageLayout } from './image-layout.js';
 import { type RuntimeImageReferenceRequest, RuntimeImageReferences } from './image-references.js';
 import { RuntimeImages } from './images.js';
+import { RuntimeInitialMathPreviews } from './initial-math-previews.js';
 import type { LegacyGlobals } from './legacy-types.js';
 import { installLiteralPrefix } from './literal-prefix.js';
 import { RuntimeMarkdownPreferences } from './markdown-preferences.js';
@@ -159,7 +160,13 @@ const renderTickets = new RuntimeRenderTickets(
   () => documentGeneration,
   () => !disposed && !loading && !composing(),
 );
-runtime.__MARKLYRA_RENDER_TICKET__ = (preview, cm) => renderTickets.begin(preview, cm);
+runtime.__MARKLYRA_RENDER_TICKET__ = (preview, cm) =>
+  initialMath.observeTicket(preview, cm, renderTickets.begin(preview, cm));
+const initialMath = new RuntimeInitialMathPreviews(
+  runtime,
+  () => documentGeneration,
+  () => !disposed && !loading && !composing(),
+);
 const outline = new RuntimeOutline({
   entries: () => {
     refreshOutlineModel(runtime);
@@ -305,7 +312,10 @@ const reloads = new RuntimeReload({
   setLoading: (value) => {
     loading = value;
     if (value) imageLayout?.beginLoad();
-    else imageLayout?.endLoad();
+    else {
+      imageLayout?.endLoad();
+      initialMath.flush();
+    }
   },
   state,
 });
@@ -318,6 +328,7 @@ const imageReferences = new RuntimeImageReferences({
   loading: () => loading,
   setLoading: (value) => {
     loading = value;
+    if (!value) initialMath.flush();
   },
   changed: () => dirty(),
   snapshot: () => reloads.snapshot(),
@@ -913,6 +924,7 @@ window.addEventListener(
             } finally {
               loading = false;
               imageLayout?.endLoad();
+              initialMath.flush();
             }
             const loaded = state(true, true);
             result = { applied: true, state: loaded };
@@ -1111,6 +1123,7 @@ window.addEventListener(
           }
           case 'destroy':
             disposed = true;
+            initialMath.destroy();
             tableControls.destroy();
             slashMenu.destroy();
             focus.destroy();
@@ -1219,6 +1232,7 @@ document.addEventListener(
       if (disposed || generation !== compositionGeneration) return;
       nativeComposition = false;
       if (sourceLayoutPending) refreshSourceLayout();
+      initialMath.flush();
       send('composition', Boolean(runtime.editor?.isIME));
       schedule();
       outlineNavigation.schedule();
@@ -1371,6 +1385,7 @@ async function ready() {
   preserveSourceResizeScroll();
   focus.install();
   nodeLookup = installNodeLookup(runtime.editor, runtime.$);
+  initialMath.install();
   images.install();
   statistics.install();
   themes.install();

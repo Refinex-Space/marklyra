@@ -115,12 +115,18 @@ export interface LegacyEditor {
     deleteActive(): void;
   };
   fences: {
+    addCodeBlock?(node: string | LegacyNode): unknown;
     getOptionsFromFencesAttr(language: string): { lineNumbers?: boolean; firstLineNumber?: number };
     copyContent(): void;
     formatContent(selectionOnly?: boolean): void;
     queue?: Record<string, LegacyConfigurableCodeMirror>;
   };
-  mathBlock?: { currentCm?: LegacyConfigurableCodeMirror };
+  mathBlock?: {
+    currentCm?: LegacyConfigurableCodeMirror;
+    renderUnder?(scope?: ParentNode, force?: boolean): Promise<unknown>;
+    updateDiagram?(cid: string): void;
+    isMathJaxReady?(): boolean;
+  };
   htmlBlock?: { currentCm?: LegacyConfigurableCodeMirror };
 
   selection: {
