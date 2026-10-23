@@ -12,6 +12,7 @@ import {
   advancedSource,
   mountAdvanced,
 } from './advanced-lifecycle.helpers.js';
+import { settleMarkerClick, settleMarkerClickTasks } from './marker-selection.helpers.js';
 
 const vectors: unknown = JSON.parse(
   readFileSync(new URL('../editor-compatibility/input-vectors.json', import.meta.url), 'utf8'),
@@ -42,17 +43,24 @@ for (const context of contexts)
   }, info) => {
     await mountAdvanced(page, context.source);
     const frame = advancedFrame(page);
-    if (context.id === 'paragraph' || context.id.endsWith('-boundary')) {
-      await frame.locator('#write > *').first().click();
-      await expect(frame.locator('#write .md-focus')).not.toHaveCount(0);
-    }
+    if (context.id === 'paragraph' || context.id.endsWith('-boundary'))
+      await settleMarkerClick(page);
     if (context.id === 'source')
       await page.evaluate(() =>
         (window as unknown as { marklyraEditor: MarkLyraEditor }).marklyraEditor.execute({
           type: 'toggleSource',
         }),
       );
-    if (context.id === 'source' || context.id === 'code') {
+    if (context.id.endsWith('-boundary')) {
+      // A DOM range alone does not establish the native editor's formatting
+      // context. Select the actual word with a trusted user gesture, then
+      // observe its pending marker callbacks before inserting Unicode text.
+      await frame
+        .locator(context.id === 'strong-boundary' ? '#write strong' : '#write a')
+        .first()
+        .dblclick();
+      await settleMarkerClickTasks(page);
+    } else if (context.id === 'source' || context.id === 'code') {
       const selector =
         context.id === 'source'
           ? '#typora-source .CodeMirror'
@@ -117,15 +125,7 @@ for (const context of contexts)
       }, context.id);
     expect((await readSelection()).text).toBe('MARK');
     await page.keyboard.insertText(payload);
-    // Original 1.11.7 matches this long, whitespace-bearing insertion in both engines.
-    // Short Latin and single CJK controls preserve formatting; this vector does not.
-    const originalToken =
-      context.id === 'strong-boundary'
-        ? '**MARK**'
-        : context.id === 'link-boundary'
-          ? '[MARK](target.md)'
-          : 'MARK';
-    const expected = context.source.replace(originalToken, payload);
+    const expected = context.source.replace('MARK', payload);
     await expect.poll(() => advancedSource(page)).toBe(expected);
     const editedSelection = await readSelection();
     expect(editedSelection.text).toBe('');
@@ -143,6 +143,13 @@ for (const context of contexts)
       );
       expect(await advancedSource(page)).toBe(expected);
     }
+    const continued = context.id.endsWith('-boundary')
+      ? context.source.replace('MARK', `${payload}!`)
+      : undefined;
+    if (continued !== undefined) {
+      await page.keyboard.insertText('!');
+      await expect.poll(() => advancedSource(page)).toBe(continued);
+    }
     await info.attach('Unicode-direct-text', {
       body: JSON.stringify({
         context: context.id,
@@ -153,6 +160,7 @@ for (const context of contexts)
         payloadUTF16: payload.length,
         source: context.source,
         edited: expected,
+        ...(continued === undefined ? {} : { continued }),
         roundtrip: true,
       }),
       contentType: 'application/json',
