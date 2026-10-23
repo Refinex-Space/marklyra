@@ -1,6 +1,7 @@
 import type { ClipboardContent, MarkLyraEditor } from '@marklyra/editor-runtime';
 import { expect, type Page, test } from '@playwright/test';
 import { advancedFrame } from './advanced-lifecycle.helpers.js';
+import { settleMarkerClick } from './marker-selection.helpers.js';
 
 type Host = Window & {
   marklyraEditor: MarkLyraEditor;
@@ -55,7 +56,10 @@ async function mount(page: Page, markdown: string) {
 }
 async function select(page: Page, partial: boolean) {
   const area = advancedFrame(page).locator('#write');
-  await area.locator('p').first().click();
+  // The native click schedules marker expansion after 180ms. Complete that
+  // actual callback before installing a cross-block range; two animation
+  // frames do not establish that the earlier click relinquished selection.
+  await settleMarkerClick(page);
   await area.evaluate((area, partial) => {
     (area as HTMLElement).focus();
     const range = document.createRange();
@@ -63,6 +67,8 @@ async function select(page: Page, partial: boolean) {
       const first = area.querySelector('strong [md-inline="plain"]')?.firstChild;
       const last = area.querySelector('a [md-inline="plain"]')?.firstChild;
       if (!first || !last) throw Error('Missing partial endpoints');
+      if (first.textContent !== 'START Alpha' || last.textContent !== 'Omega END')
+        throw Error('Unexpected partial selection text');
       range.setStart(first, 'START '.length);
       range.setEnd(last, 'Omega'.length);
     } else range.selectNodeContents(area);
@@ -70,12 +76,26 @@ async function select(page: Page, partial: boolean) {
     selection?.removeAllRanges();
     selection?.addRange(range);
   }, partial);
-  await area.evaluate(
-    () =>
-      new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-      ),
-  );
+  expect(
+    await area.evaluate((area, partial) => {
+      const selected = getSelection();
+      const range = selected?.rangeCount === 1 ? selected.getRangeAt(0) : null;
+      if (!range || range.collapsed) return false;
+      if (!partial)
+        return (
+          range.startContainer === area &&
+          range.startOffset === 0 &&
+          range.endContainer === area &&
+          range.endOffset === area.childNodes.length
+        );
+      return (
+        range.startContainer === area.querySelector('strong [md-inline="plain"]')?.firstChild &&
+        range.startOffset === 'START '.length &&
+        range.endContainer === area.querySelector('a [md-inline="plain"]')?.firstChild &&
+        range.endOffset === 'Omega'.length
+      );
+    }, partial),
+  ).toBe(true);
 }
 async function menu(page: Page) {
   const point = await advancedFrame(page)
@@ -83,6 +103,9 @@ async function menu(page: Page) {
     .evaluate((area) => {
       const text = area.querySelector('strong [md-inline="plain"]')?.firstChild;
       if (!text) throw Error('Missing menu text');
+      const selected = getSelection();
+      if (!selected?.rangeCount || !selected.getRangeAt(0).isPointInRange(text, 6))
+        throw Error('Clipboard menu point is outside the prepared selection');
       const range = document.createRange();
       range.setStart(text, 6);
       range.setEnd(text, 7);
