@@ -25,6 +25,7 @@ import {
   captureActivePlainSelection,
   captureAuthorizedReplacement,
   capturePlainInput,
+  type PlainBlockRange,
   type PlainInputCandidate,
   type PlainInputContext,
   type PlainSelection,
@@ -38,6 +39,7 @@ import { captureListIndent } from './list-indent-source.js';
 import { normalizeTrackedPatches, type PlacementCheck } from './patch-normalization.js';
 import { readMarkdownPolicy } from './policy-options.js';
 import { capturePolicyModel, serializePolicyModel } from './policy-serialization.js';
+import { captureRootBreak } from './root-break-source.js';
 import { RuntimeSerializationRead } from './serialization-read.js';
 import { captureStructuralBreak } from './structural-break-source.js';
 import { repairStructuralHistoryDOM } from './structural-history-dom.js';
@@ -222,7 +224,9 @@ export class RuntimeSourceTracking {
   private sourceFindReplace: { cm: object; base: string; patches: readonly Patch[] } | undefined;
   private inputDocuments = new WeakSet<Document>();
   private pendingInput: PlainInputCandidate | undefined;
-  private pendingAction: ((next: string) => TrackedEdit | undefined) | undefined;
+  private pendingAction:
+    | ((next: string, blocks?: readonly PlainBlockRange[]) => TrackedEdit | undefined)
+    | undefined;
   private inputTicket = 0;
   private pendingCodeSelection: PendingCodeHistorySelection | undefined;
   private codeSelections = new WeakMap<object, CodeHistorySelection>();
@@ -275,8 +279,8 @@ export class RuntimeSourceTracking {
     if (this.previous) this.journalPolicies.set(this.checkpoint, policy);
   }
 
-  /** Arm only the current authorized menu selection, immediately before its
-   * synchronous original operation. A later capture still proves actual output. */
+  /** Arm a host command or plain clipboard event before its original operation.
+   * A later capture must still match the complete expected canonical output. */
   armAuthorizedReplacement(
     text: string,
     inputType: 'insertText' | 'deleteContentBackward',
@@ -386,7 +390,7 @@ export class RuntimeSourceTracking {
     return true;
   }
 
-  private armStructuralBreak(soft: boolean): boolean {
+  private armStructuralBreak(soft: boolean, event: KeyboardEvent | InputEvent): boolean {
     if (!this.policyEnabled || this.suspended() || this.runtime.File?.isLocked) return false;
     // Complete the preceding real input before replacing its pending evidence.
     this.captureCurrent();
@@ -399,6 +403,7 @@ export class RuntimeSourceTracking {
     if (!previous?.blocks) return false;
     const complete =
       captureStructuralBreak(this.runtime, previous.canonical, previous.blocks, soft) ??
+      captureRootBreak(this.runtime, previous.canonical, previous.blocks, soft, event) ??
       (!soft
         ? captureBlockIndent(
             this.runtime,
@@ -409,8 +414,8 @@ export class RuntimeSourceTracking {
           )
         : undefined);
     if (!complete) return false;
-    this.pendingAction = (next) => {
-      const proved = complete(next);
+    this.pendingAction = (next, blocks) => {
+      const proved = complete(next, blocks);
       if (!proved) return;
       return {
         base: proved.base,
@@ -755,7 +760,7 @@ export class RuntimeSourceTracking {
       const complete = this.pendingAction;
       this.pendingAction = undefined;
       this.inputTicket++;
-      this.record(canonical, complete(canonical));
+      this.record(canonical, complete(canonical, this.prepared?.blocks ?? undefined));
       return this.value();
     }
     const codeSelection = this.pendingCodeSelection;
@@ -1327,7 +1332,10 @@ export class RuntimeSourceTracking {
         return;
       }
       if (paragraphBreak) {
-        this.armStructuralBreak(keyboard ? key.shiftKey : input.inputType === 'insertLineBreak');
+        this.armStructuralBreak(
+          keyboard ? key.shiftKey : input.inputType === 'insertLineBreak',
+          event,
+        );
         return;
       }
       if (
@@ -1407,12 +1415,24 @@ export class RuntimeSourceTracking {
     for (const type of ['compositionstart', 'pointerdown', 'paste', 'drop'])
       document.addEventListener(
         type,
-        () => {
+        (event) => {
           this.pendingInput = undefined;
           this.pendingAction = undefined;
           this.pendingHistorySelection = undefined;
           this.pendingCodeSelection = undefined;
           this.inputTicket++;
+          if (type !== 'paste' || !(event instanceof ClipboardEvent)) return;
+          const target = event.target as Node | null,
+            editor = this.runtime.editor,
+            data = event.clipboardData;
+          if (!editor || !target || !editor.writingArea.contains(target) || !data) return;
+          // Plain Markdown may be parsed into several new blocks. Its exact
+          // selected source range is stronger evidence than diffing moved cids.
+          // Rich/image input keeps its separate semantic conversion path.
+          if (data.files.length || data.getData('text/html') || data.getData('text/markhtml'))
+            return;
+          const text = data.getData('text/plain');
+          if (text) this.armAuthorizedReplacement(text, 'insertText');
         },
         true,
       );
