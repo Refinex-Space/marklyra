@@ -10,10 +10,11 @@ import {
 
 const source =
   '<script src="https://platform.twitter.com/widgets.js"></script>\n<div>Owned preview</div>\n\nTail\n';
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
+  const hostOrigin = new URL(baseURL ?? 'http://127.0.0.1:4173').origin;
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url());
-    return url.hostname === '127.0.0.1' && ['4173', '4174'].includes(url.port)
+    return url.origin === hostOrigin || url.origin === 'http://127.0.0.1:4174'
       ? route.continue()
       : route.abort();
   });
