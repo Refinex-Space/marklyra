@@ -33,7 +33,7 @@ import {
   currentContextCodeMirror,
   restoreContextSelection,
 } from './context-menu-selection.js';
-import type { LegacyEditor, LegacyGlobals } from './legacy-types.js';
+import type { LegacyEditor, LegacyGlobals, LegacyNode } from './legacy-types.js';
 import { readRuntimeMenuState } from './menu-state.js';
 import {
   type TableAxis,
@@ -63,6 +63,8 @@ interface Binding {
   link: string | undefined;
   lineWise: boolean;
   image?: { wrapper: HTMLElement; source: string; syntax: string };
+  /** A rendered formula's descendants may change without changing this model block. */
+  preview?: { node: LegacyNode; mark: string };
   /** Style facts at the right-click selection. Stamps prove they are still current. */
   editing?: MarkLyraMenuState;
   codeLines?: {
@@ -311,7 +313,16 @@ export class RuntimeContextMenu {
     const ticket = ++this.offerTicket,
       stamp = { ...this.deps.stamp() },
       eventEditor = this.deps.runtime.editor,
-      sourceMode = eventEditor?.sourceView.inSourceMode;
+      sourceMode = eventEditor?.sourceView.inSourceMode,
+      eventTarget = this.element(event.target),
+      previewTarget = eventTarget
+        ?.closest('.md-math-container')
+        ?.closest('[mdtype="math_block"][cid]'),
+      previewNode = previewTarget && eventEditor?.getNode(previewTarget.getAttribute('cid') ?? ''),
+      preview =
+        previewTarget && previewNode?.get('type') === 'math_block'
+          ? { target: previewTarget, node: previewNode, mark: previewNode.toMark() }
+          : undefined;
     // Capture after the original event task has completed its selection changes.
     setTimeout(() => {
       const current = this.deps.stamp();
@@ -325,8 +336,14 @@ export class RuntimeContextMenu {
       )
         return;
       const editor = this.deps.runtime.editor,
-        target = this.element(event.target);
+        target = preview?.target ?? this.element(event.target);
       if (!editor || !target || !this.inEditor(target) || !target.isConnected) return;
+      if (
+        preview &&
+        (editor.getNode(target.getAttribute('cid') ?? '') !== preview.node ||
+          preview.node.toMark() !== preview.mark)
+      )
+        return;
       const selection = captureContextSelection(editor, target);
       const bindingTarget = selection.cmWrapper ?? target;
       const binding: Binding = {
@@ -344,6 +361,7 @@ export class RuntimeContextMenu {
         lineWise: !selection.selected && this.lineWiseOption(selection),
         ...this.imageFor(target),
         ...this.editingFor(selection),
+        ...(preview ? { preview: { node: preview.node, mark: preview.mark } } : {}),
       };
       const items = contextMenuItems(this.facts(binding));
       if (!items.length) return;
@@ -502,7 +520,11 @@ export class RuntimeContextMenu {
         },
       };
     }
-    this.restore(binding);
+    if (binding.preview && request.actionId.startsWith('block.')) {
+      // Rebind the original command's private target to the proven stable block;
+      // MathJax may have retired the SVG node captured by its context handler.
+      binding.editor.contextMenu.getMenuItemsForMac(binding.target);
+    } else this.restore(binding);
     const editing = editingContextCommand(request.actionId);
     if (editing) {
       if (!this.deps.command) throw Error('宿主尚未提供编辑命令');
@@ -774,6 +796,9 @@ export class RuntimeContextMenu {
       (binding.codeLines && binding.selection.cm?.getValue() !== binding.codeLines.value) ||
       !this.inEditor(binding.target) ||
       binding.target.closest('[cid]')?.getAttribute('cid') !== (binding.cid ?? undefined) ||
+      (binding.preview &&
+        (editor.getNode(binding.cid ?? '') !== binding.preview.node ||
+          binding.preview.node.toMark() !== binding.preview.mark)) ||
       !binding.actions.has(action) ||
       (binding.image &&
         (!binding.image.wrapper.isConnected ||
