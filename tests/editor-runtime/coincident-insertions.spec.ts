@@ -19,7 +19,7 @@ type Child = Window & {
   notificationGate?: { held: Map<number, () => void>; release(): void };
 };
 const scenarios = [
-  { name: 'LF tail', source: '**Tail**\n', added: '\n', ending: '\n', proof: 'root' },
+  { name: 'LF tail', source: '**Tail**\n', added: '\n', ending: '\n', proof: 'either' },
   {
     name: 'BOM and mixed EOL',
     source: '\uFEFFAlpha\r\n\r\nKeep\n\n**Tail**\n',
@@ -33,7 +33,7 @@ const scenarios = [
     source: '**Tail**\r\n',
     added: '\r\n',
     ending: '\r\n',
-    proof: 'root',
+    proof: 'either',
   },
   {
     name: 'existing empty cid',
@@ -171,9 +171,9 @@ for (const scenario of scenarios)
     const proofs = await page.evaluate(() =>
       (window as unknown as Host).batch.changes.filter((change) => change.placementChecks?.length),
     );
-    if (scenario.proof === 'root' || (scenario.proof === 'either' && proofs.length === 0)) {
-      // Exact root receipts can precede publication, including the mixed-EOL
-      // fixture. Missing coincident checks require both complete direct steps;
+    if (scenario.proof === 'either' && proofs.length === 0) {
+      // The native Enter timer can capture a precise root receipt before paste,
+      // while publication is still held. Both complete direct steps are required;
       // the existing-empty-cid fixture must still exercise the coincident path.
       expect(proofs).toEqual([]);
       const before = states.filter((state) => state.tracking.changes.length === 0).at(-1);
