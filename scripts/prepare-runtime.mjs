@@ -14,6 +14,7 @@ import { transformRuntimeRenderLifecycle } from './lib/runtime-render-lifecycle.
 import { verifyRuntimeSources } from './lib/runtime-resources.mjs';
 import { transformRuntimeSerialization } from './lib/runtime-serialization.mjs';
 import { transformRuntimeTableColumns } from './lib/runtime-table-columns.mjs';
+import { transformRuntimeZenUMLStyles } from './lib/runtime-zenuml-styles.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const input = resolve(root, 'resources/editor');
@@ -82,6 +83,10 @@ async function copy(directory) {
         htmlLifecycle: htmlLifecycle.metadata,
         renderLifecycle: renderLifecycle.metadata,
       });
+    } else if (path === 'lib/diagram/css/mermaid-zenuml.css') {
+      const transformed = transformRuntimeZenUMLStyles(bytes.toString('utf8'));
+      await writeFile(target, transformed.code);
+      transformations.push({ path, ...transformed.metadata });
     } else if (path === 'style/themes/github.css') {
       actual.push(...(await prepareBuiltinThemes(root, output, bytes.toString('utf8'))));
       continue;
