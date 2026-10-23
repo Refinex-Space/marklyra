@@ -7,10 +7,11 @@ export function pendingCodeLanguage(editor: LegacyEditor | undefined): boolean {
     active = area?.ownerDocument.activeElement;
   if (!editor || !area || !active || editor.sourceView.inSourceMode || !area.contains(active))
     return false;
+  // Computing editability can resolve document styles; reject other targets first.
   if (
     !(active instanceof HTMLElement) ||
-    !active.isContentEditable ||
-    !active.matches('.ty-cm-lang-input[contenteditable]')
+    !active.matches('.ty-cm-lang-input[contenteditable]') ||
+    !active.isContentEditable
   )
     return false;
   const block = active.closest('[mdtype="fences"][cid]'),
