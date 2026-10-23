@@ -101,7 +101,7 @@ test('1 MiB mixed-EOL tail paste retains history, next input and synthetic compo
   await exact('paste-redone', pasted);
   // This must use the restored Redo caret; do not manually move it again.
   await page.keyboard.insertText('续写😀');
-  const continued = pasted + '续写😀';
+  const continued = `${pasted}续写😀`;
   await exact('continued', continued);
   await history('undo');
   await exact('continue-undone', pasted);

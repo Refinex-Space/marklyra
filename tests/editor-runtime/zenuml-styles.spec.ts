@@ -150,6 +150,7 @@ test('ZenUML initializer scoping preserves existing cascade and pseudo-element s
 
 test('bundled Mermaid renders actual ZenUML and preserves BOM and mixed-EOL source roundtrips', async ({
   page,
+  context,
 }) => {
   test.setTimeout(60_000);
   // Official Mermaid ZenUML syntax, dispatched by its registered external diagram:
@@ -184,6 +185,63 @@ test('bundled Mermaid renders actual ZenUML and preserves BOM and mixed-EOL sour
   expect(await advancedSource(page)).toBe(source);
   await toggle();
   await assertRendered();
+  expect(await advancedSource(page)).toBe(source);
+
+  const html = await page.evaluate(() =>
+    (window as unknown as { marklyraEditor: MarkLyraEditor }).marklyraEditor.exportHTML({
+      title: 'ZenUML offline export',
+      theme: 'marklyra-light',
+    }),
+  );
+  const offline = await context.newPage();
+  const requests: string[] = [];
+  try {
+    await offline.route('**/*', (route) => {
+      requests.push(route.request().url());
+      return route.abort();
+    });
+    await offline.setContent(html);
+    await expect(offline.locator('svg:has(foreignObject)')).toHaveCount(1);
+    const diagram = offline.locator('svg foreignObject .zenuml:not(.zenuml .zenuml)');
+    await expect(diagram).toHaveCount(1);
+    await expect(diagram).toContainText('Alice');
+    await expect(diagram).toContainText('Bob');
+    await expect(diagram).toContainText('Ready');
+    await expect(offline.locator('script,link')).toHaveCount(0);
+    const resets = await offline.evaluate((defaults) => {
+      const selectors = new Set<string>();
+      for (const sheet of document.styleSheets)
+        for (const rule of sheet.cssRules)
+          if (
+            rule instanceof CSSStyleRule &&
+            defaults.every((property) => Array.from(rule.style).includes(property))
+          )
+            selectors.add(rule.selectorText);
+      return [...selectors];
+    }, defaults);
+    expect(resets).toHaveLength(2);
+    expect(resets.every((selector) => selector.includes('.zenuml'))).toBe(true);
+    expect(resets.filter((selector) => selector.includes('::backdrop'))).toHaveLength(1);
+    const defaultsInExport = await diagram.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        rotate: style.getPropertyValue('--tw-rotate').trim(),
+        scale: style.getPropertyValue('--tw-scale-x').trim(),
+      };
+    });
+    expect(defaultsInExport).toEqual({ rotate: '0', scale: '1' });
+    expect(
+      await offline
+        .locator('#write > p')
+        .first()
+        .evaluate((element) => getComputedStyle(element).getPropertyValue('--tw-scale-x').trim()),
+    ).toBe('');
+    expect(requests).toEqual([]);
+  } finally {
+    await offline.close();
+  }
+  // This verifies public offline HTML export, not native screenshot/PNG or
+  // WKWebView/WebView2 print/PDF behavior.
   expect(await advancedSource(page)).toBe(source);
   expect(await advancedErrors(page)).toEqual([]);
 });
