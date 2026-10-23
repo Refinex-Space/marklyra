@@ -94,6 +94,10 @@ export async function discoverRecovery(): Promise<
       ...listing.issues,
       ...local.issues.map((reason) => ({ file: 'localStorage', reason })),
     ],
-    fallbackAvailable: local.drafts.some((draft) => !draft.active),
+    // A save can protect the clean baseline before its local cleanup completes.
+    // Keep that copy available for inspection without offering it as unsaved work.
+    fallbackAvailable: local.drafts.some(
+      (draft) => !draft.active && draft.content.text !== draft.content.savedText,
+    ),
   };
 }
