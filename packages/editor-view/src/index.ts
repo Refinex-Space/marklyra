@@ -1,4 +1,5 @@
 import {
+  commandTransaction,
   type EditorCommand,
   EditorSession,
   type EditorState,
@@ -457,7 +458,9 @@ export class EditorView {
     if (text === undefined) return;
     event.preventDefault();
     this.selectionChange();
-    this.session.execute({ type: 'insertText', text });
+    const transaction = commandTransaction(this.session.state, { type: 'insertText', text });
+    // A clipboard action owns its undo step, even when its text has no newline.
+    if (transaction) this.session.apply({ ...transaction, group: 'paste' });
   };
   private copy = (event: ClipboardEvent): void => {
     const selection = this.readSelection() ?? this.getSelection();

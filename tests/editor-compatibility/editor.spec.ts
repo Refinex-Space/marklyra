@@ -204,6 +204,87 @@ test('synthetic plain-text paste uses clipboard text without evaluating HTML', a
   await expect(page.locator('.tr-editor img, .tr-editor script')).toHaveCount(0);
 });
 
+for (const pasted of ['中文😀', '第一行\r\n第二行\n末尾'])
+  test(`clipboard paste is a separate undo step between adjacent typing: ${JSON.stringify(pasted)}`, async ({
+    page,
+  }) => {
+    const source = '\uFEFFAlpha\r\n\r\nTail  \n';
+    const at = source.indexOf('Alpha') + 5;
+    await load(page, source, { anchor: at, head: at });
+    // Keep every edit inside the typing merge interval even on a slow runner.
+    await page.clock.setFixedTime(new Date('2026-01-01T00:00:00Z'));
+    await page.keyboard.type('A');
+    await page.evaluate((text) => {
+      const editor = (window as PlaygroundWindow).playgroundEditor;
+      const data = new DataTransfer();
+      data.setData('text/plain', text);
+      editor.element.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      );
+    }, pasted);
+    await page.keyboard.type('Z');
+    const withText = (text: string) => source.slice(0, at) + text + source.slice(at);
+    await expectMarkdown(page, withText(`A${pasted}Z`));
+    for (const text of [`A${pasted}`, 'A', '']) {
+      await page.keyboard.press('Control+z');
+      await expectMarkdown(page, withText(text));
+      expect((await state(page)).selection).toEqual({
+        anchor: at + text.length,
+        head: at + text.length,
+      });
+    }
+    for (const text of ['A', `A${pasted}`, `A${pasted}Z`]) {
+      await page.keyboard.press('Control+Shift+z');
+      await expectMarkdown(page, withText(text));
+      expect((await state(page)).selection).toEqual({
+        anchor: at + text.length,
+        head: at + text.length,
+      });
+    }
+  });
+
+test('cut and paste retain exact mixed-EOL selection and independent undo/redo steps', async ({
+  page,
+}) => {
+  const source = '\uFEFFAlpha\r\n\r\nBeta\nGamma';
+  const from = source.indexOf('Alpha') + 2;
+  const to = source.indexOf('Beta') + 2;
+  const selection = { anchor: to, head: from };
+  await load(page, source, selection);
+  await page.clock.setFixedTime(new Date('2026-01-01T00:00:00Z'));
+  const text = await page.evaluate(() => {
+    const editor = (window as PlaygroundWindow).playgroundEditor;
+    const data = new DataTransfer();
+    editor.element.dispatchEvent(
+      new ClipboardEvent('cut', { clipboardData: data, bubbles: true, cancelable: true }),
+    );
+    return data.getData('text/plain');
+  });
+  expect(text).toBe(source.slice(from, to));
+  const cut = source.slice(0, from) + source.slice(to);
+  await expectMarkdown(page, cut);
+  await page.evaluate((text) => {
+    const editor = (window as PlaygroundWindow).playgroundEditor;
+    const data = new DataTransfer();
+    data.setData('text/plain', text);
+    editor.element.dispatchEvent(
+      new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+    );
+  }, text);
+  await expectMarkdown(page, source);
+  await page.keyboard.type('Z');
+  await expectMarkdown(page, source.slice(0, to) + 'Z' + source.slice(to));
+  for (const expected of [source, cut, source]) {
+    await page.keyboard.press('Control+z');
+    await expectMarkdown(page, expected);
+  }
+  expect((await state(page)).selection).toEqual(selection);
+  for (const expected of [cut, source, source.slice(0, to) + 'Z' + source.slice(to)]) {
+    await page.keyboard.press('Control+Shift+z');
+    await expectMarkdown(page, expected);
+  }
+});
+
 test('synthetic composition gates rerender and commits one patch; NOT a system IME test', async ({
   page,
 }) => {
