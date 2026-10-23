@@ -37,6 +37,21 @@ export function installFindReplaceGuard(panel: object): void {
   if (typeof find === 'function')
     Reflect.set(panel, 'findAtNode', (...args: unknown[]) => {
       const status = args[2];
+      const editor = Reflect.get(panel, 'editor') as
+        | { sourceView?: { inSourceMode?: boolean; cm?: unknown } }
+        | undefined;
+      if (
+        args[3] === true &&
+        editor?.sourceView?.inSourceMode &&
+        editor.sourceView.cm === args[0] &&
+        status &&
+        typeof status === 'object'
+      ) {
+        // Source CodeMirror has UTF-16 offsets, not a [cid] DOM owner. A
+        // retained WYS origin would make the native comparator receive null.
+        // Leave its CM cursor, hit offsets and highlight traversal unchanged.
+        Reflect.set(status, 'initPosContainer', null);
+      }
       const pattern: unknown =
         status && typeof status === 'object' ? Reflect.get(status, 'regexp') : null;
       if (!(pattern instanceof RegExp)) return Reflect.apply(find, panel, args);

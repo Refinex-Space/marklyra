@@ -311,3 +311,62 @@ test('invalid or pending regex cannot replace a prior valid query result', async
     }),
   ).toBe(true);
 });
+
+test('Source search discards a retained WYS DOM origin and preserves the current Source search position', async ({
+  page,
+}) => {
+  const original = '\ufeffAlpha TOKEN\r\n\r\nBeta TOKEN\n\nGamma TOKEN\r\n';
+  const frame = await mount(page, original);
+  await search(frame, 'TOKEN', false, 3);
+  const retained = await frame.evaluate(() => {
+    const panel = (window as unknown as LegacyGlobals).editor?.searchPanel;
+    const status = panel && Reflect.get(panel, 'searchStatus');
+    if (!status || typeof status !== 'object') throw Error('Missing actual WYS search');
+    const origin: unknown = Reflect.get(status, 'initPosContainer');
+    if (!(origin instanceof Element)) throw Error('Missing WYS source owner');
+    // Preserve an actual WYS DOM origin across the mode change, reproducing
+    // the retired search receipt that can outlive the rendering mode.
+    const pending = {
+      ...status,
+      hits: [],
+      curPos: 0,
+      curSelection: null,
+      initPosContainer: origin,
+    };
+    Reflect.set(window, 'retainedFindReceipt', pending);
+    return Boolean(pending.initPosContainer);
+  });
+  expect(retained).toBe(true);
+  await frame.locator('#md-searchpanel .close-btn').click();
+  await page.evaluate(async () => {
+    const editor = (window as unknown as Host).marklyraEditor;
+    await editor.execute({ type: 'toggleSource' });
+    await editor.execute({ type: 'sourcePosition', line: 3, column: 6 });
+    await editor.execute({ type: 'find', replace: true });
+  });
+  const resumed = await frame.evaluate(() => {
+    const editor = (window as unknown as LegacyGlobals).editor;
+    const panel = editor?.searchPanel,
+      cm = editor?.sourceView.cm;
+    const status = Reflect.get(window, 'retainedFindReceipt');
+    if (!panel || !cm || !status) throw Error('Missing source search owner');
+    const before = cm.listSelections();
+    Reflect.apply(Reflect.get(panel, 'findAtNode'), panel, [cm, 'TOKEN', status, true]);
+    return {
+      before,
+      after: cm.listSelections(),
+      count: status.hits.length,
+      retainedDOM: Boolean(status.initPosContainer),
+    };
+  });
+  expect(resumed.retainedDOM).toBe(false);
+  expect(resumed.count).toBe(3);
+  expect(resumed.after).toEqual(resumed.before);
+  await search(frame, '(TOKEN)', true, 3);
+  await expect(frame.locator('#search-panel-status')).toHaveText('2 / 3');
+  await frame.locator('#search-panel-replace-input').fill('$1!');
+  await frame.locator('#search-panel-replace-btn').click();
+  const edited = original.replace('Beta TOKEN', 'Beta TOKEN!');
+  expect(await raw(page)).toBe(edited);
+  await history(page, original, edited);
+});
