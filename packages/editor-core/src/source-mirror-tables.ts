@@ -212,7 +212,7 @@ export function tableDelimiterRuns(text: string): Map<number, { to: number; key:
     if (
       previous?.quote === current.quote &&
       previous.list === list &&
-      /^\|(?:[ \t]*:?-{3,}:?[ \t]*\|)+$/u.test(declaration)
+      /^\|(?:[ \t]*:?-+:?[ \t]*\|)+$/u.test(declaration)
     ) {
       const count = declaration.split('|').length - 2;
       if (columns(previous.body) === count)

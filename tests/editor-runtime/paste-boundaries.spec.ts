@@ -64,7 +64,7 @@ for (const reverse of [false, true]) {
 }
 
 for (const eol of ['\n', '\r\n'])
-  test(`Redo of a mid-paragraph fenced paste keeps the serializer blank line (${JSON.stringify(eol)})`, async ({
+  test(`Redo of a mid-paragraph fenced paste keeps the journaled source (${JSON.stringify(eol)})`, async ({
     page,
   }) => {
     const errors: string[] = [];
@@ -95,12 +95,12 @@ for (const eol of ['\n', '\r\n'])
     });
     const flush = () => page.evaluate(() => (window as Host).marklyraEditor.flush());
     await expect.poll(flush).not.toBe(source);
+    const pasted = await flush();
     await page.evaluate(() => (window as Host).marklyraEditor.execute({ type: 'undo' }));
     expect(await flush()).toBe(source);
     await page.evaluate(() => (window as Host).marklyraEditor.execute({ type: 'redo' }));
-    const redone = await flush();
-    expect(redone).toContain('code');
-    expect(redone.replace(/\r\n/g, '\n')).toMatch(/code\n\n```\n```\n\nAfter/);
+    // The editor now spells a blank line the journal did not; the raw bytes stay the pasted ones.
+    expect(await flush()).toBe(pasted);
     await page.evaluate(() => (window as Host).marklyraEditor.execute({ type: 'undo' }));
     expect(await flush()).toBe(source);
     expect(await page.evaluate(() => (window as Host).pasteErrors)).toEqual([]);

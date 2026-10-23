@@ -177,15 +177,34 @@ function describeMismatch(journal: string, editor: string): string {
   return `journal ${journal.length} chars (${endings(journal)}), editor ${editor.length} chars (${endings(editor)}), first difference at ${first}`;
 }
 
-/** Same text once line endings are unified, apart from how many consecutive blank lines there are. */
-function differsOnlyInBlankLines(journal: string, editor: string): boolean {
+/**
+ * Same text up to the number of consecutive line breaks (blank lines) and, optionally, the padding
+ * of table rows. Every other character, including indentation and trailing spaces, must match, so a
+ * nesting or content change never qualifies. Line-ending style must agree.
+ */
+function differsOnlyInLayout(journal: string, editor: string, blankLines: boolean): boolean {
   const kinds = (text: string) =>
     `${/\r\n/.test(text)}${/(?<!\r)\n/.test(text)}${/\r(?!\n)/.test(text)}`;
   if (kinds(journal) !== kinds(editor)) return false;
-  const unify = (text: string) => text.replace(/\r\n|\r/g, '\n');
-  const a = unify(journal),
-    b = unify(editor);
-  return a !== b && a.replace(/\n+/g, '\n') === b.replace(/\n+/g, '\n');
+  const shape = (text: string) =>
+    text
+      .replace(/\r\n|\r/g, '\n')
+      .split('\n')
+      .filter((line) => !blankLines || line !== '')
+      .map((line) =>
+        /^ {0,3}\|.*\|[ \t]*$/.test(line)
+          ? line
+              .trim()
+              .split(/(?<!\\)\|/)
+              .map((cell) => {
+                const bare = cell.trim();
+                return /^:?-+:?$/.test(bare) ? bare.replace(/-+/, '-') : bare;
+              })
+              .join('|')
+          : line,
+      )
+      .join('\n');
+  return shape(journal) === shape(editor);
 }
 
 function ownText(text: string): string {
@@ -702,18 +721,19 @@ export class SourceMirror {
       const restored = this.restoreCandidate(target);
       const projection = hint.canonicalProjection;
       if (projection) this.projectedCanonical(restored.canonical, nextCanonical, projection);
-      else if (restored.canonical !== nextCanonical) {
-        if (
-          target > this.#cursor &&
-          !this.#projectionAware &&
-          differsOnlyInBlankLines(restored.canonical, nextCanonical)
-        )
-          return this.redoWithBlankLines(target, restored, nextCanonical);
+      // The serializer may spell the same blocks with other blank lines (trailing empty paragraphs, a
+      // fence it just produced) or other table padding than the journaled checkpoint did, and Undo/Redo
+      // of the original runtime need not land on a journaled spelling. Raw source stays the checkpoint's
+      // exact bytes; the editor's spelling becomes the active canonical, as for an authorized projection
+      // gap. Once serializer projections are in play, blank lines need their own proof instead.
+      else if (
+        restored.canonical !== nextCanonical &&
+        !differsOnlyInLayout(restored.canonical, nextCanonical, !this.#projectionAware)
+      )
         throw new SourceMirrorError(
           'INVALID_HINT',
           `History checkpoint does not match canonical (${describeMismatch(restored.canonical, nextCanonical)})`,
         );
-      }
       return this.restore(
         target,
         restored,
@@ -824,54 +844,6 @@ export class SourceMirror {
       projectionEpoch,
       this.#projectionAware || projection !== undefined,
     );
-  }
-
-  /**
-   * The serializer can spell the same blocks with a different number of blank lines on Redo than it
-   * did when the checkpoint was journaled (a paragraph and an empty fence it just produced are tight
-   * once, separated the next time). Restore the journaled state, then take the editor's real content
-   * as an ordinary edit of it, so the raw source gains exactly the blank-line difference and the
-   * mirror stays consistent. Any failure leaves the mirror untouched.
-   */
-  private redoWithBlankLines(
-    target: number,
-    restored: MirrorHistoryCandidate,
-    nextCanonical: string,
-  ): SourceMirrorUpdate {
-    const saved = {
-      source: this.#source,
-      canonical: this.#canonical,
-      historyCanonical: this.#historyCanonical,
-      ranges: this.#ranges,
-      cursor: this.#cursor,
-      projectionEpoch: this.#projectionEpoch,
-      history: [...this.#history],
-      ids: [...this.#ids],
-      serial: this.#serial,
-    };
-    const before = this.source;
-    try {
-      this.restore(
-        target,
-        restored,
-        normalize(restored.canonical, this.#options.canonicalBOM),
-        this.#projectionEpoch,
-        false,
-      );
-      this.update(nextCanonical);
-      return this.result(diffText(before, this.source, this.#options));
-    } catch (error) {
-      this.#source = saved.source;
-      this.#canonical = saved.canonical;
-      this.#historyCanonical = saved.historyCanonical;
-      this.#ranges = saved.ranges;
-      this.#cursor = saved.cursor;
-      this.#projectionEpoch = saved.projectionEpoch;
-      this.#history = saved.history;
-      this.#ids = saved.ids;
-      this.#serial = saved.serial;
-      throw error;
-    }
   }
 
   private commit(
@@ -1057,6 +1029,9 @@ export class SourceMirror {
     // distinguish equivalent placements in an otherwise identical document.
     if (this.source.slice(this.#source.bom) === this.canonical.slice(this.#canonical.bom)) return;
     const before = this.#canonical.text;
+    // Edits wholly inside the document's closing blank lines may differ only in how many raw line
+    // breaks end the file (see sameBeyondTail).
+    const tailStart = before.replace(/\n+$/, '').length || Number.POSITIVE_INFINITY;
     const uniqueDomains = domains ?? [{ from: 0, to: before.length }];
     const inspected = new Set<string>();
     for (const domain of uniqueDomains) {
@@ -1089,7 +1064,7 @@ export class SourceMirror {
           insert: reverse(patch.insert),
         }))
         .reverse();
-      this.comparePlacements(this.project(group), this.project(alternative));
+      this.comparePlacements(this.project(group), this.project(alternative), from >= tailStart);
     }
     for (let index = 0; index < patches.length; index++) {
       const patch = patches[index];
@@ -1137,13 +1112,21 @@ export class SourceMirror {
             continue;
           }
           const alternate = this.project([candidate]);
-          this.comparePlacements(baseline, alternate);
+          this.comparePlacements(
+            baseline,
+            alternate,
+            patch.from >= tailStart && candidate.from >= tailStart,
+          );
         }
       }
     }
   }
 
-  private comparePlacements(baseline: readonly Patch[], alternate: readonly Patch[]): void {
+  private comparePlacements(
+    baseline: readonly Patch[],
+    alternate: readonly Patch[],
+    inTail = false,
+  ): void {
     const rawFrom = Math.min(baseline[0]?.from ?? 0, alternate[0]?.from ?? 0);
     const rawTo = Math.max(baseline.at(-1)?.to ?? 0, alternate.at(-1)?.to ?? 0);
     const slice = this.source.slice(rawFrom, rawTo);
@@ -1153,11 +1136,26 @@ export class SourceMirror {
         to: value.to - rawFrom,
         insert: value.insert,
       }));
-    if (apply(slice, local(baseline)) !== apply(slice, local(alternate)))
+    if (
+      apply(slice, local(baseline)) !== apply(slice, local(alternate)) &&
+      !(inTail && this.sameBeyondTail(baseline, alternate))
+    )
       throw new SourceMirrorError(
         'AMBIGUOUS_EDIT',
         'Repeated canonical text has different raw-source edit placements; provide an edit hint',
       );
+  }
+
+  /**
+   * Placements that only disagree about how many line breaks end the document are the same edit: the
+   * raw tail beyond what the serializer emits is invisible in the editor, so nothing tells them apart.
+   */
+  private sameBeyondTail(baseline: readonly Patch[], alternate: readonly Patch[]): boolean {
+    const trim = (text: string) => text.replace(/(?:\r\n|\r|\n)+$/, '');
+    return (
+      trim(apply(this.source, baseline)) === trim(apply(this.source, alternate)) &&
+      trim(this.source) !== this.source
+    );
   }
 
   private result(patches: readonly Patch[]): SourceMirrorUpdate {
