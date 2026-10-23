@@ -73,6 +73,7 @@ let content = '';
 let modified = false;
 let loading = false;
 let nativeComposition = false;
+let compositionGeneration = 0;
 let sourceLayoutPending = false;
 let scrollbarMeasureFrame = 0;
 let disposed = false;
@@ -1200,6 +1201,7 @@ document.addEventListener(
   'compositionstart',
   () => {
     focus.interact(runtime.editor?.writingArea ?? null);
+    compositionGeneration++;
     nativeComposition = true;
     send('composition', true);
   },
@@ -1208,7 +1210,12 @@ document.addEventListener(
 document.addEventListener(
   'compositionend',
   () => {
+    const generation = compositionGeneration;
     setTimeout(() => {
+      // A new IME session can begin before this deferred final-input handoff.
+      // Source CodeMirror has no editor.isIME fallback, so a retired callback
+      // must not release the new session's command/serialization guard.
+      if (disposed || generation !== compositionGeneration) return;
       nativeComposition = false;
       if (sourceLayoutPending) refreshSourceLayout();
       send('composition', Boolean(runtime.editor?.isIME));
