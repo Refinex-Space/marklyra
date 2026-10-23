@@ -3,7 +3,7 @@ import type { MarkLyraEditor } from '@marklyra/editor-runtime';
 import { expect, type Page, test } from '@playwright/test';
 import type { installNodeLookup } from '../../packages/editor-runtime/src/runtime/node-lookup.js';
 
-const moduleUrl = `http://127.0.0.1:4173/@fs${fileURLToPath(
+const moduleUrl = `/@fs${fileURLToPath(
   new URL('../../packages/editor-runtime/src/runtime/node-lookup.ts', import.meta.url),
 )}`;
 type Module = { installNodeLookup: typeof installNodeLookup };

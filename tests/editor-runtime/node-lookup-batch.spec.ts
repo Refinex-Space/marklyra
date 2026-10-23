@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import type { RuntimeNodeLookup } from '../../packages/editor-runtime/src/runtime/node-lookup.js';
 
-const moduleUrl = `http://127.0.0.1:4173/@fs${fileURLToPath(new URL('../../packages/editor-runtime/src/runtime/node-lookup.ts', import.meta.url))}`;
+const moduleUrl = `/@fs${fileURLToPath(new URL('../../packages/editor-runtime/src/runtime/node-lookup.ts', import.meta.url))}`;
 
 test('image batch indexes once and preserves first-match semantics through synchronous mutations', async ({
   page,
