@@ -4,6 +4,7 @@ import { dirname, relative, resolve } from 'node:path';
 import { prepareBuiltinThemes } from './lib/builtin-themes.mjs';
 import { preparePreferencesRuntime } from './lib/prepare-preferences-runtime.mjs';
 import { brandHtmlTitle, brandLocale } from './lib/runtime-branding.mjs';
+import { transformRuntimeBrushQueue } from './lib/runtime-brush-queue.mjs';
 import { transformRuntimeContextCursor } from './lib/runtime-context-cursor.mjs';
 import { transformRuntimeFocus } from './lib/runtime-focus.mjs';
 import { transformRuntimeHTMLLifecycle } from './lib/runtime-html-lifecycle.mjs';
@@ -71,7 +72,8 @@ async function copy(directory) {
         bytes.toString('utf8'),
         htmlLifecycle.code,
       );
-      await writeFile(target, renderLifecycle.code);
+      const brushQueue = transformRuntimeBrushQueue(bytes.toString('utf8'), renderLifecycle.code);
+      await writeFile(target, brushQueue.code);
       transformations.push({
         path,
         ...transformed.metadata,
@@ -82,6 +84,7 @@ async function copy(directory) {
         tableColumns: tableColumns.metadata,
         htmlLifecycle: htmlLifecycle.metadata,
         renderLifecycle: renderLifecycle.metadata,
+        brushQueue: brushQueue.metadata,
       });
     } else if (path === 'lib/diagram/css/mermaid-zenuml.css') {
       const transformed = transformRuntimeZenUMLStyles(bytes.toString('utf8'));
