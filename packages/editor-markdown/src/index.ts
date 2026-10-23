@@ -74,6 +74,8 @@ function underscoreEdges(source: string, start: number, end: number, from: numbe
 export function parseInline(source: string, from: number, to: number, depth = 0): Inline[] {
   const nodes: Inline[] = [];
   const underscoreCloses = new Map<string, { from: number; close: number }>();
+  let linkLabelEnd: number | undefined;
+  let linkClose = -1;
   let textStart = from;
   const plain = (end: number) => {
     if (end > textStart)
@@ -89,6 +91,9 @@ export function parseInline(source: string, from: number, to: number, depth = 0)
   if (depth > 12)
     return [{ kind: 'text', from, to, contentFrom: from, contentTo: to, children: [] }];
   for (let i = from; i < to; i++) {
+    // Only delimiters need escape lookup. Inspecting every backslash in a literal
+    // run would repeatedly walk the same prefix and make ordinary text quadratic.
+    if (!'*_~`['.includes(source[i] ?? '')) continue;
     if (escaped(source, i)) continue;
     let underscoreEnd = i;
     if (source[i] === '_') {
@@ -153,8 +158,14 @@ export function parseInline(source: string, from: number, to: number, depth = 0)
       }
     }
     if (source[i] === '[' && source[i - 1] !== '!') {
-      const labelEnd = source.indexOf('](', i + 1);
-      const close = labelEnd < 0 ? -1 : source.indexOf(')', labelEnd + 2);
+      // Failed label/destination searches are valid for every subsequent opener
+      // before that same delimiter. Do not scan a long unmatched suffix per '['.
+      if (linkLabelEnd === undefined || (linkLabelEnd >= 0 && linkLabelEnd <= i)) {
+        linkLabelEnd = source.indexOf('](', i + 1);
+        linkClose = linkLabelEnd < 0 ? -1 : source.indexOf(')', linkLabelEnd + 2);
+      }
+      const labelEnd = linkLabelEnd;
+      const close = linkClose;
       if (labelEnd > i && close >= 0 && close < to) {
         plain(i);
         nodes.push({
