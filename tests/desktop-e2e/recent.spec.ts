@@ -250,6 +250,7 @@ test('dirty document cancel and save-before-open use the existing document confi
   expect(await calls(page, 'open_recent_file')).toEqual([]);
   await confirmation.getByRole('button', { name: '取消', exact: true }).click();
   await expect(child(page).locator('#write')).toHaveText('AlphaX');
+  expect(await calls(page, 'open_document_workspace')).toEqual([]);
   await choose(page);
   await confirmation.getByRole('button', { name: '保存后继续', exact: true }).click();
   await expect(page.locator('.document-title')).toHaveText('B.md');

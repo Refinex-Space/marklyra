@@ -1,4 +1,5 @@
 //! Window-local capabilities. Lookup never implicitly creates a new session.
+mod document_workspace;
 mod entry_actions;
 pub(crate) use entry_actions::{EntryActionKind, EntryActionResolution, EntryActionStart};
 mod entry_move;

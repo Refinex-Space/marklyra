@@ -78,6 +78,7 @@ export function useDocumentSession(
   draftKey = 'marklyra-draft',
   closeCancelled?: () => void,
   beforeEditorRead?: () => Promise<void>,
+  onRecentOpened?: (documentId: string) => void,
 ) {
   const initial = useRef(desktopAvailable ? '' : (draft(draftKey) ?? ''));
   const restored = useRef(!desktopAvailable && draft(draftKey) !== null);
@@ -1087,6 +1088,7 @@ export function useDocumentSession(
       throw new Error('打开期间当前文档已有更改，已保留当前内容，请重试。');
     }
     await accept(next, next.text);
+    if (action.kind === 'recent') onRecentOpened?.(next.id);
     if (action.kind === 'workspace' && action.match) {
       if (
         active.getMarkdown() !== next.text ||

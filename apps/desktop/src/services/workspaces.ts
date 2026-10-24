@@ -236,6 +236,8 @@ export const workspaces = {
   createWithDialog: (workspaceId: string) =>
     invoke<boolean>('create_workspace_file_with_dialog', { workspaceId }),
   select: () => invoke<WorkspaceFolder>('select_workspace'),
+  openDocumentDirectory: (documentId: string) =>
+    invoke<WorkspaceFolder>('open_document_workspace', { documentId }),
   openNative: (ticket: string) =>
     invoke<WorkspaceFolder>('open_native_input_workspace', { ticket }),
   close: (workspaceId: string) => invoke<void>('close_workspace', { workspaceId }),

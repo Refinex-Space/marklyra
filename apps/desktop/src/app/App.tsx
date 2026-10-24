@@ -206,6 +206,7 @@ export function App() {
   const workspaceIdentity = useRef<WorkspaceFolder | null>(null);
   const [initialWorkspace, setInitialWorkspace] = useState<WorkspaceFolder | null>(null);
   const [sessionWorkspace, setSessionWorkspace] = useState<string | null>(null);
+  const [recentDocumentId, setRecentDocumentId] = useState<string | null>(null);
   const startupControl = useRef<HTMLElement | null>(null);
   const startupFocusDeferred = useRef(false);
   const modalFocusHandled = useRef(false);
@@ -248,6 +249,7 @@ export function App() {
       }
       await editorCommandWork.current;
     },
+    setRecentDocumentId,
   );
   // A day's unsaved draft is already named after the file it becomes.
   const documentName = doc.file
@@ -2389,6 +2391,8 @@ export function App() {
                 return latest.getFile() !== null || latest.hasUnsavedChanges();
               }}
               initialWorkspace={initialWorkspace}
+              recentDocumentId={recentDocumentId}
+              activeDocumentId={doc.file?.id}
               headerAccessory={desktopAvailable ? <BranchWidget /> : undefined}
               onWorkspaceChange={(workspace) => {
                 workspaceIdentity.current = workspace;

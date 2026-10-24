@@ -15,6 +15,10 @@ export interface RecentMock {
   listError: string | null;
   saveError: string | null;
   saveAsPath: string;
+  holdFolder: boolean;
+  folderError: string | null;
+  pendingFolders: number;
+  releaseFolder(): void;
   seed(path: string, text: string, encoding?: string): string;
   releaseOpen(): void;
   releaseList(): void;
@@ -42,6 +46,8 @@ export function installRecentMock() {
   let serial = stored.serial,
     revision = stored.revision;
   const documents = new Map<string, DocumentFile>();
+  const folders = new Map<string, string>();
+  const folderReplies: (() => void)[] = [];
   const opens: (() => void)[] = [],
     lists: (() => void)[] = [];
   const persist = () =>
@@ -76,6 +82,13 @@ export function installRecentMock() {
     listError: null,
     saveError: null,
     saveAsPath: '/mock/Saved.md',
+    holdFolder: false,
+    folderError: null,
+    pendingFolders: 0,
+    releaseFolder() {
+      folderReplies.shift()?.();
+      this.pendingFolders = folderReplies.length;
+    },
     seed(path, text, encoding = 'UTF-8') {
       this.files[path] = { path, text, encoding };
       return touch(path);
@@ -91,6 +104,63 @@ export function installRecentMock() {
   };
   target.__recentMock = mock;
   internal.invoke = async (command, args = {}) => {
+    if (command === 'open_document_workspace') {
+      target.__desktopMock.calls.push({ command, args });
+      if (mock.folderError) throw new Error(mock.folderError);
+      const document = documents.get(String(args.documentId));
+      if (!document) throw new Error('文档不存在或已关闭');
+      const path = document.path.replace(/[\\/][^\\/]+$/, '');
+      const folder = { id: `recent-folder-${++serial}`, name: path.split(/[\\/]/).at(-1), path };
+      folders.set(folder.id, path);
+      if (mock.holdFolder)
+        return new Promise((resolve) => {
+          folderReplies.push(() => resolve(folder));
+          mock.pendingFolders = folderReplies.length;
+        });
+      return folder;
+    }
+    const root = folders.get(String(args.workspaceId));
+    if (root && ['list_directory', 'list_workspace_documents'].includes(command)) {
+      const prefix = `${root}/`.replaceAll('\\', '/');
+      const entries = Object.keys(mock.files).flatMap((path) => {
+        const relative = path.replaceAll('\\', '/').slice(prefix.length);
+        return path.replaceAll('\\', '/').startsWith(prefix) && !relative.includes('/')
+          ? [{ name: relative, relativePath: relative, kind: 'file', size: 10 }]
+          : [];
+      });
+      if (command === 'list_workspace_documents')
+        return {
+          entries: entries.map((entry) => ({
+            ...entry,
+            folderName: root.split(/[\\/]/).at(-1),
+            folderRelativePath: '',
+            modifiedAt: 100,
+            createdAt: 100,
+            summary: '',
+            summaryTruncated: false,
+          })),
+          truncated: false,
+          scannedFiles: entries.length,
+          scannedEntries: entries.length,
+          readBytes: 0,
+          skipped: {
+            symlinks: 0,
+            unsupportedNames: 0,
+            unreadable: 0,
+            unsupportedEncoding: 0,
+            ignored: 0,
+          },
+          truncationReasons: [],
+        };
+      return {
+        entries,
+        truncated: false,
+        skipped: 0,
+      };
+    }
+    if (root && command === 'count_workspace_documents')
+      return { counts: {}, scannedEntries: 0, truncated: false };
+    if (root && command === 'close_workspace') folders.delete(String(args.workspaceId));
     if (
       [
         'list_recent_files',

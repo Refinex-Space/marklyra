@@ -59,6 +59,9 @@ import {
 
 export interface WorkspaceSidebarProps {
   initialWorkspace?: WorkspaceFolder | null;
+  /** Emitted only after the recent document has been accepted by the editor. */
+  recentDocumentId?: string | null;
+  activeDocumentId?: string | undefined;
   onWorkspaceChange?: (workspace: WorkspaceFolder | null) => void;
   onCurrentDocument?: (match?: WorkspaceMatchPosition) => void;
   onOpenDocument: (
@@ -105,6 +108,8 @@ export interface SidebarCalendarContext {
 
 export function WorkspaceSidebar({
   initialWorkspace,
+  recentDocumentId,
+  activeDocumentId,
   onWorkspaceChange,
   onOpenDocument,
   onCurrentDocument,
@@ -435,6 +440,9 @@ export function WorkspaceSidebar({
   }, []);
   const notifyWorkspace = useRef(onWorkspaceChange);
   notifyWorkspace.current = onWorkspaceChange;
+  const notifyMode = useRef(onModeChange);
+  notifyMode.current = onModeChange;
+  const recentConsumed = useRef<string | null>(null);
   useEffect(() => {
     if (!initialWorkspace || initialConsumed.current) return;
     let active = true;
@@ -454,6 +462,46 @@ export function WorkspaceSidebar({
       active = false;
     };
   }, [initialWorkspace]);
+  useEffect(() => {
+    if (
+      !desktopAvailable ||
+      restoring ||
+      !recentDocumentId ||
+      recentDocumentId !== activeDocumentId ||
+      recentConsumed.current === recentDocumentId
+    )
+      return;
+    let active = true;
+    // Defer consumption through StrictMode's initial effect replay, just like startup grants.
+    queueMicrotask(() => {
+      if (!active || !mounted.current) return;
+      recentConsumed.current = recentDocumentId;
+      // Closing an already-open folder must not replay the previous recent-file intent.
+      if (current.current || selectingRef.current) return;
+      const version = ++generation.current;
+      void workspaces.openDocumentDirectory(recentDocumentId).then(
+        (folder) => {
+          if (!active || !mounted.current || version !== generation.current || current.current) {
+            void workspaces.close(folder.id).catch(() => {});
+            return;
+          }
+          current.current = folder;
+          setWorkspace(folder);
+          notifyWorkspace.current?.(folder);
+          setTab('files');
+          notifyMode.current?.('files');
+          setRefresh(0);
+        },
+        (reason) => {
+          if (active && mounted.current && version === generation.current)
+            setError(`文档已打开，但无法打开所在文件夹：${String(reason)}`);
+        },
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, [recentDocumentId, activeDocumentId, restoring]);
   useEffect(() => {
     if (!desktopAvailable) return;
     let active = true;

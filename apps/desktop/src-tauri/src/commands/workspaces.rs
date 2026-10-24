@@ -212,6 +212,41 @@ pub async fn select_workspace(
     .map_err(|_| "选择目录任务未能完成".to_owned())?
 }
 
+/// Completes a recent-file navigation after the editor accepted the document. Only a
+/// live ID from this window is accepted; the parent and its identity come from the host.
+#[tauri::command]
+pub async fn open_document_workspace(
+    app: AppHandle,
+    document_id: String,
+    window: WebviewWindow,
+    services: State<'_, WindowServices>,
+) -> Result<WorkspacePayload, String> {
+    require_window(&window)?;
+    services.get_documents(window.label())?;
+    let history_request = app
+        .state::<crate::file_preferences::FilePreferencesHost>()
+        .history_request();
+    tauri::async_runtime::spawn_blocking(move || {
+        let preferences = app.state::<crate::file_preferences::FilePreferencesHost>();
+        let history_ticket = match preferences.prepare_folder_history(&app, history_request) {
+            Ok(ticket) => ticket,
+            Err(error) => {
+                eprintln!("Directory history was not prepared: {error}");
+                None
+            }
+        };
+        let (folder, bookmark) = window
+            .state::<WindowServices>()
+            .open_document_workspace(window.label(), &document_id)?;
+        if let Err(error) = preferences.remember_workspace(&app, &bookmark, history_ticket) {
+            eprintln!("Directory history was not updated: {error}");
+        }
+        Ok(folder)
+    })
+    .await
+    .map_err(|_| "打开文档所在目录任务未能完成".to_owned())?
+}
+
 #[tauri::command]
 pub async fn list_directory(
     workspace_id: String,

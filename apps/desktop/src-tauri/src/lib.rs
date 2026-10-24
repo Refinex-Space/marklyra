@@ -228,6 +228,7 @@ pub fn run() {
             commands::images::resolve_document_image,
             commands::images::import_document_image,
             commands::workspaces::select_workspace,
+            commands::workspaces::open_document_workspace,
             commands::workspaces::list_directory,
             commands::workspaces::snapshot_workspace,
             commands::workspaces::list_workspace_documents,
