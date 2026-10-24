@@ -16,7 +16,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await readyLayout(page, theme);
     const sidebar = page.locator('aside.sidebar');
     const empty = sidebar.locator('.workspace-compact-empty');
-    const footer = sidebar.getByRole('navigation', { name: '目录位置', exact: true });
+    const footer = sidebar.getByRole('navigation', { name: '侧栏导航', exact: true });
     const trigger = sidebar.getByRole('button', { name: '目录菜单', exact: true });
     const frame = page.frameLocator('.runtime-area iframe').locator('#write');
     const iframe = await page.locator('.runtime-area iframe').elementHandle();
@@ -139,11 +139,24 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await expect(label).toHaveCSS('text-overflow', 'ellipsis');
     for (const key of ['Home', 'End']) {
       await page.getByRole('separator', { name: '调整侧栏宽度' }).press(key);
+      // Theme view-transition snapshots can temporarily own native hit testing.
+      await expect
+        .poll(() =>
+          search.evaluate((button) => {
+            const box = button.getBoundingClientRect();
+            return (
+              document
+                .elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+                ?.closest('button') === button
+            );
+          }),
+        )
+        .toBe(true);
       const geometry = await header.evaluate((element) => {
         const label = element.querySelector<HTMLElement>('.workspace-root-name');
         const root = element.querySelector('.workspace-root-row');
         const folder = root?.querySelector('.workspace-glyph');
-        const button = element.querySelector('button');
+        const button = element.querySelector('button[aria-label="全文搜索"]');
         const sidebar = element.closest('.sidebar');
         if (!label || !root || !folder || !button || !sidebar)
           throw Error('Missing workspace controls');

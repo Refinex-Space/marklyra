@@ -200,7 +200,7 @@ async function names(page: Page) {
 
 for (const platform of ['macos', 'windows'] as const) {
   for (const theme of ['marklyra-light', 'marklyra-dark']) {
-    test(`${platform}/${theme}: footer context menu stays above the editor and within the viewport`, async ({
+    test(`${platform}/${theme}: header menu stays above the editor and within the viewport`, async ({
       page,
     }, info) => {
       await start(page, { platform });
@@ -218,11 +218,11 @@ for (const platform of ['macos', 'windows'] as const) {
         position: { x: history.width - 8, y: 48 },
       });
       await expect(
-        menu(page).getByRole('menuitem', { name: '刷新目录', exact: true }),
+        menu(page).getByRole('menuitem', { name: '刷新文件列表', exact: true }),
       ).toBeVisible();
       const bounds = await menu(page).boundingBox();
       if (!bounds) throw Error('Missing context menu');
-      expect(bounds.x + bounds.width).toBeGreaterThan(sidebar.x + sidebar.width + 100);
+      expect(bounds.x + bounds.width).toBeGreaterThan(sidebar.x + sidebar.width);
       await expect
         .poll(() =>
           menu(page).evaluate((element) => {
@@ -248,7 +248,7 @@ for (const platform of ['macos', 'windows'] as const) {
           }),
         )
         .toBe(true);
-      await menu(page).getByRole('menuitem', { name: '刷新目录', exact: true }).click();
+      await menu(page).getByRole('menuitem', { name: '刷新文件列表', exact: true }).click();
       await expect(menu(page)).toHaveCount(0);
       await expect(page.getByRole('button', { name: '目录菜单', exact: true })).toBeFocused();
       await open(page);
@@ -273,7 +273,7 @@ async function save(page: Page) {
 }
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
-  test(`${theme}: directory popup and footer avoid focus rings while retaining keyboard navigation`, async ({
+  test(`${theme}: directory popup retains keyboard navigation and restores its trigger`, async ({
     page,
   }, info) => {
     await start(page, { mounted: false });
@@ -287,25 +287,11 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await expect(menu(page)).toBeFocused();
     await expect(menu(page)).toHaveCSS('outline-style', 'none');
     await expect(menu(page)).not.toHaveCSS('box-shadow', 'none');
-    const footerBounds = await page.locator('.workspace-footer').boundingBox();
-    const popupBounds = await menu(page).boundingBox();
-    if (!footerBounds || !popupBounds) throw Error('Missing directory menu geometry');
-    await page.screenshot({
-      path: info.outputPath('directory-focus-and-dots.png'),
-      clip: {
-        x: footerBounds.x,
-        y: popupBounds.y - 2,
-        width: footerBounds.width,
-        height: footerBounds.y + footerBounds.height - popupBounds.y + 2,
-      },
-    });
+    await page.screenshot({ path: info.outputPath('directory-header-menu.png') });
     await page.keyboard.press('Escape');
     await expect(trigger).toBeFocused();
-    await expect(trigger).toHaveCSS('outline-style', 'none');
     await trigger.press('ArrowDown');
-    await expect(menu(page)).toBeFocused();
-    await expect(menu(page)).toHaveCSS('outline-style', 'none');
-    await page.keyboard.press('ArrowDown');
+
     await expect(
       menu(page).locator('button:not(:disabled):not([data-menu-skip-roving])').first(),
     ).toBeFocused();
@@ -326,36 +312,34 @@ test('original one Recent Locations group, pinned order, six plus current, geome
     .toEqual(['Pinned1', 'Pinned2', 'Recent1', 'Recent2', 'Tail1', 'Tail2', 'Current']);
   await expect(menu(page).getByText('最近使用的目录', { exact: true })).toHaveCount(1);
   await expect(menu(page).getByText('固定的目录', { exact: true })).toHaveCount(0);
-  await expect(menu(page).getByRole('menuitem', { name: '关闭目录', exact: true })).toHaveCount(0);
+  await expect(menu(page).getByRole('menuitem', { name: '关闭文件夹', exact: true })).toBeVisible();
   await expect(menu(page).locator('[data-current] .directory-current-dot')).toHaveCount(1);
   const rect = await menu(page).evaluate((element) => {
-    const sidebarElement = element.closest('.sidebar');
-    const footerElement = element.closest('.workspace-footer');
-    if (!sidebarElement || !footerElement) throw Error('Missing sidebar layout');
-    const sidebar = sidebarElement.getBoundingClientRect(),
-      r = element.getBoundingClientRect();
+    const header = document.querySelector('.workspace-navigation-header')?.getBoundingClientRect();
+    const box = element.getBoundingClientRect();
     return {
-      // From the sidebar card's inner edge (the card has a 1px border).
-      left: r.left - sidebar.left - sidebarElement.clientLeft,
-      right: sidebar.right - r.right,
-      borderRight: Number.parseFloat(getComputedStyle(sidebarElement).borderRightWidth),
-      width: r.width,
-      footer: footerElement.getBoundingClientRect().height,
-      rows: [...element.querySelectorAll('.directory-location-row')].map(
-        (row) => row.getBoundingClientRect().height,
-      ),
+      top: box.top,
+      headerBottom: header?.bottom,
+      bottom: box.bottom,
+      viewport: innerHeight,
+      rows: [...element.querySelectorAll('.directory-location-open')].map((row) => {
+        const name = row.querySelector('.directory-location-name')?.getBoundingClientRect();
+        const path = row.querySelector('.directory-location-path')?.getBoundingClientRect();
+        return {
+          height: row.getBoundingClientRect().height,
+          aligned:
+            name && path && Math.abs(name.y + name.height / 2 - path.y - path.height / 2) < 1,
+          gap: name && path && path.left - name.right,
+        };
+      }),
     };
   });
-  expect(rect.left).toBeCloseTo(4, 0);
-  expect(rect.right - rect.borderRight).toBeCloseTo(4, 0);
-  expect(rect.footer).toBe(34);
-  expect(rect.rows.every((height) => height > 23 && height < 25)).toBe(true);
+  expect(rect.top).toBeGreaterThanOrEqual(rect.headerBottom ?? 0);
+  expect(rect.bottom).toBeLessThanOrEqual(rect.viewport - 8);
+  expect(rect.rows.every((row) => row.height >= 30 && row.aligned && (row.gap ?? -1) >= 0)).toBe(
+    true,
+  );
   await info.attach('geometry', { body: JSON.stringify(rect), contentType: 'application/json' });
-  await expect
-    .poll(() =>
-      page.locator('.workspace-footer').evaluate((element) => getComputedStyle(element).opacity),
-    )
-    .toBe('1');
   await page.screenshot({ path: info.outputPath('directory-menu.png') });
   await menu(page).getByRole('menuitem', { name: 'Current', exact: true }).click();
   expect(await calls(page, 'open_directory_history')).toEqual([]);
@@ -396,7 +380,9 @@ test('ordinary history changes only mount, releases old authority and preserves 
   const frame = await page.locator('.marklyra-editor-frame').elementHandle();
   await open(page);
   await menu(page).getByRole('menuitem', { name: 'Pinned1', exact: true }).click();
-  await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Pinned1');
+  await expect(page.locator('.workspace-folder-trigger .workspace-root-name').first()).toHaveText(
+    'Pinned1',
+  );
   expect((await calls(page, 'open_directory_history'))[0]?.args).toEqual({
     expectedRevision: 7,
     target: { kind: 'history', id: 'history-Pinned1' },
@@ -419,7 +405,9 @@ test('Meta history honors authoritative named-document new-window route and leav
     .click({ modifiers: ['Meta'] });
   await expect.poll(() => calls(page, 'open_directory_history_window')).toHaveLength(1);
   expect(await calls(page, 'open_directory_history')).toEqual([]);
-  await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Current');
+  await expect(page.locator('.workspace-folder-trigger .workspace-root-name').first()).toHaveText(
+    'Current',
+  );
   expect(await calls(page, 'close_workspace')).toEqual([]);
   await save(page);
 });
@@ -432,7 +420,9 @@ test('Meta history in clean untitled document switches same window and shows fil
   await menu(page)
     .getByRole('menuitem', { name: 'Pinned1', exact: true })
     .click({ modifiers: ['Meta'] });
-  await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Pinned1');
+  await expect(page.locator('.workspace-folder-trigger .workspace-root-name').first()).toHaveText(
+    'Pinned1',
+  );
   expect(await calls(page, 'open_directory_history_window')).toEqual([]);
   expect(await calls(page, 'open_directory_history')).toHaveLength(1);
   await expect(write(page)).toHaveText('');
@@ -451,7 +441,9 @@ test('Meta history flushes a real dirty untitled editor before choosing a new wi
     .click({ modifiers: ['Meta'] });
   await expect.poll(() => calls(page, 'open_directory_history_window')).toHaveLength(1);
   expect(await calls(page, 'open_directory_history')).toEqual([]);
-  await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Current');
+  await expect(page.locator('.workspace-folder-trigger .workspace-root-name').first()).toHaveText(
+    'Current',
+  );
   await expect(write(page)).toHaveText('Unsaved 中文');
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
@@ -464,7 +456,9 @@ test('rejected history target leaves old mount, authority and exact document int
   await page.evaluate(() => ((window as Host).directoryProbe.failure = '目录身份已经改变'));
   await menu(page).getByRole('menuitem', { name: 'Pinned1', exact: true }).click();
   await expect(page.locator('.notice-error[role="alert"]')).toContainText('目录身份已经改变');
-  await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Current');
+  await expect(page.locator('.workspace-folder-trigger .workspace-root-name').first()).toHaveText(
+    'Current',
+  );
   expect(await calls(page, 'close_workspace')).toEqual([]);
   await save(page);
 });
@@ -484,7 +478,9 @@ test('mounted picker uses fresh temporary grant for new window then closes only 
   await expect
     .poll(() => calls(page, 'close_workspace'))
     .toEqual([{ command: 'close_workspace', args: { workspaceId: 'workspace-picker' } }]);
-  await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Current');
+  await expect(page.locator('.workspace-folder-trigger .workspace-root-name').first()).toHaveText(
+    'Current',
+  );
   await save(page);
 });
 
@@ -496,10 +492,14 @@ test('no mount original empty state and picker mounts current window without new
   await expect(page.getByText('没有打开的文件夹', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '打开文件夹…', exact: true })).toHaveCount(0);
   await open(page);
-  await expect(menu(page).getByText('目录', { exact: true })).toHaveCount(1);
+  await expect(
+    menu(page).getByRole('menuitem', { name: '打开文件夹…', exact: true }),
+  ).toBeEnabled();
   await expect(menu(page).getByText('操作', { exact: true })).toHaveCount(0);
   await menu(page).getByRole('menuitem', { name: '打开文件夹…', exact: true }).click();
-  await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Picked');
+  await expect(page.locator('.workspace-folder-trigger .workspace-root-name').first()).toHaveText(
+    'Picked',
+  );
   expect(await calls(page, 'open_directory_history_window')).toEqual([]);
   await expect(page.getByText('没有支持的文档', { exact: true })).toHaveCount(0);
   await save(page);
@@ -519,7 +519,9 @@ test('metadata CAS failure stays visible, refetches and preserves document and d
   expect((await calls(page, 'list_directory_history')).length).toBeGreaterThan(1);
   expect(await calls(page, 'open_directory_history')).toEqual([]);
   await page.keyboard.press('Escape');
-  await expect(page.locator('.workspace-location-menu > span').first()).toHaveText('Current');
+  await expect(page.locator('.workspace-folder-trigger .workspace-root-name').first()).toHaveText(
+    'Current',
+  );
   await save(page);
 });
 
@@ -586,12 +588,57 @@ test('Reveal passes only mounted authority, Search uses existing header and orig
       { command: 'reveal_workspace_directory', args: { workspaceId: 'workspace-current' } },
     ]);
   await open(page);
-  await menu(page).getByRole('menuitemradio', { name: '名称', exact: true }).click();
-  await expect(
-    menu(page).getByRole('menuitemradio', { name: '名称', exact: true }),
-  ).toHaveAttribute('aria-checked', 'true');
-  await menu(page).getByRole('menuitem', { name: '搜索', exact: true }).click();
+  await menu(page)
+    .getByRole('menuitem', { name: /视图与排序/ })
+    .click();
+  await page.getByRole('menuitemradio', { name: '名称', exact: true }).click();
+  await expect(page.getByRole('menuitemradio', { name: '名称', exact: true })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '全文搜索', exact: true }).click();
   await expect(page.getByRole('searchbox', { name: '搜索文件', exact: true })).toBeFocused();
   await expect(menu(page)).toHaveCount(0);
   await save(page);
 });
+
+for (const platform of ['macos', 'windows'] as const)
+  test(`${platform}: recent folder path stays on the name line and truncates without hiding its full tooltip`, async ({
+    page,
+  }) => {
+    await start(page, { platform });
+    const path =
+      platform === 'windows'
+        ? `C:\\Users\\liyao\\Documents\\${'项目归档\\'.repeat(16)}Recent1`
+        : `/Users/liyao/Documents/${'项目归档/'.repeat(16)}Recent1`;
+    await page.evaluate((path) => {
+      const entry = (window as Host).directoryProbe.entries.find(
+        (entry) => entry.name === 'Recent1',
+      );
+      if (!entry) throw Error('Missing history fixture');
+      entry.path = path;
+    }, path);
+    await open(page);
+    const entry = menu(page).getByRole('menuitem', { name: 'Recent1', exact: true });
+    await expect(entry).toHaveAttribute('title', path);
+    const geometry = await entry.evaluate((element) => {
+      const name = element.querySelector('.directory-location-name'),
+        path = element.querySelector('.directory-location-path'),
+        icon = element.querySelector('.workspace-glyph');
+      if (!name || !path || !icon) throw Error('Missing inline history metadata');
+      const n = name.getBoundingClientRect(),
+        p = path.getBoundingClientRect(),
+        i = icon.getBoundingClientRect();
+      return {
+        nameBeforePath: n.right <= p.left,
+        center: Math.abs(n.y + n.height / 2 - p.y - p.height / 2),
+        iconCenter: Math.abs(i.y + i.height / 2 - n.y - n.height / 2),
+        clipped: path.scrollWidth > path.clientWidth,
+        ellipsis: getComputedStyle(path).textOverflow,
+      };
+    });
+    expect(geometry).toMatchObject({ nameBeforePath: true, clipped: true, ellipsis: 'ellipsis' });
+    expect(geometry.center).toBeLessThan(1);
+    expect(geometry.iconCenter).toBeLessThan(1);
+  });

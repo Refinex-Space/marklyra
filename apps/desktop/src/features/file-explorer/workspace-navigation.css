@@ -1,0 +1,215 @@
+/* A single, stable row; secondary browsing choices belong to the folder menu. */
+.workspace-sidebar-compact .workspace-navigation-header.workspace-navigation-single {
+  display: flex;
+  flex: 0 0 40px;
+  gap: 2px;
+  /* Leave the splitter's 9px reach outside the search button hit area. */
+  padding: 0 10px 0 6px;
+  container-type: inline-size;
+  border-bottom: 1px solid var(--border);
+}
+.workspace-sidebar-compact .workspace-navigation-single .workspace-folder-trigger {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 28px;
+  gap: 5px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--marklyra-sidebar-text, var(--muted));
+  background: transparent;
+  font-size: 12px;
+  cursor: default;
+}
+.workspace-navigation-single .workspace-folder-trigger:hover:not(:disabled),
+.workspace-navigation-single .workspace-folder-trigger[aria-expanded="true"] {
+  background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
+}
+.workspace-navigation-single .workspace-folder-trigger > .workspace-root-name {
+  flex: 1;
+  width: auto;
+  text-align: left;
+}
+.workspace-navigation-single .workspace-folder-trigger > .ui-icon {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+.workspace-sidebar-compact
+  .workspace-navigation-header.workspace-navigation-single
+  > .git-branch-widget,
+.workspace-sidebar-compact
+  .workspace-navigation-header.workspace-navigation-single
+  > .sidebar-header-action {
+  margin-top: 0;
+}
+.workspace-navigation-header.workspace-navigation-single > .git-branch-widget {
+  max-width: 32%;
+  min-width: 26px;
+  padding-inline: 4px;
+  flex: 0 1 auto;
+}
+@container (max-width: 230px) {
+  .workspace-navigation-single .git-branch-widget-name,
+  .workspace-navigation-single .git-branch-widget-track {
+    display: none;
+  }
+}
+.workspace-navigation-popup {
+  position: fixed;
+  z-index: 44;
+  box-sizing: border-box;
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--marklyra-sidebar-bg, var(--sidebar));
+  color: var(--marklyra-sidebar-text, var(--text));
+  box-shadow: 0 6px 24px #0002;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.workspace-navigation-popup button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 4px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+.workspace-navigation-popup button:hover:not(:disabled),
+.workspace-navigation-popup button:focus-visible {
+  background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
+}
+.workspace-navigation-popup button > .ui-icon,
+.workspace-navigation-popup button > .workspace-glyph {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.workspace-navigation-popup button[role="menuitemradio"] > .ui-icon,
+.workspace-navigation-popup button[role="menuitemcheckbox"] > .ui-icon {
+  margin-left: auto;
+  color: var(--focus);
+}
+.workspace-navigation-popup hr {
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.workspace-navigation-popup .workspace-menu-caption,
+.workspace-navigation-popup .directory-menu-heading {
+  margin: 0;
+  padding: 6px 8px 3px;
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-menu-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+}
+.workspace-menu-identity > span:last-child {
+  min-width: 0;
+}
+.workspace-menu-identity strong,
+.workspace-menu-identity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-menu-identity strong {
+  font-weight: 500;
+}
+.workspace-menu-identity small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.workspace-menu-summary {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+.workspace-navigation-popup .directory-menu-items > li.directory-recent-heading {
+  border: 0;
+}
+.workspace-navigation-popup .directory-location-open {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 42px 5px 8px;
+}
+.workspace-navigation-popup .directory-location-open > .workspace-glyph {
+  margin: 0;
+  top: 0;
+}
+.directory-location-open > .directory-location-name {
+  flex: 0 1 auto;
+  max-width: 50%;
+  min-width: 0;
+  white-space: nowrap;
+}
+.directory-location-open > .directory-location-path {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.workspace-navigation-popup .directory-record-action {
+  top: 6px;
+  min-height: 18px;
+}
+.workspace-navigation-popup .directory-current-dot {
+  top: 12px;
+}
+.workspace-created-folder {
+  padding: 8px 12px;
+}
+.workspace-created-folder-label {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+/* Command rows and history rows share one icon/text grid. Override the legacy
+   footer list's 20px inset only in this menu. */
+.workspace-navigation-popup .directory-menu-items > li.directory-menu-custom > button {
+  min-height: 30px;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+.workspace-navigation-popup .directory-location-open {
+  gap: 8px;
+}
+.workspace-navigation-submenu {
+  width: 240px;
+  z-index: 45;
+}
+.workspace-navigation-popup .workspace-submenu-trigger[aria-expanded="true"] {
+  background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
+}
+.workspace-submenu-trigger[data-submenu-side="left"] > .ui-icon:last-child {
+  transform: rotate(180deg);
+}
+/* Pointer-opened menus focus the container, not an arbitrary action. Keyboard
+   selection uses the same filled row as hover instead of a web-form focus ring. */
+.workspace-navigation-popup:focus,
+.workspace-navigation-popup button:focus-visible {
+  outline: none;
+}

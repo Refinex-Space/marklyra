@@ -4,6 +4,7 @@ import {
   type WorkspaceFolder,
   workspaces,
 } from '../../services/workspaces.js';
+import { notify } from '../notices/notices.js';
 import {
   type CreationKind,
   type CreationView,
@@ -11,7 +12,6 @@ import {
   type PrepareCreatedDocument,
   type WorkspaceCreationState,
 } from './creation-types.js';
-
 import { relocatedPath } from './entry-projection.js';
 
 interface Options {
@@ -164,6 +164,8 @@ export function useWorkspaceCreation(options: Options) {
     try {
       await workspaces.finishCreation(operation.workspaceId, operation.entry.entryToken);
       if (!current(operation)) return;
+      if (operation.entry.kind === 'directory' && operation.view === 'articles')
+        notify(`已创建文件夹“${operation.entry.name}”，可在文件树中查看。`, 'success');
       if (handoff && operation.interaction === interactions.current) {
         completion.current = operation;
         setNamedCompletion(operation);

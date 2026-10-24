@@ -26,7 +26,8 @@ const calls = (page: Page, command: string) =>
 const write = (page: Page) => page.frameLocator('.marklyra-editor-frame').locator('#write');
 async function newFile(page: Page) {
   await page.locator('.sidebar').hover();
-  await page.getByRole('button', { name: '新建文件', exact: true }).click();
+  await page.getByRole('button', { name: '新建', exact: true }).click();
+  await page.getByRole('menuitem', { name: '新建文档', exact: true }).click();
 }
 async function state(page: Page) {
   return page
@@ -246,7 +247,7 @@ test('failed create retries its original operation id, and a later user navigati
   ).toBe(1);
 });
 
-test('root-only Articles uses inline naming while a rendered nested article uses the real host dialog', async ({
+test('root creation uses inline naming even when Articles contains nested documents', async ({
   page,
 }) => {
   await boot(page, { articles: true });
@@ -276,11 +277,11 @@ test('root-only Articles uses inline naming while a rendered nested article uses
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
   await expect(page.locator('.workspace-article')).toHaveCount(2);
   await newFile(page);
-  await expect
-    .poll(async () => (await calls(page, 'create_workspace_file_with_dialog')).length)
-    .toBe(1);
-  expect(await calls(page, 'create_workspace_entry')).toHaveLength(0);
-  await expect(page.getByRole('textbox', { name: '文件名', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: '文件名', exact: true })).toBeFocused();
+  expect(await calls(page, 'create_workspace_file_with_dialog')).toHaveLength(0);
+  expect((await calls(page, 'create_workspace_entry'))[0]?.args).toMatchObject({
+    parentRelativePath: '',
+  });
 });
 
 test('late created-document open keeps a newly focused Shell control and releases naming authority', async ({
@@ -458,7 +459,7 @@ test('naming stays mounted and read-only until the actual child focus reply, the
     ),
   ).toBe('Untitled.md');
   await expect(input).toHaveJSProperty('readOnly', true);
-  await expect(page.getByRole('button', { name: '新建文件', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '新建', exact: true })).toBeDisabled();
   expect(await calls(page, 'finish_workspace_creation')).toHaveLength(1);
   await write(page).evaluate(() => (Reflect.get(window, '__releaseCreationFocus') as () => void)());
   await expect(input).toHaveCount(0);

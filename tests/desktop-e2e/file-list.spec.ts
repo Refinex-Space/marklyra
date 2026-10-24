@@ -185,19 +185,32 @@ test('article/tree sorting persists independently and native menu actions keep t
   const errors = await start(page);
   const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
   await page.getByRole('button', { name: '目录菜单', exact: true }).click();
+  await page.getByRole('menuitem', { name: /视图与排序/ }).click();
   await page.getByRole('menuitemradio', { name: '自然排序', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: '降序', exact: true }).click();
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
   expect(
     await page
       .locator('[data-article-path]')
       .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-article-path'))),
   ).toEqual(['Chapter10.md', 'Chapter2.md', 'Project/notes.md']);
-  await page.getByRole('button', { name: '切换到文件树', exact: true }).click();
+  await page.getByRole('button', { name: '目录菜单', exact: true }).click();
+  await page.getByRole('menuitem', { name: /视图与排序/ }).click();
+  await page.getByRole('menuitemradio', { name: '文件树', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
   await expect(page.locator('.sidebar-current-title')).toHaveCount(0);
   await page.getByRole('button', { name: '目录菜单', exact: true }).click();
+  await page.getByRole('menuitem', { name: /视图与排序/ }).click();
   await page.getByRole('menuitemradio', { name: '名称', exact: true }).click();
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: '切换到文档列表', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '目录菜单', exact: true }).click();
+  await page.getByRole('menuitem', { name: /视图与排序/ }).click();
+  await page.getByRole('menuitemradio', { name: '文档列表', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
   await expect
     .poll(() =>
       page.evaluate(

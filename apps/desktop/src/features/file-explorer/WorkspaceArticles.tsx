@@ -587,6 +587,18 @@ export function WorkspaceArticles({
       {!compact && !loading && !error && report?.entries.length === 0 && (
         <p className="workspace-hint">没有支持的文档</p>
       )}
+      {created?.kind === 'directory' && creation && (
+        <div
+          className="workspace-created-folder"
+          data-entry-kind="directory"
+          data-entry-path={created.relativePath}
+        >
+          <span className="workspace-created-folder-label">
+            新建文件夹 · {workspace.name} 根目录
+          </span>
+          <CreatedNameInput creation={creation} disabled={disabled} view="articles" />
+        </div>
+      )}
       <ul className="workspace-article-list">
         {renderedEntries.map((entry, index) => {
           const path = `${pathKey(workspace.path).replace(/\/+$/, '')}/${entry.relativePath}`;

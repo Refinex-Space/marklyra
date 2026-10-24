@@ -32,8 +32,8 @@ import {
 } from './file-preferences.js';
 import { DEFAULT_SIDEBAR_SEARCH_TARGET } from './SidebarHeader.js';
 import { WorkspaceArticles } from './WorkspaceArticles.js';
-import { WorkspaceFooter } from './WorkspaceFooter.js';
 import { WorkspaceGlyph } from './WorkspaceGlyph.js';
+import { WorkspaceNavigation } from './WorkspaceNavigation.js';
 import { WorkspaceSearch } from './WorkspaceSearch.js';
 import './workspace-sidebar.css';
 import { workspacePathIsActive } from './article-model.js';
@@ -147,7 +147,6 @@ export function WorkspaceSidebar({
     setLocalPreferences(value);
     onFilePreferencesChange?.(value);
   };
-  const [contextPoint, setContextPoint] = useState<{ x: number; y: number; version: number }>();
   const current = useRef<WorkspaceFolder | null>(null);
   const mounted = useRef(false);
   const selectingRef = useRef(false);
@@ -338,7 +337,7 @@ export function WorkspaceSidebar({
     if (pending && pending === workspace?.id) requestRefresh();
   }, [deferRefresh, workspace?.id, requestRefresh]);
 
-  const createEntry = async (parentRelativePath: string, kind: CreationKind) => {
+  const createEntry = async (parentRelativePath: string, kind: CreationKind, root = false) => {
     if (
       !workspace ||
       controlsDisabled ||
@@ -350,6 +349,7 @@ export function WorkspaceSidebar({
     )
       return;
     if (
+      !root &&
       preferences.view === 'articles' &&
       nestedArticles?.workspaceId === workspace.id &&
       nestedArticles.nested &&
@@ -810,8 +810,7 @@ export function WorkspaceSidebar({
         if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
         event.preventDefault();
         const bounds = (event.target as HTMLElement).getBoundingClientRect();
-        if (!showEntryMenu(event.target, bounds.left, bounds.bottom))
-          setContextPoint({ x: bounds.left, y: bounds.bottom, version: Date.now() });
+        showEntryMenu(event.target, bounds.left, bounds.bottom);
       }}
       onContextMenu={(event) => {
         if (!compact || !workspace || activeTab !== 'files' || controlsDisabled) return;
@@ -821,8 +820,7 @@ export function WorkspaceSidebar({
         )
           return;
         event.preventDefault();
-        if (!showEntryMenu(event.target, event.clientX, event.clientY))
-          setContextPoint({ x: event.clientX, y: event.clientY, version: Date.now() });
+        showEntryMenu(event.target, event.clientX, event.clientY);
       }}
     >
       {!compact && (
@@ -891,42 +889,35 @@ export function WorkspaceSidebar({
         </header>
       )}
       {compact && (
-        <nav
-          className="workspace-navigation-header"
-          aria-label="侧栏导航"
-          hidden={activeTab !== 'files'}
-        >
-          {workspace ? (
-            <div
-              className="workspace-root-row"
-              title={displayPath(workspace.path)}
-              data-entry-path=""
-              data-entry-kind="directory"
-            >
-              <WorkspaceGlyph name="folder" />
-              <span className="workspace-root-name" title={workspace.name}>
-                {workspace.name}
-              </span>
-            </div>
-          ) : (
-            <span className="workspace-navigation-spacer" aria-hidden="true" />
-          )}
-          {workspace && headerAccessory}
-          {workspace && (
-            <button
-              id={`${searchTargetId}-trigger`}
-              type="button"
-              className="sidebar-header-action"
-              aria-label="全文搜索"
-              aria-controls={`${tabsId}-search-panel`}
-              title="全文搜索"
-              disabled={controlsDisabled}
-              onClick={() => changeTab('search')}
-            >
-              <ShellGlyph className="ui-icon" name="search" />
-            </button>
-          )}
-        </nav>
+        <WorkspaceNavigation
+          workspace={workspace}
+          platform={filePlatform}
+          navigate={(entry, revision, modifier) =>
+            void navigateDirectory(entry, revision, modifier)
+          }
+          search={() => changeTab('search')}
+          reveal={() => void revealDirectory()}
+          restoring={restoring && !workspace}
+          disabled={controlsDisabled}
+          canChoose={desktopAvailable}
+          choose={() => void choose()}
+          refresh={requestRefresh}
+          close={close}
+          create={(kind) => void createEntry('', kind, true)}
+          hidden={activeTab !== 'files' && !!workspace}
+          searchTargetId={searchTargetId}
+          searchPanelId={`${tabsId}-search-panel`}
+          accessory={headerAccessory}
+          creationBusy={
+            !!naming.state ||
+            creation.completing ||
+            rename.completing ||
+            creationDialog ||
+            fileActions.busy
+          }
+          preferences={preferences}
+          changePreferences={changePreferences}
+        />
       )}
       {fileActions.state && (
         <div
@@ -1091,36 +1082,6 @@ export function WorkspaceSidebar({
           onOpen={open}
           headerTargetId={searchTargetId}
           closeSearch={() => changeTab('files')}
-        />
-      )}
-      {compact && (activeTab === 'files' || !workspace) && (
-        <WorkspaceFooter
-          name={workspace?.name}
-          workspace={workspace}
-          platform={filePlatform}
-          navigateDirectory={(entry, revision, modifier) =>
-            void navigateDirectory(entry, revision, modifier)
-          }
-          search={() => changeTab('search')}
-          reveal={workspace ? () => void revealDirectory() : undefined}
-          path={workspace?.path}
-          restoring={restoring && !workspace}
-          disabled={controlsDisabled}
-          canChoose={desktopAvailable}
-          choose={() => void choose()}
-          refresh={requestRefresh}
-          close={close}
-          newDocument={workspace ? () => void createEntry('', 'file') : onNewDocument}
-          creationBusy={
-            !!naming.state ||
-            creation.completing ||
-            rename.completing ||
-            creationDialog ||
-            fileActions.busy
-          }
-          preferences={preferences}
-          changePreferences={changePreferences}
-          contextPoint={contextPoint}
         />
       )}
       {activeTab === 'files' && calendar}

@@ -1,11 +1,11 @@
 import { listen } from '@tauri-apps/api/event';
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { SkeletonRows } from '../../components/Skeleton.js';
 import {
   type DirectoryHistoryCatalog,
   type DirectoryHistoryEntry,
   directoryHistory,
 } from '../../services/directory-history.js';
-import { SkeletonRows } from '../../components/Skeleton.js';
 import { displayPath } from '../../services/display-path.js';
 import type { WorkspaceFolder } from '../../services/workspaces.js';
 import { directoryMenuLimit, directoryMenuRows } from './directory-menu-model.js';
@@ -24,6 +24,8 @@ interface Props {
   refresh(): void;
   dismiss(): void;
   sortControls: ReactNode;
+  header?: ReactNode;
+  footer?: ReactNode;
   navigate(entry: DirectoryHistoryEntry, revision: number, modifier: boolean): void;
   platform: 'macos' | 'windows' | 'browser';
 }
@@ -55,6 +57,8 @@ export function DirectoryHistoryMenu({
   refresh,
   dismiss,
   sortControls,
+  header,
+  footer,
   navigate,
   platform,
 }: Props) {
@@ -194,77 +198,83 @@ export function DirectoryHistoryMenu({
   };
   return (
     <ul className="directory-menu-items" ref={root} role="none" aria-busy={loading || busy}>
-      {workspace && (
-        <>
-          <li role="presentation" className="directory-menu-heading">
-            <span>操作</span>
-            <button
-              type="button"
-              className="directory-menu-dismiss"
-              data-menu-skip-roving
-              tabIndex={-1}
-              aria-label="关闭目录菜单"
-              onClick={dismiss}
-            >
-              <WorkspaceGlyph name="close" />
-            </button>
-          </li>
-          <li role="none">
-            <button
-              type="button"
-              role="menuitem"
-              disabled={disabled || busy || !newDocument || newDocumentDisabled}
-              onClick={action(newDocument)}
-            >
-              新建文件
-            </button>
-          </li>
-          <li role="none">
-            <button
-              type="button"
-              role="menuitem"
-              disabled={disabled || busy || !search}
-              onClick={action(search)}
-            >
-              搜索
-            </button>
-          </li>
-          <li role="none">
-            <button
-              type="button"
-              role="menuitem"
-              data-directory-row-height
-              disabled={disabled || busy || !reveal}
-              onClick={action(reveal)}
-            >
-              {revealLabel(platform)}
-            </button>
-          </li>
-          <li role="none">
-            <button
-              type="button"
-              role="menuitem"
-              disabled={disabled || busy || !enabled}
-              onClick={action(choose)}
-            >
-              打开文件夹…
-            </button>
-          </li>
-          <li role="none">
-            <button
-              type="button"
-              role="menuitem"
-              disabled={disabled || busy}
-              onClick={action(refresh)}
-            >
-              刷新
-            </button>
-          </li>
-          <li role="presentation" className="directory-menu-heading directory-sort-row">
-            <span>排序</span>
-            {sortControls}
-          </li>
-        </>
+      {header !== undefined ? (
+        <li role="none" className="directory-menu-custom">
+          {header}
+        </li>
+      ) : (
+        workspace && (
+          <>
+            <li role="presentation" className="directory-menu-heading">
+              <span>操作</span>
+              <button
+                type="button"
+                className="directory-menu-dismiss"
+                data-menu-skip-roving
+                tabIndex={-1}
+                aria-label="关闭目录菜单"
+                onClick={dismiss}
+              >
+                <WorkspaceGlyph name="close" />
+              </button>
+            </li>
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                disabled={disabled || busy || !newDocument || newDocumentDisabled}
+                onClick={action(newDocument)}
+              >
+                新建文件
+              </button>
+            </li>
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                disabled={disabled || busy || !search}
+                onClick={action(search)}
+              >
+                搜索
+              </button>
+            </li>
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                data-directory-row-height
+                disabled={disabled || busy || !reveal}
+                onClick={action(reveal)}
+              >
+                {revealLabel(platform)}
+              </button>
+            </li>
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                disabled={disabled || busy || !enabled}
+                onClick={action(choose)}
+              >
+                打开文件夹…
+              </button>
+            </li>
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                disabled={disabled || busy}
+                onClick={action(refresh)}
+              >
+                刷新
+              </button>
+            </li>
+            <li role="presentation" className="directory-menu-heading directory-sort-row">
+              <span>排序</span>
+              {sortControls}
+            </li>
+          </>
+        )
       )}
       {rows.length > 0 && (
         <li role="presentation" className="directory-menu-heading directory-recent-heading">
@@ -296,7 +306,10 @@ export function DirectoryHistoryMenu({
             }}
           >
             <WorkspaceGlyph name="folderOutline" />
-            <span>{entry.name}</span>
+            <span className="directory-location-name">{entry.name}</span>
+            <span className="directory-location-path" aria-hidden="true">
+              {displayPath(entry.path)}
+            </span>
           </button>
           <button
             type="button"
@@ -354,7 +367,12 @@ export function DirectoryHistoryMenu({
           </button>
         </li>
       )}
-      {!workspace && (
+      {footer && (
+        <li role="none" className="directory-menu-custom">
+          {footer}
+        </li>
+      )}
+      {header === undefined && !workspace && (
         <>
           <li role="presentation" className="directory-menu-heading directory-location-heading">
             目录

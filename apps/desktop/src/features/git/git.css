@@ -521,13 +521,6 @@ textarea.git-input {
   max-width: 100%;
   justify-self: end;
 }
-.sidebar[data-file-view="tree"] .workspace-navigation-header > .git-branch-widget,
-.sidebar[data-file-view="tree"]
-  .workspace-navigation-header:has(> .git-branch-widget)
-  > .sidebar-header-action {
-  /* The tree view drops the folder name 4px; the branch and search buttons follow it. */
-  margin-top: 4px;
-}
 .workspace-folder-header .git-branch-widget {
   margin-left: auto;
 }

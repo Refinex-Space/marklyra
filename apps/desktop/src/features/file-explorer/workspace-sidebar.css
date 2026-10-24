@@ -616,13 +616,6 @@
   margin: 0;
   padding: 0;
 }
-.sidebar[data-file-view="tree"] .workspace-navigation-header {
-  flex-basis: var(--workspace-row-height);
-}
-.sidebar[data-file-view="tree"] .workspace-navigation-header .workspace-root-row {
-  height: var(--workspace-row-height);
-  padding-top: 4px;
-}
 .workspace-navigation-header .workspace-root-row > .workspace-glyph {
   float: none;
   flex-shrink: 0;
