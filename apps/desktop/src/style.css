@@ -110,6 +110,7 @@ button[aria-pressed="true"] {
    the same gap to the window, the same hairline border and radius, on a tinted canvas. */
 .shell[data-native-chrome="true"] {
   --pane-gap: 8px;
+  --pane-divider-gap: 2px;
   --pane-radius: 8px;
   --pane-top: calc(var(--titlebar-height) + 4px);
   --pane-border: color-mix(
@@ -164,6 +165,10 @@ button[aria-pressed="true"] {
   flex-basis: var(--pane-gap);
   margin: 0;
 }
+.shell[data-native-chrome="true"] .workspace > .sidebar-resize {
+  flex-basis: var(--pane-divider-gap);
+  z-index: 6;
+}
 .shell[data-native-chrome="true"] .sidebar-resize::before,
 .shell[data-native-chrome="true"] .document-details-resize::before {
   content: "";
@@ -183,6 +188,18 @@ button[aria-pressed="true"] {
   content: "";
   position: absolute;
   inset: 0 calc(var(--sash-reach) * -1);
+}
+/* Keep a 14px drag target around the 2px seam. Reach mainly into the sidebars,
+   limiting the reach beside the document scrollbar to 3px. */
+.shell[data-native-chrome="true"] .workspace > .pane-resize-handle {
+  /* The browser's default hr overflow would clip the extended hit target. */
+  overflow: visible;
+}
+.shell[data-native-chrome="true"] .workspace > .sidebar-resize::after {
+  inset: 0 -3px 0 -9px;
+}
+.shell[data-native-chrome="true"] .workspace > .document-details-resize::after {
+  inset: 0 -9px 0 -3px;
 }
 .shell[data-native-chrome="true"] .sidebar-resize:hover::before,
 .shell[data-native-chrome="true"] .document-details-resize:hover::before {

@@ -2,7 +2,7 @@
    (style.css) is raised to clear it, so the two never overlap. */
 .document-statistics {
   position: absolute;
-  right: 12px;
+  right: 20px;
   bottom: 6px;
   z-index: 6;
   color: var(--muted);

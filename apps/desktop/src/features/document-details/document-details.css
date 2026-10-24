@@ -139,7 +139,7 @@
   transition: none;
 }
 .shell[data-native-chrome="true"] .document-details-resize[data-open] {
-  flex-basis: var(--pane-gap);
+  flex-basis: var(--pane-divider-gap);
 }
 @media (prefers-reduced-motion: reduce) {
   .document-details-panel,

@@ -92,7 +92,7 @@ async function expectAligned(page: Page) {
         main &&
         port &&
         Math.max(
-          Math.abs(panel.x - (main.x + main.width) - 8),
+          Math.abs(panel.x - (main.x + main.width) - 2),
           Math.abs(port.x + port.width - (main.x + main.width - 1)),
           Math.abs(port.x - (main.x + 1)),
         )
@@ -140,7 +140,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const panel = await details(page).boundingBox();
     const area = await editingArea(page);
     expect(
-      original && area && panel && Math.abs(original.width - area.width - panel.width - 8),
+      original && area && panel && Math.abs(original.width - area.width - panel.width - 2),
     ).toBeLessThanOrEqual(2);
     await expect(page.locator('.runtime-area .marklyra-editor-frame')).toHaveJSProperty(
       'clientWidth',
@@ -264,10 +264,13 @@ test('both side panels resize live within their limits and keep thin dividers wi
   const handle = page.getByRole('separator', { name: '调整目录宽度' });
   const box = await handle.boundingBox();
   if (!box) throw Error('Missing outline resize handle');
-  await page.mouse.move(box.x + box.width / 2, box.y + 100);
+  expect(box.width).toBe(2);
+  // Grab beyond the visible seam: narrowing the gap must retain the drag target.
+  const grabX = box.x + box.width + 7;
+  await page.mouse.move(grabX, box.y + 100);
   await page.mouse.down();
   // The handle is the whole gap between the panes; drag relative to where it was grabbed.
-  await page.mouse.move(box.x + box.width / 2 - 100, box.y + 100, { steps: 6 });
+  await page.mouse.move(grabX - 100, box.y + 100, { steps: 6 });
   await expect(
     page.locator('.notice-host .notice').filter({ hasText: 'ResizeObserver' }),
   ).toHaveCount(0);
@@ -290,9 +293,10 @@ test('both side panels resize live within their limits and keep thin dividers wi
   const leftHandle = page.getByRole('separator', { name: '调整侧栏宽度' });
   const leftBox = await leftHandle.boundingBox();
   if (!leftBox) throw Error('Missing sidebar resize handle');
-  await page.mouse.move(leftBox.x + 1, leftBox.y + 100);
+  expect(leftBox.width).toBe(2);
+  await page.mouse.move(leftBox.x - 7, leftBox.y + 100);
   await page.mouse.down();
-  await page.mouse.move(leftBox.x + 61, leftBox.y + 100, { steps: 6 });
+  await page.mouse.move(leftBox.x + 53, leftBox.y + 100, { steps: 6 });
   await expect(leftHandle).toHaveAttribute('aria-valuenow', '330');
   await expect
     .poll(async () => (await page.locator('aside.sidebar').boundingBox())?.width)

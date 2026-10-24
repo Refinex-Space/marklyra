@@ -42,14 +42,25 @@ const box = async (locator: ReturnType<Page['locator']>) => {
 for (const host of ['windows', 'macos'] as const) {
   test(`${host}: the word count sits in the lower right corner of the document card`, async ({
     page,
-  }) => {
-    await boot(page, host);
+  }, info) => {
+    await boot(page, host, long);
     await expect(count(page)).toBeVisible();
     await expect(count(page)).toContainText('词');
     const area = await box(page.locator('main.document-area'));
     const label = await box(count(page));
-    expect(Math.abs(area.x + area.width - (label.x + label.width) - 12)).toBeLessThan(2);
+    expect(Math.abs(area.x + area.width - (label.x + label.width) - 20)).toBeLessThan(2);
     expect(Math.abs(area.y + area.height - (label.y + label.height) - 6)).toBeLessThan(3);
+    await count(page).hover();
+    const port = page.frameLocator('.marklyra-editor-frame').locator('content');
+    const scrollport = await box(port);
+    const scrollbar = await port.evaluate((element) =>
+      Math.max(12, (element as HTMLElement).offsetWidth - element.clientWidth),
+    );
+    expect(
+      scrollport.x + scrollport.width - scrollbar - label.x - label.width,
+    ).toBeGreaterThanOrEqual(6);
+    expect(await box(count(page))).toEqual(label);
+    await page.screenshot({ path: info.outputPath(`${host}-word-count-hover.png`) });
     // It is no longer in the titlebar.
     await expect(page.locator('.titlebar .document-statistics-button')).toHaveCount(0);
   });
