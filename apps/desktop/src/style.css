@@ -814,94 +814,177 @@ button[aria-pressed="true"] {
   max-height: 80vh;
   overflow: auto;
 }
+/* Only the middle region scrolls; heading and actions keep their intrinsic size. */
 .modal-backdrop .recent-files-panel {
   display: flex;
   flex-direction: column;
-  width: min(760px, calc(100vw - 32px));
+  width: min(720px, calc(100vw - 32px));
   min-width: 0;
   max-height: min(80dvh, 680px);
   padding: 0;
   overflow: hidden;
 }
 .recent-files-heading {
+  display: flex;
   flex: none;
-  padding: 20px 24px 12px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 14px 20px 12px;
 }
 .recent-files-heading h2 {
-  margin-bottom: 6px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
 }
 .recent-files-heading p {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+  line-height: 18px;
 }
 .modal-backdrop .recent-files-body {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   flex: 1 1 auto;
   min-height: 0;
+  gap: 0;
   margin: 0;
-  padding: 0 24px 12px;
-  overflow: auto;
-  overscroll-behavior: contain;
+  padding: 0 20px 12px;
+  overflow: hidden;
 }
 .recent-files-body > p {
-  margin: 0 0 12px;
+  margin: 0;
+  padding: 20px 12px;
+  color: var(--muted);
+  font-size: 13px;
   overflow-wrap: anywhere;
+}
+.recent-files-body > [role="alert"] {
+  color: inherit;
 }
 .recent-files-actions {
   display: flex;
   flex: none;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  align-items: center;
   gap: 8px;
-  padding: 12px 24px 16px;
+  padding: 12px 20px;
   border-top: 1px solid var(--border);
 }
+.recent-files-actions .recent-files-clear {
+  margin-right: auto;
+  border-color: transparent;
+  color: var(--muted);
+}
 .recent-files-list {
+  flex: 0 1 auto;
+  min-height: 0;
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.recent-files-list:empty {
+  display: none;
 }
 .recent-files-list li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  padding-right: 8px;
+}
+.recent-files-list li + li {
+  border-top: 1px solid var(--border);
+}
+.recent-files-list li:hover,
+.recent-files-list li:focus-within {
+  background: var(--hover);
 }
 .recent-files-list .recent-file-open {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex: 1;
   min-width: 0;
-  padding: 8px 10px;
+  height: 44px;
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-radius: 0;
   text-align: left;
+  font-size: 13px;
   line-height: 20px;
 }
-.recent-file-open strong,
-.recent-file-open span {
+.recent-files-list .recent-file-open:hover {
+  background: transparent;
+}
+.recent-file-open > .ui-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+.recent-file-name,
+.recent-file-where {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.recent-file-open strong {
-  font-weight: 600;
+.recent-file-name {
+  flex: 0 1 auto;
+  max-width: 60%;
+  font-weight: 500;
 }
-.recent-file-open span,
-.recent-file-open small {
+.recent-file-where {
+  flex: 1 1 0;
+}
+.recent-file-where,
+.recent-file-time {
   color: var(--muted);
   font-size: 12px;
 }
-.recent-file-open span {
-  grid-column: 1 / -1;
-  line-height: 18px;
-}
-.recent-file-open small {
-  align-self: center;
-  font-size: 11px;
+.recent-file-time {
+  flex: none;
+  margin-left: auto;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.recent-files-list .recent-file-remove {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
+}
+.recent-file-remove .ui-icon {
+  width: 14px;
+  height: 14px;
+}
+@media (max-width: 560px) {
+  .recent-files-heading,
+  .recent-files-actions {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .modal-backdrop .recent-files-body {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .recent-file-where {
+    display: none;
+  }
+  .recent-file-name {
+    max-width: none;
+    flex: 1;
+  }
 }
 .recovery-list {
   list-style: none;

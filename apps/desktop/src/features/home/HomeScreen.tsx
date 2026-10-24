@@ -6,6 +6,7 @@ import { displayPath } from '../../services/display-path.js';
 import { desktopAvailable } from '../../services/documents.js';
 import { type RecentFile, recentFiles } from '../../services/recent.js';
 import { relativeTime } from '../quick-open/quick-open-model.js';
+import { recentFileLocation, recentFileName } from '../recent-files/recent-file-presentation.js';
 import './home-screen.css';
 
 const SHOWN = 6;
@@ -24,12 +25,6 @@ export function greeting(hour: number): { title: string; hint: string } {
   if (hour >= 18 && hour < 23)
     return { title: '晚上好，收拢今天的思路', hint: '整理今天的记录，或为明天先写几行。' };
   return { title: '夜深了，记下最后的想法', hint: '写完就休息吧，笔记会替你记住。' };
-}
-
-const stem = (name: string) => name.replace(/\.(md|markdown|mdx|mkd|mdown|txt|text)$/i, '');
-function where(entry: RecentFile): string {
-  const parts = displayPath(entry.path).replaceAll('\\', '/').split('/').filter(Boolean);
-  return parts.slice(-3, -1).join(' › ');
 }
 
 export interface HomeScreenProps {
@@ -146,8 +141,8 @@ export function HomeScreen(props: HomeScreenProps) {
                     <span className="home-recent-icon" aria-hidden="true">
                       <Icon name="document" />
                     </span>
-                    <span className="home-recent-name">{stem(entry.name)}</span>
-                    <span className="home-recent-where">{where(entry)}</span>
+                    <span className="home-recent-name">{recentFileName(entry.name)}</span>
+                    <span className="home-recent-where">{recentFileLocation(entry.path)}</span>
                     <time
                       className="home-recent-time"
                       dateTime={new Date(entry.lastOpenedAt).toISOString()}

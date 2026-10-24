@@ -169,7 +169,7 @@ test('removing and clearing recent entries never removes current or stored file 
   expect(
     await page.evaluate(() => (window as RecentMockWindow).__recentMock.files['/mock/B.md']?.text),
   ).toBe('Bravo');
-  await panel(page).getByRole('button', { name: '清空最近文件', exact: true }).click();
+  await panel(page).getByRole('button', { name: '清空记录', exact: true }).click();
   await expect(panel(page)).toContainText('暂无最近打开');
   expect(
     await page.evaluate(() => (window as RecentMockWindow).__recentMock.files['/mock/A.md']?.text),
@@ -177,6 +177,49 @@ test('removing and clearing recent entries never removes current or stored file 
   await panel(page).getByRole('button', { name: '关闭', exact: true }).click();
   await expect(child(page).locator('#write')).toHaveText('Alpha');
   expect(await calls(page, 'close_document')).toEqual([]);
+});
+
+test('inline removal keeps keyboard focus on the next record, then the previous or refresh action', async ({
+  page,
+}) => {
+  await boot(page);
+  await seed(page);
+  await seed(page, '/mock/C.md', 'Charlie');
+  await show(page);
+  const remove = (name: string) =>
+    panel(page).getByRole('button', { name: `移除最近记录 /mock/${name}.md`, exact: true });
+  await remove('B').focus();
+  await page.keyboard.press('Enter');
+  await expect(remove('B')).toHaveCount(0);
+  await expect(remove('A')).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(remove('A')).toHaveCount(0);
+  await expect(remove('C')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(panel(page)).toContainText('暂无最近打开');
+  await expect(panel(page).getByRole('button', { name: '刷新', exact: true })).toBeFocused();
+  expect(await calls(page, 'open_recent_file')).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(child(page).locator('#write')).toHaveText('Alpha');
+});
+
+test('Windows recent paths stay readable while open and remove still use opaque IDs', async ({
+  page,
+}) => {
+  await boot(page);
+  const path = '\\\\?\\C:\\笔记\\学习\\Java 设计.md';
+  const id = await seed(page, path);
+  await show(page);
+  const row = panel(page).locator('li').first();
+  await expect(row.locator('.recent-file-name')).toHaveText('Java 设计');
+  await expect(row.locator('.recent-file-where')).toHaveText('笔记 › 学习');
+  await expect(row.locator('.recent-file-open')).toHaveAttribute(
+    'title',
+    'C:\\笔记\\学习\\Java 设计.md',
+  );
+  await row.getByRole('button', { name: /^移除最近记录/ }).click();
+  expect((await calls(page, 'remove_recent_file')).at(-1)?.args).toEqual({ id });
+  expect(await calls(page, 'open_recent_file')).toEqual([]);
 });
 
 test('missing recent file reports an error without removing its record or the current document', async ({
@@ -334,7 +377,7 @@ test('corrupt recent metadata is visible and explicit clear repairs the list wit
   });
   await show(page);
   await expect(panel(page).getByRole('alert')).toContainText('最近文件记录损坏');
-  await panel(page).getByRole('button', { name: '清空最近文件', exact: true }).click();
+  await panel(page).getByRole('button', { name: '清空记录', exact: true }).click();
   await expect(panel(page)).toContainText('暂无最近打开');
   expect(
     await page.evaluate(() => (window as RecentMockWindow).__recentMock.files['/mock/A.md']?.text),
