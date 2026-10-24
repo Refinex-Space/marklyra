@@ -24,6 +24,7 @@ import {
 import { imageDestinations } from '../images/references.js';
 import type { RuntimeState } from '../protocol.js';
 import { clipboardMarkupEvent } from './clipboard-html.js';
+import { codeLanguageField, pasteCodeLanguage } from './code-language.js';
 import { RuntimeAutomaticImages } from './image-automatic.js';
 import { refreshImageBlocks } from './image-refresh.js';
 import { preserveImageCodeSelection } from './image-selection.js';
@@ -799,6 +800,14 @@ export class RuntimeImages {
   private paste = (event: ClipboardEvent): void => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target?.closest('#write,#typora-source')) return;
+    const language = codeLanguageField(this.deps.runtime.editor, target);
+    if (language) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (this.deps.composing() || this.deps.loading() || this.deps.runtime.File?.isLocked) return;
+      pasteCodeLanguage(language, event.clipboardData?.getData('text/plain') ?? '');
+      return;
+    }
     const sourceMode = Boolean(this.deps.runtime.editor?.sourceView.inSourceMode);
     const files = Array.from(event.clipboardData?.files ?? []);
     const markup = event.clipboardData?.getData('text/markhtml') ?? '';

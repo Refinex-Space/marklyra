@@ -1,4 +1,5 @@
 import type { CursorBookmark } from '../protocol.js';
+import { codeLanguageField } from './code-language.js';
 import type { LegacyEditor } from './legacy-types.js';
 
 type CM = NonNullable<LegacyEditor['sourceView']['cm']>;
@@ -18,6 +19,7 @@ export interface ContextSelection {
   primary?: number;
   focusCid: string | null;
   selected: boolean;
+  language?: HTMLElement;
 }
 export function captureContextSelection(editor: LegacyEditor, target: Element): ContextSelection {
   const owner = target.closest('.CodeMirror');
@@ -64,11 +66,13 @@ export function captureContextSelection(editor: LegacyEditor, target: Element): 
     };
   }
   const selection = editor.writingArea.ownerDocument.getSelection();
-  const bookmark = editor.selection.buildUndo();
+  const language = codeLanguageField(editor, target);
+  const bookmark = language ? null : editor.selection.buildUndo();
   const result: ContextSelection = {
     bookmark: bookmark ? structuredClone(bookmark) : null,
-    focusCid: editor.focusCid,
+    focusCid: language ? null : editor.focusCid,
     selected: false,
+    ...(language ? { language } : {}),
   };
   if (
     selection?.anchorNode &&
@@ -100,6 +104,17 @@ export function currentContextCodeMirror(editor: LegacyEditor, saved: ContextSel
   );
 }
 export function restoreContextSelection(editor: LegacyEditor, saved: ContextSelection): void {
+  if (saved.language) {
+    if (
+      codeLanguageField(editor, saved.language) !== saved.language ||
+      !saved.anchor ||
+      !saved.head ||
+      !saved.language.contains(saved.anchor.node) ||
+      !saved.language.contains(saved.head.node)
+    )
+      throw Error('代码语言输入框上下文已改变');
+    saved.language.focus();
+  }
   if (saved.cm && saved.ranges && saved.primary !== undefined) {
     if (!currentContextCodeMirror(editor, saved)) throw Error('代码编辑器上下文已改变');
     saved.cm.focus();

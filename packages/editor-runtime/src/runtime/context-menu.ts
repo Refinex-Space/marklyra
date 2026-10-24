@@ -22,6 +22,7 @@ import {
   clipboardSelectionHTML,
   clipboardSelectionMarkupHTML,
 } from './clipboard-html.js';
+import { codeLanguageField, pasteCodeLanguage } from './code-language.js';
 import type { CodeLineRange } from './code-line-source.js';
 import {
   type ContextMenuFacts,
@@ -278,6 +279,14 @@ export class RuntimeContextMenu {
       'contextmenu',
       (event) => {
         if (!(event instanceof MouseEvent) || !event.isTrusted) return;
+        if (codeLanguageField(this.deps.runtime.editor, this.element(event.target))) {
+          // The body handler clears selections inside selectable fences. This
+          // nested text field owns its range and needs only the input menu.
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          this.offer(['input'], event);
+          return;
+        }
         const ticket = this.offerTicket,
           stamp = { ...this.deps.stamp() },
           eventEditor = this.deps.runtime.editor,
@@ -364,7 +373,10 @@ export class RuntimeContextMenu {
         ...this.editingFor(selection),
         ...(preview ? { preview: { node: preview.node, mark: preview.mark } } : {}),
       };
-      const items = contextMenuItems(this.facts(binding));
+      const menuItems = contextMenuItems(this.facts(binding));
+      const items = selection.language
+        ? menuItems.filter((item) => item.type === 'item')
+        : menuItems;
       if (!items.length) return;
       binding.actions = offeredContextActions(items);
       this.binding = binding;
@@ -620,6 +632,11 @@ export class RuntimeContextMenu {
       case 'edit.paste':
       case 'edit.pastePlain': {
         const content = clipboardContent(request.clipboard);
+        if (binding.selection.language) {
+          if (!pasteCodeLanguage(binding.selection.language, content.text))
+            throw Error('代码语言输入框选区已改变');
+          break;
+        }
         const html = request.actionId === 'edit.paste' ? content.html : undefined;
         const markHtml = request.actionId === 'edit.paste' ? content.markHtml : undefined;
         if (
@@ -730,6 +747,10 @@ export class RuntimeContextMenu {
     this.assertCurrent(cut.binding, 'edit.cut');
     this.restore(cut.binding);
     const { editor, selection } = cut.binding;
+    if (selection.language) {
+      selection.language.ownerDocument.execCommand('delete');
+      return;
+    }
     if (selection.cm && cut.binding.codeLines) {
       // Preserve the original empty carets as the history's selection-before.
       // Selecting whole lines first would make Undo restore those temporary ranges.
@@ -989,6 +1010,10 @@ export class RuntimeContextMenu {
       return clipboardContent({ text: binding.image?.source ?? '' });
     const editor = binding.editor,
       cm = binding.selection.cm;
+    if (binding.selection.language)
+      return clipboardContent({
+        text: editor.writingArea.ownerDocument.getSelection()?.toString() ?? '',
+      });
     if (cm && action !== 'code.copy') return clipboardContent({ text: cm.getSelection() });
     if (this.collecting) throw Error('剪贴板准备不可重入');
     this.collecting = {};
