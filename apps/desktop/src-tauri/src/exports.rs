@@ -350,7 +350,7 @@ pub fn handle_menu(app: &AppHandle, event: &tauri::menu::MenuEvent) -> bool {
     let mut focused = app
         .webview_windows()
         .into_values()
-        .filter(|window| crate::windows::is_focused(&window).unwrap_or(false));
+        .filter(|window| crate::windows::is_focused(window).unwrap_or(false));
     let window = focused.next();
     if focused.next().is_some() {
         return true;
