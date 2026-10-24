@@ -1,5 +1,5 @@
 /* A single, stable row; secondary browsing choices belong to the folder menu. */
-.workspace-sidebar-compact .workspace-navigation-header.workspace-navigation-single {
+.workspace-sidebar-compact .workspace-navigation-header.workspace-navigation-single:not([hidden]) {
   display: flex;
   flex: 0 0 40px;
   gap: 2px;
