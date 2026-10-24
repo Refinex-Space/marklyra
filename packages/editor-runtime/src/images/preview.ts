@@ -15,6 +15,7 @@ export interface ImagePreviewRequest {
   url: string;
   name: string;
   dark: boolean;
+  kind?: 'mermaid';
 }
 export function imagePreviewRequest(raw: unknown, runtimeUrl: string): ImagePreviewRequest {
   const value = raw as Partial<ImagePreviewRequest> | null;
@@ -26,7 +27,8 @@ export function imagePreviewRequest(raw: unknown, runtimeUrl: string): ImagePrev
     typeof value.name !== 'string' ||
     value.name.length > 8192 ||
     typeof value.url !== 'string' ||
-    typeof value.dark !== 'boolean'
+    typeof value.dark !== 'boolean' ||
+    (value.kind !== undefined && value.kind !== 'mermaid')
   )
     throw Error('图片预览请求无效');
   return {
@@ -35,6 +37,7 @@ export function imagePreviewRequest(raw: unknown, runtimeUrl: string): ImagePrev
     url: displayImageUrl(value.url, runtimeUrl),
     name: value.name,
     dark: value.dark,
+    ...(value.kind ? { kind: value.kind } : {}),
   };
 }
 
@@ -67,7 +70,7 @@ export class ImagePreview {
       '--ml-preview-inset',
       `${Number.isFinite(topInset) ? Math.max(0, Math.min(100, topInset)) : 0}px`,
     );
-    dialog.setAttribute('aria-label', '图片预览');
+    dialog.setAttribute('aria-label', request.kind === 'mermaid' ? 'Mermaid 图预览' : '图片预览');
     const style = owner.createElement('style');
     style.textContent = imagePreviewStyle;
     dialog.append(style);
@@ -96,7 +99,13 @@ export class ImagePreview {
       }
       return item;
     };
-    button('关闭图片预览', '×', () => this.close(), header, false).className = 'ml-preview-close';
+    button(
+      request.kind === 'mermaid' ? '关闭图表预览' : '关闭图片预览',
+      '×',
+      () => this.close(),
+      header,
+      false,
+    ).className = 'ml-preview-close';
     this.stage = owner.createElement('div');
     this.stage.className = 'ml-preview-stage';
     this.stage.tabIndex = -1;

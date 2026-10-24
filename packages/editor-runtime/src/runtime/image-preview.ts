@@ -1,6 +1,7 @@
 import type { ImagePreviewRequest } from '../images/preview.js';
 import { preserveImageCodeSelection } from './image-selection.js';
 import type { LegacyGlobals } from './legacy-types.js';
+import { type MermaidPreviewTarget, RuntimeMermaidPreview } from './mermaid-preview.js';
 
 interface PreviewHost {
   runtime: LegacyGlobals;
@@ -11,22 +12,34 @@ interface PreviewHost {
   source(wrapper: HTMLElement): string | undefined;
   send(kind: string, value: unknown): void;
 }
-interface PreviewSession {
+interface PreviewOrigin {
   id: string;
   stamp: string;
-  image: HTMLImageElement;
-  url: string;
-  model?: { cid: string; mark: string; index: number; source: string };
   restore(): void;
 }
+type PreviewSession = PreviewOrigin &
+  (
+    | {
+        kind: 'image';
+        image: HTMLImageElement;
+        url: string;
+        model?: { cid: string; mark: string; index: number; source: string };
+      }
+    | { kind: 'mermaid'; target: MermaidPreviewTarget }
+  );
 /** One transient handle outside #write. Hover never changes selection or editor model nodes. */
 export class RuntimeImagePreview {
   private button: HTMLButtonElement | undefined;
   private style: HTMLStyleElement | undefined;
-  private picture: HTMLImageElement | undefined;
+  private picture: HTMLImageElement | SVGSVGElement | undefined;
+  private readonly mermaid: RuntimeMermaidPreview;
   private session: PreviewSession | undefined;
   private readonly abort = new AbortController();
-  private readonly observer = new MutationObserver(() => {
+  private readonly observer = new MutationObserver((records) => {
+    for (const record of records)
+      for (const node of record.addedNodes) {
+        if (node instanceof Element) this.mermaid.observe(node);
+      }
     this.validateCurrent();
     if (this.picture) this.schedule();
   });
@@ -34,7 +47,9 @@ export class RuntimeImagePreview {
   private frame = 0;
   private leave: ReturnType<typeof setTimeout> | undefined;
   private pressed = false;
-  constructor(private readonly host: PreviewHost) {}
+  constructor(private readonly host: PreviewHost) {
+    this.mermaid = new RuntimeMermaidPreview(host.runtime, () => host.generation());
+  }
   get active() {
     return !!this.session;
   }
@@ -61,8 +76,14 @@ export class RuntimeImagePreview {
       if (!(target instanceof Element) || !this.host.available() || this.pressed || this.session)
         return;
       const wrapper = target.closest('.md-image');
-      const image = wrapper?.querySelector('img');
+      const image =
+        wrapper?.querySelector('img') ??
+        target.closest('.md-diagram-panel-preview')?.querySelector('svg');
       if (!image || !area.contains(image)) return;
+      if (image instanceof SVGSVGElement && !this.mermaid.current(image)) {
+        this.hide();
+        return;
+      }
       clearTimeout(this.leave);
       if (this.picture !== image) {
         this.resize.disconnect();
@@ -104,7 +125,9 @@ export class RuntimeImagePreview {
       (event) => {
         if (
           event.relatedTarget instanceof Node &&
-          (this.picture?.closest('.md-image')?.contains(event.relatedTarget) ||
+          (this.picture
+            ?.closest('.md-image,.md-diagram-panel-preview')
+            ?.contains(event.relatedTarget) ||
             button.contains(event.relatedTarget))
         )
           return;
@@ -193,6 +216,7 @@ export class RuntimeImagePreview {
       attributes: true,
       attributeFilter: ['src', 'data-src'],
     });
+    this.mermaid.observe(area);
   }
   private hide() {
     if (this.button) this.button.hidden = true;
@@ -211,10 +235,10 @@ export class RuntimeImagePreview {
     if (this.frame) return;
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
-      const image = this.picture,
-        button = this.button;
+      let image = this.picture;
+      const button = this.button;
       if (
-        !image?.isConnected ||
+        !image ||
         !button ||
         !this.host.available() ||
         this.pressed ||
@@ -224,14 +248,54 @@ export class RuntimeImagePreview {
         this.hide();
         return;
       }
-      const rect = image.getBoundingClientRect();
-      const source = this.source(image);
-      if (!source || !this.host.url(source) || !image.complete || !image.naturalWidth) {
+      if (image instanceof SVGSVGElement) {
+        const target = this.mermaid.fromHover(image);
+        if (!target) {
+          // Keep an already visible handle through an equivalent repaint. Removing
+          // it under the pointer would let the click reach the graph's source editor.
+          if (!this.mermaid.validSource(image)) this.hide();
+          return;
+        }
+        if (target.svg !== image) {
+          image = this.picture = target.svg;
+          this.resize.disconnect();
+          this.resize.observe(image);
+        }
+      }
+      if (!image.isConnected) {
         this.hide();
         return;
       }
-      const right = Math.min(innerWidth - 6, rect.right - 6),
-        top = Math.max(6, rect.top + 6);
+      const rect = image.getBoundingClientRect();
+      const available =
+        image instanceof SVGSVGElement
+          ? this.mermaid.current(image)
+          : image.complete && image.naturalWidth && this.host.url(this.source(image) ?? '');
+      if (!available) {
+        this.hide();
+        return;
+      }
+      const right = Math.min(innerWidth - 6, rect.right - 6);
+      let top = Math.max(6, rect.top + 6);
+      if (image instanceof SVGSVGElement) {
+        const block = image.closest('[mdtype="fences"]');
+        // An expanded fence has its own language control above the diagram.
+        // Reserve that row before its delayed tooltip appears under the pointer.
+        if (block?.querySelector('.CodeMirror')?.getBoundingClientRect().height)
+          top = Math.max(top, rect.top + 38);
+        for (const control of block?.querySelectorAll('.code-tooltip') ?? []) {
+          const box = control.getBoundingClientRect();
+          if (
+            box.width &&
+            box.height &&
+            box.left < right &&
+            box.right > right - 30 &&
+            box.top < top + 30 &&
+            box.bottom > top
+          )
+            top = box.bottom + 6;
+        }
+      }
       if (
         !rect.width ||
         !rect.height ||
@@ -247,7 +311,15 @@ export class RuntimeImagePreview {
       button.hidden = false;
     });
   }
-  open(image: HTMLImageElement) {
+  open(image: HTMLImageElement | SVGSVGElement) {
+    if (image instanceof SVGSVGElement) {
+      const current = this.mermaid.fromHover(image);
+      if (!current) {
+        this.hide();
+        return;
+      }
+      image = current.svg;
+    }
     const editor = this.host.runtime.editor;
     if (
       !editor ||
@@ -257,26 +329,21 @@ export class RuntimeImagePreview {
       !editor.writingArea.contains(image)
     )
       return;
+    if (image instanceof SVGSVGElement) {
+      this.openMermaid(image);
+      return;
+    }
     const wrapper = image.closest<HTMLElement>('.md-image');
     if (!wrapper || !image.complete || !image.naturalWidth) return;
     const source = this.source(image);
     if (!source || !this.host.url(source)) return;
-    const owner = image.ownerDocument,
-      selection = owner.getSelection();
-    const anchor = selection?.anchorNode,
-      head = selection?.focusNode;
-    const anchorOffset = selection?.anchorOffset ?? 0,
-      headOffset = selection?.focusOffset ?? 0;
-    const origin = owner.activeElement as HTMLElement | null;
-    const restoreCode = preserveImageCodeSelection(editor.writingArea);
-    const scrollers = [owner.scrollingElement, ...owner.querySelectorAll('content')]
-      .filter((value): value is Element => !!value)
-      .map((element) => ({ element, x: element.scrollLeft, y: element.scrollTop }));
+    const restore = this.captureFocus();
     const id = crypto.randomUUID();
     const block = wrapper.closest<HTMLElement>('[cid]');
     const cid = block?.getAttribute('cid');
     const node = cid ? editor.getNode(cid) : undefined;
     this.session = {
+      kind: 'image',
       id,
       stamp: this.host.stamp(),
       image,
@@ -291,40 +358,14 @@ export class RuntimeImagePreview {
             },
           }
         : {}),
-      restore: () => {
-        if (origin?.isConnected && origin !== this.button) origin.focus({ preventScroll: true });
-        else editor.writingArea.focus({ preventScroll: true });
-        if (restoreCode) restoreCode();
-        else if (
-          anchor?.isConnected &&
-          head?.isConnected &&
-          editor.writingArea.contains(anchor) &&
-          editor.writingArea.contains(head)
-        )
-          owner.getSelection()?.setBaseAndExtent(anchor, anchorOffset, head, headOffset);
-        for (const { element, x, y } of scrollers) {
-          element.scrollLeft = x;
-          element.scrollTop = y;
-        }
-      },
+      restore,
     };
     this.hide();
     const request: ImagePreviewRequest = {
       id,
       generation: this.host.generation(),
       url: image.src,
-      dark: (() => {
-        const style = getComputedStyle(document.body);
-        const probe = document.createElement('span');
-        probe.style.color = style.getPropertyValue('--bg-color') || style.backgroundColor;
-        document.body.append(probe);
-        const [r = 255, g = 255, b = 255] =
-          getComputedStyle(probe)
-            .color.match(/[\d.]+/g)
-            ?.map(Number) ?? [];
-        probe.remove();
-        return r * 0.2126 + g * 0.7152 + b * 0.0722 < 128;
-      })(),
+      dark: this.dark(),
       name: (
         image.alt ||
         image.title ||
@@ -333,6 +374,73 @@ export class RuntimeImagePreview {
       ).slice(0, 8192),
     };
     this.host.send('image-preview', request);
+  }
+  private openMermaid(svg: SVGSVGElement) {
+    const target = this.mermaid.current(svg);
+    if (!target) return;
+    try {
+      const restore = this.captureFocus(),
+        stamp = this.host.stamp();
+      const url = this.mermaid.snapshot(target),
+        id = crypto.randomUUID();
+      if (!this.host.available() || stamp !== this.host.stamp() || !this.mermaid.current(svg))
+        return;
+      this.session = { kind: 'mermaid', id, stamp, restore, target };
+      this.hide();
+      this.host.send('image-preview', {
+        id,
+        generation: this.host.generation(),
+        url,
+        name: 'Mermaid 图',
+        kind: 'mermaid',
+        dark: this.dark(),
+      } satisfies ImagePreviewRequest);
+    } catch (error) {
+      this.host.send('runtime-error', error instanceof Error ? error.message : String(error));
+    }
+  }
+  private captureFocus(): () => void {
+    const editor = this.host.runtime.editor;
+    if (!editor) return () => {};
+    const owner = editor.writingArea.ownerDocument,
+      selection = owner.getSelection();
+    const anchor = selection?.anchorNode,
+      head = selection?.focusNode;
+    const anchorOffset = selection?.anchorOffset ?? 0,
+      headOffset = selection?.focusOffset ?? 0;
+    const origin = owner.activeElement as HTMLElement | null;
+    const restoreCode = preserveImageCodeSelection(editor.writingArea);
+    const scrollers = [owner.scrollingElement, ...owner.querySelectorAll('content')]
+      .filter((value): value is Element => !!value)
+      .map((element) => ({ element, x: element.scrollLeft, y: element.scrollTop }));
+    return () => {
+      if (origin?.isConnected && origin !== this.button) origin.focus({ preventScroll: true });
+      else editor.writingArea.focus({ preventScroll: true });
+      if (restoreCode) restoreCode();
+      else if (
+        anchor?.isConnected &&
+        head?.isConnected &&
+        editor.writingArea.contains(anchor) &&
+        editor.writingArea.contains(head)
+      )
+        owner.getSelection()?.setBaseAndExtent(anchor, anchorOffset, head, headOffset);
+      for (const { element, x, y } of scrollers) {
+        element.scrollLeft = x;
+        element.scrollTop = y;
+      }
+    };
+  }
+  private dark(): boolean {
+    const style = getComputedStyle(document.body);
+    const probe = document.createElement('span');
+    probe.style.color = style.getPropertyValue('--bg-color') || style.backgroundColor;
+    document.body.append(probe);
+    const [r = 255, g = 255, b = 255] =
+      getComputedStyle(probe)
+        .color.match(/[\d.]+/g)
+        ?.map(Number) ?? [];
+    probe.remove();
+    return r * 0.2126 + g * 0.7152 + b * 0.0722 < 128;
   }
   validate(id: string): boolean {
     const session = this.session;
@@ -343,6 +451,11 @@ export class RuntimeImagePreview {
       session.stamp !== this.host.stamp()
     )
       return false;
+    if (session.kind === 'mermaid') {
+      if (!this.mermaid.valid(session.target)) return false;
+      session.target = this.mermaid.renew(session.target) ?? session.target;
+      return true;
+    }
     if (session.image.isConnected && session.image.src === session.url) return true;
     // A decoration can replace the image element after the popup request or while
     // viewing. Keep the same authorized resource only if the model and ordinal agree.
