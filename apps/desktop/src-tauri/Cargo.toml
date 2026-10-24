@@ -84,6 +84,11 @@ path = "tests/titlebar-layout-native.rs"
 harness = false
 
 [[test]]
+name = "titlebar-settings-native"
+path = "tests/titlebar-settings-native.rs"
+harness = false
+
+[[test]]
 name = "agent-native"
 path = "tests/agent-native.rs"
 harness = false

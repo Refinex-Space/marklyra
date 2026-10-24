@@ -626,9 +626,10 @@ pub(super) fn set_preferences_page(label: &str, open: bool) -> Result<(), String
             } else {
                 NSWindowTitleVisibility::Visible
             });
+            // A refresh while settings was open may have removed Home's column.
+            // Restore the complete geometry before showing the editor controls.
+            chrome.layout_controls();
             chrome.view.update_visibility();
-            chrome.view.setNeedsLayout(true);
-            chrome.view.position_title();
         }
         Ok(())
     })
