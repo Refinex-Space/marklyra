@@ -33,6 +33,7 @@ interface Pending {
 /** One window, one provider session, one admitted turn. Hiding the panel never destroys a run. */
 export class AgentSession {
   private view: SessionView;
+  private attentionWork: Promise<void> = Promise.resolve();
   private listeners = new Set<() => void>();
   private pending = new Map<string | number, Pending>();
   private decisions = new Map<
@@ -95,6 +96,17 @@ export class AgentSession {
   };
   private publish(patch: Partial<SessionView>, throttle = false) {
     this.view = { ...this.view, ...patch };
+    if (patch.interactions && this.connectionId) {
+      const connectionId = this.connectionId;
+      const requestIds = patch.interactions.map((item) => item.id);
+      // Serialize snapshots; a delayed update must not resurrect an older queue.
+      // Attention is best effort and must never reject an ACP decision.
+      this.attentionWork = this.attentionWork
+        .then(async () => {
+          await agentApi.invoke('agent_sync_attention', { connectionId, requestIds });
+        })
+        .catch(() => {});
+    }
     if (throttle) {
       this.refreshFrame ??= requestAnimationFrame(() => {
         this.refreshFrame = null;
@@ -525,6 +537,13 @@ export class AgentSession {
           : (event.error ?? '连接已结束'),
       });
       await this.disconnect();
+      return;
+    }
+    if (event.kind === 'interaction-ended') {
+      if (event.requestId && this.decisions.delete(event.requestId))
+        this.publish({
+          interactions: this.view.interactions.filter((item) => item.id !== event.requestId),
+        });
       return;
     }
     if (event.kind === 'tool') {

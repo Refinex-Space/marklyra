@@ -1,6 +1,7 @@
 //! Adapted and modified for MarkLyra from Markune (Apache-2.0).
 //! License and provenance: licenses/agents/README.md and markune-Apache-2.0.txt.
 pub mod attachments;
+pub mod attention;
 pub mod auth;
 mod catalog;
 pub(crate) mod support;
@@ -56,11 +57,22 @@ pub struct AgentProfile {
 fn yes() -> bool {
     true
 }
-#[derive(Clone, Default, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AgentSettings {
+    #[serde(default = "yes")]
+    attention_enabled: bool,
     profiles: Vec<AgentProfile>,
     default_profile_id: Option<String>,
+}
+impl Default for AgentSettings {
+    fn default() -> Self {
+        Self {
+            profiles: Vec::new(),
+            default_profile_id: None,
+            attention_enabled: true,
+        }
+    }
 }
 struct ProgramGrant {
     path: PathBuf,
@@ -69,6 +81,7 @@ struct ProgramGrant {
 }
 #[derive(Default)]
 pub struct AgentHostState {
+    attention: Mutex<attention::Attention>,
     operations: Mutex<()>,
     image_previews: Mutex<Vec<image_preview::PreviewCopy>>,
     install_task: Mutex<Option<Arc<InstallTask>>>,
@@ -321,6 +334,7 @@ pub async fn agent_catalog(
         value["profiles"] =
             serde_json::to_value(saved.profiles).map_err(|_| "无法编码智能体配置")?;
         value["defaultProfileId"] = json!(saved.default_profile_id);
+        value["attentionEnabled"] = json!(saved.attention_enabled);
         value["localAgents"] = json!(catalog::discover());
         Ok(value)
     })

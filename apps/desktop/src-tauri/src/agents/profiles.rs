@@ -73,6 +73,7 @@ mod tests {
         save_settings(
             root,
             &AgentSettings {
+                attention_enabled: true,
                 profiles: vec![profile.clone()],
                 default_profile_id: Some(profile.id.clone()),
             },

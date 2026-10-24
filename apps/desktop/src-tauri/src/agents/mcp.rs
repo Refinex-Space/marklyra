@@ -59,6 +59,7 @@ fn frontend_tool(
         },
     );
     drop(pending);
+    attention::admit(window, &process.id, &request_id);
     let sent=window.emit_to(window.label(),"marklyra:agent-event",json!({"connectionId":process.id,"kind":"tool","requestId":request_id,"name":name,"arguments":arguments,"sessionId":session,"context":{"turnId":turn_id}}));
     let result = if sent.is_err() {
         Err("工具窗口已关闭".to_string())
@@ -72,6 +73,11 @@ fn frontend_tool(
         .lock()
         .map_err(|_| "工具请求状态不可用")?
         .remove(&request_id);
+    if result.is_err() {
+        attention::expired(window, &process.id, &request_id);
+    } else {
+        attention::finished(window, &process.id, Some(&request_id));
+    }
     result
 }
 
@@ -402,5 +408,6 @@ pub fn agent_tool_respond(
         .ok_or("工具请求已失效")?;
     request.sender.send(result).map_err(|_| "工具请求已结束")?;
     pending.remove(&request_id);
+    attention::finished(&window, &connection_id, Some(&request_id));
     Ok(())
 }

@@ -12,6 +12,7 @@ export interface AgentProfile {
   enabled: boolean;
 }
 export interface AgentCatalog {
+  attentionEnabled?: boolean;
   agents: {
     id: string;
     name: string;
@@ -107,7 +108,7 @@ export interface RpcMessage {
 }
 export interface AgentEvent {
   connectionId: string;
-  kind: 'message' | 'closed' | 'tool';
+  kind: 'message' | 'closed' | 'tool' | 'interaction-ended';
   message?: RpcMessage;
   error?: string;
   requestId?: string;

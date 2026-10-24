@@ -228,6 +228,7 @@ mod tests {
         save_settings(
             root.path(),
             &AgentSettings {
+                attention_enabled: true,
                 profiles: vec![profile],
                 default_profile_id: Some(id.clone()),
             },
@@ -317,6 +318,7 @@ mod validation_tests {
             .insert("providerAuth".into(), "stale plaintext".into());
         stale.env.insert("MODEL".into(), "fixture-model".into());
         let mut saved = AgentSettings {
+            attention_enabled: true,
             profiles: vec![authoritative],
             default_profile_id: None,
         };
@@ -384,6 +386,7 @@ mod lifecycle_tests {
         save_settings(
             root.path(),
             &AgentSettings {
+                attention_enabled: true,
                 profiles: vec![profile.clone()],
                 default_profile_id: Some(profile.id.clone()),
             },

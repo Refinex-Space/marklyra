@@ -423,3 +423,81 @@ it('cancelling attachment preparation discards unsent copies and restores a usab
     expect.objectContaining({ ids: ['unsent'] }),
   );
 });
+
+it('reports a deduplicated pending queue without granting permission, and clears expired requests', async () => {
+  const { session } = make();
+  const running = session.prompt('Run', [], null);
+  await vi.waitFor(() => expect(bridge.promptId).toBeGreaterThan(0));
+  const request: RpcMessage = {
+    jsonrpc: '2.0',
+    id: 'approval',
+    method: 'session/request_permission',
+    params: {
+      sessionId: 'session',
+      toolCall: { title: 'Execute shell', kind: 'execute' },
+      options: [{ optionId: 'once', name: '允许本次', kind: 'allow_once' }],
+    },
+  };
+  event(request);
+  event(request);
+  await vi.waitFor(() =>
+    expect(bridge.invoke).toHaveBeenCalledWith('agent_sync_attention', {
+      connectionId: 'connection',
+      requestIds: ['"approval"'],
+    }),
+  );
+  expect(session.snapshot().interactions).toHaveLength(1);
+  expect(
+    bridge.invoke.mock.calls.filter(
+      ([name, args]) => name === 'agent_sync_attention' && args.requestIds.length,
+    ),
+  ).toHaveLength(1);
+  expect(bridge.sent.some((m) => m.id === 'approval' && m.result)).toBe(false);
+  bridge.listener?.({
+    connectionId: 'other-window',
+    kind: 'interaction-ended',
+    requestId: '"approval"',
+  });
+  expect(session.snapshot().interactions).toHaveLength(1);
+  bridge.listener?.({
+    connectionId: 'connection',
+    kind: 'interaction-ended',
+    requestId: '"approval"',
+  });
+  await vi.waitFor(() => expect(session.snapshot().interactions).toHaveLength(0));
+  await session.decide('"approval"', 'once');
+  expect(bridge.sent.some((m) => m.id === 'approval' && m.result)).toBe(false);
+  event({ jsonrpc: '2.0', id: bridge.promptId, result: { stopReason: 'end_turn' } });
+  await running;
+});
+
+it('attention transport failure cannot block approval or change the selected ACP option', async () => {
+  const original = bridge.invoke.getMockImplementation();
+  bridge.invoke.mockImplementation(async (name, args) => {
+    if (name === 'agent_sync_attention') throw Error('Unavailable attention service');
+    return original?.(name, args);
+  });
+  const { session } = make();
+  const running = session.prompt('Read', [], null);
+  await vi.waitFor(() => expect(bridge.promptId).toBeGreaterThan(0));
+  event({
+    jsonrpc: '2.0',
+    id: 'approval',
+    method: 'session/request_permission',
+    params: {
+      sessionId: 'session',
+      toolCall: { title: 'Read', kind: 'read' },
+      options: [{ optionId: 'once', name: '允许本次', kind: 'allow_once' }],
+    },
+  });
+  await vi.waitFor(() => expect(session.snapshot().interactions).toHaveLength(1));
+  await session.decide('"approval"', 'once');
+  expect(bridge.sent).toContainEqual({
+    jsonrpc: '2.0',
+    id: 'approval',
+    result: { outcome: { outcome: 'selected', optionId: 'once' } },
+  });
+  expect(session.snapshot().error).toBeNull();
+  event({ jsonrpc: '2.0', id: bridge.promptId, result: { stopReason: 'end_turn' } });
+  await running;
+});

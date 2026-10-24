@@ -39,12 +39,18 @@ function mockAgents({
   };
   const records = new Map<string, Record<string, unknown>>();
   let connection = 0;
+  let attentionEnabled = true;
   const attachmentData = new Map<string, Record<string, unknown>>();
   host.__TAURI_INTERNALS__.invoke = async (name, args = {}) => {
     if (!name.startsWith('agent_')) return previous(name, args);
     host.__desktopMock.calls.push({ command: name, args });
+    if (name === 'agent_set_attention_enabled') {
+      attentionEnabled = args.enabled === true;
+      return null;
+    }
     if (name === 'agent_catalog')
       return {
+        attentionEnabled,
         agents: [
           {
             id: 'codex-acp',
@@ -554,173 +560,204 @@ async function expectCenteredEmpty(page: Page) {
 }
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
-  test(`${theme}: compact empty state and toolbar stay clear of the document scrollbar`, async ({
-    page,
-  }, info) => {
-    await installLayout(page, '很长的工作区名称用于验证窄侧栏布局与截断');
-    await page.addInitScript(mockAgents, { installed: false });
-    await readyLayout(page, theme);
-    await openLayoutDocument(
+  for (const titlebar of ['appkit', 'web'] as const)
+    test(`${theme}/${titlebar}: compact empty state and toolbar stay clear of the document scrollbar`, async ({
       page,
-      '# Layout Reference\n\n' +
-        Array.from(
-          { length: 80 },
-          (_, i) => `## Section ${i + 1}\n\n${'正文内容。'.repeat(30)}\n\n`,
-        ).join(''),
-    );
-    const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
-    // Keep a real scrollbar visible even on hosts configured to auto-hide it.
-    await frame.locator('head').evaluate((head) => {
-      const style = document.createElement('style');
-      style.textContent =
-        'content{scrollbar-width:auto!important;overflow-y:scroll!important}' +
-        'content::-webkit-scrollbar{width:12px!important;display:block!important;background:transparent}' +
-        'content::-webkit-scrollbar-thumb{background:#999!important;border-radius:6px}';
-      head.append(style);
-    });
-    await emitLayoutMenu(page, 'view:ai');
-    await expectCenteredEmpty(page);
-    await emitLayoutMenu(page, 'open-folder');
-    const panel = page.getByRole('complementary', { name: 'AI 助手侧栏' });
-    await expect(panel.getByRole('heading', { name: '尚未启用智能体' })).toBeVisible();
-    await expect(page.locator('.ai-session-identity img')).toHaveCount(0);
-    await expect(page.locator('.ai-heading-title')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: '关闭 AI 面板' })).toHaveCount(0);
-    const actions = page.getByRole('group', { name: 'AI 会话操作' });
-    await expect(actions.getByRole('button')).toHaveCount(3);
-    const paneFrame = panel.locator('.document-details-body');
-    await expect(paneFrame).toHaveCSS('border-top-style', 'solid');
-    await expect(paneFrame).toHaveCSS('border-top-left-radius', '8px');
-    for (const name of ['AI 历史会话', '智能体设置']) {
-      await expect(actions.getByRole('button', { name, exact: true })).toHaveCSS(
-        'border-top-width',
-        '1px',
+    }, info) => {
+      await installLayout(page, '很长的工作区名称用于验证窄侧栏布局与截断', titlebar);
+      await page.addInitScript(mockAgents, { installed: false });
+      await readyLayout(page, theme);
+      await openLayoutDocument(
+        page,
+        '# Layout Reference\n\n' +
+          Array.from(
+            { length: 80 },
+            (_, i) => `## Section ${i + 1}\n\n${'正文内容。'.repeat(30)}\n\n`,
+          ).join(''),
       );
-      await expect(actions.getByRole('button', { name, exact: true })).toHaveCSS(
-        'border-top-color',
-        await actions
-          .getByRole('button', { name: '新建 AI 会话' })
-          .evaluate((element) => getComputedStyle(element).borderTopColor),
-      );
-    }
-    await expect(panel.locator('.ai-empty > svg')).toHaveCount(0);
-    await expect(panel.locator('.ai-empty')).toHaveCSS('text-align', 'left');
-    for (const viewport of [
-      { width: 700, height: 500 },
-      { width: 960, height: 720 },
-      { width: 1440, height: 900 },
-    ]) {
-      await page.setViewportSize(viewport);
+      const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
+      // Keep a real scrollbar visible even on hosts configured to auto-hide it.
+      await frame.locator('head').evaluate((head) => {
+        const style = document.createElement('style');
+        style.textContent =
+          'content{scrollbar-width:auto!important;overflow-y:scroll!important}' +
+          'content::-webkit-scrollbar{width:12px!important;display:block!important;background:transparent}' +
+          'content::-webkit-scrollbar-thumb{background:#999!important;border-radius:6px}';
+        head.append(style);
+      });
+      await emitLayoutMenu(page, 'view:ai');
       await expectCenteredEmpty(page);
-      await expect
-        .poll(() =>
-          actions.getByRole('button').evaluateAll((buttons) =>
-            buttons.every((button, index) => {
-              const expectedOffset = [106, 74, 42][index];
-              const bounds = button.getBoundingClientRect();
-              const icon = button.querySelector('svg')?.getBoundingClientRect();
-              const hit = document.elementFromPoint(
-                bounds.x + bounds.width / 2,
-                bounds.y + bounds.height / 2,
-              );
-              return (
-                bounds.right <= innerWidth - 28 &&
-                (index === 0 ? bounds.width > 80 : bounds.width === 28) &&
-                bounds.height === 28 &&
-                expectedOffset !== undefined &&
-                (index === 0 ||
-                  Math.abs(innerWidth - bounds.x - bounds.width / 2 - expectedOffset) <= 1) &&
-                icon?.width === 16 &&
-                icon.height === 16 &&
-                hit?.closest('button') === button
-              );
+      await emitLayoutMenu(page, 'open-folder');
+      const panel = page.getByRole('complementary', { name: 'AI 助手侧栏' });
+      await expect(panel.getByRole('heading', { name: '尚未启用智能体' })).toBeVisible();
+      await expect(page.locator('.ai-session-identity img')).toHaveCount(0);
+      await expect(page.locator('.ai-heading-title')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '关闭 AI 面板' })).toHaveCount(0);
+      const actions = page.getByRole('group', { name: 'AI 会话操作' });
+      await expect(actions.getByRole('button')).toHaveCount(3);
+      const paneFrame = panel.locator('.document-details-body');
+      await expect(paneFrame).toHaveCSS('border-top-style', 'solid');
+      await expect(paneFrame).toHaveCSS('border-top-left-radius', '8px');
+      for (const name of ['AI 历史会话', '智能体设置']) {
+        await expect(actions.getByRole('button', { name, exact: true })).toHaveCSS(
+          'border-top-width',
+          '1px',
+        );
+        await expect(actions.getByRole('button', { name, exact: true })).toHaveCSS(
+          'border-top-color',
+          await actions
+            .getByRole('button', { name: '新建 AI 会话' })
+            .evaluate((element) => getComputedStyle(element).borderTopColor),
+        );
+      }
+      await expect(panel.locator('.ai-empty > svg')).toHaveCount(0);
+      await expect(panel.locator('.ai-empty')).toHaveCSS('text-align', 'left');
+      for (const viewport of [
+        { width: 700, height: 500 },
+        { width: 960, height: 720 },
+        { width: 1440, height: 900 },
+      ]) {
+        await page.setViewportSize(viewport);
+        await expectCenteredEmpty(page);
+        // The AI pane is a third column. Wait for its resize animation, then check
+        // controls against that pane rather than the retired window-edge overlay.
+        await expect
+          .poll(async () => {
+            const box = await panel.boundingBox();
+            const width = Number(
+              await page
+                .getByRole('separator', { name: '调整 AI 面板宽度' })
+                .getAttribute('aria-valuenow'),
+            );
+            return box && Math.abs(box.width - width) <= 1 && box.x + box.width <= viewport.width;
+          })
+          .toBe(true);
+        await expect
+          .poll(() =>
+            actions.getByRole('button').evaluateAll((buttons) => {
+              const pane = buttons[0]?.closest('.document-details-body')?.getBoundingClientRect();
+              if (!pane) return false;
+              return buttons.every((button, index) => {
+                const bounds = button.getBoundingClientRect();
+                const previous = buttons[index - 1]?.getBoundingClientRect();
+                const icon = button.querySelector('svg')?.getBoundingClientRect();
+                const hit = [
+                  bounds.left + 2,
+                  bounds.left + bounds.width / 2,
+                  bounds.right - 2,
+                ].every(
+                  (x) =>
+                    document
+                      .elementFromPoint(x, bounds.y + bounds.height / 2)
+                      ?.closest('button') === button,
+                );
+                return (
+                  bounds.left >= pane.left &&
+                  bounds.right < pane.right &&
+                  bounds.right < innerWidth &&
+                  bounds.top >= pane.top &&
+                  bounds.bottom <= pane.bottom &&
+                  (index === 0 ? bounds.width > 80 : bounds.width === 28) &&
+                  bounds.height === 28 &&
+                  (!previous ||
+                    (bounds.left > previous.right && Math.abs(bounds.top - previous.top) <= 1)) &&
+                  icon?.width === 16 &&
+                  icon.height === 16 &&
+                  hit
+                );
+              });
             }),
+          )
+          .toBe(true);
+        const toolbar = await actions.boundingBox();
+        const documentPort = await frame.locator('content').boundingBox();
+        const panelBounds = await panel.boundingBox();
+        if (!toolbar || !documentPort || !panelBounds) throw Error('Missing AI/document geometry');
+        expect(documentPort.x + documentPort.width).toBeLessThanOrEqual(panelBounds.x);
+        expect(
+          await page.evaluate(
+            ({ x, y }) =>
+              document.elementFromPoint(x, y)?.classList.contains('marklyra-editor-frame'),
+            { x: documentPort.x + documentPort.width - 6, y: toolbar.y + toolbar.height / 2 },
           ),
-        )
-        .toBe(true);
-      const toolbar = await actions.boundingBox();
-      if (!toolbar) throw Error('Missing AI actions');
-      expect(
-        await page.evaluate(
-          (y) =>
-            document
-              .elementFromPoint(innerWidth - 6, y)
-              ?.classList.contains('marklyra-editor-frame'),
-          toolbar.y + toolbar.height / 2,
-        ),
-      ).toBe(true);
-      expect(
-        await panel.locator('.ai-empty-heading').evaluate((heading) => {
-          const title = heading.querySelector('h2')?.getBoundingClientRect();
-          const button = heading.querySelector('button')?.getBoundingClientRect();
-          return (
-            title &&
-            button &&
-            Math.abs(title.y + title.height / 2 - button.y - button.height / 2) <= 1 &&
-            button.x - title.right >= 8 &&
-            button.x - title.right <= 16 &&
-            Math.abs(title.x - (heading.nextElementSibling?.getBoundingClientRect().x ?? 0)) <= 1
-          );
-        }),
-      ).toBe(true);
-      await expect(panel.getByRole('button', { name: '管理智能体', exact: true })).toBeInViewport();
-      await page.screenshot({ path: info.outputPath(`${theme}-ai-empty-${viewport.width}.png`) });
-    }
-    const scrollport = frame.locator('content');
-    const port = await scrollport.boundingBox();
-    const scroll = await scrollport.evaluate((element) => ({
-      height: element.clientHeight,
-      total: element.scrollHeight,
-    }));
-    expect(scroll.total).toBeGreaterThan(scroll.height);
-    if (!port) throw Error('Missing document scrollport');
-    const thumbCenter = port.y + Math.max(12, (scroll.height * scroll.height) / scroll.total / 2);
-    await page.mouse.move(1440 - 6, thumbCenter);
-    await page.mouse.down();
-    await page.mouse.move(1440 - 6, thumbCenter + 180, { steps: 8 });
-    await page.mouse.up();
-    await expect.poll(() => scrollport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-    const resize = page.getByRole('separator', { name: '调整 AI 面板宽度' });
-    const before = Number(await resize.getAttribute('aria-valuenow'));
-    const handle = await resize.boundingBox();
-    if (!handle) throw Error('Missing AI resize handle');
-    await page.mouse.move(handle.x + 3, handle.y + 80);
-    await page.mouse.down();
-    await expect(resize).toHaveAttribute('aria-valuenow', String(before));
-    await page.mouse.move(handle.x + 43, handle.y + 80);
-    await page.mouse.up();
-    await expect(resize).toHaveAttribute('aria-valuenow', String(before - 40));
-    await expectCenteredEmpty(page);
-    await resize.focus();
-    await resize.press('End');
-    await expectCenteredEmpty(page);
-    await panel.locator('.ai-empty p').click();
-    await scrollport.evaluate((element) => {
-      element.scrollTop = 0;
+        ).toBe(true);
+        expect(
+          await panel.locator('.ai-empty-heading').evaluate((heading) => {
+            const title = heading.querySelector('h2')?.getBoundingClientRect();
+            const button = heading.querySelector('button')?.getBoundingClientRect();
+            return (
+              title &&
+              button &&
+              Math.abs(title.y + title.height / 2 - button.y - button.height / 2) <= 1 &&
+              button.x - title.right >= 8 &&
+              button.x - title.right <= 16 &&
+              Math.abs(title.x - (heading.nextElementSibling?.getBoundingClientRect().x ?? 0)) <= 1
+            );
+          }),
+        ).toBe(true);
+        await expect(
+          panel.getByRole('button', { name: '管理智能体', exact: true }),
+        ).toBeInViewport();
+        await page.screenshot({ path: info.outputPath(`${theme}-ai-empty-${viewport.width}.png`) });
+      }
+      const scrollport = frame.locator('content');
+      const port = await scrollport.boundingBox();
+      const scroll = await scrollport.evaluate((element) => ({
+        height: element.clientHeight,
+        total: element.scrollHeight,
+      }));
+      expect(scroll.total).toBeGreaterThan(scroll.height);
+      if (!port) throw Error('Missing document scrollport');
+      const thumbCenter = port.y + Math.max(12, (scroll.height * scroll.height) / scroll.total / 2);
+      const scrollbarX = port.x + port.width - 6;
+      await page.mouse.move(scrollbarX, thumbCenter);
+      await page.mouse.down();
+      await page.mouse.move(scrollbarX, thumbCenter + 180, { steps: 8 });
+      await page.mouse.up();
+      await expect
+        .poll(() => scrollport.evaluate((element) => element.scrollTop))
+        .toBeGreaterThan(0);
+      const resize = page.getByRole('separator', { name: '调整 AI 面板宽度' });
+      const before = Number(await resize.getAttribute('aria-valuenow'));
+      const handle = await resize.boundingBox();
+      if (!handle) throw Error('Missing AI resize handle');
+      await page.mouse.move(handle.x + 3, handle.y + 80);
+      await page.mouse.down();
+      await expect(resize).toHaveAttribute('aria-valuenow', String(before));
+      await page.mouse.move(handle.x + 43, handle.y + 80);
+      await page.mouse.up();
+      await expect(resize).toHaveAttribute('aria-valuenow', String(before - 40));
+      await expectCenteredEmpty(page);
+      await resize.focus();
+      await resize.press('End');
+      await expectCenteredEmpty(page);
+      await panel.locator('.ai-empty p').click();
+      await scrollport.evaluate((element) => {
+        element.scrollTop = 0;
+      });
+      await page.screenshot({ path: info.outputPath(`${theme}-ai-empty-wide.png`) });
+      // The settings control stays usable after dragging the real document scrollbar.
+      await page.getByRole('button', { name: '智能体设置', exact: true }).click();
+      await expect(page.getByRole('region', { name: '智能体设置' })).toBeVisible();
+      await page
+        .frameLocator('.runtime-preferences-frame')
+        .getByRole('button', { name: '返回应用', exact: true })
+        .click();
+      await manageFromSessionMenu(page);
+      await expect(page.getByRole('region', { name: '智能体设置' })).toBeVisible();
+      await page
+        .frameLocator('.runtime-preferences-frame')
+        .getByRole('button', { name: '返回应用', exact: true })
+        .click();
+      await expect(page.getByRole('combobox', { name: '对话智能体' })).toHaveCount(0);
+      await expect(page.locator('.ai-session-identity img')).toHaveCount(0);
+      await expectCenteredEmpty(page);
+      const manage = panel.getByRole('button', { name: '管理智能体', exact: true });
+      await manage.focus();
+      await expect(manage).toBeFocused();
+      await manage.press('Enter');
+      await expect(page.getByRole('region', { name: '智能体设置' })).toBeVisible();
     });
-    await page.screenshot({ path: info.outputPath(`${theme}-ai-empty-wide.png`) });
-    // The settings control stays usable after dragging the real document scrollbar.
-    await page.getByRole('button', { name: '智能体设置', exact: true }).click();
-    await expect(page.getByRole('region', { name: '智能体设置' })).toBeVisible();
-    await page
-      .frameLocator('.runtime-preferences-frame')
-      .getByRole('button', { name: '返回应用', exact: true })
-      .click();
-    await manageFromSessionMenu(page);
-    await expect(page.getByRole('region', { name: '智能体设置' })).toBeVisible();
-    await page
-      .frameLocator('.runtime-preferences-frame')
-      .getByRole('button', { name: '返回应用', exact: true })
-      .click();
-    await expect(page.getByRole('combobox', { name: '对话智能体' })).toHaveCount(0);
-    await expect(page.locator('.ai-session-identity img')).toHaveCount(0);
-    await expectCenteredEmpty(page);
-    const manage = panel.getByRole('button', { name: '管理智能体', exact: true });
-    await manage.focus();
-    await expect(manage).toBeFocused();
-    await manage.press('Enter');
-    await expect(page.getByRole('region', { name: '智能体设置' })).toBeVisible();
-  });
 }
 
 test('agent management preserves the active conversation and draft; disabled agents use neutral identity', async ({
@@ -2850,4 +2887,108 @@ test('fallback image viewer protects pending edits and nested confirmations keep
   await expect(viewer.getByRole('button', { name: '撤销图片修改' })).toHaveCount(0);
   await viewer.getByRole('button', { name: '关闭图片预览' }).click();
   await expect(viewer).not.toBeVisible();
+});
+
+for (const titlebar of ['appkit', 'web'] as const)
+  test(`${titlebar}: background approval stays visible as a badge without stealing editor focus`, async ({
+    page,
+  }, info) => {
+    await installLayout(page, undefined, titlebar);
+    await page.addInitScript(mockAgents);
+    await page.addInitScript(() => {
+      if (window !== window.top) return;
+      const host = window as TestWindow & {
+        __TAURI_INTERNALS__: {
+          invoke: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+        };
+      };
+      const previous = host.__TAURI_INTERNALS__.invoke;
+      host.__TAURI_INTERNALS__.invoke = async (name, args = {}) => {
+        const message = args.message as { method?: string } | undefined;
+        if (name === 'agent_send' && message?.method === 'session/prompt') return null;
+        return previous(name, args);
+      };
+    });
+    await readyLayout(page, 'marklyra-light');
+    await emitLayoutMenu(page, 'view:ai');
+    await page.getByRole('button', { name: '打开文件夹', exact: true }).click();
+    await startConversation(page);
+    await openLayoutDocument(page);
+    await page.getByRole('textbox', { name: '发送给 AI 的消息' }).fill('运行命令');
+    await page.getByRole('button', { name: '发送 AI 消息' }).click();
+    await expect(page.getByRole('button', { name: '停止 AI 任务' })).toBeVisible();
+    await emitLayoutMenu(page, 'view:ai');
+    const editor = page.locator('.runtime-area iframe');
+    await page.frameLocator('.runtime-area iframe').locator('#write').click();
+    const emit = async (connectionId = 'connection-1') =>
+      page.evaluate((connectionId) => {
+        const host = window as TestWindow;
+        host.__desktopMock.emitEvent('marklyra:agent-event', {
+          connectionId,
+          kind: 'message',
+          message: {
+            jsonrpc: '2.0',
+            id: 'attention-approval',
+            method: 'session/request_permission',
+            params: {
+              sessionId: 'provider-session',
+              toolCall: { title: '运行 shell 命令', kind: 'execute' },
+              options: [
+                { optionId: 'deny', name: '拒绝', kind: 'reject_once' },
+                { optionId: 'once', name: '允许本次', kind: 'allow_once' },
+              ],
+            },
+          },
+        });
+      }, connectionId);
+    await emit('other-window');
+    await expect(page.locator('.ai-attention-indicator')).toHaveCount(0);
+    await emit();
+    await emit();
+    await expect(page.locator('.ai-attention-indicator')).toHaveText('AI 等待处理 · 1');
+    await expect(page.locator('.ai-panel')).toBeHidden();
+    await expect(editor).toBeFocused();
+    await page.getByRole('button', { name: 'AI 等待处理 · 1' }).click();
+    await expect(page.getByRole('region', { name: '待处理授权' })).toBeFocused();
+    await page.screenshot({ path: info.outputPath('approval-attention.png') });
+    await page.getByRole('button', { name: '拒绝', exact: true }).click();
+    await expect(page.locator('.ai-attention-indicator')).toHaveCount(0);
+    const decisions = await page.evaluate(() =>
+      (window as TestWindow).__desktopMock.calls.filter(
+        (call) =>
+          call.command === 'agent_send' &&
+          (call.args.message as { id?: string })?.id === 'attention-approval',
+      ),
+    );
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]?.args.message).toMatchObject({
+      result: { outcome: { outcome: 'selected', optionId: 'deny' } },
+    });
+    await emit();
+    await expect(page.locator('.ai-attention-indicator')).toBeVisible();
+    await page.evaluate(() =>
+      (window as TestWindow).__desktopMock.emitEvent('marklyra:agent-event', {
+        connectionId: 'connection-1',
+        kind: 'closed',
+      }),
+    );
+    await expect(page.locator('.ai-attention-indicator')).toHaveCount(0);
+  });
+
+test('attention preference survives settings reload while authorization remains available', async ({
+  page,
+}) => {
+  await installLayout(page);
+  await page.addInitScript(mockAgents);
+  await readyLayout(page, 'marklyra-light');
+  await emitLayoutMenu(page, 'view:ai');
+  await page.getByRole('button', { name: '智能体设置', exact: true }).click();
+  const toggle = page.getByRole('switch', { name: 'AI 等待授权时提醒我' });
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  await expect(toggle).not.toBeChecked();
+  await page.getByRole('button', { name: '刷新目录', exact: true }).click();
+  await expect(toggle).not.toBeChecked();
+  await toggle.check();
+  await expect(toggle).toBeChecked();
 });

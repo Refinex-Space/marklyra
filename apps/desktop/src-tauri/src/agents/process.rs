@@ -27,7 +27,7 @@ pub(super) struct AgentProcess {
     pub cancelled_turn: AtomicBool,
     pub sessions: Mutex<Vec<String>>,
     pub requests: Mutex<HashMap<String, PendingServer>>,
-    outgoing: Mutex<HashMap<String, String>>,
+    pub(super) outgoing: Mutex<HashMap<String, String>>,
     pub capabilities: Mutex<Value>,
     pub trash_receipts: Mutex<HashMap<String, String>>,
     pub terminals: Mutex<HashMap<String, client_tools::AgentTerminal>>,
@@ -48,6 +48,7 @@ impl AgentProcess {
             return;
         }
         if let Some(window) = &self.window {
+            attention::finished(window, &self.id, None);
             if let Ok(mut pending) = window.state::<AgentHostState>().mcp_pending.lock() {
                 pending.retain(|_, request| request.connection_id != self.id);
             }
@@ -177,6 +178,9 @@ impl AgentProcess {
             }
             if method == "session/cancel" {
                 self.cancelled_turn.store(true, Ordering::Release);
+                if let Some(window) = &self.window {
+                    attention::finished(window, &self.id, None);
+                }
                 if let Ok(mut terminals) = self.terminals.lock() {
                     for terminal in terminals.values_mut() {
                         terminal.stop();
@@ -264,6 +268,9 @@ impl AgentProcess {
                 }
             }
             requests.remove(&id);
+            if let Some(window) = &self.window {
+                attention::finished(window, &self.id, Some(&id));
+            }
         }
         if self.sender.try_send(message).is_err() {
             self.stop();
@@ -307,13 +314,29 @@ impl AgentProcess {
                     return Err("智能体重复使用请求标识".into());
                 }
                 pending.insert(
-                    id,
+                    id.clone(),
                     PendingServer {
                         method: message["method"].as_str().unwrap().into(),
                         params: message["params"].clone(),
                         executed: false,
                     },
                 );
+                drop(pending);
+                if matches!(
+                    method,
+                    "session/request_permission"
+                        | "fs/write_text_file"
+                        | "terminal/create"
+                        | "elicitation/create"
+                ) && self
+                    .outgoing
+                    .lock()
+                    .is_ok_and(|requests| requests.values().any(|m| m == "session/prompt"))
+                {
+                    if let Some(window) = &self.window {
+                        attention::admit(window, &self.id, &id);
+                    }
+                }
             }
         } else if let Some(id) = key(&message["id"]) {
             let method = self
@@ -322,6 +345,9 @@ impl AgentProcess {
                 .map_err(|_| "请求状态不可用")?
                 .remove(&id);
             if method.as_deref() == Some("session/prompt") {
+                if let Some(window) = &self.window {
+                    attention::finished(window, &self.id, None);
+                }
                 *self.mcp_context.lock().map_err(|_| "上下文状态不可用")? =
                     context::TurnContext::default();
             }

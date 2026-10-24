@@ -364,6 +364,8 @@ export function App() {
   const [currentHeading, setCurrentHeading] = useState<string | null>(null);
   const [outlinePanelOpen, setOutlinePanelOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [aiPending, setAiPending] = useState(0);
+  const [aiRevealRequest, setAiRevealRequest] = useState(0);
   const [detailsMode, setDetailsMode] = useState<'outline' | 'ai'>('outline');
   const detailsLayout = useDocumentDetailsLayout(outlinePanelOpen || aiPanelOpen, detailsMode);
   const [chooseRequest, setChooseRequest] = useState(0);
@@ -2499,6 +2501,21 @@ export function App() {
           className="document-area runtime-area"
           aria-busy={!ready || doc.working}
         >
+          {aiPending > 0 && (
+            <div className="ai-attention-indicator" role="status" aria-live="polite">
+              <button
+                type="button"
+                onClick={() => {
+                  setDetailsMode('ai');
+                  setAiPanelOpen(true);
+                  setOutlinePanelOpen(false);
+                  setAiRevealRequest((value) => value + 1);
+                }}
+              >
+                <Icon name="ai" /> AI 等待处理 · {aiPending}
+              </button>
+            </div>
+          )}
           <ExternalChangeNotice
             sync={disk}
             busy={doc.working || !!doc.pending}
@@ -2781,11 +2798,8 @@ export function App() {
           <div hidden={detailsMode !== 'ai'} style={{ height: '100%', minHeight: 0 }}>
             <AiPanel
               open={aiPanelOpen}
-              requestAttention={() => {
-                setDetailsMode('ai');
-                setAiPanelOpen(true);
-                setOutlinePanelOpen(false);
-              }}
+              pendingChanged={setAiPending}
+              revealRequest={aiRevealRequest}
               workspace={workspaceIdentity.current}
               currentPath={doc.file?.path ?? null}
               hasDocument={doc.file !== null || doc.snapshot.trim() !== ''}

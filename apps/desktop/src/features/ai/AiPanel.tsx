@@ -51,7 +51,8 @@ interface Props {
   changed: () => void;
   settings: () => void;
   chooseFolder: () => void;
-  requestAttention: () => void;
+  pendingChanged: (count: number) => void;
+  revealRequest: number;
 }
 export function AiPanel(props: Props) {
   const [fallbackWorkspace, setFallbackWorkspace] = useState<WorkspaceFolder | null>(null);
@@ -111,6 +112,27 @@ export function AiPanel(props: Props) {
   sessionRef.current = session;
   const callbacks = useRef(props);
   callbacks.current = props;
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const update = () =>
+      callbacks.current.pendingChanged(session?.snapshot().interactions.length ?? 0);
+    update();
+    const stop = session?.subscribe(update);
+    return () => {
+      stop?.();
+      callbacks.current.pendingChanged(0);
+    };
+  }, [session]);
+  useEffect(() => {
+    if (!props.revealRequest) return;
+    setHistory(null);
+    const frame = requestAnimationFrame(() => {
+      const card = panel.current?.querySelector<HTMLElement>('.ai-permission');
+      card?.scrollIntoView({ block: 'nearest' });
+      card?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [props.revealRequest]);
   useEffect(() => {
     if (!props.open) return;
     let live = true;
@@ -180,7 +202,6 @@ export function AiPanel(props: Props) {
       beforeWrite: (path) => callbacks.current.beforeWrite(path),
       changed: () => callbacks.current.changed(),
       snapshot: () => callbacks.current.snapshot(),
-      attention: () => callbacks.current.requestAttention(),
     };
   const ensureSession = () => {
     if (!session) throw new Error('请先选择智能体新建会话');
@@ -310,7 +331,7 @@ export function AiPanel(props: Props) {
     }
   };
   return (
-    <div className="ai-panel">
+    <div className="ai-panel" ref={panel}>
       <header className="ai-panel-heading">
         <fieldset className="ai-heading-actions" aria-label="AI 会话操作">
           <AgentSessionMenu
@@ -329,7 +350,6 @@ export function AiPanel(props: Props) {
                 beforeWrite: (path) => callbacks.current.beforeWrite(path),
                 changed: () => callbacks.current.changed(),
                 snapshot: () => callbacks.current.snapshot(),
-                attention: () => callbacks.current.requestAttention(),
               });
               sessionRef.current = created;
               setSession(created);
@@ -1337,7 +1357,7 @@ function Permission({
 }) {
   const [form, setForm] = useState<Record<string, unknown>>({});
   return (
-    <div className="ai-permission">
+    <section className="ai-permission" tabIndex={-1} aria-label="待处理授权">
       <strong>{value.title}</strong>
       {value.detail && <pre>{value.detail}</pre>}
       {value.preview !== undefined && (
@@ -1387,7 +1407,7 @@ function Permission({
           </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 function toolStatus(status: unknown) {

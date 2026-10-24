@@ -101,6 +101,8 @@ pub fn run() {
             agents::attachments::agent_read_attachment,
             agents::attachments::agent_clipboard_attachments,
             agents::agent_catalog,
+            agents::attention::agent_sync_attention,
+            agents::attention::agent_set_attention_enabled,
             agents::agent_install,
             agents::agent_use_local,
             agents::agent_select_program,
@@ -339,6 +341,9 @@ pub fn run() {
         })
         .on_menu_event(route_menu_event)
         .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Focused(true)) {
+                agents::attention::focused(window.app_handle(), window.label());
+            }
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 window
                     .state::<agents::AgentHostState>()

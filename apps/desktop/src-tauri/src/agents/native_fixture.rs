@@ -8,6 +8,7 @@ pub fn verify(
     window: &WebviewWindow,
     other: &WebviewWindow,
 ) -> Result<(), String> {
+    attention::verify_native(app, window, other)?;
     #[cfg(target_os = "macos")]
     verify_titlebar(window)?;
     let root = tempfile::tempdir().map_err(|e| e.to_string())?;
@@ -104,14 +105,19 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
         )
     };
     let receive = || -> Result<Value, String> {
-        let raw = rx
-            .recv_timeout(Duration::from_secs(15))
-            .map_err(|_| "native ACP event timeout")?;
-        let value: Value = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
-        if value["kind"] != "message" {
-            return Err("native ACP closed early".into());
+        loop {
+            let raw = rx
+                .recv_timeout(Duration::from_secs(15))
+                .map_err(|_| "native ACP event timeout")?;
+            let value: Value = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
+            if value["kind"] == "interaction-ended" {
+                continue;
+            }
+            if value["kind"] != "message" {
+                return Err("native ACP closed early".into());
+            }
+            return Ok(value["message"].clone());
         }
-        Ok(value["message"].clone())
     };
     assert!(
         connection(&state, other, &id).is_err(),
@@ -834,6 +840,7 @@ else readline.createInterface({input:process.stdin}).on('line',line=>{const m=JS
     save_settings(
         data.path(),
         &AgentSettings {
+            attention_enabled: true,
             profiles: vec![original],
             default_profile_id: Some(id.clone()),
         },

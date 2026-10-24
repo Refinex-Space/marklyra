@@ -61,8 +61,17 @@ export function AgentSettings() {
         if (live) setPhase(event.payload.phase);
       },
     );
+    const changed = listen('marklyra:agents-changed', () => {
+      void agentApi.catalog().then(
+        (value) => {
+          if (live) setCatalog(value);
+        },
+        () => {},
+      );
+    });
     return () => {
       live = false;
+      void changed.then((stop) => stop());
       clearInterval(timer);
       void unlisten.then((stop) => stop());
     };
@@ -160,6 +169,31 @@ export function AgentSettings() {
             刷新目录
           </button>
         </header>
+        <label className="ai-attention-setting">
+          <span>
+            <strong>AI 等待授权时提醒我</strong>
+            <small>
+              窗口在后台时短暂闪烁任务栏图标或跳动 Dock 图标。关闭后仍显示应用内待处理标记。
+            </small>
+          </span>
+          <span className="ai-switch">
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="AI 等待授权时提醒我"
+              aria-checked={catalog?.attentionEnabled ?? true}
+              checked={catalog?.attentionEnabled ?? true}
+              disabled={!catalog || !!busy}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                void run('attention', () =>
+                  agentApi.invoke('agent_set_attention_enabled', { enabled }),
+                );
+              }}
+            />
+            <span />
+          </span>
+        </label>
         <div className="ai-settings-note">
           <strong>本机运行 · 独立管理</strong>
           <p>

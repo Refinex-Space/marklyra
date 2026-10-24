@@ -229,3 +229,17 @@ ACP 不是系统沙箱；第三方智能体可能有自己的权限和文件工�
 - `target/aarch64-apple-darwin/debug/bundle/dmg/MarkLyra_0.1.0_aarch64.dmg`
 
 证据目录 `artifacts/acp-ai/` 与构建产物均被 Git 忽略。源码没有提交、推送或发布，也没有替换已有应用实例或修改系统文件关联。
+
+## 2026-10-24：待授权提醒
+
+实现 Windows 任务栏短暂闪烁、macOS 信息级 Dock 跳动、应用内待处理标记和持久化开关。原生接收路径和 Shell 交互队列共用去重状态；提醒只关联经过验证的活动连接与未结束请求，不改变 ACP 的授权选项、响应或执行权限。
+
+- 前端单元测试：1836 项通过；类型、改动文件 Biome、桌面前端构建通过。
+- Rust：fmt、Clippy 通过，无新增告警；workspace 串行测试 893 项通过、5 项按既有配置忽略。
+- macOS 原生 `agent-native` 夹具通过：窗口归属、伪造请求过滤、重复请求、不改变焦点、停止及过期请求清理；原有 ACP/MCP、文档 CAS、BOM/CRLF、PTY 登录与 watcher 测试同时通过。此为原生 API/状态验证，不把它扩大为 Windows 实机动画验收。
+- Chromium/WebKit 完整 AI 面板及文档侧栏回归：140 项通过、零失败。此前 4 项工具栏测试在 HEAD 对照中同样失败，诊断确认断言仍假定旧版窗口边缘滚动条与工具栏固定偏移。现在等待面板动画结束，按真实 AI 面板边界检查按钮尺寸、排列及多点点击命中，在文档栏实际滚动条位置执行拖动；覆盖两种标题栏、亮暗主题和 700/960/1440px 窗口。实际布局无需修改。
+- 提醒、开关及写入授权专项：10 项通过，覆盖焦点、收起面板、请求归属、重复到达、拒绝、断连、开关重载和原有取消流程；随后纳入上述完整回归。
+- 原生请求清理回归先在旧实现失败：普通 ACP 完成会发出额外撤回事件。修正为仅 MCP 超时/失败发出撤回通知，普通 ACP 响应由原会话队列清理，防止提供方复用 JSON-RPC ID 时晚到的事件误清新请求。原生夹具同时检查正常完成无撤回事件及超时事件的连接/请求身份。
+- Windows 原生代码已实现，但当前主机没有 Windows 运行环境，尚未进行 Windows 安装版的闪烁及系统设置兼容验收。
+
+本机证据保存在忽略目录 `artifacts/agent-attention/`，包括 `check-final.log`、`clippy-submit.log`、`rust-submit.log`、`native-submit.log`、`browser-submit.log`、`browser-baseline.log`、`layout-fixed.log`、`reused-id-before.log` 和 `browser-final-targeted.log`。对照服务仅在内存中加载 HEAD 文件，不覆盖工作区改动。

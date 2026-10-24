@@ -1594,3 +1594,34 @@ fieldset.ai-context {
 .ai-activity-content .ai-message {
   font-size: 12px;
 }
+
+.ai-attention-indicator {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 7;
+}
+.ai-attention-indicator button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--sidebar);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ai-attention-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+}
+.ai-attention-setting small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+}
