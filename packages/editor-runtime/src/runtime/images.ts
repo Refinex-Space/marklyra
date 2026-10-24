@@ -220,6 +220,18 @@ export class RuntimeImages {
   private key(source: string) {
     return `${this.root()}\u0000${source}`;
   }
+  /** Reuse an already-authorized display resource; never expose the loading placeholder. */
+  previewUrl(source: string): string | undefined {
+    if (/^data:/i.test(source)) {
+      try {
+        return displayImageUrl(source, location.href);
+      } catch {
+        return undefined;
+      }
+    }
+    const entry = this.entries.get(this.key(source));
+    return entry?.state === 'ready' ? entry.url : undefined;
+  }
   private resolve(source: string): string {
     if (/^data:/i.test(source)) {
       try {
@@ -424,7 +436,7 @@ export class RuntimeImages {
       this.decorating = false;
     }
   }
-  private sourceFor(wrapper: HTMLElement): string | undefined {
+  sourceFor(wrapper: HTMLElement): string | undefined {
     const image = wrapper.querySelector('img');
     const sourceSpan = wrapper.querySelector('.md-image-src-span')?.textContent?.trim();
     if (sourceSpan && this.entries.has(this.key(sourceSpan))) return sourceSpan;

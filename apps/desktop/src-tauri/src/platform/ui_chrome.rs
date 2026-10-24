@@ -140,6 +140,8 @@ pub struct ChromeUpdate {
     /// A document is open, so the titlebar offers a way back to the home view.
     #[serde(default)]
     can_close_document: bool,
+    #[serde(default)]
+    image_preview_open: bool,
     /// Title for a document without a file yet (a day's draft is named after its file).
     #[serde(default)]
     untitled_name: Option<String>,
@@ -195,6 +197,7 @@ pub(super) struct DocumentChrome {
     ai_panel_open: bool,
     source_mode: Option<bool>,
     can_close_document: bool,
+    image_preview_open: bool,
     /// Display text only; never a path or an IO grant.
     untitled_name: Option<String>,
 }
@@ -278,6 +281,7 @@ fn document_chrome(
         ai_panel_open: update.ai_panel_open,
         source_mode: update.source_mode,
         can_close_document: update.can_close_document,
+        image_preview_open: update.image_preview_open,
         untitled_name: update.untitled_name,
     })
 }
@@ -766,6 +770,7 @@ mod tests {
             ai_panel_open: false,
             source_mode: None,
             can_close_document: false,
+            image_preview_open: false,
             untitled_name: Some("2026-10-21.md".into()),
         };
         let value = document_chrome(&services, "main", payload()).unwrap();
@@ -829,6 +834,7 @@ mod tests {
                     ai_panel_open: false,
                     source_mode: None,
                     can_close_document: false,
+                    image_preview_open: false,
                     untitled_name: None,
                 }
             )
@@ -845,6 +851,7 @@ mod tests {
             ai_panel_open: false,
             source_mode: None,
             can_close_document: false,
+            image_preview_open: false,
             untitled_name: name.map(str::to_owned),
         };
         assert_eq!(
@@ -914,6 +921,7 @@ mod tests {
             ai_panel_open: false,
             source_mode: Some(false),
             can_close_document: false,
+            image_preview_open: false,
             untitled_name: None,
         };
         let chrome = document_chrome(&services, "main", payload())

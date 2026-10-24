@@ -29,7 +29,12 @@ export interface ContextMenuFacts {
   clipboardRead: boolean;
   clipboardWrite: boolean;
   openExternal: boolean;
-  image?: { source: string; syntax: string; actions: readonly ImageHostAction[] };
+  image?: {
+    source: string;
+    syntax: string;
+    actions: readonly ImageHostAction[];
+    preview?: boolean;
+  };
   /** Original style facts read at capture time; absent outside ordinary rich text. */
   editing?: MarkLyraMenuState;
 }
@@ -83,6 +88,7 @@ const labels: Record<Exclude<ContextAction, EditingContextAction>, string> = {
   'image.copyAddress': '复制图片地址',
   'image.reveal': '在访达中显示',
   'image.open': '在浏览器中打开图片',
+  'image.preview': '查看大图',
   'image.copyToStorage': '复制图片到图片目录',
   'image.downloadToStorage': '下载图片到图片目录',
   'image.delete': '删除图片',
@@ -127,6 +133,7 @@ export function contextMenuItems(f: ContextMenuFacts): ContextMenuItem[] {
   if (f.image) {
     const network = /^(?:https?:|\/\/)/i.test(f.image.source);
     items.push(
+      item('image.preview', f.image.preview !== false),
       network
         ? item('image.open', f.openExternal)
         : item('image.reveal', f.image.actions.includes('reveal')),

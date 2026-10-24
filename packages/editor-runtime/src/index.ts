@@ -46,7 +46,7 @@ import {
 
 export type { ReloadFromDiskOptions } from './reload/contracts.js';
 
-import { embedImages, type ExportImageSet } from './export/markdown.js';
+import { type ExportImageSet, embedImages } from './export/markdown.js';
 import { type ExportHTMLOptions, exportOptions } from './export/options.js';
 
 export type { ExportHTMLOptions } from './export/options.js';
@@ -85,6 +85,7 @@ import {
   type NativeImageInput,
 } from './images/contracts.js';
 import { DocumentImages, type ImageGeneration } from './images/host.js';
+import { ImagePreview, imagePreviewRequest } from './images/preview.js';
 import {
   applyImagePatches,
   type ImageReferenceReplacement,
@@ -175,6 +176,10 @@ export interface MarkLyraEditorOptions {
   styles?: Partial<ThemeStyles>;
   onThemeAppearanceChange?: (appearance: ThemeAppearance) => void;
   onOutlinePopoverChange?: (open: boolean) => void;
+  /** A read-only, window-level image viewer temporarily owns keyboard input. */
+  onImagePreviewChange?: (open: boolean) => void;
+  /** Reserved space for system window controls, in CSS pixels. */
+  imagePreviewTopInset?: () => number;
   onViewModeChange?: (mode: MarkLyraViewMode) => void;
   onScrollAwayFromTopChange?: (awayFromTop: boolean) => void;
   onLinkHintPreferenceChange?: (suppressed: boolean) => void;
@@ -221,6 +226,8 @@ export class MarkLyraEditor {
   private readonly images: DocumentImages;
   private readonly nativeImageInputs = new Set<string>();
   private readonly contextMenu: HostContextMenu;
+  private imagePreview: { id: string; view: ImagePreview } | undefined;
+  private previewTicket = 0;
   private readonly extensions: MarkLyraExtensionRegistry;
   private readonly exportRenderers = new Set<MarkLyraEditor>();
   private readonly imageReferenceRenderers = new Set<MarkLyraEditor>();
@@ -776,6 +783,7 @@ export class MarkLyraEditor {
       throw new Error('文档修订号无效');
     await this.ready;
     this.assertAvailable();
+    this.closeImagePreview(false);
     this.contextMenu.invalidate();
     this.statisticsGeneration++;
     this.invalidateStatistics();
@@ -789,6 +797,7 @@ export class MarkLyraEditor {
     );
   }
   async reloadFromDisk(source: string, options: ReloadFromDiskOptions): Promise<void> {
+    this.closeImagePreview(false);
     validateReload(source, options);
     await this.ready;
     this.assertAvailable();
@@ -1331,6 +1340,7 @@ export class MarkLyraEditor {
     const positionSource = command.type === 'sourcePosition' ? this.source : undefined;
     const positionRevision = this.documentRevision;
     await this.ready;
+    if (this.isImagePreviewOpen) throw new Error('请先关闭图片预览');
     guard();
     this.assertAvailable();
     if (command.type === 'sourcePosition') {
@@ -1358,6 +1368,10 @@ export class MarkLyraEditor {
     if (this.fault) throw this.fault;
   }
   async focus(): Promise<void> {
+    if (this.imagePreview) {
+      this.imagePreview.view.focus();
+      return;
+    }
     await this.ready;
     this.assertAvailable();
     // Establish the outer browsing-context focus before selecting the current
@@ -1384,6 +1398,7 @@ export class MarkLyraEditor {
   }
   destroy() {
     if (this.disposed) return;
+    this.closeImagePreview(false);
     this.disposed = true;
     this.extensions.destroy();
     this.statisticsSourceCache = undefined;
@@ -1988,6 +2003,55 @@ export class MarkLyraEditor {
       }
     }
   }
+  get isImagePreviewOpen(): boolean {
+    return !!this.imagePreview;
+  }
+  closeImagePreview(restore = true): void {
+    this.previewTicket++;
+    const current = this.imagePreview;
+    this.imagePreview = undefined;
+    current?.view.close(restore);
+  }
+  private async showImagePreview(raw: unknown): Promise<void> {
+    let id: string | undefined;
+    try {
+      const value = imagePreviewRequest(raw, this.options.runtimeUrl);
+      id = value.id;
+      const owner = this.element.ownerDocument;
+      const ticket = ++this.previewTicket;
+      const eligible = () =>
+        !this.disposed &&
+        ticket === this.previewTicket &&
+        !this.composing &&
+        !this.loading &&
+        value.generation === this.images.capture().generation &&
+        this.element.isConnected &&
+        !this.element.closest('[inert]') &&
+        !owner.querySelector('dialog[open], [aria-modal="true"]');
+      if (!eligible() || !(await this.request('image-preview-validate', { id })) || !eligible()) {
+        await this.request('image-preview-close', { id, restore: false });
+        return;
+      }
+      this.contextMenu.invalidate();
+      const view = new ImagePreview(
+        owner,
+        value,
+        (restore) => {
+          if (this.imagePreview?.id === value.id) this.imagePreview = undefined;
+          this.previewTicket++;
+          this.options.onImagePreviewChange?.(false);
+          if (!this.disposed)
+            void this.request('image-preview-close', { id: value.id, restore }).catch(() => {});
+        },
+        this.options.imagePreviewTopInset?.() ?? 0,
+      );
+      this.imagePreview = { id: value.id, view };
+      this.options.onImagePreviewChange?.(true);
+    } catch {
+      if (id && !this.disposed)
+        void this.request('image-preview-close', { id, restore: false }).catch(() => {});
+    }
+  }
   private receive = (event: MessageEvent) => {
     if (
       this.disposed ||
@@ -1996,6 +2060,14 @@ export class MarkLyraEditor {
     )
       return;
     const message = event.data;
+    if (message.kind === 'image-preview') {
+      void this.showImagePreview(message.payload);
+      return;
+    }
+    if (message.kind === 'image-preview-cancel' && this.imagePreview?.id === message.payload) {
+      this.closeImagePreview(false);
+      return;
+    }
     if (message.kind === 'image-automatic') {
       void this.automaticImageRequest(message.payload as ImageAutomaticMessage);
       return;

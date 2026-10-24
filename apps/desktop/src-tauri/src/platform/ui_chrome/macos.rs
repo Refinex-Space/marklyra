@@ -38,6 +38,7 @@ struct ChromeIvars {
     always_show_word_count: Cell<bool>,
     content_layout: Cell<Option<TitlebarLayout>>,
     preferences_page: Cell<bool>,
+    image_preview_open: Cell<bool>,
 }
 
 define_class!(
@@ -107,6 +108,7 @@ impl MarkLyraTitlebarView {
             always_show_word_count: Cell::new(true),
             content_layout: Cell::new(None),
             preferences_page: Cell::new(false),
+            image_preview_open: Cell::new(false),
         });
         // SAFETY: NSView's designated initializer receives the allocated subclass and an NSRect.
         unsafe { msg_send![super(object), initWithFrame: rect(0.0, 0.0, 120.0, 22.0)] }
@@ -124,7 +126,7 @@ impl MarkLyraTitlebarView {
     }
 
     fn position_title(&self) {
-        if self.ivars().preferences_page.get() {
+        if self.ivars().preferences_page.get() || self.ivars().image_preview_open.get() {
             if let Some(button) = self.ivars().title_button.get() {
                 button.setHidden(true);
             }
@@ -155,7 +157,7 @@ impl MarkLyraTitlebarView {
     fn update_visibility(&self) {
         // Normal editor controls remain discoverable without hovering the titlebar.
         let source_mode = self.ivars().source_mode.get();
-        let settings = self.ivars().preferences_page.get();
+        let settings = self.ivars().preferences_page.get() || self.ivars().image_preview_open.get();
         if let Some(button) = self.ivars().statistics_button.get() {
             // The word count lives in the lower right corner of the document card (web), not here.
             button.setHidden(true);
@@ -179,6 +181,7 @@ impl MarkLyraTitlebarView {
         self.ivars().can_close.get()
             && !self.ivars().source_mode.get()
             && !self.ivars().preferences_page.get()
+            && !self.ivars().image_preview_open.get()
     }
 
     fn statistics_menu(&self, sender: &NSButton) {
@@ -526,6 +529,18 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
             }
             chrome.dark = Some(update.dark);
         }
+        chrome
+            .view
+            .ivars()
+            .image_preview_open
+            .set(update.image_preview_open);
+        chrome.window.setTitleVisibility(
+            if update.image_preview_open || chrome.view.ivars().preferences_page.get() {
+                NSWindowTitleVisibility::Hidden
+            } else {
+                NSWindowTitleVisibility::Visible
+            },
+        );
         let title = update.title();
         let url = update
             .path

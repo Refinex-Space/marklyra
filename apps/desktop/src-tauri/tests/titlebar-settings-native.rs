@@ -89,6 +89,7 @@ struct DocumentChrome {
     ai_panel_open: bool,
     source_mode: Option<bool>,
     can_close_document: bool,
+    image_preview_open: bool,
     untitled_name: Option<String>,
 }
 #[cfg(target_os = "macos")]

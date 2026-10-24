@@ -23,6 +23,10 @@ export function MarkLyraMarkdownEditor(props: MarkLyraMarkdownEditorProps) {
       onSelectionChange: (selection) => latest.current.onSelectionChange?.(selection),
       onOutlineChange: (outline) => latest.current.onOutlineChange?.(outline),
       onThemeAppearanceChange: (appearance) => latest.current.onThemeAppearanceChange?.(appearance),
+      imagePreviewTopInset: () => latest.current.imagePreviewTopInset?.() ?? 0,
+      onImagePreviewChange: (open) => {
+        if (alive) latest.current.onImagePreviewChange?.(open);
+      },
       onOutlinePopoverChange: (open) => latest.current.onOutlinePopoverChange?.(open),
       onViewModeChange: (mode) => {
         if (alive) return latest.current.onViewModeChange?.(mode);
@@ -88,6 +92,7 @@ export function MarkLyraMarkdownEditor(props: MarkLyraMarkdownEditorProps) {
       },
     );
     return () => {
+      if (editor.isImagePreviewOpen) latest.current.onImagePreviewChange?.(false);
       alive = false;
       editor.destroy();
     };

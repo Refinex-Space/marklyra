@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type ContextMenuRequest, offeredContextActions } from '../src/context-menu/contracts.js';
 import { type ContextMenuDependencies, RuntimeContextMenu } from '../src/runtime/context-menu.js';
 import type { LegacyEditor } from '../src/runtime/legacy-types.js';
@@ -155,7 +155,13 @@ function fixture(
     },
   };
 }
-afterEach(() => vi.useRealTimers());
+// Body menus probe for an optional language field. The Node fixture must provide
+// the DOM constructor even when closest() correctly returns no matching field.
+beforeEach(() => vi.stubGlobal('HTMLElement', class {}));
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe('instance-scoped whole-line context clipboard', () => {
   it.each(['missing', 'rejected'] as const)(

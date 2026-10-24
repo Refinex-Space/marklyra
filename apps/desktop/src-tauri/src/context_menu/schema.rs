@@ -15,6 +15,7 @@ pub const ACTIONS: &[&str] = &[
     "image.copyAddress",
     "image.reveal",
     "image.open",
+    "image.preview",
     "image.copyToStorage",
     "image.downloadToStorage",
     "image.delete",

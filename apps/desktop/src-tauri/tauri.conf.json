@@ -25,8 +25,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; frame-src marklyra: http://marklyra.localhost; base-uri 'none'; form-action 'none'",
-      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src ipc: http://ipc.localhost http://127.0.0.1:1420 ws://127.0.0.1:1420; object-src 'none'; frame-src marklyra: http://marklyra.localhost http://127.0.0.1:4174; base-uri 'none'; form-action 'none'",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: marklyra://localhost/__images/ http://marklyra.localhost/__images/; font-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; frame-src marklyra: http://marklyra.localhost; base-uri 'none'; form-action 'none'",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: marklyra://localhost/__images/ http://marklyra.localhost/__images/; font-src 'self'; connect-src ipc: http://ipc.localhost http://127.0.0.1:1420 ws://127.0.0.1:1420; object-src 'none'; frame-src marklyra: http://marklyra.localhost http://127.0.0.1:4174; base-uri 'none'; form-action 'none'",
       "capabilities": [
         "main",
         "preferences"

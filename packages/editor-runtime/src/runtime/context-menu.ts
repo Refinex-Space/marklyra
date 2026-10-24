@@ -64,7 +64,14 @@ interface Binding {
   tokens: string[];
   link: string | undefined;
   lineWise: boolean;
-  image?: { wrapper: HTMLElement; source: string; syntax: string };
+  image?: {
+    wrapper: HTMLElement;
+    source: string;
+    syntax: string;
+    node?: LegacyNode;
+    mark?: string;
+    index?: number;
+  };
   /** A rendered formula's descendants may change without changing this model block. */
   preview?: { node: LegacyNode; mark: string };
   /** Style facts at the right-click selection. Stamps prove they are still current. */
@@ -97,6 +104,9 @@ export interface ContextMenuDependencies {
   importImage?(image: ClipboardImage): void;
   imageActions?(): readonly ImageHostAction[];
   imageReference?(source: string): string;
+  previewImage?(image: HTMLImageElement): void;
+  imagePreviewAvailable?(source: string): boolean;
+  imageSource?(wrapper: HTMLElement): string | undefined;
   imageStorageContext?(): { referenceRoot: string; storageFolder?: string };
   /** The runtime's own command dispatcher, the same one the application menu uses. */
   command?(value: MarkLyraCommand): void;
@@ -117,6 +127,7 @@ const copyOnly = new Set<ContextAction>([
   'link.open',
   'image.reveal',
   'image.open',
+  'image.preview',
 ]);
 
 /** An authored capability boundary over runtime commands. Original menu tokens
@@ -498,7 +509,13 @@ export class RuntimeContextMenu {
   }
   execute(request: ContextExecutionRequest): ContextExecutionResult {
     if (copyActions.has(request.actionId)) return this.prepare(request);
+    if (request.actionId === 'image.preview') this.rebindImagePreview(request);
     const binding = this.take(request);
+    if (request.actionId === 'image.preview') {
+      const image = binding.image?.wrapper.querySelector('img');
+      if (image) this.deps.previewImage?.(image);
+      return {};
+    }
     if (request.actionId === 'link.open')
       return { effect: { type: 'openLink', url: externalLink(binding.link ?? '') } };
     if (request.actionId === 'image.open') {
@@ -795,6 +812,42 @@ export class RuntimeContextMenu {
       editor.UserOp.backspaceHandler(editor, null, 'delSelection');
     }
   }
+  /** Image-load decoration may replace DOM while the menu is open. Rebind this read-only
+   * action only when the exact model node, source and image ordinal are still unchanged. */
+  private rebindImagePreview(request: ContextExecutionRequest): void {
+    const binding = this.binding,
+      image = binding?.image,
+      editor = this.deps.runtime.editor;
+    if (
+      !binding ||
+      binding.requestId !== request.requestId ||
+      !image ||
+      binding.target.isConnected ||
+      !editor ||
+      editor !== binding.editor ||
+      !binding.cid ||
+      !image.node
+    )
+      return;
+    const stamp = this.deps.stamp();
+    if (
+      stamp.generation !== binding.stamp.generation ||
+      stamp.sequence !== binding.stamp.sequence ||
+      editor.getNode(binding.cid) !== image.node ||
+      image.node.toMark() !== image.mark
+    )
+      return;
+    const block = editor.writingArea.querySelector(`[cid="${CSS.escape(binding.cid)}"]`);
+    const wrapper = block?.querySelectorAll<HTMLElement>('.md-image')[image.index ?? -1];
+    if (
+      !wrapper ||
+      this.imageFor(wrapper).image?.source !== image.source ||
+      wrapper.getAttribute('md-inline') !== image.syntax
+    )
+      return;
+    binding.target = wrapper;
+    image.wrapper = wrapper;
+  }
   private take(request: ContextExecutionRequest): Binding {
     const binding = this.binding;
     if (!binding || request.requestId !== binding.requestId) throw Error('菜单请求已失效');
@@ -936,11 +989,30 @@ export class RuntimeContextMenu {
   private imageFor(target: Element): Pick<Binding, 'image'> {
     const wrapper = target.closest<HTMLElement>('.md-image');
     if (!wrapper || this.deps.runtime.editor?.sourceView.inSourceMode) return {};
-    const source = wrapper.dataset.ref
-      ? this.deps.runtime.editor?.nodeMap.link_list.getHrefByRef(wrapper.dataset.ref)
-      : wrapper.dataset.src;
+    const source =
+      this.deps.imageSource?.(wrapper) ??
+      (wrapper.dataset.ref
+        ? this.deps.runtime.editor?.nodeMap.link_list.getHrefByRef(wrapper.dataset.ref)
+        : wrapper.dataset.src);
     if (!source) return {};
-    return { image: { wrapper, source, syntax: wrapper.getAttribute('md-inline') ?? '' } };
+    const block = wrapper.closest<HTMLElement>('[cid]');
+    const node = block
+      ? this.deps.runtime.editor?.getNode(block.getAttribute('cid') ?? '')
+      : undefined;
+    return {
+      image: {
+        wrapper,
+        source,
+        syntax: wrapper.getAttribute('md-inline') ?? '',
+        ...(node && block
+          ? {
+              node,
+              mark: node.toMark(),
+              index: [...block.querySelectorAll('.md-image')].indexOf(wrapper),
+            }
+          : {}),
+      },
+    };
   }
   private editingFor(selection: ContextSelection): Pick<Binding, 'editing'> {
     if (selection.cm || this.deps.runtime.editor?.sourceView.inSourceMode) return {};
@@ -997,6 +1069,7 @@ export class RuntimeContextMenu {
         ? {
             image: {
               source: binding.image.source,
+              preview: this.deps.imagePreviewAvailable?.(binding.image.source) ?? true,
               syntax: binding.image.syntax,
               actions: this.deps.imageActions?.() ?? [],
             },

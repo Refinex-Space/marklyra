@@ -30,9 +30,29 @@ pub(crate) fn verify_preferences_layout(window: &WebviewWindow) {
                     ai_panel_open: false,
                     source_mode: Some(source_mode),
                     can_close_document: can_close,
+                    image_preview_open: false,
                     untitled_name: None,
                 };
                 update(label, document()).unwrap();
+                for dark in [false, true] {
+                    let mut preview = document();
+                    preview.dark = dark;
+                    preview.image_preview_open = true;
+                    update(label, preview).unwrap();
+                    window_changed(label);
+                    CHROME.with(|registry| {
+                        let registry = registry.borrow();
+                        let chrome = &registry[label];
+                        assert!(chrome.view.ivars().home_button.get().unwrap().isHidden());
+                        assert!(chrome.view.ivars().source_button.get().unwrap().isHidden());
+                        assert!(chrome.view.ivars().actions.get().unwrap().iter().all(|button| button.isHidden()));
+                        assert!(chrome.view.ivars().title_button.get().unwrap().isHidden());
+                        assert_eq!(chrome.window.titleVisibility(), NSWindowTitleVisibility::Hidden);
+                        if let Some(field) = native_title::title_field(&chrome.window) { assert!(field.isHidden()); }
+                        if let Some(icon) = chrome.window.standardWindowButton(objc2_app_kit::NSWindowButton::DocumentIconButton) { assert!(icon.isHidden()); }
+                    });
+                    update(label, document()).unwrap();
+                }
                 for _ in 0..3 {
                     set_preferences_page(label, true).unwrap();
                     CHROME.with(|registry| {

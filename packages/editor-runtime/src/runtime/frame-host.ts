@@ -30,6 +30,7 @@ import { RuntimeFocus } from './focus.js';
 import { guardHTMLCallback } from './html-callbacks.js';
 import { validHTMLMessage } from './html-messages.js';
 import { RuntimeImageLayout } from './image-layout.js';
+import { RuntimeImagePreview } from './image-preview.js';
 import { type RuntimeImageReferenceRequest, RuntimeImageReferences } from './image-references.js';
 import { RuntimeImages } from './images.js';
 import { RuntimeInitialMathPreviews } from './initial-math-previews.js';
@@ -236,6 +237,15 @@ const images = new RuntimeImages({
   },
 });
 const tracking = new RuntimeSourceTracking(runtime, () => loading || disposed || composing());
+const imagePreview = new RuntimeImagePreview({
+  runtime,
+  available: () => !disposed && !loading && !composing() && !runtime.File?._onInitParse,
+  stamp: () => `${documentGeneration}:${changeSequence}:${images.contextGeneration}`,
+  generation: () => images.contextGeneration,
+  url: (source) => images.previewUrl(source),
+  source: (wrapper) => images.sourceFor(wrapper),
+  send,
+});
 const contextMenu = new RuntimeContextMenu({
   runtime,
   stamp: () => ({ generation: documentGeneration, sequence: changeSequence }),
@@ -253,6 +263,9 @@ const contextMenu = new RuntimeContextMenu({
   importImage: (image) => images.importClipboardImage(image),
   imageActions: () => images.actions,
   imageReference: (source) => images.reference(source),
+  previewImage: (image) => imagePreview.open(image),
+  imagePreviewAvailable: (source) => !!images.previewUrl(source),
+  imageSource: (wrapper) => imagePreview.sourceFor(wrapper),
   imageStorageContext: () => images.storageContext(),
   command: (value) => command(value),
 });
@@ -879,6 +892,7 @@ window.addEventListener(
             break;
           }
           case 'load': {
+            imagePreview.reset();
             if (composing()) throw new Error('请先完成输入法候选');
             const value = message.payload as {
               source: string;
@@ -938,6 +952,7 @@ window.addEventListener(
             result = state();
             break;
           case 'execute': {
+            if (imagePreview.active) throw new Error('请先关闭图片预览');
             const value = message.payload as MarkLyraCommand & {
               expectedPosition?: { canonical: string; sequence: number };
             };
@@ -966,6 +981,15 @@ window.addEventListener(
               return images.captureNative();
             }, false);
             break;
+          case 'image-preview-validate':
+            result = imagePreview.validate(String((message.payload as { id: string }).id));
+            break;
+          case 'image-preview-close': {
+            const value = message.payload as { id: string; restore: boolean };
+            imagePreview.close(value.id, value.restore === true);
+            result = true;
+            break;
+          }
           case 'image-check':
             result = focus.command(() => images.verify(message.payload as ImageCheckpoint), false);
             break;
@@ -997,6 +1021,7 @@ window.addEventListener(
             result = reloads.snapshot();
             break;
           case 'restore': {
+            imagePreview.reset();
             documentGeneration++;
             tableControls.reset();
             slashMenu.reset();
@@ -1011,6 +1036,7 @@ window.addEventListener(
             break;
           }
           case 'reload-from-disk':
+            imagePreview.reset();
             documentGeneration++;
             tableControls.reset();
             slashMenu.reset();
@@ -1024,6 +1050,7 @@ window.addEventListener(
             result = await exporter.images();
             break;
           case 'image-context':
+            imagePreview.reset();
             images.setContext(message.payload as ImageContextMessage);
             result = true;
             break;
@@ -1122,6 +1149,7 @@ window.addEventListener(
             break;
           }
           case 'destroy':
+            imagePreview.destroy();
             disposed = true;
             initialMath.destroy();
             tableControls.destroy();
@@ -1387,6 +1415,7 @@ async function ready() {
   nodeLookup = installNodeLookup(runtime.editor, runtime.$);
   initialMath.install();
   images.install();
+  imagePreview.install();
   statistics.install();
   themes.install();
   outlinePopover.install();

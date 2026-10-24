@@ -194,6 +194,7 @@ export function App() {
   const preferencesSession = useRef<Promise<boolean> | null>(null);
   const preferencesQuit = useRef<string | null>(null);
   const [statisticsOpen, setStatisticsOpen] = useState(false);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [closingPanel, setClosingPanel] = useState(false);
   const closingPanelRef = useRef(false);
   const panelEditorOrigin = useRef({ preferences: false, statistics: false });
@@ -383,6 +384,7 @@ export function App() {
     return work;
   };
   const closeRequested = async (): Promise<void> => {
+    editor.current?.closeImagePreview(false);
     if (desktopAvailable) {
       try {
         await trackSession();
@@ -398,6 +400,7 @@ export function App() {
     strict = false,
     expectedSource?: string,
   ): Promise<void> => {
+    if (editor.current?.isImagePreviewOpen) return Promise.resolve();
     setStatisticsOpen(false);
     setRecoveryOpen(false);
     setRecentOpen(false);
@@ -857,8 +860,9 @@ export function App() {
       recentOpen ||
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
-    editorObscured: homeVisible || quickOpen !== null || gitViewOpen,
+    editorObscured: imagePreviewOpen || homeVisible || quickOpen !== null || gitViewOpen,
     blockedEditorCommand:
+      imagePreviewOpen ||
       !ready ||
       !editor.current ||
       preferencesOpen ||
@@ -903,8 +907,9 @@ export function App() {
       recentOpen ||
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
-    editorObscured: homeVisible || quickOpen !== null || gitViewOpen,
+    editorObscured: imagePreviewOpen || homeVisible || quickOpen !== null || gitViewOpen,
     blockedEditorCommand:
+      imagePreviewOpen ||
       !ready ||
       !editor.current ||
       preferencesOpen ||
@@ -1168,6 +1173,7 @@ export function App() {
           editor: active,
           documentOwner: actions.current.doc.getOwner(),
           blocked:
+            active?.isImagePreviewOpen === true ||
             actions.current.blockedEditorCommand ||
             actions.current.editorObscured ||
             !actions.current.doc.acceptsEditorCommands() ||
@@ -1325,6 +1331,10 @@ export function App() {
     let alive = true;
     const stops: (() => void)[] = [];
     const menu = (value: string) => {
+      if (editor.current?.isImagePreviewOpen) {
+        if (value === 'close-document') editor.current.closeImagePreview();
+        return;
+      }
       if (value === 'new-tab') {
         void actions.current.newWindow('tab');
         return;
@@ -1758,6 +1768,7 @@ export function App() {
         aiPanelOpen,
         !homeVisible,
         doc.file ? undefined : documentName,
+        imagePreviewOpen,
       )
       .catch((error: unknown) => {
         if (
@@ -1780,6 +1791,7 @@ export function App() {
     preferences.statisticsUnit,
     preferences.alwaysShowWordCount,
     themeSystem.dark,
+    imagePreviewOpen,
     outlinePanelOpen,
     viewMode,
     aiPanelOpen,
@@ -2629,6 +2641,10 @@ export function App() {
                 onChange={doc.change}
                 onStatisticsInvalidated={statistics.invalidate}
                 onViewModeChange={setViewMode}
+                imagePreviewTopInset={() =>
+                  chrome.native && nativeOverlay && !fullscreen ? (webTitlebar ? 32 : 28) : 0
+                }
+                onImagePreviewChange={setImagePreviewOpen}
                 onScrollAwayFromTopChange={setScrolledDown}
                 onLinkHintPreferenceChange={(suppressed) => {
                   linkHintPreferenceWork.current = linkHintPreferenceWork.current.then(async () => {
