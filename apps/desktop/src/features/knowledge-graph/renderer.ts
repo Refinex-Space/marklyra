@@ -49,6 +49,14 @@ interface Node extends Position {
   visible: boolean;
   tone: number;
 }
+interface HoverHighlight {
+  from: number;
+  to: number;
+  alpha: number;
+  started: number;
+  geometry: number;
+  edges: Path2D;
+}
 type Camera = NonNullable<GraphView['camera']>;
 interface Callbacks {
   select: (id: string | null) => void;
@@ -87,6 +95,8 @@ export class GraphRenderer {
   private serial = 0;
   private selected: string | null = null;
   private hover: string | null = null;
+  private hoverTimer: ReturnType<typeof setTimeout> | null = null;
+  private hoverHighlights = new Map<string, HoverHighlight>();
   private palette: GraphPalette;
   private saved: Record<string, Position> = Object.create(null);
   private cameraState: Camera = { x: 0.5, y: 0.5, ratio: 1 };
@@ -200,8 +210,67 @@ export class GraphRenderer {
     }
     return best;
   }
+  private clearHover() {
+    if (this.hoverTimer !== null) clearTimeout(this.hoverTimer);
+    this.hoverTimer = null;
+    this.hover = null;
+    this.hoverHighlights.clear();
+    this.pointerTarget.style.cursor = '';
+  }
+  private updateHover(now: number) {
+    let animating = false;
+    for (const [id, h] of this.hoverHighlights) {
+      const t = this.reduced ? 1 : Math.min(1, Math.max(0, (now - h.started) / 180));
+      h.alpha = h.from + (h.to - h.from) * (t * t * (3 - 2 * t));
+      if (t === 1 && h.to === 0) this.hoverHighlights.delete(id);
+      else if (t < 1 && h.from !== h.to) animating = true;
+    }
+    return animating;
+  }
+  private highlightHover(id: string | null) {
+    if (this.disposed || this.paused) return;
+    if (id === this.selected) id = null;
+    const now = performance.now();
+    this.updateHover(now);
+    for (const [key, h] of this.hoverHighlights) {
+      const to = key === id ? 1 : 0;
+      if (h.to !== to) Object.assign(h, { from: h.alpha, to, started: now });
+    }
+    if (id && !this.hoverHighlights.has(id)) {
+      // Bound transient geometry even when the pointer rapidly crosses a dense cluster.
+      if (this.hoverHighlights.size >= 4) {
+        const faintest = [...this.hoverHighlights].sort((a, b) => a[1].alpha - b[1].alpha)[0];
+        if (faintest) this.hoverHighlights.delete(faintest[0]);
+      }
+      this.hoverHighlights.set(id, {
+        from: 0,
+        to: 1,
+        alpha: 0,
+        started: now,
+        geometry: -1,
+        edges: new Path2D(),
+      });
+    }
+    if (this.hoverHighlights.size) this.schedule();
+  }
+  private setHover(id: string | null) {
+    if (this.hover === id) return;
+    this.hover = id;
+    this.pointerTarget.style.cursor = id ? 'grab' : '';
+    if (this.hoverTimer !== null) clearTimeout(this.hoverTimer);
+    this.hoverTimer = null;
+    if (id === null) this.highlightHover(null);
+    else {
+      // Ignore incidental crossings; the cursor responds immediately, without a render loop.
+      this.hoverTimer = setTimeout(() => {
+        this.hoverTimer = null;
+        this.highlightHover(id);
+      }, 60);
+    }
+  }
   private down = (event: PointerEvent) => {
     if (event.button !== 0 || this.drag) return;
+    this.setHover(null);
     this.transition = null;
     const point = this.eventPoint(event),
       id = this.hit(point),
@@ -223,12 +292,7 @@ export class GraphRenderer {
     const point = this.eventPoint(event),
       drag = this.drag;
     if (!drag) {
-      const hit = this.hit(point);
-      if (hit !== this.hover) {
-        this.hover = hit;
-        this.pointerTarget.style.cursor = hit ? 'grab' : '';
-        this.schedule();
-      }
+      this.setHover(this.hit(point));
       return;
     }
     if (event.pointerId !== drag.pointer) return;
@@ -267,6 +331,7 @@ export class GraphRenderer {
       this.callbacks.select(drag.id);
   };
   private cancel = () => {
+    this.setHover(null);
     const drag = this.drag;
     this.drag = null;
     if (drag?.id) {
@@ -276,10 +341,7 @@ export class GraphRenderer {
     this.pointerTarget.style.cursor = '';
   };
   private leave = () => {
-    if (!this.drag) {
-      this.hover = null;
-      this.schedule();
-    }
+    if (!this.drag) this.setHover(null);
   };
   private doubleClick = (event: MouseEvent) => {
     if (performance.now() < this.suppressClickUntil) return;
@@ -408,7 +470,7 @@ export class GraphRenderer {
   }
   setData(snapshot: GraphSnapshot, fit = false) {
     if (fit) this.firstLayout = true;
-    this.hover = null;
+    this.clearHover();
     const topology =
         snapshot.nodes.map((n) => n.id).join('\0') +
         '\n' +
@@ -613,6 +675,7 @@ export class GraphRenderer {
     this.schedule();
   }
   restore(view: GraphView) {
+    this.clearHover();
     this.worker?.postMessage({ type: 'stop' } satisfies LayoutRequest);
     this.epoch++;
     this.metrics.layoutRunning = false;
@@ -660,6 +723,7 @@ export class GraphRenderer {
     this.frame = 0;
     if (this.disposed || this.paused) return;
     const started = performance.now();
+    const hoverAnimating = this.updateHover(now);
     if (this.transition) {
       const t = this.transition,
         d = t.duration === 0 ? 1 : Math.min(1, (now - t.started) / t.duration),
@@ -684,7 +748,8 @@ export class GraphRenderer {
     const ctx = this.context,
       dpr = this.pointerTarget.width / this.width,
       palette = this.palette,
-      focus = this.hover ?? this.selected,
+      // Only explicit selection changes the scene's contrast and label population.
+      focus = this.selected,
       neighbors = focus ? this.adjacency.get(focus) : null;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = palette.background;
@@ -794,13 +859,49 @@ export class GraphRenderer {
         ctx.stroke();
       }
     }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (focus) {
+    for (const [id, h] of this.hoverHighlights) {
+      const n = this.nodes.get(id);
+      if (!n?.visible || id === focus || h.alpha <= 0) continue;
+      if (h.geometry !== this.geometry) {
+        h.geometry = this.geometry;
+        h.edges = new Path2D();
+        for (const { source: a, target: b } of this.edges) {
+          if (a.item.id !== id && b.item.id !== id) continue;
+          if (this.moving.has(a.item.id) || this.moving.has(b.item.id)) continue;
+          h.edges.moveTo(a.x, a.y);
+          h.edges.lineTo(b.x, b.y);
+        }
+      }
+      ctx.globalAlpha = h.alpha * 0.65;
+      ctx.strokeStyle = palette.focus;
+      ctx.lineWidth = 1.5 / scale;
+      ctx.stroke(h.edges);
       ctx.beginPath();
-      let arrows = 0;
+      for (const { source: a, target: b } of this.dynamicEdges) {
+        if (a.item.id !== id && b.item.id !== id) continue;
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = h.alpha * 0.85;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r / scale, 0, Math.PI * 2);
+      ctx.fillStyle = palette.focus;
+      if (n.item.state === 'ready') ctx.fill();
+      else ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, (n.r + 3) / scale, 0, Math.PI * 2);
+      ctx.lineWidth = 1 / scale;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    let arrowBudget = 200;
+    const drawArrows = (id: string) => {
+      ctx.beginPath();
       for (const { source: a, target: b } of this.edges) {
-        if (arrows >= 200) break;
-        if ((a.item.id !== focus && b.item.id !== focus) || !b.visible) continue;
+        if (arrowBudget <= 0) break;
+        if ((a.item.id !== id && b.item.id !== id) || !b.visible) continue;
         const dx = b.sx - a.sx,
           dy = b.sy - a.sy,
           length = Math.hypot(dx, dy);
@@ -813,17 +914,25 @@ export class GraphRenderer {
         ctx.lineTo(x - ux * 5 - uy * 2.5, y - uy * 5 + ux * 2.5);
         ctx.lineTo(x - ux * 5 + uy * 2.5, y - uy * 5 - ux * 2.5);
         ctx.closePath();
-        arrows++;
+        arrowBudget--;
       }
       ctx.fillStyle = palette.focus;
       ctx.fill();
+    };
+    if (focus) drawArrows(focus);
+    for (const [id, h] of this.hoverHighlights) {
+      if (id === focus || h.alpha <= 0 || !this.nodes.get(id)?.visible) continue;
+      ctx.globalAlpha = h.alpha * 0.65;
+      drawArrows(id);
     }
+    ctx.globalAlpha = 1;
     ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = palette.text;
     const occupied = this.occupied;
     occupied.clear();
     let labelCount = 0;
+    const hoverLabels = new Set(this.hoverHighlights.keys());
     const drawLabel = (n: Node, priority: boolean) => {
       if (
         !n.visible ||
@@ -857,6 +966,7 @@ export class GraphRenderer {
         ctx.fillStyle = palette.text;
       }
       ctx.fillText(label.text, x, y);
+      hoverLabels.delete(n.item.id);
       labelCount++;
     };
     if (focus) {
@@ -869,6 +979,15 @@ export class GraphRenderer {
     }
     for (const n of this.labelOrder)
       if (n.item.id !== focus && n.item.id !== this.selected) drawLabel(n, false);
+    // Reveal an occluded hover title without reflowing the stable label set underneath it.
+    for (const id of hoverLabels) {
+      const n = this.nodes.get(id),
+        h = this.hoverHighlights.get(id);
+      if (!n || !h) continue;
+      ctx.globalAlpha = h.alpha;
+      drawLabel(n, true);
+    }
+    ctx.globalAlpha = 1;
     if (this.pulse) {
       const pulse = this.pulse,
         t = (now - pulse.started) / 450,
@@ -887,7 +1006,7 @@ export class GraphRenderer {
     }
     this.metrics.renders++;
     this.metrics.drawMs = performance.now() - started;
-    if (this.transition || this.pulse) this.schedule();
+    if (this.transition || this.pulse || hoverAnimating) this.schedule();
   };
   private stopWorker() {
     if (this.worker) {
@@ -899,6 +1018,7 @@ export class GraphRenderer {
   }
   pause() {
     this.cancel();
+    this.clearHover();
     if (this.metrics.layoutRunning) {
       this.deferredLayout = {
         type: 'layout',
