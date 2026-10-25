@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { knowledge } from '../../services/knowledge.js';
 import type { WorkspaceFolder, WorkspaceMatchPosition } from '../../services/workspaces.js';
+import { DocumentDetailsResize } from '../document-details/DocumentDetailsResize.js';
 import { GraphDetails } from './GraphDetails.js';
 import { defaultQuery, type GraphView, validView } from './model.js';
 import { darkPalette, GraphRenderer, lightPalette } from './renderer.js';
 import { useKnowledge } from './useKnowledge.js';
 import './knowledge-graph.css';
+
+// Match the other split panes: remember the preference for this window's lifetime.
+let rememberedDetailsWidth = 320;
 
 export default function KnowledgeGraph(props: {
   workspace: WorkspaceFolder;
@@ -28,6 +32,18 @@ export default function KnowledgeGraph(props: {
   const [selected, setSelected] = useState<string | null>(null),
     [filters, setFilters] = useState(false),
     [narrow, setNarrow] = useState(false);
+  const [availableWidth, setAvailableWidth] = useState(window.innerWidth),
+    [preferredDetailsWidth, setPreferredDetailsWidth] = useState(rememberedDetailsWidth),
+    [detailsDragging, setDetailsDragging] = useState(false);
+  const detailsMinimum = 260;
+  const detailsMaximum = Math.max(
+    detailsMinimum,
+    Math.min(560, Math.floor(availableWidth * 0.45), availableWidth - 360),
+  );
+  const detailsWidth = Math.max(detailsMinimum, Math.min(detailsMaximum, preferredDetailsWidth));
+  useEffect(() => {
+    if (!selected || narrow) setDetailsDragging(false);
+  }, [selected, narrow]);
   const [particles, setParticles] = useState(false),
     [moving, setMoving] = useState<string | null>(null),
     [pinRevision, setPinRevision] = useState(0),
@@ -96,7 +112,10 @@ export default function KnowledgeGraph(props: {
     shell.current?.focus({ preventScroll: true });
     const root = shell.current;
     if (!root) return;
-    const observer = new ResizeObserver(() => setNarrow(root.clientWidth < 760));
+    const observer = new ResizeObserver(() => {
+      setAvailableWidth(root.clientWidth);
+      setNarrow(root.clientWidth < 760);
+    });
     observer.observe(root);
     return () => observer.disconnect();
   }, []);
@@ -276,6 +295,12 @@ export default function KnowledgeGraph(props: {
       aria-label="知识图谱"
       tabIndex={-1}
       data-narrow={narrow || undefined}
+      data-compact={availableWidth <= 820 || undefined}
+      data-small={availableWidth <= 620 || undefined}
+      data-tiny={availableWidth <= 420 || undefined}
+      data-details={!!node || undefined}
+      data-resizing={detailsDragging || undefined}
+      style={{ '--knowledge-details-width': `${detailsWidth}px` } as CSSProperties}
       onKeyDown={(event) => {
         if (event.nativeEvent.isComposing) return;
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') {
@@ -296,7 +321,7 @@ export default function KnowledgeGraph(props: {
           event.metaKey ||
           event.ctrlKey ||
           event.altKey ||
-          target.closest('input,select,textarea,button')
+          target.closest('input,select,textarea,button,summary,[role="separator"],hr')
         )
           return;
         if (event.key === 'Enter' && selected) {
@@ -333,7 +358,7 @@ export default function KnowledgeGraph(props: {
           aria-label="返回文档"
           title="返回文档（Esc）"
         >
-          ←
+          <Icon name="arrowRight" />
         </button>
         <div className="knowledge-heading">
           <strong>知识图谱</strong>
@@ -365,145 +390,171 @@ export default function KnowledgeGraph(props: {
           筛选
         </button>
       </header>
-      <div className="knowledge-search">
-        <Icon name="search" />
-        <input
-          ref={search}
-          aria-label="搜索图谱"
-          placeholder="搜索文档标题或路径"
-          value={draft}
-          maxLength={256}
-          onCompositionStart={() => {
-            composing.current = true;
-          }}
-          onCompositionEnd={(event) => {
-            composing.current = false;
-            const value = event.currentTarget.value;
-            model.setQuery((q) => ({ ...q, filter: value }));
-          }}
-          onChange={(event) => {
-            const value = event.currentTarget.value;
-            setDraft(value);
-            if (!composing.current && !(event.nativeEvent as InputEvent).isComposing)
+      <div className="knowledge-toolbar">
+        <div className="knowledge-search">
+          <Icon name="search" />
+          <input
+            ref={search}
+            aria-label="搜索图谱"
+            placeholder="搜索文档标题或路径"
+            value={draft}
+            maxLength={256}
+            onCompositionStart={() => {
+              composing.current = true;
+            }}
+            onCompositionEnd={(event) => {
+              composing.current = false;
+              const value = event.currentTarget.value;
               model.setQuery((q) => ({ ...q, filter: value }));
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.nativeEvent.isComposing && visibleNodes[0]) {
-              setSelected(visibleNodes[0].id);
-              renderer.current?.center(visibleNodes[0].id);
-              mount.current?.focus();
-            }
-          }}
-        />
-        {draft && (
+            }}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              setDraft(value);
+              if (!composing.current && !(event.nativeEvent as InputEvent).isComposing)
+                model.setQuery((q) => ({ ...q, filter: value }));
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.nativeEvent.isComposing && visibleNodes[0]) {
+                setSelected(visibleNodes[0].id);
+                renderer.current?.center(visibleNodes[0].id);
+                mount.current?.focus();
+              }
+            }}
+          />
+          {draft && (
+            <button
+              type="button"
+              aria-label="清除图谱搜索"
+              onClick={() => {
+                setDraft('');
+                model.setQuery((q) => ({ ...q, filter: '' }));
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+        <fieldset className="knowledge-settings-actions" aria-label="图谱视图操作">
           <button
             type="button"
-            aria-label="清除图谱搜索"
+            aria-label="导出视图"
+            title="导出视图"
+            disabled={!model.ready}
+            onClick={() => void exportView()}
+          >
+            <Icon name="export" />
+            <span>导出视图</span>
+          </button>
+          <button
+            type="button"
+            aria-label="导入视图"
+            title="导入视图"
+            disabled={!model.ready}
+            onClick={() => void importView()}
+          >
+            <Icon name="open" />
+            <span>导入视图</span>
+          </button>
+          <button
+            type="button"
+            aria-label="重建索引"
+            title="重建索引"
+            disabled={!model.ready || model.status?.working}
+            onClick={model.refresh}
+          >
+            <Icon name="refresh" />
+            <span>重建索引</span>
+          </button>
+          <button
+            type="button"
+            aria-label="重置视图"
+            title="重置视图"
             onClick={() => {
-              setDraft('');
-              model.setQuery((q) => ({ ...q, filter: '' }));
+              model.acceptView();
+              model.setQuery({ ...defaultQuery, focus: props.currentPath });
+              setParticles(false);
+              renderer.current?.fit();
+              saved.current = '';
+              scheduleSave();
             }}
           >
-            ×
+            <Icon name="restore" />
+            <span>重置视图</span>
           </button>
-        )}
+        </fieldset>
       </div>
       {filters && (
         <div className="knowledge-filters">
-          <label>
-            关系层级
-            <select
-              aria-label="关系层级"
-              value={model.query.depth}
-              disabled={!model.query.focus}
-              onChange={(e) => model.setQuery((q) => ({ ...q, depth: Number(e.target.value) }))}
-            >
-              <option value={1}>一跳</option>
-              <option value={2}>两跳</option>
-            </select>
-          </label>
-          <label>
-            目录
-            <input
-              aria-label="筛选目录"
-              placeholder="相对路径"
-              value={model.query.folder}
-              onChange={(e) => model.setQuery((q) => ({ ...q, folder: e.target.value }))}
-            />
-          </label>
-          <label>
-            标签
-            <input
-              aria-label="筛选标签"
-              placeholder="标签名称"
-              value={model.query.tag}
-              onChange={(e) => model.setQuery((q) => ({ ...q, tag: e.target.value }))}
-            />
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={model.query.showMissing}
-              onChange={(e) => model.setQuery((q) => ({ ...q, showMissing: e.target.checked }))}
-            />
-            未解析目标
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={model.query.showOrphans}
-              onChange={(e) => model.setQuery((q) => ({ ...q, showOrphans: e.target.checked }))}
-            />
-            孤立文档
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={particles}
-              onChange={(e) => setParticles(e.target.checked)}
-            />
-            引用方向动效
-          </label>
-          <label>
-            显示预算
-            <select
-              aria-label="显示预算"
-              value={model.query.limit}
-              onChange={(e) => model.setQuery((q) => ({ ...q, limit: Number(e.target.value) }))}
-            >
-              <option value={500}>500 节点</option>
-              <option value={2000}>2,000 节点</option>
-              <option value={5000}>5,000 节点</option>
-            </select>
-          </label>
-          <div className="knowledge-settings-actions">
-            <button type="button" disabled={!model.ready} onClick={() => void exportView()}>
-              导出视图
-            </button>
-            <button type="button" disabled={!model.ready} onClick={() => void importView()}>
-              导入视图
-            </button>
-            <button
-              type="button"
-              disabled={!model.ready || model.status?.working}
-              onClick={model.refresh}
-            >
-              重建索引
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                model.acceptView();
-                model.setQuery({ ...defaultQuery, focus: props.currentPath });
-                setParticles(false);
-                renderer.current?.fit();
-                saved.current = '';
-                scheduleSave();
-              }}
-            >
-              重置视图
-            </button>
+          <div className="knowledge-filter-fields">
+            <label>
+              关系层级
+              <select
+                aria-label="关系层级"
+                value={model.query.depth}
+                disabled={!model.query.focus}
+                onChange={(e) => model.setQuery((q) => ({ ...q, depth: Number(e.target.value) }))}
+              >
+                <option value={1}>一跳</option>
+                <option value={2}>两跳</option>
+              </select>
+            </label>
+            <label>
+              目录
+              <input
+                aria-label="筛选目录"
+                placeholder="相对路径"
+                value={model.query.folder}
+                onChange={(e) => model.setQuery((q) => ({ ...q, folder: e.target.value }))}
+              />
+            </label>
+            <label>
+              标签
+              <input
+                aria-label="筛选标签"
+                placeholder="标签名称"
+                value={model.query.tag}
+                onChange={(e) => model.setQuery((q) => ({ ...q, tag: e.target.value }))}
+              />
+            </label>
+            <label>
+              显示预算
+              <select
+                aria-label="显示预算"
+                value={model.query.limit}
+                onChange={(e) => model.setQuery((q) => ({ ...q, limit: Number(e.target.value) }))}
+              >
+                <option value={500}>500 节点</option>
+                <option value={2000}>2,000 节点</option>
+                <option value={5000}>5,000 节点</option>
+              </select>
+            </label>
           </div>
+          <fieldset className="knowledge-filter-switches" aria-label="图谱显示选项">
+            <label>
+              <input
+                type="checkbox"
+                checked={model.query.showMissing}
+                onChange={(e) => model.setQuery((q) => ({ ...q, showMissing: e.target.checked }))}
+              />
+              未解析目标
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={model.query.showOrphans}
+                onChange={(e) => model.setQuery((q) => ({ ...q, showOrphans: e.target.checked }))}
+              />
+              孤立文档
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={particles}
+                onChange={(e) => setParticles(e.target.checked)}
+              />
+              引用方向动效
+            </label>
+          </fieldset>
         </div>
       )}
       {props.dirty && (
@@ -639,32 +690,68 @@ export default function KnowledgeGraph(props: {
             拖动节点 · 滚轮缩放 · Enter 打开 · 方向键平移
           </span>
         </div>
-        <GraphDetails
-          node={node}
-          data={model.data}
-          session={model.owner.current}
-          generation={model.data?.generation ?? 0}
-          complete={model.status?.complete ?? false}
-          pinned={pinned}
-          onOpen={(path, match) => {
-            persist();
-            props.onOpen(props.workspace.id, path, match);
+        <DocumentDetailsResize
+          label="调整关系面板宽度"
+          open={!!node && !narrow}
+          width={detailsWidth}
+          minimum={detailsMinimum}
+          maximum={detailsMaximum}
+          change={(width) => {
+            rememberedDetailsWidth = Math.max(detailsMinimum, Math.min(detailsMaximum, width));
+            setPreferredDetailsWidth(rememberedDetailsWidth);
           }}
-          onFocus={focus}
-          onPin={pin}
-          onMove={() => {
-            setMoving(selected);
-            setContext(null);
-            mount.current?.focus();
-          }}
-          onLocate={() => {
-            if (selected) renderer.current?.center(selected);
-          }}
-          onError={model.setError}
+          dragging={detailsDragging}
+          setDragging={setDetailsDragging}
+          container={shell}
+          widthProperty="--knowledge-details-width"
+          controlsId="knowledge-details-content"
         />
+        <div
+          className="knowledge-inspector"
+          id="knowledge-details-content"
+          data-open={!!node || undefined}
+          aria-hidden={!node}
+          inert={!node}
+        >
+          <GraphDetails
+            onClose={() => {
+              setSelected(null);
+              mount.current?.focus();
+            }}
+            node={node}
+            data={model.data}
+            session={model.owner.current}
+            generation={model.data?.generation ?? 0}
+            complete={model.status?.complete ?? false}
+            pinned={pinned}
+            onOpen={(path, match) => {
+              persist();
+              props.onOpen(props.workspace.id, path, match);
+            }}
+            onFocus={focus}
+            onPin={pin}
+            onMove={() => {
+              setMoving(selected);
+              setContext(null);
+              mount.current?.focus();
+            }}
+            onLocate={() => {
+              if (selected) renderer.current?.center(selected);
+            }}
+            onError={model.setError}
+          />
+        </div>
       </div>
       <details className="knowledge-node-browser">
-        <summary>文档列表 · {visibleNodes.length.toLocaleString()} 个可见节点</summary>
+        <summary>
+          <span className="knowledge-browser-label">
+            <Icon name="chevronRight" />
+            文档列表
+            <span className="knowledge-browser-count">
+              {visibleNodes.length.toLocaleString()} 个可见节点
+            </span>
+          </span>
+        </summary>
         <div className="knowledge-node-list">
           {pageNodes.map((item) => (
             <button

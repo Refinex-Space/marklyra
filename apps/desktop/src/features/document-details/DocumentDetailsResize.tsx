@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { type RefObject, useEffect, useRef } from 'react';
 
 export function DocumentDetailsResize({
   label = '调整目录宽度',
@@ -9,6 +9,9 @@ export function DocumentDetailsResize({
   change,
   dragging,
   setDragging,
+  container,
+  widthProperty = '--document-details-width',
+  controlsId = 'document-details-content',
 }: {
   label?: string;
   open: boolean;
@@ -18,6 +21,9 @@ export function DocumentDetailsResize({
   change: (width: number) => void;
   dragging: boolean;
   setDragging: (value: boolean) => void;
+  container?: RefObject<HTMLElement | null>;
+  widthProperty?: `--${string}`;
+  controlsId?: string;
 }) {
   const origin = useRef<{ x: number; width: number } | null>(null);
   // One layout update per painted frame, however many pointer events arrived.
@@ -26,12 +32,18 @@ export function DocumentDetailsResize({
   const handle = useRef<HTMLHRElement | null>(null);
   // While dragging only the CSS variable the layout reads moves; React learns the width on release.
   const paint = (value: number) => {
-    handle.current
-      ?.closest<HTMLElement>('.workspace')
-      ?.style.setProperty('--document-details-width', `${value}px`);
+    const layout = container?.current ?? handle.current?.closest<HTMLElement>('.workspace');
+    layout?.style.setProperty(widthProperty, `${value}px`);
     handle.current?.setAttribute('aria-valuenow', String(value));
   };
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  useEffect(() => {
+    if (!open) {
+      cancelAnimationFrame(frame.current);
+      frame.current = 0;
+      origin.current = null;
+    }
+  }, [open]);
   const bounded = (value: number) => Math.round(Math.max(minimum, Math.min(maximum, value)));
   const stop = () => {
     cancelAnimationFrame(frame.current);
@@ -51,7 +63,7 @@ export function DocumentDetailsResize({
         data-resizing={dragging || undefined}
         aria-label={label}
         aria-orientation="vertical"
-        aria-controls="document-details-content"
+        aria-controls={controlsId}
         aria-hidden={!open}
         data-open={open || undefined}
         inert={!open}
@@ -97,6 +109,7 @@ export function DocumentDetailsResize({
         onKeyDown={(event) => {
           if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
           event.preventDefault();
+          event.stopPropagation();
           change(
             event.key === 'Home'
               ? minimum

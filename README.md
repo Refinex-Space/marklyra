@@ -14,6 +14,8 @@ pnpm build:desktop --debug
 
 Node.js 22+、pnpm 10.33.0 和 Rust stable 为开发依赖。Windows 还需安装 Visual Studio C++ 构建工具和 WebView2，macOS 需安装 Xcode Command Line Tools。
 
+开发运行与 debug 构建使用独立的 `marklyra-dev` 原生数据/配置目录，release 构建继续使用 `marklyra`，避免开发实例与安装版竞争草稿存储锁。开发目录从默认配置开始，不迁移或清理安装版的设置和草稿；图谱索引也随构建环境隔离。
+
 编辑器源码资源位于 `resources/editor`，原生标题栏图像位于 `resources/native-titlebar`，均随 Git 克隆，无需手动复制本机目录或安装其他编辑器。`pnpm prepare:runtime` 校验源码、构建适配层并生成 `dist/editor-runtime`；开发和打包命令会自动执行。资源按原始字节检出，不受 Windows `core.autocrlf` 影响。目录约定见 [resources](resources/README.md)。
 
 ## 验证

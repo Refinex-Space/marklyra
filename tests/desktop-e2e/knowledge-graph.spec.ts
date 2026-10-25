@@ -48,6 +48,7 @@ function installGraphMock(text: string) {
     exports: [] as unknown[],
     statusError: '',
     generation: 1,
+    richDetails: false,
     delay: false,
     release: null as null | (() => void),
   };
@@ -158,7 +159,26 @@ function installGraphMock(text: string) {
     }
     if (command === 'knowledge_active') return null;
     if (command === 'knowledge_references') {
-      const items = references
+      const first = references[0];
+      const related =
+        state.richDetails && first
+          ? [
+              ...references,
+              {
+                ...first,
+                target: null,
+                status: 'external',
+                line: 7,
+                destination:
+                  'https://github.com/alibaba/spring-ai-alibaba/blob/main/spring-ai-alibaba-agent-framework/src/main/java/com/alibaba/cloud/ai/graph/agent/ReactAgent.java',
+                preview:
+                  '本文以 Spring AI Alibaba 的 Agent 为例，说明长期记忆、工具调用和可追溯引用的组织方式。'.repeat(
+                    4,
+                  ),
+              },
+            ]
+          : references;
+      const items = related
         .filter((r) => (args.incoming ? r.target === args.note : r.source === args.note))
         .filter((r) => !args.destination || r.destination === args.destination);
       return { items, total: items.length, offset: 0 };
@@ -176,7 +196,9 @@ function installGraphMock(text: string) {
         {
           id: 'Layout.md',
           path: 'Layout.md',
-          title: 'Layout Reference',
+          title: state.richDetails
+            ? '深入理解 Alibaba-ReAct Agent 原理与可验证的知识关系'
+            : 'Layout Reference',
           tags: ['研究'],
           incoming: 0,
           outgoing: 1,
@@ -271,6 +293,166 @@ async function choose(page: Page, name: string) {
   if ((await page.locator('.knowledge-node-browser').getAttribute('open')) === null)
     await summary.click();
   await page.locator(`.knowledge-node-list button[title="${name}"]`).click();
+}
+
+test('graph search and document-list focus do not draw full-width blue frames', async ({
+  page,
+}) => {
+  await setup(page, 'marklyra-dark');
+  await openGraph(page);
+  const input = page.getByRole('textbox', { name: '搜索图谱' });
+  await input.click();
+  expect(await input.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('none');
+  expect(
+    await page
+      .locator('.knowledge-search')
+      .evaluate((element) => getComputedStyle(element).boxShadow),
+  ).toBe('none');
+  await page.getByRole('button', { name: '筛选', exact: true }).click();
+  for (const label of ['关系层级', '显示预算', '筛选目录', '筛选标签']) {
+    const control = page.getByLabel(label, { exact: true });
+    await control.focus();
+    expect(await control.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe(
+      'none',
+    );
+    expect(await control.evaluate((element) => getComputedStyle(element).boxShadow)).toBe('none');
+  }
+  const summary = page.locator('.knowledge-node-browser summary');
+  await choose(page, 'Layout.md');
+  await summary.click();
+  await summary.focus();
+  expect(await summary.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('none');
+  await summary.press('Enter');
+  await expect(page.locator('.knowledge-node-browser')).toHaveAttribute('open', '');
+  await expect(page.locator('.knowledge-workbench')).toBeVisible();
+});
+
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
+  test(`${theme}: graph chrome aligns, filters stay orderly and the inspector resizes without resetting the scene`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 1480, height: 900 });
+    await setup(page, theme);
+    await page.evaluate(() => {
+      Reflect.get(window, '__knowledgeMock').richDetails = true;
+    });
+    const history = await layoutHistory(page);
+    await openGraph(page);
+    const header = await page.locator('.knowledge-header').boundingBox();
+    const folderHeader = await page.locator('.workspace-navigation-single').boundingBox();
+    if (!header || !folderHeader) throw new Error('Missing aligned headers');
+    expect(header.height).toBe(folderHeader.height);
+    expect(Math.abs(header.y - folderHeader.y)).toBeLessThanOrEqual(1);
+    const sizes = await page.evaluate(() => [
+      getComputedStyle(document.querySelector('.knowledge-heading strong') as Element).fontSize,
+      getComputedStyle(document.querySelector('.workspace-folder-trigger') as Element).fontSize,
+    ]);
+    expect(sizes[0]).toBe(sizes[1]);
+    await expect(page.getByRole('complementary', { name: '关系详情' })).toHaveCount(0);
+    await page.getByRole('button', { name: '筛选', exact: true }).click();
+    const searchBox = await page.locator('.knowledge-search').boundingBox();
+    const actions = await page.getByRole('group', { name: '图谱视图操作' }).boundingBox();
+    if (!searchBox || !actions) throw new Error('Missing graph toolbar');
+    expect(
+      Math.abs(searchBox.y + searchBox.height / 2 - actions.y - actions.height / 2),
+    ).toBeLessThanOrEqual(1);
+    expect(actions.x).toBeGreaterThan(searchBox.x + searchBox.width);
+    const fieldRows = await page
+      .locator('.knowledge-filter-fields > label')
+      .evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().top));
+    expect(Math.max(...fieldRows) - Math.min(...fieldRows)).toBeLessThanOrEqual(1);
+    await choose(page, 'Layout.md');
+    const handle = page.getByRole('separator', { name: '调整关系面板宽度' });
+    const pane = page.locator('.knowledge-inspector');
+    await expect.poll(async () => Math.round((await pane.boundingBox())?.width ?? 0)).toBe(320);
+    await page.evaluate(async () => {
+      Reflect.set(
+        window,
+        '__graphCanvasBefore',
+        document.querySelector('.knowledge-canvas canvas'),
+      );
+      Reflect.set(window, '__graphSceneUpdates', 0);
+      const route = '/src/features/knowledge-graph/renderer.ts';
+      const module = await import(route),
+        original = module.GraphRenderer.prototype.setData;
+      module.GraphRenderer.prototype.setData = function (...args: unknown[]) {
+        Reflect.set(window, '__graphSceneUpdates', Reflect.get(window, '__graphSceneUpdates') + 1);
+        return original.apply(this, args);
+      };
+    });
+    const box = await handle.boundingBox();
+    if (!box) throw new Error('Missing graph resize handle');
+    const x = box.x + box.width / 2,
+      y = box.y + 70;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x - 90, y, { steps: 12 });
+    await expect(handle).toHaveAttribute('aria-valuenow', '410');
+    await expect.poll(async () => Math.round((await pane.boundingBox())?.width ?? 0)).toBe(410);
+    await expect(page.locator('.resize-shield')).toHaveCount(1);
+    await page.mouse.up();
+    await expect(page.locator('.resize-shield')).toHaveCount(0);
+    await handle.focus();
+    await handle.press('ArrowLeft');
+    await expect(handle).toHaveAttribute('aria-valuenow', '420');
+    await expect.poll(async () => Math.round((await pane.boundingBox())?.width ?? 0)).toBe(420);
+    expect(await page.evaluate(() => Reflect.get(window, '__graphSceneUpdates'))).toBe(0);
+    expect(
+      await page.evaluate(
+        () =>
+          Reflect.get(window, '__graphCanvasBefore') ===
+          document.querySelector('.knowledge-canvas canvas'),
+      ),
+    ).toBe(true);
+    expect(await layoutHistory(page)).toBe(history);
+    const output = resolve('artifacts/knowledge-graph/ui-polish');
+    await mkdir(output, { recursive: true });
+    await page.getByRole('button', { name: '适应图谱' }).click();
+    await page.getByRole('textbox', { name: '搜索图谱' }).click();
+    await page.screenshot({ path: resolve(output, `${info.project.name}-${theme}-wide.png`) });
+    await page.getByRole('button', { name: '收起关系详情' }).click();
+    await expect(page.getByRole('complementary', { name: '关系详情' })).toHaveCount(0);
+    await choose(page, 'Notes/Other.md');
+    await expect.poll(async () => Math.round((await pane.boundingBox())?.width ?? 0)).toBe(420);
+    await choose(page, 'Layout.md');
+    await page.setViewportSize({ width: 960, height: 740 });
+    await expect(page.locator('.knowledge-workbench')).toHaveAttribute('data-narrow', 'true');
+    await expect(handle).toBeHidden();
+    expect(
+      await page
+        .locator('.knowledge-workbench')
+        .evaluate((element) => element.scrollWidth > element.clientWidth + 1),
+    ).toBe(false);
+    await page.screenshot({ path: resolve(output, `${info.project.name}-${theme}-narrow.png`) });
+    const external = page.getByText('github.com', { exact: true });
+    await external.scrollIntoViewIfNeeded();
+    await expect(external).toBeVisible();
+    const externalBox = await external.boundingBox(),
+      inspectorBox = await pane.boundingBox();
+    if (!externalBox || !inspectorBox) throw new Error('Missing scrollable reference card');
+    expect(externalBox.y).toBeGreaterThanOrEqual(inspectorBox.y);
+    expect(externalBox.y + externalBox.height).toBeLessThanOrEqual(
+      inspectorBox.y + inspectorBox.height,
+    );
+    await page.screenshot({
+      path: resolve(output, `${info.project.name}-${theme}-narrow-scrolled.png`),
+    });
+    await page.getByRole('button', { name: '返回文档', exact: true }).first().click();
+    expect(await layoutHistory(page)).toBe(history);
+    await page.setViewportSize({ width: 1480, height: 900 });
+    await openGraph(page);
+    await choose(page, 'Layout.md');
+    await expect(handle).toHaveAttribute('aria-valuenow', '420');
+    await handle.focus();
+    await handle.press('Home');
+    await expect(handle).toHaveAttribute('aria-valuenow', '260');
+    await handle.press('End');
+    const maximum = await handle.getAttribute('aria-valuemax');
+    if (!maximum) throw new Error('Missing resize limit');
+    await expect(handle).toHaveAttribute('aria-valuenow', maximum);
+    await page.getByRole('button', { name: '返回文档', exact: true }).first().click();
+    expect(await layoutHistory(page)).toBe(history);
+  });
 }
 
 test('graph keeps the editor instance and history, and persists pinned view state', async ({

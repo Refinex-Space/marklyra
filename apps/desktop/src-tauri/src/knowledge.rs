@@ -254,11 +254,7 @@ pub(crate) async fn knowledge_open(
             .state::<crate::file_preferences::FilePreferencesHost>()
             .document_types(&app)?;
         let policy = format!("{:?}:{:?}", types.enabled_extensions(), types.disabled);
-        let directory = app
-            .path()
-            .local_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("marklyra/knowledge/workspaces");
+        let directory = crate::app_paths::local_data_dir(&app)?.join("knowledge/workspaces");
         let current = authorized(&window, &workspace_id)?;
         if !Arc::ptr_eq(&selected, &current) {
             return Err("目录会话已更换".into());

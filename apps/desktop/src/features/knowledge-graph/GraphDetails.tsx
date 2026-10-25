@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '../../components/Icon.js';
 import { type KnowledgeSession, knowledge } from '../../services/knowledge.js';
 import type { WorkspaceMatchPosition } from '../../services/workspaces.js';
 import type { GraphNode, GraphReference, GraphSnapshot, ReferencePage } from './model.js';
@@ -24,6 +25,7 @@ export function GraphDetails(props: {
   onMove: () => void;
   onLocate: () => void;
   onError: (message: string) => void;
+  onClose: () => void;
 }) {
   const [incoming, setIncoming] = useState(false),
     [offset, setOffset] = useState(0),
@@ -106,35 +108,58 @@ export function GraphDetails(props: {
   return (
     <aside className="knowledge-details" aria-label="关系详情">
       <header className="knowledge-detail-header">
-        <span className={`knowledge-node-state ${node.state}`}>
-          {node.path
-            ? '文档'
-            : node.state === 'ambiguous'
-              ? '同名歧义'
-              : props.complete
-                ? '未解析目标'
-                : '等待索引'}
-        </span>
-        <h3>{node.title}</h3>
-        {node.path && <p title={node.path}>{node.path}</p>}
-        {node.state === 'stale' && <p role="status">此文档尚未重新索引，关系来自上次已知内容。</p>}
+        <div className="knowledge-detail-caption">
+          <span className={`knowledge-node-state ${node.state}`}>
+            {node.path
+              ? '文档'
+              : node.state === 'ambiguous'
+                ? '同名歧义'
+                : props.complete
+                  ? '未解析目标'
+                  : '等待索引'}
+          </span>
+          <button
+            type="button"
+            className="knowledge-detail-close"
+            aria-label="收起关系详情"
+            title="收起关系详情"
+            onClick={props.onClose}
+          >
+            <Icon name="close" />
+          </button>
+        </div>
+        <div className="knowledge-note-heading">
+          <h3 title={node.title}>{node.title}</h3>
+          {node.path && (
+            <p className="knowledge-note-path" title={node.path}>
+              {node.path}
+            </p>
+          )}
+          {node.state === 'stale' && (
+            <p role="status">此文档尚未重新索引，关系来自上次已知内容。</p>
+          )}
+        </div>
         {node.path ? (
           <div className="knowledge-detail-actions">
-            <button type="button" onClick={() => props.onOpen(node.path as string)}>
-              打开文档 ↗
-            </button>
-            <button type="button" onClick={() => props.onFocus(node.path as string)}>
-              以此为中心
-            </button>
-            <button type="button" onClick={props.onPin} aria-pressed={props.pinned}>
-              {props.pinned ? '取消固定' : '固定位置'}
-            </button>
-            <button type="button" onClick={props.onMove}>
-              移动到…
-            </button>
-            <button type="button" onClick={props.onLocate}>
-              定位节点
-            </button>
+            <div className="knowledge-detail-primary">
+              <button type="button" onClick={() => props.onOpen(node.path as string)}>
+                打开文档 ↗
+              </button>
+              <button type="button" onClick={() => props.onFocus(node.path as string)}>
+                以此为中心
+              </button>
+            </div>
+            <div className="knowledge-detail-secondary">
+              <button type="button" onClick={props.onPin} aria-pressed={props.pinned}>
+                {props.pinned ? '取消固定' : '固定位置'}
+              </button>
+              <button type="button" onClick={props.onMove}>
+                移动到…
+              </button>
+              <button type="button" onClick={props.onLocate}>
+                定位节点
+              </button>
+            </div>
           </div>
         ) : (
           <p>图谱不会自动创建文件或修改链接。请在来源文档中核对目标路径。</p>
@@ -202,51 +227,73 @@ export function GraphDetails(props: {
             {incoming ? '尚未发现引用此文档的链接。' : '此文档没有已索引的链接。'}
           </p>
         )}
-        {items.map((reference) => (
-          <article
-            className="knowledge-reference"
-            key={`${reference.source}:${reference.line}:${reference.column}`}
-          >
-            {incoming || reference.target ? (
-              <button
-                type="button"
-                className="knowledge-reference-title"
-                onClick={() =>
-                  incoming ? props.onOpen(reference.source, reference) : void openTarget(reference)
-                }
-              >
-                {incoming ? reference.source : (reference.target ?? reference.destination)}
-              </button>
-            ) : (
-              <span className="knowledge-reference-title unresolved">{reference.destination}</span>
-            )}
-            <p className="knowledge-reference-preview">{reference.preview}</p>
-            <div className="knowledge-reference-meta">
-              <span>
-                {reference.anchorMissing
-                  ? '锚点未找到'
-                  : (states[reference.status] ?? reference.status)}
-              </span>
-              <button type="button" onClick={() => props.onOpen(reference.source, reference)}>
-                定位原文 · {reference.line} 行
-              </button>
-            </div>
-            {reference.candidates.length === 32 && (
-              <p className="knowledge-muted">候选项最多显示 32 个，请在原文使用完整路径。</p>
-            )}
-            {reference.candidates.length > 0 && (
-              <ul>
-                {reference.candidates.map((path) => (
-                  <li key={path}>
-                    <button type="button" onClick={() => props.onOpen(path)}>
-                      {path}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </article>
-        ))}
+        {items.map((reference) => {
+          const path = incoming ? reference.source : (reference.target ?? reference.destination);
+          const document = props.data?.nodes.find((item) => item.path === path);
+          let title = document?.title ?? path.split(/[\\/]/).at(-1) ?? path;
+          if (/^https?:\/\//i.test(path)) {
+            try {
+              title = new URL(path).hostname;
+            } catch {
+              /* Keep the literal destination. */
+            }
+          }
+          return (
+            <article
+              className="knowledge-reference"
+              key={`${reference.source}:${reference.line}:${reference.column}`}
+            >
+              {incoming || reference.target ? (
+                <button
+                  type="button"
+                  className="knowledge-reference-title"
+                  title={path}
+                  onClick={() =>
+                    incoming
+                      ? props.onOpen(reference.source, reference)
+                      : void openTarget(reference)
+                  }
+                >
+                  <Icon name="document" />
+                  <span>{title}</span>
+                </button>
+              ) : (
+                <span className="knowledge-reference-title unresolved" title={path}>
+                  <Icon name="document" />
+                  <span>{title}</span>
+                </span>
+              )}
+              <p className="knowledge-reference-path" title={path}>
+                {path}
+              </p>
+              <p className="knowledge-reference-preview">{reference.preview}</p>
+              <div className="knowledge-reference-meta">
+                <span>
+                  {reference.anchorMissing
+                    ? '锚点未找到'
+                    : (states[reference.status] ?? reference.status)}
+                </span>
+                <button type="button" onClick={() => props.onOpen(reference.source, reference)}>
+                  定位原文 · {reference.line} 行
+                </button>
+              </div>
+              {reference.candidates.length === 32 && (
+                <p className="knowledge-muted">候选项最多显示 32 个，请在原文使用完整路径。</p>
+              )}
+              {reference.candidates.length > 0 && (
+                <ul>
+                  {reference.candidates.map((path) => (
+                    <li key={path}>
+                      <button type="button" onClick={() => props.onOpen(path)}>
+                        {path}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          );
+        })}
       </div>
       {page && page.total > 50 && (
         <footer className="knowledge-reference-pages">

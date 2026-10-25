@@ -9,7 +9,7 @@
 - 单击节点查看入链、出链及各次引用；双击、Enter 或“打开文档”进入正文。引用可以定位原文，锚点存在时可以定位目标标题或块。
 - 拖动节点时，最多 150 个直接关联节点参与局部布局；其他节点保持位置。支持固定/取消固定、定位、适合视图、鼠标位置缩放、背景平移、方向键平移和节点操作菜单。
 - 支持标题/路径搜索、目录与 YAML 标签筛选、未解析目标、孤立文档开关。中文输入法组合期间不发送半成品查询。
-- 文字节点列表和引用列表分页，提供图形之外的键盘访问路径。窄面板将关系详情放到图谱下方。
+- 文字节点列表和引用列表分页，提供图形之外的键盘访问路径。关系详情在选中节点后展开，可收起；宽屏可拖动分隔柄调整宽度，也支持方向键与 Home/End，当前窗口会记住宽度。窄面板将关系详情放到图谱下方，内容可独立滚动。
 - 明暗主题跟随应用与自定义主题的背景、正文、焦点色。缺失目标以空心节点区别；选中关系显示方向。可选方向动效只在选中节点时短暂播放，最多 8 条路径、450 ms；系统减少动态效果设置实时生效。
 - 视图位置、固定状态、相机、筛选和动效设置自动保存；支持原生文件对话框导入/导出 JSON。重置视图恢复筛选、相机和动效，保留已安排的节点位置与固定状态。
 
@@ -47,7 +47,7 @@ flowchart LR
 
 ## 存储与关系维护
 
-索引路径为平台 `local_data_dir()` 下的 `marklyra/knowledge/workspaces/<目录身份 SHA-256>/index.sqlite`；同目录的 `views.json` 保存视图。目录身份来自已有 `DirectoryBookmark.identity`，不是渲染层传入的任意路径。目录移动后核对真实绑定；索引根路径变化会重新提取，避免绝对文件链接继续沿用旧解析。
+索引路径为平台 `local_data_dir()` 下的 `marklyra/knowledge/workspaces/<目录身份 SHA-256>/index.sqlite`；开发运行（debug 构建）使用独立的 `marklyra-dev` 根目录。同目录的 `views.json` 保存视图。目录身份来自已有 `DirectoryBookmark.identity`，不是渲染层传入的任意路径。目录移动后核对真实绑定；索引根路径变化会重新提取，避免绝对文件链接继续沿用旧解析。
 
 数据库保存 `notes`、逐次引用 `refs`、解析依赖 `dependencies`、按来源/目标聚合的 `edges` 和版本 `meta`。重复引用保留各自源码位置，显示边合并计数。反向索引支持入链和两跳查询。查询在 SQLite 读事务中取得一致快照；128 篇文档一批发布，未提交的半批数据不可见。
 
@@ -115,7 +115,7 @@ node scripts/audit-dependencies.mjs --notices
 
 ### 2026-10-25 最终原生结果
 
-环境：Apple M1 Max、32 GiB、macOS 26.5.2、aarch64 release，WKWebView 视口 1440 × 872、DPR 2。最终运行没有并行构建或采样器。全部门槛通过，错误数组为空；测量清单中的源码 SHA-256 与当前代码逐项一致。完整记录：[原生报告](../artifacts/knowledge-graph/native-release/report.json)、[验证摘要](../artifacts/knowledge-graph/native-release/verified-summary.json)。
+环境：Apple M1 Max、32 GiB、macOS 26.5.2、aarch64 release，WKWebView 视口 1440 × 872、DPR 2。该轮运行没有并行构建或采样器。全部门槛通过，错误数组为空；完成该轮测量时，源码 SHA-256 与测量清单逐项一致。后续界面调整的验证单独记录，不将此表宣称为调整后界面的重新测量。完整记录：[原生报告](../artifacts/knowledge-graph/native-release/report.json)、[验证摘要](../artifacts/knowledge-graph/native-release/verified-summary.json)。
 
 | 项目 | 实测 |
 | --- | --- |
@@ -148,3 +148,13 @@ node scripts/audit-dependencies.mjs --notices
 | Codacy | 未执行：本会话未提供对应 skill，没有初始化或上传源码/扫描结果。 |
 
 浏览器回归使用模拟 IPC，不能替代真实文件监听/宿主测试；原生夹具也不能替代 Windows WebView2 真机验收。合成 composition 事件验证应用的输入保护，不等同于系统输入法候选窗口验收。GPU 共享进程没有可靠的独占归属，因此内存和 CPU 只报告被明确识别的宿主与 WebContent 进程，不称作整个系统的 GPU 总成本。
+
+### 界面细节调整（2026-10-25）
+
+图谱标题行与文件夹栏同为 40 px 高、12 px 字号。搜索与视图操作共用一行，筛选条件按固定列与显示开关分组；较窄宽度时操作保留图标、条件按列换行。移除内容区的重复横纵分隔线，关系详情通过留白和轻微背景差区分标题、操作与引用卡片。长标题、路径和外链均保留完整提示，正文预览限制行数。
+
+关系面板复用 `DocumentDetailsResize` 的 pointer capture、rAF 和 CSS 变量更新方式，新增可配置容器及变量名。拖动期间不逐帧提交 React 宽度状态，不重新设置图谱数据，也不重建画布或编辑器。面板支持宽度边界、收起和同窗口再次打开时恢复宽度。
+
+搜索输入、下拉框、画布和文档列表不再叠加整块蓝色焦点边框；键盘焦点保留在具体按钮或列表标题附近。文档列表获得焦点时，Enter 只展开/收起列表，不误打开选中的图谱文档。
+
+本轮图谱及既有分栏的 Chromium/WebKit 组合回归 44 项通过；相关单元测试 6 项、类型检查、Biome 和桌面前端构建通过。截图位于 `artifacts/knowledge-graph/ui-polish/`，包含明暗主题、展开筛选、长链接、宽度拖拽和窄窗口。没有改动解析器、增量索引或 Canvas 渲染器，也没有重新执行前述原生性能基准。

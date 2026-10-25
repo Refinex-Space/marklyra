@@ -148,6 +148,7 @@ test('another instance owning the native store blocks bootstrap without deleting
   });
   await page.goto('/');
   await expect(page.getByRole('button', { name: '重新连接草稿保护' })).toBeVisible();
+  await expect(page.locator('.editor-loading')).toContainText('恢复存储正在被其他程序实例使用');
   await expect(page.locator('.marklyra-editor-frame')).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem('marklyra-draft'))).toBe('Keep while busy');
   await page.evaluate(() => {

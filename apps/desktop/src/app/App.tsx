@@ -655,7 +655,9 @@ export function App() {
   };
   // A start that has reported a problem stops presenting itself as loading: the skeleton gives
   // way to the message and its retry instead of waiting for something that is not coming.
-  const startupFailed = Boolean(applicationSystem.error || markdownSystem.error || doc.message);
+  const startupFailed = Boolean(
+    applicationSystem.error || markdownSystem.error || doc.message || doc.recoveryError,
+  );
   const daily = useDailyController(
     doc,
     sessionWorkspace ? workspaceIdentity.current : null,
@@ -2796,6 +2798,7 @@ export function App() {
                 {!doc.recoveryReady ? (
                   <>
                     <p>草稿保护未能就绪</p>
+                    {doc.recoveryError && <p role="alert">{doc.recoveryError}</p>}
                     <button type="button" onClick={doc.retryRecovery}>
                       重新连接草稿保护
                     </button>

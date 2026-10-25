@@ -132,6 +132,7 @@ export function useDocumentSession(
   const journal = useRef<RecoveryJournal | null>(null);
   const fallback = useRef<RecoveryFallback | null>(null);
   const [recoveryReady, setRecoveryReady] = useState(!desktopAvailable);
+  const [recoveryError, setRecoveryError] = useState('');
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: retry explicitly reruns the native ownership handshake.
   useEffect(() => {
@@ -142,10 +143,16 @@ export function useDocumentSession(
       .then((context) => {
         if (!active) return;
         fallback.current ??= new RecoveryFallback(localStorage, context.owner);
+        setRecoveryError('');
+        setMessage((message) => (message.startsWith('恢复保护尚未就绪：') ? '' : message));
         setRecoveryReady(true);
       })
       .catch((error: unknown) => {
-        if (active) setMessage(`恢复保护尚未就绪：${String(error)}。本地草稿保持原样。`);
+        if (active) {
+          const message = `恢复保护尚未就绪：${String(error)}。本地草稿保持原样。`;
+          setRecoveryError(message);
+          setMessage(message);
+        }
       });
     return () => {
       active = false;
@@ -1433,6 +1440,7 @@ export function useDocumentSession(
   }, [imageRelocation, working, pending]);
   return {
     recoveryReady,
+    recoveryError,
     retryRecovery: () => setRecoveryAttempt((attempt) => attempt + 1),
     initial: initial.current,
     source,
