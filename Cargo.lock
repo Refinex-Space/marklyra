@@ -987,7 +987,7 @@ dependencies = [
 
 [[package]]
 name = "document-service"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "cap-primitives",
  "cap-std",
@@ -1160,7 +1160,7 @@ dependencies = [
 
 [[package]]
 name = "export-service"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "cap-std",
  "cssparser",
@@ -1229,7 +1229,7 @@ dependencies = [
 
 [[package]]
 name = "file-index"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "cap-std",
  "document-service",
@@ -2090,7 +2090,7 @@ dependencies = [
 
 [[package]]
 name = "image-assets"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "base64 0.22.1",
  "cap-primitives",
@@ -2450,7 +2450,7 @@ dependencies = [
 
 [[package]]
 name = "knowledge-index"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "document-service",
  "file-index",
@@ -2598,7 +2598,7 @@ checksum = "4050469837a6ff301cd14c1f8f24f88549e6d548f24f64e2148eb0f72cebc51f"
 
 [[package]]
 name = "marklyra-desktop"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "base64 0.22.1",
  "block2",
@@ -3684,7 +3684,7 @@ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 
 [[package]]
 name = "recent-files"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "cap-std",
  "document-service",
@@ -3698,7 +3698,7 @@ dependencies = [
 
 [[package]]
 name = "recovery-store"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "cap-std",
  "serde",

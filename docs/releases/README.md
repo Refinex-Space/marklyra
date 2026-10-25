@@ -101,7 +101,7 @@ pnpm typecheck
 pnpm check:boundaries
 pnpm test
 pnpm test:release
-node --test scripts/lib/general-preferences-source.test.mjs scripts/lib/prepare-preferences-runtime.test.mjs
+node --test scripts/lib/prepare-preferences-runtime.test.mjs
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked
 cargo test --workspace --lib --bins --locked -- --test-threads=1

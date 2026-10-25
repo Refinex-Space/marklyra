@@ -45,7 +45,7 @@ jobs:
       - run: pnpm check:boundaries
       - run: pnpm test
       - run: pnpm test:release
-      - run: node --test scripts/lib/general-preferences-source.test.mjs
+      - run: node --test scripts/lib/prepare-preferences-runtime.test.mjs
       - name: Install browser test engines
         if: matrix.target == 'aarch64-apple-darwin'
         run: pnpm exec playwright install chromium webkit
