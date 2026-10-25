@@ -150,6 +150,14 @@ button[aria-pressed="true"] {
 .shell[data-native-chrome="true"] .marklyra-editor-frame {
   --marklyra-frame-radius: calc(var(--pane-radius) - 1px);
 }
+/* Clip graph overlays at the pane's inner radius; the editor keeps its own overflow rules.
+   This lives in the Shell stylesheet so lazy-loading and error surfaces use it too. */
+.knowledge-surface {
+  --knowledge-surface-radius: max(0px, calc(var(--pane-radius, 0px) - 1px));
+  border-radius: var(--knowledge-surface-radius);
+  clip-path: inset(0 round var(--knowledge-surface-radius));
+  overflow: hidden;
+}
 /* The mount is square; its own fill would paint over the pane's rounded corners. */
 .shell[data-native-chrome="true"] .runtime-editor-mount {
   background: transparent;

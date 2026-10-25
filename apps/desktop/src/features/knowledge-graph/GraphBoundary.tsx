@@ -13,6 +13,7 @@ export class GraphBoundary extends Component<
     if (!this.state.error) return this.props.children;
     return (
       <section
+        className="knowledge-surface"
         role="alert"
         style={{
           position: 'absolute',

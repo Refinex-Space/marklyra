@@ -291,7 +291,7 @@ export default function KnowledgeGraph(props: {
   return (
     <section
       ref={shell}
-      className="knowledge-workbench"
+      className="knowledge-workbench knowledge-surface"
       aria-label="知识图谱"
       tabIndex={-1}
       data-narrow={narrow || undefined}

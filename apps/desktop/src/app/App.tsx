@@ -2881,6 +2881,7 @@ export function App() {
               <Suspense
                 fallback={
                   <div
+                    className="knowledge-surface"
                     role="status"
                     style={{
                       position: 'absolute',

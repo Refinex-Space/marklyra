@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import type { TestWindow } from './desktop.helpers.js';
 import {
   emitLayoutMenu,
@@ -293,6 +293,101 @@ async function choose(page: Page, name: string) {
   if ((await page.locator('.knowledge-node-browser').getAttribute('open')) === null)
     await summary.click();
   await page.locator(`.knowledge-node-list button[title="${name}"]`).click();
+}
+
+async function expectGraphCorners(surface: Locator) {
+  const geometry = await surface.evaluate((element) => {
+    const pane = element.closest('.document-area');
+    if (!pane) throw new Error('Missing document pane');
+    const outer = getComputedStyle(pane),
+      inner = getComputedStyle(element);
+    const box = element.getBoundingClientRect();
+    const points = [
+      [box.left + 0.5, box.top + 0.5],
+      [box.right - 0.5, box.top + 0.5],
+      [box.left + 0.5, box.bottom - 0.5],
+      [box.right - 0.5, box.bottom - 0.5],
+      [box.left + box.width / 2, box.top + 1],
+    ];
+    return {
+      expectedRadius: parseFloat(outer.borderTopLeftRadius) - parseFloat(outer.borderLeftWidth),
+      radii: [
+        inner.borderTopLeftRadius,
+        inner.borderTopRightRadius,
+        inner.borderBottomLeftRadius,
+        inner.borderBottomRightRadius,
+      ].map(parseFloat),
+      hits: points.map(([x, y]) => element.contains(document.elementFromPoint(x ?? 0, y ?? 0))),
+    };
+  });
+  expect(geometry.expectedRadius).toBeGreaterThan(0);
+  expect(geometry.radii).toEqual(Array(4).fill(geometry.expectedRadius));
+  // Actual hit testing includes the clipped descendants, not only the declared CSS radius.
+  expect(geometry.hits).toEqual([false, false, false, false, true]);
+}
+
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
+  test(`${theme}: graph preserves all four document-pane corners`, async ({ page }, info) => {
+    await setup(page, theme);
+    await openGraph(page);
+    await expectGraphCorners(page.locator('.knowledge-workbench'));
+    await choose(page, 'Layout.md');
+    await page.getByRole('button', { name: '筛选', exact: true }).click();
+    await expectGraphCorners(page.locator('.knowledge-workbench'));
+    const width = Number(
+      await page.getByRole('separator', { name: '调整关系面板宽度' }).getAttribute('aria-valuenow'),
+    );
+    await expect
+      .poll(async () =>
+        Math.round((await page.locator('.knowledge-inspector').boundingBox())?.width ?? 0),
+      )
+      .toBe(width);
+    await page.getByRole('button', { name: '适应图谱' }).click();
+    const output = resolve('artifacts/knowledge-graph/corners');
+    await mkdir(output, { recursive: true });
+    await page.screenshot({ path: resolve(output, `${info.project.name}-${theme}.png`) });
+  });
+
+  test(`${theme}: loading and failed graph modules preserve the pane corners and editor`, async ({
+    page,
+  }) => {
+    await setup(page, theme);
+    const history = await layoutHistory(page);
+    await page.evaluate(() =>
+      Reflect.set(window, '__cornerEditorFrame', document.querySelector('.marklyra-editor-frame')),
+    );
+    let release: (() => void) | undefined;
+    await page.route(
+      /\/features\/knowledge-graph\/KnowledgeGraph\.(tsx|js)(\?|$)/,
+      async (route) => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        await route.abort();
+      },
+    );
+    await page.getByRole('button', { name: '知识图谱', exact: true }).click();
+    try {
+      await expect.poll(() => !!release).toBe(true);
+      const loading = page.getByText('正在打开知识图谱…', { exact: true });
+      await expect(loading).toBeVisible();
+      await expectGraphCorners(loading);
+    } finally {
+      release?.();
+    }
+    const failed = page.getByRole('alert').filter({ hasText: '图谱暂时无法显示' });
+    await expect(failed).toBeVisible();
+    await expectGraphCorners(failed);
+    await failed.getByRole('button', { name: '返回文档', exact: true }).click();
+    expect(
+      await page.evaluate(
+        () =>
+          Reflect.get(window, '__cornerEditorFrame') ===
+          document.querySelector('.marklyra-editor-frame'),
+      ),
+    ).toBe(true);
+    expect(await layoutHistory(page)).toBe(history);
+  });
 }
 
 test('graph search and document-list focus do not draw full-width blue frames', async ({
