@@ -13,6 +13,15 @@ thread_local! {
     static SHEETS: RefCell<HashMap<Uuid, Sheet>> = RefCell::new(HashMap::new());
 }
 
+fn simplified_chinese(language: Option<&str>) -> bool {
+    let language = language
+        .unwrap_or_default()
+        .replace('_', "-")
+        .to_ascii_lowercase();
+    matches!(language.as_str(), "zh" | "zh-cn" | "zh-sg" | "zh-hans")
+        || language.starts_with("zh-hans-")
+}
+
 pub(super) fn begin(
     window: &WebviewWindow,
     name: &str,
@@ -34,21 +43,8 @@ pub(super) fn begin(
     let language = NSLocale::preferredLanguages()
         .firstObject()
         .map(|value| value.to_string());
-    let chinese = language
-        .as_deref()
-        .is_some_and(|value| value.starts_with("zh"));
-    let traditional = language.as_deref().is_some_and(|value| {
-        value.contains("Hant") || value.contains("TW") || value.contains("HK")
-    });
-    let (question, detail, suppression, ok, cancel) = if traditional {
-        (
-            format!("您確定要刪除 {name}?"),
-            "您可以從垃圾桶中復原。",
-            "不再顯示",
-            "確定",
-            "取消",
-        )
-    } else if chinese {
+    let chinese = simplified_chinese(language.as_deref());
+    let (question, detail, suppression, ok, cancel) = if chinese {
         (
             format!("是否要删除 {name}?"),
             "您可以从回收站恢复文件。",
@@ -72,12 +68,6 @@ pub(super) fn begin(
             Some(suppression),
             vec![ok, cancel],
         ),
-        PromptKind::Move if traditional => (
-            format!("確定要移動 {name} 嗎？"),
-            String::new(),
-            Some("不再顯示"),
-            vec!["是", "取消"],
-        ),
         PromptKind::Move if chinese => (
             format!("确定要移动 {name} 吗？"),
             String::new(),
@@ -89,12 +79,6 @@ pub(super) fn begin(
             String::new(),
             Some("Do not show this again"),
             vec!["Yes", "Cancel"],
-        ),
-        PromptKind::MoveConflict if traditional => (
-            format!("目的位置已有名為「{name}」的項目。"),
-            "取代會保留原項目以供檔案操作復原。".into(),
-            None,
-            vec!["保留兩者", "取代", "取消"],
         ),
         PromptKind::MoveConflict if chinese => (
             format!("目标位置已存在名为“{name}”的项目。"),
@@ -173,6 +157,28 @@ pub(super) fn dismiss(id: Uuid) {
             .is_some_and(|parent| std::ptr::eq::<NSWindow>(&*parent, &*sheet.parent))
         {
             sheet.parent.endSheet_returnCode(&window, 1001);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::simplified_chinese;
+
+    #[test]
+    fn system_locale_selects_simplified_chinese_or_falls_back_to_english() {
+        for language in ["zh", "zh-Hans", "zh-Hans-CN", "zh_CN", "zh-SG"] {
+            assert!(simplified_chinese(Some(language)), "{language}");
+        }
+        for language in [
+            None,
+            Some(""),
+            Some("en-US"),
+            Some("ja-JP"),
+            Some("zh-Hant"),
+            Some("zh-TW"),
+        ] {
+            assert!(!simplified_chinese(language), "{language:?}");
         }
     }
 }

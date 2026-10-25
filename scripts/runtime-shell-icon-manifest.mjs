@@ -1,12 +1,12 @@
-// Identity and observed family metadata only; font sources are tracked under resources/editor/style.
+// Identity and observed family metadata only; fonts are owned by the editor package assets.
 export const SHELL_ICON_MANIFEST = Object.freeze([
   {
-    path: 'typora-icon/fonts/typora-icon.woff',
+    path: 'marklyra-icon/fonts/marklyra-icon.woff',
     family: 'MarkLyra Icons',
-    originalFamily: 'typora-icon',
-    bytes: 15516,
-    sha256: '49a95eea5e45c2dfbb2483cfc64b7f6b5b3f4d5d863dc8d39ad2ea1c00fe659d',
-    sourcePath: 'resources/editor/style/typora-icon/fonts/typora-icon.woff',
+    originalFamily: 'marklyra-icon',
+    bytes: 8100,
+    sha256: '42b76f17ce883f44320e0a9679a47c39088406135884c0bdf24968c87f4f037b',
+    sourcePath: 'packages/editor-runtime/assets/styles/marklyra-icon/fonts/marklyra-icon.woff',
   },
   {
     path: 'ionicons-2.0.1/fonts/ionicons.woff',
@@ -14,7 +14,6 @@ export const SHELL_ICON_MANIFEST = Object.freeze([
     originalFamily: 'Ionicons',
     bytes: 57276,
     sha256: 'c5fd4000901f835054a4e6ed4bf0ddd5800ba2a3aebe5e5e4fc3147497c14636',
-    license: 'MIT',
   },
   {
     path: 'font-awesome-4.1.0/fonts/fontawesome-webfont.woff',
@@ -22,7 +21,6 @@ export const SHELL_ICON_MANIFEST = Object.freeze([
     originalFamily: 'FontAwesome',
     bytes: 83760,
     sha256: '66db52b456efe7e29cec11fa09421d03cb09e37ed1b567307ec0444fd605ce31',
-    license: 'OFL-1.1',
   },
 ]);
 

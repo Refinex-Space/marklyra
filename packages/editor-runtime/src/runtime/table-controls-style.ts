@@ -1,5 +1,5 @@
 export const tableControlsStyle = `
-#write [mdtype=table] > .ty-table-edit{display:none!important}
+#write [mdtype=table] > .marklyra-table-edit{display:none!important}
 .ml-table-controls{position:fixed;inset:0;z-index:1000;pointer-events:none;font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text-color,#333)}
 .ml-table-controls[hidden],.ml-table-controls [hidden]{display:none!important}
 .ml-table-controls button{font:inherit;color:inherit;cursor:pointer;box-sizing:border-box;outline:none;box-shadow:none}

@@ -1,68 +1,16 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { createContext, Script } from 'node:vm';
-import { transformRuntimePairing } from './runtime-pairing.mjs';
-import { transformRuntimeSerialization } from './runtime-serialization.mjs';
+import { capability, engineModule, sourceOf } from './runtime-test-source.mjs';
 
-const sourcePath = new URL('../../resources/editor/appsrc/main.js', import.meta.url);
-const original = await readFile(sourcePath, 'utf8');
-const digest = (value) => createHash('sha256').update(value).digest('hex');
-
-test('reset capability requires exact original provenance and unchanged unique module 56', () => {
-  for (const input of ['', null, 42, `${original}\n`])
-    assert.throws(() => transformRuntimePairing(input), /unknown original main.js SHA-256/);
-  const { metadata } = transformRuntimePairing(original);
-  const [start] = metadata.moduleRange;
-  const changed = `${original.slice(0, start + 80)} ${original.slice(start + 80)}`;
-  assert.throws(() => transformRuntimePairing(original, changed), /unknown module 56 AST\/SHA-256/);
-  assert.throws(
-    () =>
-      transformRuntimePairing(original, `${original}\n${original.slice(...metadata.moduleRange)}`),
-    /ambiguous module 56/,
-  );
-  assert.throws(
-    () => transformRuntimePairing(original, `var __MARKLYRA_RESET_PAIRING__;\n${original}`),
-    /duplicate reset capability/,
-  );
+const module = engineModule('56');
+const moduleSource = sourceOf(module);
+test('pairing module contains one cache-reset capability and executable source', () => {
+  capability('__MARKLYRA_RESET_PAIRING__', module);
+  assert.doesNotThrow(() => new Script(moduleSource));
 });
 
-test('one insertion preserves original bodies and composes after serializer offsets move', async () => {
-  const serialized = transformRuntimeSerialization(original);
-  const transformed = transformRuntimePairing(original, serialized.code);
-  const { metadata, code } = transformed;
-  assert.equal(
-    metadata.moduleSha256,
-    'aadb0afb139ae45cef5b45c1e7625866c05692ab60ffb0614b7347d2dc2b0f40',
-  );
-  assert.equal(
-    metadata.factorySha256,
-    '96bdb643b8f5299c2f3283b32938fbfba9627c5c25bfa30021e1e9d715677969',
-  );
-  assert.equal(metadata.inputSha256, digest(serialized.code));
-  assert.equal(metadata.transformedSha256, digest(code));
-  assert.equal(metadata.originalInsertionUtf16Offset, 649646);
-  assert.equal(
-    metadata.insertionUtf16Offset - metadata.originalInsertionUtf16Offset,
-    serialized.code.length - original.length,
-  );
-  const [edit] = metadata.edits;
-  assert.ok(code.slice(0, edit.start) === serialized.code.slice(0, edit.start));
-  assert.ok(code.slice(edit.start + edit.text.length) === serialized.code.slice(edit.start));
-  assert.equal(metadata.insertedBytes, Buffer.byteLength(edit.text));
-  assert.deepEqual(metadata.references, {
-    handlePair: { cache: 'c', test: 1, assign: 1, returned: 1 },
-    surroundPair: { cache: 's', test: 1, assign: 1, returned: 1 },
-    tryRemovePairStart: { cache: 'l', test: 1, assign: 1, returned: 1 },
-  });
-  assert.doesNotThrow(() => new Script(code));
-  assert.throws(() => transformRuntimePairing(original, code), /unknown module 56 AST\/SHA-256/);
-  assert.equal(digest(await readFile(sourcePath)), metadata.originalSha256);
-});
-
-function executeModule(transformed = true) {
-  const { code, metadata } = transformRuntimePairing(original);
+function executeModule() {
   const patterns = [],
     exports = {};
   const element = {
@@ -91,12 +39,7 @@ function executeModule(transformed = true) {
       factory = callback;
     },
   };
-  const [start, end] = metadata.moduleRange;
-  new Script(
-    transformed
-      ? code.slice(start, end + metadata.edits[0].text.length)
-      : original.slice(...metadata.originalModuleRange),
-  ).runInContext(context);
+  new Script(moduleSource).runInContext(context);
   const require = (id) =>
     id === '13'
       ? { Node: {}, TYPE: {} }
@@ -156,77 +99,72 @@ test('read-only capability resets all three real caches without modifying option
   );
 });
 
-test('the real surround factory retains its original two snapshots and filters only the empty trailing one', () => {
-  const results = [];
-  for (const transformed of [false, true]) {
-    const { context, exports, editor, range } = executeModule(transformed);
-    let text = 'Alpha beta',
-      selected = { start: 0, end: 5 },
-      pending;
-    const model = (value) => ({
-      id: 'n0',
-      content: { type: 'paragraph', text: value },
-      relation: {},
-      children: [],
-    });
-    const cursor = (value) => ({ type: 'cursor', id: 'n0', ...value });
-    const stack = [];
-    Object.assign(editor.undo, {
-      commandStack: stack,
-      index: -1,
-      setIndex(value) {
-        this.index = value;
-      },
-      addSnap(_id, flag) {
-        if (flag === 0) {
-          pending = { text, cursor: { ...selected } };
-          return;
-        }
-        if (stack.length)
-          Object.assign(stack.at(-1), { source: null, date: null, incomplete: null });
-        stack.push({
-          undo: [cursor(pending.cursor), { type: 'replace', id: 'n0', json: model(pending.text) }],
-          redo: [{ type: 'replace', id: 'n0', json: model(text) }, cursor(selected)],
-          source: `n0#${flag}`,
-        });
+test('the real surround factory records one content snapshot and filters the empty trailing one', () => {
+  const { context, exports, editor, range } = executeModule();
+  let text = 'Alpha beta',
+    selected = { start: 0, end: 5 },
+    pending;
+  const model = (value) => ({
+    id: 'n0',
+    content: { type: 'paragraph', text: value },
+    relation: {},
+    children: [],
+  });
+  const cursor = (value) => ({ type: 'cursor', id: 'n0', ...value });
+  const stack = [];
+  Object.assign(editor.undo, {
+    commandStack: stack,
+    index: -1,
+    setIndex(value) {
+      this.index = value;
+    },
+    addSnap(_id, flag) {
+      if (flag === 0) {
         pending = { text, cursor: { ...selected } };
-        this.index = stack.length - 1;
+        return;
+      }
+      if (stack.length) Object.assign(stack.at(-1), { source: null, date: null, incomplete: null });
+      stack.push({
+        undo: [cursor(pending.cursor), { type: 'replace', id: 'n0', json: model(pending.text) }],
+        redo: [{ type: 'replace', id: 'n0', json: model(text) }, cursor(selected)],
+        source: `n0#${flag}`,
+      });
+      pending = { text, cursor: { ...selected } };
+      this.index = stack.length - 1;
+    },
+  });
+  editor.findNodeByElem = () => ({ cid: 'n0' });
+  context.document = { createTextNode: (value) => ({ textContent: value }) };
+  range.getBookmark = () => ({ start: 0, end: 5 });
+  editor.selection = {
+    deRange() {},
+    rangy: {
+      createRange() {
+        let bookmark;
+        return {
+          moveToBookmark(value) {
+            bookmark = { ...value };
+          },
+          insertNode(node) {
+            text = text.slice(0, bookmark.start) + node.textContent + text.slice(bookmark.start);
+          },
+          insertNodeAtEnd(node) {
+            text = text.slice(0, bookmark.end) + node.textContent + text.slice(bookmark.end);
+          },
+          select() {
+            selected = { ...bookmark };
+          },
+        };
       },
-    });
-    editor.findNodeByElem = () => ({ cid: 'n0' });
-    context.document = { createTextNode: (value) => ({ textContent: value }) };
-    range.getBookmark = () => ({ start: 0, end: 5 });
-    editor.selection = {
-      deRange() {},
-      rangy: {
-        createRange() {
-          let bookmark;
-          return {
-            moveToBookmark(value) {
-              bookmark = { ...value };
-            },
-            insertNode(node) {
-              text = text.slice(0, bookmark.start) + node.textContent + text.slice(bookmark.start);
-            },
-            insertNodeAtEnd(node) {
-              text = text.slice(0, bookmark.end) + node.textContent + text.slice(bookmark.end);
-            },
-            select() {
-              selected = { ...bookmark };
-            },
-          };
-        },
-      },
-    };
-    assert.equal(exports.surroundPair(editor, '*', range), true);
-    assert.equal(text, '*Alpha* beta');
-    results.push(stack.length);
-    assert.equal(editor.undo.index, stack.length - 1);
-    assert.equal(stack[0].undo[1].json.content.text, 'Alpha beta');
-    assert.equal(stack[0].redo[0].json.content.text, '*Alpha* beta');
-    assert.deepEqual(stack[0].redo[1], cursor({ start: 1, end: 6 }));
-  }
-  assert.deepEqual(results, [2, 1]);
+    },
+  };
+  assert.equal(exports.surroundPair(editor, '*', range), true);
+  assert.equal(text, '*Alpha* beta');
+  assert.equal(stack.length, 1);
+  assert.equal(editor.undo.index, stack.length - 1);
+  assert.equal(stack[0].undo[1].json.content.text, 'Alpha beta');
+  assert.equal(stack[0].redo[0].json.content.text, '*Alpha* beta');
+  assert.deepEqual(stack[0].redo[1], cursor({ start: 1, end: 6 }));
 });
 
 test('warming ordinary pairing before enabling Markdown reproduces stale caches until reset', () => {

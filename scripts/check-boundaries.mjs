@@ -8,8 +8,8 @@ const packages = await readdir('packages');
 let count = 0;
 for (const name of packages) {
   const manifest = JSON.parse(await readFile(`packages/${name}/package.json`, 'utf8'));
-  if (!manifest.private || manifest.license !== 'UNLICENSED')
-    throw new Error(`${name}: publication gate missing`);
+  if (!manifest.private || manifest.license !== 'Apache-2.0')
+    throw new Error(`${name}: private package/root Apache-2.0 declaration missing`);
   let files = [];
   try {
     files = await readdir(`packages/${name}/src`, { recursive: true });

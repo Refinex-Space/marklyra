@@ -4,7 +4,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const input = resolve(root, 'resources/native-titlebar');
+const input = resolve(root, 'apps/desktop/src-tauri/icons/titlebar');
 export const nativeTitlebarManifest = JSON.parse(
   await readFile(new URL('./native-titlebar-manifest.json', import.meta.url), 'utf8'),
 );

@@ -2,6 +2,7 @@ import type { ContextAction } from '../context-menu/contracts.js';
 import type { ContextCutCommit, ContextExecutionRequest } from '../context-menu/execution.js';
 import type { ExportHTMLOptions } from '../export/options.js';
 import type { ImageCheckpoint, ImageContextMessage } from '../images/contracts.js';
+import { marklyraLocale, marklyraLocaleDirectory } from '../locale.js';
 import { marklyraMarkdownPreferences } from '../markdown-preferences.js';
 import {
   type Envelope,
@@ -97,7 +98,7 @@ const scrollbarLayout = new ResizeObserver(() => {
 function measureScrollbars(): void {
   for (const [selector, name] of [
     ['content', '--marklyra-document-scrollbar-space'],
-    ['#typora-source .CodeMirror-scroll', '--marklyra-source-scrollbar-space'],
+    ['#marklyra-source .CodeMirror-scroll', '--marklyra-source-scrollbar-space'],
   ] as const) {
     const port = document.querySelector<HTMLElement>(selector);
     if (!port) continue;
@@ -519,8 +520,7 @@ function respond(name: string, data: unknown): unknown {
     send('unsupported-host-call', name);
   return null;
 }
-const selectedLocale =
-  new URL(location.href).searchParams.get('locale') === 'zh-Hans' ? 'zh-Hans' : 'Base';
+const selectedLocale = marklyraLocaleDirectory(new URL(location.href).searchParams.get('locale'));
 const requestedTheme = new URL(location.href).searchParams.get('theme') ?? 'marklyra-light';
 const theme = ['marklyra-light', 'marklyra-dark'].includes(requestedTheme)
   ? requestedTheme
@@ -632,7 +632,7 @@ function command(value: MarkLyraCommand) {
     case 'scrollToTop': {
       if (loading || file._onInitParse) throw new Error('请等待文档加载完成');
       if (editor.sourceView.inSourceMode) {
-        const port = document.querySelector<HTMLElement>('#typora-source .CodeMirror-scroll');
+        const port = document.querySelector<HTMLElement>('#marklyra-source .CodeMirror-scroll');
         editor.sourceView.cm?.scrollTo?.(port?.scrollLeft ?? 0, 0);
       } else {
         const port = document.querySelector<HTMLElement>('content');
@@ -789,7 +789,8 @@ window.addEventListener(
             break;
           }
           case 'configure': {
-            configuration = message.payload as RuntimeConfiguration;
+            const value = message.payload as RuntimeConfiguration;
+            configuration = { ...value, locale: marklyraLocale(value?.locale) };
             result = true;
             break;
           }
@@ -1195,7 +1196,7 @@ document.addEventListener(
   'contextmenu',
   (event) => {
     const target = event.target instanceof Element ? event.target : null;
-    if (!target?.closest('#write,#typora-source,.CodeMirror')) return;
+    if (!target?.closest('#write,#marklyra-source,.CodeMirror')) return;
     contextEvent = event;
     event.preventDefault();
     // Trusted browser events run microtask checkpoints between listeners.
@@ -1431,30 +1432,30 @@ async function ready() {
   const style = document.createElement('style');
   // The host animates horizontal geometry. A second runtime transition would lag behind dragging.
   style.textContent =
-    'content,#typora-source{transition-property:top!important}' +
-    ':root{--sidebar-width:var(--marklyra-content-inset,0px)!important}#typora-sidebar,#footer-word-count,#top-titlebar{display:none!important}body{padding:0!important}content{left:var(--marklyra-content-inset,0px)!important;right:var(--marklyra-content-trailing,0px)!important;margin-top:var(--marklyra-content-top,0px)!important;bottom:0!important}#write{--sidebar-width:var(--marklyra-content-inset,0px);min-height:calc(100vh - var(--marklyra-content-top,0px))}#typora-source{left:var(--marklyra-content-inset,0px)!important;right:var(--marklyra-content-trailing,0px)!important;top:var(--marklyra-content-top,0px)!important}#md-searchpanel{top:var(--marklyra-content-top,0px)!important}' +
+    'content,#marklyra-source{transition-property:top!important}' +
+    ':root{--sidebar-width:var(--marklyra-content-inset,0px)!important}#marklyra-sidebar,#footer-word-count,#top-titlebar{display:none!important}body{padding:0!important}content{left:var(--marklyra-content-inset,0px)!important;right:var(--marklyra-content-trailing,0px)!important;margin-top:var(--marklyra-content-top,0px)!important;bottom:0!important}#write{--sidebar-width:var(--marklyra-content-inset,0px);min-height:calc(100vh - var(--marklyra-content-top,0px))}#marklyra-source{left:var(--marklyra-content-inset,0px)!important;right:var(--marklyra-content-trailing,0px)!important;top:var(--marklyra-content-top,0px)!important}#md-searchpanel{top:var(--marklyra-content-top,0px)!important}' +
     '#md-searchpanel .input-group-addon.close-btn{display:table-cell;width:26px;min-width:26px;height:26px;padding:0;text-align:center;vertical-align:middle;line-height:0;border-radius:4px;box-shadow:none;-webkit-tap-highlight-color:transparent}' +
     '#md-searchpanel .input-group-addon.close-btn .ion-close-round{padding:0;line-height:1;vertical-align:middle}' +
     '#md-searchpanel .input-group-addon.close-btn:hover{background:color-mix(in srgb,var(--bg-color,#fff) 80%,var(--text-color,#333));opacity:1}';
   // The scrollport ends where the host's pane ends, so its scrollbar sits on the pane's own edge.
-  style.textContent += '#typora-source .CodeMirror-scroll{overflow-y:auto!important}';
+  style.textContent += '#marklyra-source .CodeMirror-scroll{overflow-y:auto!important}';
   document.head.append(style);
   const noticeStyle = document.createElement('style');
   noticeStyle.textContent = `
     .md-notification-container{top:var(--marklyra-notification-top,var(--marklyra-content-top,0px))!important;left:0!important;right:0!important;padding:0!important;transition:none!important;background:var(--bg-color);color:var(--text-color)}
     #md-notification{width:100%!important;max-width:none!important;left:0!important;right:0!important;top:0!important;margin:0!important;padding:10px 16px!important;color:var(--text-color)}
     #md-notification:before{top:12px!important;left:20px!important;padding-top:0!important}
-    #md-notification .ty-enter-mode-warning-header{margin:0 0 8px!important;padding:0 0 0 28px!important;white-space:normal;overflow-wrap:anywhere}
-    #md-notification > div:has(#ty-suppress-mode-warning-input){padding-left:28px!important;align-items:center!important;margin-bottom:0!important}
-    #md-notification div:has(> label #ty-suppress-mode-warning-input){display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0}
-    #md-notification label:has(#ty-suppress-mode-warning-input){display:inline-flex;align-items:center;white-space:nowrap;margin:0!important;gap:6px}
-    #ty-suppress-mode-warning-input{margin:0!important}
-    #ty-suppress-mode-warning-close-btn{float:none!important;margin-top:0!important}
-    .ty-show-notification #md-notification[data-marklyra-compact-hint]{display:flex!important;align-items:center;gap:16px}
+    #md-notification .marklyra-enter-mode-warning-header{margin:0 0 8px!important;padding:0 0 0 28px!important;white-space:normal;overflow-wrap:anywhere}
+    #md-notification > div:has(#marklyra-suppress-mode-warning-input){padding-left:28px!important;align-items:center!important;margin-bottom:0!important}
+    #md-notification div:has(> label #marklyra-suppress-mode-warning-input){display:flex;align-items:center;gap:12px;margin-left:auto;flex-shrink:0}
+    #md-notification label:has(#marklyra-suppress-mode-warning-input){display:inline-flex;align-items:center;white-space:nowrap;margin:0!important;gap:6px}
+    #marklyra-suppress-mode-warning-input{margin:0!important}
+    #marklyra-suppress-mode-warning-close-btn{float:none!important;margin-top:0!important}
+    .marklyra-show-notification #md-notification[data-marklyra-compact-hint]{display:flex!important;align-items:center;gap:16px}
     #md-notification[data-marklyra-compact-hint]:before{top:50%!important;transform:translateY(-50%);line-height:1}
-    #md-notification[data-marklyra-compact-hint] .ty-enter-mode-warning-header{flex:1;min-width:0;margin:0!important}
-    #md-notification[data-marklyra-compact-hint] > div:has(#ty-suppress-mode-warning-input){flex:0 0 auto;padding-left:0!important}
-    #md-notification[data-marklyra-compact-hint] .ty-enter-mode-warning-body{display:none}
+    #md-notification[data-marklyra-compact-hint] .marklyra-enter-mode-warning-header{flex:1;min-width:0;margin:0!important}
+    #md-notification[data-marklyra-compact-hint] > div:has(#marklyra-suppress-mode-warning-input){flex:0 0 auto;padding-left:0!important}
+    #md-notification[data-marklyra-compact-hint] .marklyra-enter-mode-warning-body{display:none}
   `;
   document.head.append(noticeStyle);
   // Install query guards outside tracking's Source replace-all proof wrapper.

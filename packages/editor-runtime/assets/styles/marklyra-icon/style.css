@@ -1,0 +1,270 @@
+@font-face {
+  font-family: 'marklyra-icon';
+  src:  url('fonts/marklyra-icon.eot?3b9vw2');
+  src:  url('fonts/marklyra-icon.eot?3b9vw2#iefix') format('embedded-opentype'),
+    url('fonts/marklyra-icon.ttf?3b9vw2') format('truetype'),
+    url('fonts/marklyra-icon.woff?3b9vw2') format('woff'),
+    url('fonts/marklyra-icon.svg?3b9vw2#marklyra-icon') format('svg');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+.marklyra-icon {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: 'marklyra-icon' !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.marklyra-backspace:before {
+  content: "\e927";
+}
+.marklyra-delete1:before {
+  content: "\e928";
+}
+.marklyra-check:before {
+  content: "\e933";
+}
+.marklyra-copy:before {
+  content: "\e934";
+}
+.marklyra-cut:before {
+  content: "\e935";
+}
+.marklyra-paste:before {
+  content: "\e936";
+}
+.marklyra-file:before {
+  content: "\e931";
+}
+.marklyra-textbundle:before {
+  content: "\e932";
+}
+.marklyra-right:before {
+  content: "\e92f";
+}
+.marklyra-left:before {
+  content: "\e930";
+}
+.marklyra-quote:before {
+  content: "\e929";
+}
+.marklyra-number:before {
+  content: "\e92a";
+}
+.marklyra-bullet-list:before {
+  content: "\e92b";
+}
+.marklyra-spellcheck:before {
+  content: "\e91d";
+}
+.marklyra-inline-link:before {
+  content: "\e92d";
+}
+.marklyra-unlink:before {
+  content: "\e92e";
+}
+.marklyra-bold:before {
+  content: "\e925";
+}
+.marklyra-italic:before {
+  content: "\e92c";
+}
+.marklyra-code:before {
+  content: "\e924";
+}
+.marklyra-link-icon:before {
+  content: "\e926";
+}
+.marklyra-sort-by-natural-d:before {
+  content: "\e923";
+}
+.marklyra-sort-by-natural:before {
+  content: "\e922";
+}
+.marklyra-sort-by-alphabet-a:before {
+  content: "\e912";
+}
+.marklyra-sort-a:before {
+  content: "\e910";
+}
+.marklyra-sort-by-date-a:before {
+  content: "\e921";
+}
+.marklyra-sort-t:before {
+  content: "\e90d";
+}
+.marklyra-sort-new-up:before {
+  content: "\e937";
+}
+.marklyra-sort-new-down:before {
+  content: "\e938";
+}
+.marklyra-left-arrow:before {
+  content: "\e920";
+}
+.marklyra-md-radio-button-on:before {
+  content: "\e91e";
+}
+.marklyra-md-radio-button-off:before {
+  content: "\e91f";
+}
+.marklyra-no-video:before {
+  content: "\e91b";
+}
+.marklyra-error-file:before {
+  content: "\e91c";
+}
+.marklyra-image:before {
+  content: "\e060";
+}
+.marklyra-image-error:before {
+  content: "\e602";
+}
+.marklyra-delete:before {
+  content: "\e916";
+}
+.marklyra-menu:before {
+  content: "\e917";
+}
+.marklyra-right-alignment:before {
+  content: "\e918";
+}
+.marklyra-justify-align:before {
+  content: "\e919";
+}
+.marklyra-left-alignment:before {
+  content: "\e91a";
+}
+.marklyra-upload:before {
+  content: "\e915";
+}
+.marklyra-insert-col:before {
+  content: "\e914";
+}
+.marklyra-insert-row:before {
+  content: "\e913";
+}
+.marklyra-dots-v:before {
+  content: "\e911";
+}
+.marklyra-add:before {
+  content: "\e90f";
+}
+.marklyra-delete-button:before {
+  content: "\e90e";
+}
+.marklyra-package:before {
+  content: "\e90c";
+}
+.marklyra-export1:before {
+  content: "\e90b";
+}
+.marklyra-chevron-left:before {
+  content: "\e908";
+}
+.marklyra-aim:before {
+  content: "\e90a";
+}
+.marklyra-sidebar:before {
+  content: "\e909";
+}
+.marklyra-close10:before {
+  content: "\e905";
+}
+.marklyra-maximize10:before {
+  content: "\e906";
+}
+.marklyra-minimize10:before {
+  content: "\e907";
+}
+.marklyra-file-tree:before {
+  content: "\e904";
+}
+.marklyra-three-cells:before {
+  content: "\e900";
+}
+.marklyra-folder:before {
+  content: "\e901";
+}
+.marklyra-list:before {
+  content: "\e902";
+}
+.marklyra-finder-logo:before {
+  content: "\e903";
+}
+.marklyra-clock:before {
+  content: "\e610";
+}
+.marklyra-folder-outline:before {
+  content: "\e617";
+}
+.marklyra-markdown:before {
+  content: "\e618";
+}
+.marklyra-file-document:before {
+  content: "\e616";
+}
+.marklyra-book-open:before {
+  content: "\e615";
+}
+.marklyra-script:before {
+  content: "\e60f";
+}
+.marklyra-map-marker:before {
+  content: "\e611";
+}
+.marklyra-layers:before {
+  content: "\e612";
+}
+.marklyra-dots-horizontal:before {
+  content: "\e613";
+}
+.marklyra-download:before {
+  content: "\e614";
+}
+.marklyra-window-restore:before {
+  content: "\e608";
+}
+.marklyra-instapaper:before {
+  content: "\e609";
+}
+.marklyra-eye:before {
+  content: "\e60a";
+}
+.marklyra-details:before {
+  content: "\e60b";
+}
+.marklyra-clipboard-outline:before {
+  content: "\e60c";
+}
+.marklyra-information:before {
+  content: "\e60d";
+}
+.marklyra-lightbulb:before {
+  content: "\e60e";
+}
+.marklyra-settings:before {
+  content: "\e605";
+}
+.marklyra-lightbulb-outline:before {
+  content: "\e606";
+}
+.marklyra-information-outline:before {
+  content: "\e607";
+}
+.marklyra-marklyra-icon-dark:before {
+  content: "\e600";
+}
+.marklyra-marklyra-icon:before {
+  content: "\e601";
+}

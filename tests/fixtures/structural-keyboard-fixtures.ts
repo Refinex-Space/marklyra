@@ -1,5 +1,5 @@
-/** Authored raw expectations; canonical controls were measured against shipped
- * 1.11.7 JS with decoded BOM metadata. These are browser, not native OS vectors. */
+/** Authored raw expectations; canonical controls were measured against the internal
+ * editor engine with decoded BOM metadata. These are browser, not native OS vectors. */
 export const structuralKeyboardFixtures = [
   {
     id: 'ordered-delete-at-item-end-merges-next-body',

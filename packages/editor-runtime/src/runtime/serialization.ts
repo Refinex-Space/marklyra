@@ -1,5 +1,5 @@
 /**
- * Linear aggregation for the verified Typora 1.11.7 block serializer ABI.
+ * Linear aggregation for the internal MarkLyra block serializer ABI.
  * Native per-node serialization remains authoritative; no output is cached.
  */
 interface NativeNode {

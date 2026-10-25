@@ -1,6 +1,6 @@
-import { readFile } from 'node:fs/promises';
 import type { MarkLyraEditor } from '@marklyra/editor-runtime';
 import { expect, test } from '@playwright/test';
+import { engineWithoutCapability } from './engine-source-fixture.js';
 
 type Host = Window & { marklyraEditor: MarkLyraEditor };
 interface CountedFrame extends Window {
@@ -58,9 +58,7 @@ for (const runtime of [false, true]) {
     page,
   }) => {
     if (!runtime) {
-      const body = await readFile(
-        new URL('../../resources/editor/appsrc/main.js', import.meta.url),
-      );
+      const body = await engineWithoutCapability('__MARKLYRA_NATIVE_SERIALIZATION__');
       await page.route('http://127.0.0.1:4174/appsrc/main.js', (route) =>
         route.fulfill({ contentType: 'text/javascript', body }),
       );

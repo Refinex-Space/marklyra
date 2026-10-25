@@ -4,7 +4,7 @@ export function codeLanguageField(
   editor: LegacyEditor | undefined,
   target: Element | null | undefined,
 ): HTMLElement | undefined {
-  const field = target?.closest('.ty-cm-lang-input[contenteditable]');
+  const field = target?.closest('.marklyra-cm-lang-input[contenteditable]');
   if (
     !editor ||
     editor.sourceView.inSourceMode ||
@@ -45,7 +45,7 @@ export function pendingCodeLanguage(editor: LegacyEditor | undefined): boolean {
   // Computing editability can resolve document styles; reject other targets first.
   if (
     !(active instanceof HTMLElement) ||
-    !active.matches('.ty-cm-lang-input[contenteditable]') ||
+    !active.matches('.marklyra-cm-lang-input[contenteditable]') ||
     !active.isContentEditable
   )
     return false;

@@ -53,7 +53,7 @@ test('HTML and print menus consume their own confirmed settings without saving t
     paperSize: 'A5',
     marginsMm: { top: 12, right: 11, bottom: 14, left: 10 },
   });
-  expect(String(printed?.html)).toContain('typora-print');
+  expect(String(printed?.html)).toContain('marklyra-print');
   expect(String(printed?.html)).toContain('TailX');
   expect(String(printed?.html)).not.toMatch(/(?:af|at):\/\//);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('export-html'));

@@ -1,173 +1,158 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { dirname, resolve } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import test from 'node:test';
 import { runInNewContext, Script } from 'node:vm';
 import { parse } from 'acorn';
-import {
-  preferencesResources,
-  preparePreferencesRuntime,
-  transformPreferencesHtml,
-  transformPreferencesSource,
-} from './prepare-preferences-runtime.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
-const input = resolve(root, 'resources/editor');
-const sourcePath = 'page-dist/static/js/Preferences.962926a4.d7f6a912.chunk.js';
-const digest = (value) => createHash('sha256').update(value).digest('hex');
+const directory = resolve(root, 'apps/desktop/src/features/settings/runtime-preferences/page');
+const source = await readFile(
+  resolve(directory, 'static/js/Preferences.962926a4.d7f6a912.chunk.js'),
+  'utf8',
+);
+const ast = parse(source, { ecmaVersion: 'latest' });
+function nodes(node, predicate, found = []) {
+  if (predicate(node)) found.push(node);
+  for (const value of Object.values(node))
+    for (const child of Array.isArray(value) ? value : [value])
+      if (child?.type) nodes(child, predicate, found);
+  return found;
+}
+const member = (node, name) => node?.type === 'MemberExpression' && node.property?.name === name;
+const code = (node) => source.slice(node.start, node.end);
+function one(predicate) {
+  const result = nodes(ast, predicate);
+  assert.equal(result.length, 1);
+  return result[0];
+}
 
-test('unknown or already transformed Preferences cannot acquire the settings bridge', async () => {
-  for (const source of [null, '', 'console.log("unrelated")'])
-    assert.throws(() => transformPreferencesSource(source), /Unknown original Preferences SHA-256/);
-  const source = await readFile(resolve(input, sourcePath), 'utf8');
-  const { code } = transformPreferencesSource(source);
-  assert.throws(() => transformPreferencesSource(code), /Unknown original Preferences SHA-256/);
-  assert.throws(
-    () => transformPreferencesSource(`${source}\n`),
-    /Unknown original Preferences SHA-256/,
-  );
+test('native settings source uses only its isolated bridge and the supported controls', () => {
+  assert.doesNotThrow(() => new Script(source));
+  assert.ok(!source.includes('window.webkit'));
+  for (const name of [
+    'can_collapse_outline_panel',
+    'autoUpdateToDev',
+    'send_usage_info',
+    'useMirrorInCN',
+    'framelessWindow',
+  ])
+    assert.ok(!source.includes(`keyName:"${name}"`));
+  for (const name of [
+    'debugMode',
+    'defaultCodeLang',
+    'enable_inline_math',
+    'enable_diagram',
+    'save_file_on_switch',
+  ])
+    assert.ok(source.includes(`keyName:"${name}"`));
+  assert.ok(!source.includes('/assets/icon'));
 });
 
-test('verified AST edits isolate settings and remove redundant or unsupported controls', async () => {
-  const source = await readFile(resolve(input, sourcePath), 'utf8');
-  const transformed = transformPreferencesSource(source);
-  assert.equal(transformed.metadata.capabilityChecks, 26);
-  assert.equal(transformed.metadata.bridgeCount, 1);
-  assert.equal(transformed.metadata.edits.length, 46);
-  assert.equal(transformed.metadata.originalSha256, preferencesResources[sourcePath]);
-  let expected = source;
-  for (const edit of [...transformed.metadata.edits].reverse())
-    expected = expected.slice(0, edit.start) + edit.text + expected.slice(edit.end);
-  assert.ok(expected === transformed.code);
-  assert.equal(transformed.metadata.transformedSha256, digest(transformed.code));
-  assert.ok(!transformed.code.includes('window.webkit'));
-  assert.ok(!transformed.code.includes('../locales/'));
-  assert.ok(!transformed.code.includes('keyName:"can_collapse_outline_panel"'));
-  assert.ok(!transformed.code.includes('"Collapsible Outline on Left Panel"'));
-  assert.ok(!transformed.code.includes('"Window Style"'));
-  assert.ok(!transformed.code.includes('keyName:"use_seamless_window"'));
-  assert.ok(!transformed.code.includes('keyName:"framelessWindow"'));
-  assert.ok(transformed.code.includes('"Font Size"'));
-  assert.ok(!transformed.code.includes('keyName:"autoUpdateToDev"'));
-  assert.ok(!transformed.code.includes('keyName:"send_usage_info"'));
-  assert.ok(!transformed.code.includes('keyName:"useMirrorInCN"'));
-  assert.ok(!transformed.code.includes('title:"Dialogs"'));
-  assert.ok(!transformed.code.includes('settings-third-party-license'));
-  assert.ok(transformed.code.includes('Your Typora is not activated.'));
-  assert.ok(transformed.code.includes('Your Typora has been activated.'));
-  assert.ok(!transformed.code.includes('"Turn off Typewriter / Focus Mode"'));
-  assert.ok(!transformed.code.includes('onClick:window.Setting.exitFocusAndTypewriterMode'));
-  assert.ok(transformed.code.includes('keyName:"no_mid_caret"'));
-  assert.ok(!transformed.code.includes('"Enable inline math or code block math"'));
-  assert.ok(transformed.code.includes('keyName:"enable_inline_math"'));
-  assert.ok(transformed.code.includes('keyName:"gitlabMath"'));
-  assert.ok(!transformed.code.includes('"Diagram Options"'));
-  assert.ok(transformed.code.includes('keyName:"enable_diagram"'));
-  assert.ok(transformed.code.includes('hint:"(Sequence, Flowchart and Mermaid)"'));
-  assert.ok(transformed.code.includes('keyName:"save_file_on_switch"'));
-  assert.ok(
-    !transformed.code.includes('https://support.typora.io/Code-Fences/#default-code-language'),
+test('the native language selector offers only automatic, English and simplified Chinese', async () => {
+  const control = one(
+    (node) =>
+      node.type === 'ObjectExpression' &&
+      node.properties.some((p) => p.key?.name === 'keyName' && p.value?.value === 'userLanguage'),
   );
-  assert.ok(transformed.code.includes('keyName:"defaultCodeLang"'));
-  assert.ok(transformed.code.includes('p.a.createElement(b.r,{keyName:"defaultCodeLang"'));
-  assert.ok(transformed.code.includes('keyName:"defaultCodeLangOption"'));
-  assert.doesNotThrow(() => new Script(transformed.code));
-  assert.equal(
-    digest(await readFile(resolve(input, sourcePath))),
-    preferencesResources[sourcePath],
-  );
+  const options = control.properties.find((p) => p.key?.name === 'options').value;
+  const values = runInNewContext(`(${code(options)})`);
+  assert.deepEqual(Object.keys(values).sort(), ['', 'Base', 'zh-Hans']);
+  const locales = await readdir(resolve(root, 'packages/editor-runtime/assets/locales'));
+  assert.deepEqual(locales.sort(), ['Base.lproj', 'zh-Hans.lproj']);
 });
 
-test('native localhost origins always load the real offline locale rather than the original dev dictionary', async () => {
-  const original = await readFile(resolve(input, sourcePath), 'utf8');
-  const { code } = transformPreferencesSource(original);
-  const ast = parse(code, { ecmaVersion: 'latest' });
-  let loader;
-  const visit = (node) => {
-    if (!node || typeof node !== 'object') return;
-    if (
+test('offline dictionaries load on all native and development origins', async () => {
+  const loader = one(
+    (node) =>
       node.type === 'AssignmentExpression' &&
-      node.left?.type === 'MemberExpression' &&
-      node.left.object?.name === 'window' &&
-      node.left.property?.name === 'loadDict'
-    )
-      loader = node.right;
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) for (const child of value) visit(child);
-      else if (value && typeof value === 'object') visit(value);
-    }
-  };
-  visit(ast);
-  assert.ok(loader);
+      member(node.left, 'loadDict') &&
+      node.left.object?.name === 'window',
+  ).right;
   for (const href of [
     'marklyra://localhost/preferences/setting.html?os=mac',
     'http://marklyra.localhost/preferences/setting.html?os=win',
-    'http://localhost:4196/setting.html?os=mac',
-    'http://127.0.0.1:4196/setting.html?parentOrigin=tauri%3A%2F%2Flocalhost',
+    'http://localhost:4196/setting.html',
+    'http://127.0.0.1:4196/setting.html',
   ]) {
-    const requested = [];
-    const context = {
-      window: { location: { href }, _options: { locale: 'zh-Hans' } },
-      v: async (url) => {
-        requested.push(url);
-        return { requested: url };
-      },
-      Promise,
-      setTimeout,
-    };
-    runInNewContext(`window.loadDict=${code.slice(loader.start, loader.end)}`, context);
-    const result = await context.window.loadDict();
-    assert.deepEqual(
-      requested,
-      ['Front', 'Menu', 'Panel', 'Welcome'].map((name) => `./locales/zh-Hans.lproj/${name}.json`),
-    );
-    assert.equal(result.Front.requested, requested[0]);
+    for (const locale of ['Base', 'zh-Hans']) {
+      const requested = [];
+      const context = {
+        window: { location: { href }, _options: { locale } },
+        v: async (url) => {
+          requested.push(url);
+          return { requested: url };
+        },
+        Promise,
+        setTimeout,
+      };
+      runInNewContext(`window.loadDict=${code(loader)}`, context);
+      const result = await context.window.loadDict();
+      assert.deepEqual(
+        requested,
+        ['Front', 'Menu', 'Panel', 'Welcome'].map(
+          (name) => `./locales/${locale}.lproj/${name}.json`,
+        ),
+      );
+      assert.equal(result.Front.requested, requested[0]);
+    }
   }
 });
 
-test('original HTML boots the adapter first and cannot eagerly execute preferences before init', async () => {
-  const source = await readFile(resolve(input, 'page-dist/setting.html'), 'utf8');
-  const html = transformPreferencesHtml(source);
+test('settings HTML boots the adapter first without eager application scripts', async () => {
+  const html = await readFile(resolve(directory, 'setting.html'), 'utf8');
   assert.ok(html.includes('Content-Security-Policy'));
   assert.ok(html.includes("connect-src 'self'"));
   assert.ok(html.includes('<script src="./child-host.js"></script>'));
   assert.ok(!html.includes('<script src="./static/js/'));
   assert.ok(html.includes('id="user-theme" rel="stylesheet" href="./empty.css"'));
-  assert.throws(
-    () => transformPreferencesHtml(`${source}\n`),
-    /Unknown original setting.html SHA-256/,
-  );
 });
 
-test('preparation copies only hash-verified offline resources and rejects drift before output', async () => {
-  const temporary = await mkdtemp(resolve(tmpdir(), 'marklyra-preferences-'));
-  const source = resolve(temporary, 'source');
-  const output = resolve(temporary, 'runtime');
-  try {
-    for (const file of Object.keys(preferencesResources)) {
-      await mkdir(dirname(resolve(source, file)), { recursive: true });
-      await copyFile(resolve(input, file), resolve(source, file));
-    }
-    await writeFile(resolve(source, 'license.html'), '<p>Unselected resource</p>');
-    const manifest = await preparePreferencesRuntime({
-      inputDirectory: source,
-      outputDirectory: output,
-    });
-    assert.equal(manifest.resources.length, 17);
-    assert.ok(!(await readdir(output)).includes('license.html'));
-    assert.equal(digest(await readFile(resolve(output, 'child-host.js'))), manifest.adapterSha256);
-    for (const resource of manifest.resources)
-      assert.equal(digest(await readFile(resolve(output, resource.path))), resource.runtimeSha256);
-    await writeFile(resolve(source, 'page-dist/cocoa.css'), 'changed');
-    const rejectedOutput = resolve(temporary, 'rejected');
-    await assert.rejects(
-      preparePreferencesRuntime({ inputDirectory: source, outputDirectory: rejectedOutput }),
-      /Runtime Preferences resource changed: page-dist\/cocoa.css/,
-    );
-    await assert.rejects(readdir(rejectedOutput), { code: 'ENOENT' });
-  } finally {
-    await rm(temporary, { recursive: true, force: true });
+test('the actual General panel preserves handlers and the project/update controls', () => {
+  const panel = one(
+    (node) =>
+      node.type === 'CallExpression' &&
+      member(node.callee, 'createElement') &&
+      node.arguments[0]?.property?.name === 'o' &&
+      node.arguments[2]?.callee?.object?.type === 'ThisExpression' &&
+      node.arguments[2]?.arguments[0]?.value === 'General',
+  );
+  const change = () => {};
+  const result = runInNewContext(`(function(){return ${code(panel)}}).call(component)`, {
+    p: {
+      a: {
+        Fragment: 'fragment',
+        createElement: (type, props, ...children) => ({ type, props, children }),
+      },
+    },
+    b: Object.fromEntries(['o', 'k', 'q', 'c', 'r', 'b', 'v', 'd', 'h'].map((key) => [key, key])),
+    window: {
+      isMac: true,
+      isWin: false,
+      __MARKLYRA_PRODUCT_VERSION__: '9.8.7',
+      Setting: { checkUpdates() {} },
+    },
+    component: {
+      state: { activeTab: 6 },
+      getValue: () => false,
+      onChange: change,
+      panelHeader: () => null,
+    },
+    n: false,
+  });
+  const rendered = [];
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    rendered.push(node);
+    for (const child of node.children ?? []) visit(child);
   }
+  visit(result);
+  assert.deepEqual(
+    rendered.filter((node) => node.type === 'k').map((node) => node.props.title),
+    ['应用偏好', '关于 MarkLyra'],
+  );
+  assert.equal(rendered.find((node) => node.props?.keyName === 'debugMode').props.onChange, change);
+  assert.ok(rendered.find((node) => node.type === 'strong' && node.children.includes('9.8.7')));
+  assert.ok(rendered.find((node) => node.props?.['data-marklyra-open-repository'] === 'true'));
+  assert.ok(rendered.find((node) => node.props?.['data-marklyra-update-check'] === 'true'));
 });

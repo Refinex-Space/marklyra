@@ -6,27 +6,12 @@ import { SEARCH_ICON_MANIFEST, SHELL_ICON_MANIFEST } from './runtime-shell-icon-
 
 export { SHELL_ICON_MANIFEST };
 export const SHELL_ICON_PREFIX = '/__runtime-icons/';
-const defaultSource = fileURLToPath(new URL('../dist/editor-runtime/style/', import.meta.url));
+const defaultSource = fileURLToPath(
+  new URL('../packages/editor-runtime/assets/styles/', import.meta.url),
+);
+const defaultPage = fileURLToPath(new URL('../packages/editor-runtime/src/page/', import.meta.url));
 const privateRoot = fileURLToPath(new URL('../private/', import.meta.url));
-const licenseSource = fileURLToPath(new URL('../licenses/', import.meta.url));
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
-const reviewedNotices = [
-  {
-    source: 'icons/FONT-NOTICES.txt',
-    file: 'icon-notices.txt',
-    sha256: '109142fc84aafcfd7824bd4dc489c76c8fd39db20e12a879f635e51455552682',
-  },
-  {
-    source: 'fonts/OFL-1.1.txt',
-    file: 'fontawesome-OFL.txt',
-    sha256: 'ebc109078c06f79af74cf2b27454c262830d12a65749f0e2bf25d1ac1db7a02a',
-  },
-];
-const ioniconsNotice = {
-  path: 'ionicons-2.0.1/LICENSE',
-  sha256: '5407c91b6c8b7305f72aec4ee5ffb99b32ed9a5413c19cf3cd1b94354d2645e8',
-};
-
 async function verifiedInput(root, relativePath, expectedHash, expectedBytes) {
   try {
     const path = resolve(root, relativePath);
@@ -47,9 +32,9 @@ async function verifiedInput(root, relativePath, expectedHash, expectedBytes) {
   }
 }
 
-async function verifiedResources(sourceDirectory) {
+async function verifiedResources(sourceDirectory, pageDirectory) {
   const root = await realpath(sourceDirectory).catch(() => {
-    throw new Error('Runtime shell icons are missing; run pnpm prepare:runtime');
+    throw new Error('Runtime shell icon sources are missing from the editor package');
   });
   const results = await Promise.allSettled(
     SHELL_ICON_MANIFEST.map(async (font) => [
@@ -66,7 +51,7 @@ async function verifiedResources(sourceDirectory) {
     if (result.status === 'rejected') throw result.reason;
     resources.set(...result.value);
   }
-  const pageRoot = await realpath(resolve(root, '..'));
+  const pageRoot = await realpath(pageDirectory);
   const html = (await verifiedInput(pageRoot, 'index.html')).toString('utf8');
   const symbols = SEARCH_ICON_MANIFEST.map(({ name, sha256 }) => {
     const matches = [
@@ -86,20 +71,6 @@ async function verifiedResources(sourceDirectory) {
     type: 'image/svg+xml',
     sha256: digest(searchIcons),
   });
-  const notice = await verifiedInput(root, ioniconsNotice.path, ioniconsNotice.sha256);
-  resources.set('licenses/ionicons-MIT.txt', {
-    bytes: notice,
-    type: 'text/plain; charset=utf-8',
-    sha256: ioniconsNotice.sha256,
-  });
-  const licenses = await realpath(licenseSource);
-  for (const record of reviewedNotices) {
-    resources.set(`licenses/${record.file}`, {
-      bytes: await verifiedInput(licenses, record.source, record.sha256),
-      type: 'text/plain; charset=utf-8',
-      sha256: record.sha256,
-    });
-  }
   const css = Buffer.from(
     SHELL_ICON_MANIFEST.map(
       (font) =>
@@ -110,22 +81,14 @@ async function verifiedResources(sourceDirectory) {
   const provenance = Buffer.from(
     `${JSON.stringify(
       {
-        purpose: 'Desktop icons built from tracked project resources',
-        source: 'Typora 1.11.7 / 7472 shipped style resources, unchanged font bytes',
+        purpose: 'Desktop icons built directly from the editor package assets',
         fonts: SHELL_ICON_MANIFEST,
         searchIcons: {
           file: 'search-options.svg',
           source: 'index.html',
           symbols: SEARCH_ICON_MANIFEST,
-          sourcePath: 'resources/editor/index.html',
+          sourcePath: 'packages/editor-runtime/src/page/index.html',
         },
-        notices: [
-          { file: 'licenses/ionicons-MIT.txt', sha256: ioniconsNotice.sha256 },
-          ...reviewedNotices.map((record) => ({
-            file: `licenses/${record.file}`,
-            sha256: record.sha256,
-          })),
-        ],
       },
       null,
       2,
@@ -183,11 +146,14 @@ function middleware(resources) {
   };
 }
 
-/** Desktop icon assets, separate from the 24 text fonts. */
-export function runtimeShellIcons({ sourceDirectory = defaultSource } = {}) {
+/** Desktop icon assets, separate from the six built-in text fonts. */
+export function runtimeShellIcons({
+  sourceDirectory = defaultSource,
+  pageDirectory = defaultPage,
+} = {}) {
   let pending;
   let building = false;
-  const resources = () => (pending ??= verifiedResources(sourceDirectory));
+  const resources = () => (pending ??= verifiedResources(sourceDirectory, pageDirectory));
   return {
     name: 'runtime-shell-icons',
     enforce: 'pre',
@@ -206,6 +172,7 @@ export function runtimeShellIcons({ sourceDirectory = defaultSource } = {}) {
               ...(config.server?.fs?.deny ?? []),
               `${resolve(privateRoot).split(sep).join('/')}/**`,
               `${resolve(sourceDirectory).split(sep).join('/')}/**`,
+              `${resolve(pageDirectory).split(sep).join('/')}/**`,
             ],
           },
         },

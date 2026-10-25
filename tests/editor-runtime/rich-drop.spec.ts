@@ -32,7 +32,7 @@ for (const mode of ['wysiwyg', 'source'] as const)
             type: 'toggleSource',
           }),
         );
-      const selector = mode === 'source' ? '#typora-source .CodeMirror' : '#write p';
+      const selector = mode === 'source' ? '#marklyra-source .CodeMirror' : '#write p';
       await imageFrame(page)
         .locator(selector)
         .evaluate(

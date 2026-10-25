@@ -968,7 +968,7 @@ export class RuntimeContextMenu {
     return Boolean(
       editor &&
         (editor.writingArea.contains(target) ||
-          (editor.sourceView.inSourceMode && target.closest('#typora-source'))),
+          (editor.sourceView.inSourceMode && target.closest('#marklyra-source'))),
     );
   }
   private restore(binding: Binding): void {

@@ -20,7 +20,7 @@ cargo test -p marklyra-desktop --lib <filter>                             # Rust
 
 ## 大图景
 
-- **三层隔离**：`packages/*` 是纯 TS 编辑器 SDK（core/markdown 无 DOM）；编辑器和设置页都跑在隔离 iframe 运行页（`dist/editor-runtime`，由 `prepare:runtime` 从 `resources/` 生成），与壳只通过类型化消息通信，运行页没有 IPC 或文件系统权限；`apps/desktop/src-tauri` 是唯一的原生宿主。
+- **三层隔离**：`packages/*` 按模块管理编辑器源码与 SDK（core/markdown 为纯 TS 且无 DOM）；编辑器和设置页都跑在隔离 iframe 运行页（`packages/editor-runtime/dist/page`，由 `prepare:runtime` 从各自所属包和应用源码生成），与壳只通过类型化消息通信，运行页没有 IPC 或文件系统权限；`apps/desktop/src-tauri` 是唯一的原生宿主。
 - **壳** `apps/desktop/src/app/App.tsx` 是体量很大的单一编排点：文档会话（`features/documents/useDocumentSession.ts`）、侧栏、右侧大纲/AI、设置页都在这里装配。编辑器 iframe 始终挂载；首页（`features/home`）、快速打开是覆盖在文档卡片上的视图，编辑器此时 `inert`，编辑命令必须经 `editorObscured` 拦截。
 - **标题栏两套实现**：Windows 用 Web 标题栏（`components/Titlebar.tsx`），macOS 用 AppKit 原生标题栏（`src-tauri/src/platform/ui_chrome/macos.rs`）。壳状态通过 `services/ui-chrome.ts` → `update_editor_chrome` 同步给原生一侧；新增标题栏控件通常两边都要改。
 - **原生菜单与壳状态镜像**：TS 的 `features/menus/native-menu-state.ts` 与 Rust 的 `src-tauri/src/menu.rs`、`menu/state.rs` 描述同一套启用规则，改一边必须改另一边，菜单 ID 数量有测试断言。

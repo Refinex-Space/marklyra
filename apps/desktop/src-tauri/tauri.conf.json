@@ -60,7 +60,7 @@
       }
     },
     "resources": {
-      "../../../dist/editor-runtime/": "runtime/"
+      "../../../packages/editor-runtime/dist/page/": "runtime/"
     },
     "fileAssociations": [
       {

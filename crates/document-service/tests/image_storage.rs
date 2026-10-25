@@ -979,7 +979,7 @@ fn yaml_root_source_copy_and_restored_alias_never_read_a_same_named_document_sib
     fs::create_dir(base.join("source/media")).unwrap();
     fs::write(
         base.join("source/note.md"),
-        "---\r\ntypora-root-url: ./media\n---\r\n![same](pixel.svg)\nTail  ",
+        "---\r\nmarklyra-root-url: ./media\n---\r\n![same](pixel.svg)\nTail  ",
     )
     .unwrap();
     fs::write(base.join("source/media/pixel.svg"), IMAGE).unwrap();

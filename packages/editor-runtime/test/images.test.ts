@@ -3,6 +3,7 @@ import {
   displayImageUrl,
   type ImageHostAdapter,
   imageMarkdown,
+  imageMetadataValue,
   imageReference,
   imageRoot,
   imageType,
@@ -34,8 +35,54 @@ describe('image reference and capability boundaries', () => {
     expect(() => imageReference(source)).toThrow();
   });
   it('rejects an absolute YAML root and supports simple quoted roots', () => {
-    expect(imageRoot('title: x\ntypora-root-url: "./assets"\n')).toBe('./assets');
-    expect(() => imageReference('image.png', imageRoot('typora-root-url: /private'))).toThrow();
+    expect(imageRoot('title: x\nmarklyra-root-url: "./assets"\n')).toBe('./assets');
+    expect(() => imageReference('image.png', imageRoot('marklyra-root-url: /private'))).toThrow();
+  });
+  it('reads namespaced image roots without rewriting document metadata', () => {
+    const source = 'title: x\nlegacy-editor-root-url: "./assets"\n';
+    expect(imageRoot(source)).toBe('./assets');
+    expect(source).toBe('title: x\nlegacy-editor-root-url: "./assets"\n');
+    expect(imageRoot('marklyra-root-url: ./current\nlegacy-editor-root-url: ./old')).toBe(
+      './current',
+    );
+    expect(imageRoot('legacy-editor-root-url: ./old\nMARKLYRA-ROOT-URL: ./current')).toBe(
+      './current',
+    );
+    expect(imageRoot('marklyra-root-url:\nlegacy-editor-root-url: ./old')).toBe('');
+  });
+  it('rejects ambiguous namespaced image roots instead of choosing a directory', () => {
+    expect(() => imageRoot('editor-one-root-url: ./one\neditor-two-root-url: ./two')).toThrow(
+      '图片元数据字段存在歧义',
+    );
+    expect(() => imageRoot('marklyra-root-url: ./one\nMARKLYRA-ROOT-URL: ./two')).toThrow(
+      '图片元数据字段存在歧义',
+    );
+    expect(imageRoot('root-url: ./unqualified\nunrelated: ./directory')).toBe('');
+  });
+  it('preserves namespaced storage policies and gives the current field precedence', () => {
+    expect(
+      imageMetadataValue([['legacy-editor-copy-images-to', './media']], 'copy-images-to'),
+    ).toBe('./media');
+    expect(
+      imageMetadataValue(
+        [
+          ['legacy-editor-copy-images-to', './old'],
+          ['marklyra-copy-images-to', ''],
+        ],
+        'copy-images-to',
+      ),
+    ).toBe('');
+    expect(() =>
+      imageMetadataValue(
+        [
+          ['editor-one-copy-images-to', './one'],
+          ['editor-two-copy-images-to', './two'],
+        ],
+        'copy-images-to',
+      ),
+    ).toThrow('图片元数据字段存在歧义');
+    expect(imageMetadataValue([['root-url', './ignored']], 'root-url')).toBeUndefined();
+    expect(imageMetadataValue([['-root-url', './ignored']], 'root-url')).toBeUndefined();
   });
   it('requires a bounded image and infers empty browser MIME from filename', () => {
     expect(imageType('diagram.PNG', '', 200)).toBe('image/png');

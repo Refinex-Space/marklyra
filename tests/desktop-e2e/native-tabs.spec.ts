@@ -195,7 +195,7 @@ test('source-mode native tab operations preserve CodeMirror selection and histor
 }) => {
   await setup(page);
   await menu(page, 'view:source');
-  const mirror = page.frameLocator(editorFrame).locator('#typora-source .CodeMirror');
+  const mirror = page.frameLocator(editorFrame).locator('#marklyra-source .CodeMirror');
   await expect(mirror).toBeVisible();
   await mirror.evaluate((element) => {
     const cm = Reflect.get(element, 'CodeMirror') as {

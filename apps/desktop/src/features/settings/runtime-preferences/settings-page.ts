@@ -341,7 +341,7 @@ function settingsHelpText(hint: HTMLElement) {
 }
 
 function positionHelpTooltips() {
-  const tooltip = document.getElementById('ty-tooltip');
+  const tooltip = document.getElementById('marklyra-tooltip');
   if (!tooltip) return;
   let anchor: HTMLElement | null = null;
   let frame = 0;

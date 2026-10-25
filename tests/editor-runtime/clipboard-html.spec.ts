@@ -272,7 +272,7 @@ test('Markdown HTML does not grant active URI or private resource capabilities',
     [
       'javascript:alert(1)',
       'java\nscript:alert(1)',
-      'typora://run',
+      'recovered://resource',
       'marklyra://localhost/private',
     ].map((href) => {
       try {
@@ -286,6 +286,33 @@ test('Markdown HTML does not grant active URI or private resource capabilities',
     }),
   );
   expect(blocked).toEqual([true, true, true, true]);
+});
+
+test('Markdown HTML preserves ordinary links and image references after URI filtering', async ({
+  page,
+}) => {
+  const urls = [
+    'https://example.test/page',
+    'mailto:person@example.test',
+    'tel:+123',
+    'ftp://example.test/file',
+    'custom-editor://document/item',
+    'custom+document:opaque-value',
+  ];
+  const result = await page.evaluate((urls) => {
+    const clean = (window as Host).ClipboardTools.clipboardMarkupHTML(
+      urls.map((href) => `<p mdtype="paragraph"><a href="${href}">label</a></p>`).join('') +
+        '<img src="file:///tmp/image.png"><img src="data:image/png;base64,AQID">',
+    );
+    const fragment = document.createElement('template');
+    fragment.innerHTML = clean;
+    return {
+      links: [...fragment.content.querySelectorAll('a')].map((a) => a.getAttribute('href')),
+      images: [...fragment.content.querySelectorAll('img')].map((img) => img.getAttribute('src')),
+    };
+  }, urls);
+  expect(result.links).toEqual(urls);
+  expect(result.images).toEqual(['file:///tmp/image.png', 'data:image/png;base64,AQID']);
 });
 
 for (const clipped of [false, true])

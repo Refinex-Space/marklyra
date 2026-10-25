@@ -1,6 +1,6 @@
 import './shell-glyph.css';
 
-// Observed font-family/codepoint metadata only. Font bytes are private build inputs.
+// Observed font-family/codepoint metadata only. Font bytes are workspace-owned inputs.
 const glyphs = {
   folder: ['MarkLyra FontAwesome', '\uf07b'],
   folderOutline: ['MarkLyra FontAwesome', '\uf114'],

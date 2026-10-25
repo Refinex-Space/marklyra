@@ -58,7 +58,7 @@ for (const theme of layoutThemes) {
     await expect(debug).toBeEnabled();
     await expect(debug).not.toBeChecked();
     await debugHint.hover();
-    const tooltip = ui.locator('#ty-tooltip');
+    const tooltip = ui.locator('#marklyra-tooltip');
     await expect(tooltip).toContainText('Command + Option + I');
     await expect(tooltip).toContainText('Ctrl + Shift + I');
     await expect(tooltip).toHaveCSS('opacity', '1');

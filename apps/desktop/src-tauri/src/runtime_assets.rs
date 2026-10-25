@@ -1,5 +1,5 @@
-//! Read-only serving for the separately packaged private runtime runtime.
-//! No original source or commercial asset is embedded in this Rust module.
+//! Read-only serving for the built-in editor package.
+//! Editor pages retain their isolated origin and typed host bridge.
 //!
 //! Injection audit (Tauri 2.12.3 / Wry 0.57.0): manager/webview.rs first adds
 //! internal seed object, invoke_initialization_script, webview metadata, then
@@ -37,6 +37,8 @@ pub fn ipc_initialization_script() -> String {
 }
 
 const ROOT_FILES: &[&str] = &[
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.txt",
     "index.html",
     "frame-host.js",
     "empty.css",
@@ -172,8 +174,10 @@ pub fn handle<R: Runtime>(
             .ok()
             .map(|path| path.join("runtime"));
         #[cfg(debug_assertions)]
-        let development =
-            Some(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../dist/editor-runtime"));
+        let development = Some(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../../packages/editor-runtime/dist/page"),
+        );
         #[cfg(not(debug_assertions))]
         let development: Option<PathBuf> = None;
         select_root(bundled.as_deref(), development.as_deref())
@@ -349,6 +353,16 @@ fn resource_path(uri: &Uri) -> Result<PathBuf, StatusCode> {
             Err(StatusCode::NOT_FOUND)
         };
     }
+    if parts.first() == Some(&"locales") {
+        return if parts.len() == 3
+            && ["Base.lproj", "zh-Hans.lproj"].contains(&parts[1])
+            && ["Front.json", "Menu.json", "Panel.json", "Welcome.json"].contains(&parts[2])
+        {
+            Ok(PathBuf::from(path))
+        } else {
+            Err(StatusCode::NOT_FOUND)
+        };
+    }
     if parts.first() == Some(&"__styles") {
         if parts.len() < 3 || !valid_image_token(parts[1]) {
             return Err(StatusCode::BAD_REQUEST);
@@ -411,6 +425,9 @@ fn reserved_name(part: &str) -> bool {
             && matches!(stem.as_bytes()[3], b'1'..=b'9')
 }
 fn mime_type(path: &Path) -> &'static str {
+    if path.file_name().and_then(|name| name.to_str()) == Some("LICENSE") {
+        return "text/plain; charset=utf-8";
+    }
     match path
         .extension()
         .and_then(|part| part.to_str())
@@ -496,6 +513,56 @@ mod tests {
             .uri(url)
             .body(Vec::new())
             .unwrap()
+    }
+
+    #[test]
+    fn bundled_project_and_dependency_notices_use_the_same_read_only_boundary() {
+        let (temporary, directory) = fixture();
+        for (path, content) in [
+            ("LICENSE", "Apache License"),
+            ("THIRD-PARTY-NOTICES.txt", "Third-party notice"),
+        ] {
+            fs::write(temporary.path().join(path), content).unwrap();
+            let url = format!("marklyra://localhost/{path}");
+            let response = serve(Some(&directory), &request("GET", &url));
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(response.body(), content.as_bytes());
+            assert_eq!(
+                response.headers()[header::CONTENT_TYPE],
+                "text/plain; charset=utf-8"
+            );
+            assert_eq!(response.headers()["X-Content-Type-Options"], "nosniff");
+            let head = serve(Some(&directory), &request("HEAD", &url));
+            assert_eq!(head.status(), StatusCode::OK);
+            assert!(head.body().is_empty());
+            assert_eq!(
+                serve(Some(&directory), &request("POST", &url)).status(),
+                StatusCode::METHOD_NOT_ALLOWED
+            );
+        }
+        assert!(
+            resource_path(&"marklyra://localhost/licenses/../LICENSE".parse().unwrap()).is_err()
+        );
+        fs::create_dir(temporary.path().join("licenses")).unwrap();
+        fs::write(
+            temporary.path().join("licenses/dependency.txt"),
+            "stale standalone notice",
+        )
+        .unwrap();
+        for path in [
+            "licenses/dependency.txt",
+            "LICENSE.backup",
+            "THIRD-PARTY-NOTICES.txt/extra",
+        ] {
+            assert_eq!(
+                serve(
+                    Some(&directory),
+                    &request("GET", &format!("marklyra://localhost/{path}"))
+                )
+                .status(),
+                StatusCode::NOT_FOUND
+            );
+        }
     }
 
     // This exercises the real Tauri on_message key gate with MockRuntime. It
@@ -752,6 +819,35 @@ mod tests {
                         .is_err()
                 );
             }
+        }
+    }
+    #[test]
+    fn only_english_and_simplified_chinese_dictionaries_are_served_even_if_stale_files_exist() {
+        let (temporary, directory) = fixture();
+        for locale in ["Base", "zh-Hans", "zh-Hant", "ja-JP", "fr-FR"] {
+            let path = format!("locales/{locale}.lproj/Front.json");
+            let full = temporary.path().join(&path);
+            fs::create_dir_all(full.parent().unwrap()).unwrap();
+            fs::write(full, b"{}").unwrap();
+            for origin in ["marklyra://localhost", "http://marklyra.localhost"] {
+                let response = serve(
+                    Some(&directory),
+                    &request("GET", &format!("{origin}/{path}")),
+                );
+                assert_eq!(
+                    response.status(),
+                    if ["Base", "zh-Hans"].contains(&locale) {
+                        StatusCode::OK
+                    } else {
+                        StatusCode::NOT_FOUND
+                    }
+                );
+            }
+        }
+        for path in ["locales/Front.json", "locales/Base.lproj/extra.json"] {
+            assert!(
+                resource_path(&format!("marklyra://localhost/{path}").parse().unwrap()).is_err()
+            );
         }
     }
     #[test]

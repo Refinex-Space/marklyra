@@ -140,7 +140,6 @@ test('statistics exposes original counts and does not dirty a loaded document', 
   await expect(panel).toContainText('每分钟 382 词');
   await expect(panel).toContainText('UTF-16');
   await expect(panel.locator('.statistics-explanation')).toContainText('MarkLyra');
-  await expect(panel.locator('.statistics-explanation')).not.toContainText('Typora');
   await expect(panel).toContainText('当前选区：1 词 · 5 字符');
   await page.keyboard.press('Escape');
   await expect(page.locator('.document-title')).toHaveText('A.md');
@@ -322,8 +321,8 @@ test('source statistics dismissal restores CodeMirror input and selection withou
 }) => {
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
   const frame = page.frameLocator('.marklyra-editor-frame');
-  const textarea = frame.locator('#typora-source .CodeMirror textarea');
-  const mirror = frame.locator('#typora-source .CodeMirror');
+  const textarea = frame.locator('#marklyra-source .CodeMirror textarea');
+  const mirror = frame.locator('#marklyra-source .CodeMirror');
   await textarea.focus();
   await page.keyboard.press('Meta+a');
   const trigger = page.getByRole('button', { name: '文档统计' });

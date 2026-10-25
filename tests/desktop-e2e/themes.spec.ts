@@ -44,14 +44,17 @@ async function mount(page: Page) {
       await route.fulfill({
         contentType: 'font/woff2',
         body: readFileSync(
-          new URL('../../dist/editor-runtime/style/Raleway-latin.woff2', import.meta.url),
+          new URL(
+            '../../packages/editor-runtime/dist/page/style/Raleway-latin.woff2',
+            import.meta.url,
+          ),
         ),
       });
     } else
       await route.fulfill({
         status: name === 'moon.css' ? 200 : 404,
         contentType: 'text/css',
-        body: '@font-face{font-family:"User Shell";src:url("shell.woff2")}body{background:rgb(230,231,232)}#typora-sidebar{font-family:"User Shell",sans-serif;font-size:17px}#write p{color:rgb(21,42,63)}',
+        body: '@font-face{font-family:"User Shell";src:url("shell.woff2")}body{background:rgb(230,231,232)}#marklyra-sidebar{font-family:"User Shell",sans-serif;font-size:17px}#write p{color:rgb(21,42,63)}',
       });
   });
   await page.goto('/');

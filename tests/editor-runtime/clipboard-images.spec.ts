@@ -411,7 +411,7 @@ for (const mode of ['wysiwyg', 'source'] as const) {
   }) => {
     await setup(
       page,
-      '---\ntypora-copy-images-to: "media/${filename}"\ntypora-root-url: ./root\n---\n\nTail',
+      '---\nmarklyra-copy-images-to: "media/${filename}"\nmarklyra-root-url: ./root\n---\n\nTail',
     );
     if (mode === 'source')
       await page.evaluate(() =>
@@ -641,7 +641,7 @@ test('native file URL clipboard reaches the Source textarea and keeps one Undo',
     await f.editor.execute({ type: 'sourcePosition', line: 1, column: 5 });
   });
   await frame(page)
-    .locator('#typora-source textarea')
+    .locator('#marklyra-source textarea')
     .evaluate((element) => {
       const data = new DataTransfer();
       data.setData('text/plain', 'file:///outside/file.md');

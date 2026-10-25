@@ -97,7 +97,7 @@ for (const sourceMode of [false, true]) {
       { raw, sourceMode },
     );
     const frame = page.frameLocator('iframe.marklyra-editor-frame');
-    const input = frame.locator(sourceMode ? '#typora-source textarea' : '#write');
+    const input = frame.locator(sourceMode ? '#marklyra-source textarea' : '#write');
     await input.evaluate((element) => {
       const editor = Reflect.get(window, 'editor');
       Reflect.set(window, '__insetInput', element);
@@ -170,7 +170,7 @@ test('a deferred resize keeps source scroll position when typewriter mode is dis
     await editor.execute({ type: 'toggleSource' });
   }, raw);
   const frame = page.frameLocator('iframe.marklyra-editor-frame');
-  const port = frame.locator('#typora-source .CodeMirror-scroll');
+  const port = frame.locator('#marklyra-source .CodeMirror-scroll');
   const scroll = await port.evaluate((element) => {
     const editor = Reflect.get(window, 'editor');
     const history = JSON.stringify([editor.undo.commandStack, editor.undo.index]);

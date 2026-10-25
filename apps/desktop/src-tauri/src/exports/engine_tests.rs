@@ -96,7 +96,7 @@ fn document() -> String {
         }
     }
     format!(
-        "<!doctype html><html><head><meta charset=\"utf-8\"><title>引擎测试</title><style>html,body{{margin:0;background:#fff}}body{{font:14px/1.6 'Microsoft YaHei',sans-serif;color:#222}}#write{{padding:0}}h1{{break-before:page;margin:0 0 12px}}h1:first-of-type{{break-before:auto}}@media print{{@page{{size:A5 landscape;margin:3mm}}body.typora-export{{padding:0}}}}</style></head><body class=\"typora-export\"><div id=\"write\">{body}</div></body></html>"
+        "<!doctype html><html><head><meta charset=\"utf-8\"><title>引擎测试</title><style>html,body{{margin:0;background:#fff}}body{{font:14px/1.6 'Microsoft YaHei',sans-serif;color:#222}}#write{{padding:0}}h1{{break-before:page;margin:0 0 12px}}h1:first-of-type{{break-before:auto}}@media print{{@page{{size:A5 landscape;margin:3mm}}body.marklyra-export{{padding:0}}}}</style></head><body class=\"marklyra-export\"><div id=\"write\">{body}</div></body></html>"
     )
 }
 

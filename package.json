@@ -14,11 +14,11 @@
     "desktop": "pnpm --filter @marklyra/desktop tauri dev",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:runtime-transform": "node --test scripts/lib/runtime-serialization.test.mjs scripts/lib/runtime-pairing.test.mjs scripts/lib/pairing-history.test.mjs scripts/lib/runtime-focus.test.mjs scripts/lib/runtime-context-cursor.test.mjs scripts/lib/runtime-literal.test.mjs scripts/lib/runtime-expand-focus.test.mjs scripts/lib/runtime-table-columns.test.mjs scripts/lib/runtime-advanced-lifecycle.test.mjs scripts/lib/runtime-zenuml-styles.test.mjs scripts/lib/runtime-brush-queue.test.mjs",
+    "test:runtime-transform": "node --test scripts/lib/runtime-serialization.test.mjs scripts/lib/runtime-pairing.test.mjs scripts/lib/pairing-history.test.mjs scripts/lib/runtime-focus.test.mjs scripts/lib/runtime-context-cursor.test.mjs scripts/lib/runtime-literal.test.mjs scripts/lib/runtime-expand-focus.test.mjs scripts/lib/runtime-table-columns.test.mjs scripts/lib/runtime-advanced-lifecycle.test.mjs scripts/lib/runtime-zenuml-styles.test.mjs scripts/lib/runtime-brush-queue.test.mjs scripts/lib/runtime-telemetry.test.mjs",
     "test:browser": "pnpm build:editor && playwright test",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "lint": "biome check packages apps tests scripts --diagnostic-level=error",
-    "check": "pnpm typecheck && pnpm check:boundaries && pnpm test",
+    "lint": "biome check packages apps tests scripts --diagnostic-level=error && pnpm check:native-sources",
+    "check": "pnpm typecheck && pnpm check:boundaries && pnpm check:native-sources && pnpm test",
     "pack:editor": "node scripts/pack-editor.mjs",
     "benchmark": "pnpm build:editor && node scripts/benchmark-editor.mjs",
     "benchmark:runtime-paste": "node scripts/benchmark-runtime-paste.mjs",
@@ -26,15 +26,17 @@
     "build:desktop": "node scripts/build-desktop.mjs",
     "test:desktop-shell": "pnpm prepare:runtime && playwright test -c playwright.desktop.config.ts",
     "prepare:runtime": "pnpm check:resources && pnpm build:editor && node scripts/prepare-runtime.mjs",
-    "check:resources": "node scripts/check-runtime-sources.mjs",
+    "check:resources": "node scripts/sync-runtime-sources.mjs --check && node scripts/check-runtime-sources.mjs",
     "prepare:native-icons": "node scripts/prepare-native-icons.mjs",
     "dev:runtime": "node scripts/runtime-server.mjs",
-    "audit:dependencies": "node scripts/audit-dependencies.mjs",
     "test:runtime": "pnpm prepare:runtime && playwright test -c playwright.runtime.config.ts",
     "release:version": "node scripts/release.mjs version",
     "release:check": "node scripts/release.mjs check",
     "release:prepare": "node scripts/release.mjs prepare",
-    "test:release": "node --test scripts/release.test.mjs"
+    "test:release": "node --test scripts/release.test.mjs",
+    "sync:runtime-sources": "node scripts/sync-runtime-sources.mjs",
+    "check:native-sources": "node scripts/check-native-sources.mjs",
+    "update:notices": "node scripts/update-notices.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
@@ -45,5 +47,6 @@
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
     "vitest": "^3.2.4"
-  }
+  },
+  "license": "Apache-2.0"
 }

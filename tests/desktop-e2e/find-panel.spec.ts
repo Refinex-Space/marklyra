@@ -291,14 +291,14 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await input.press('Escape');
     await expect(panel).toBeHidden();
     await emitLayoutMenu(page, 'view:source');
-    await expect(frame.locator('#typora-source')).toBeVisible();
+    await expect(frame.locator('#marklyra-source')).toBeVisible();
     await emitLayoutMenu(page, 'find');
     await expect.poll(async () => (await panel.boundingBox())?.width).toBe(960);
     await input.click();
     await expect(input).toBeFocused();
     await input.press('Escape');
     await emitLayoutMenu(page, 'view:source');
-    await expect(frame.locator('#typora-source')).toBeHidden();
+    await expect(frame.locator('#marklyra-source')).toBeHidden();
 
     await emitLayoutMenu(page, 'view:files');
     await page.evaluate(() => {

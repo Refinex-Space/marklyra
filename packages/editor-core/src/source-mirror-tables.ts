@@ -44,7 +44,7 @@ function frame(line: string): Frame {
   return { quote, indent, body: line.slice(cursor), from: cursor, markerWidth, tab };
 }
 function columns(header: string): number | undefined {
-  // The shipped 1.11.7 parser keeps bare pipes inside closed code spans in one
+  // The internal editor parser keeps bare pipes inside closed code spans in one
   // cell. Preserve that measured dialect; GFM's escaped-pipe rule differs.
   const value = header.trimEnd();
   if (!value.startsWith('|') || !value.endsWith('|')) return;

@@ -63,7 +63,7 @@ for (const context of contexts)
     } else if (context.id === 'source' || context.id === 'code') {
       const selector =
         context.id === 'source'
-          ? '#typora-source .CodeMirror'
+          ? '#marklyra-source .CodeMirror'
           : '#write [mdtype="fences"] .CodeMirror';
       await frame.locator(selector).evaluate((wrapper) => {
         const cm = Reflect.get(wrapper, 'CodeMirror') as NonNullable<
@@ -104,7 +104,7 @@ for (const context of contexts)
       frame.locator('body').evaluate((_, id) => {
         const selector =
           id === 'source'
-            ? '#typora-source .CodeMirror'
+            ? '#marklyra-source .CodeMirror'
             : id === 'code'
               ? '#write [mdtype="fences"] .CodeMirror'
               : null;

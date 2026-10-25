@@ -203,7 +203,7 @@ export class RuntimeFocus {
     // A click on child chrome/BODY revokes detached-node permission without
     // changing the existing explicit-focus/deferred-cursor contract.
     this.ownership++;
-    if (target.closest('#write,#typora-source')) {
+    if (target.closest('#write,#marklyra-source')) {
       this.interaction++;
       this.deferred = undefined;
     }

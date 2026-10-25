@@ -1,5 +1,6 @@
 import { MAX_CLIPBOARD_CHARS } from '../context-menu/contracts.js';
 import { displayImageUrl, imageHostReference, VIRTUAL_DOCUMENT_PATH } from '../images/contracts.js';
+import { clipboardMarkupAddressAllowed } from './clipboard-address.js';
 
 const semanticAncestors = new Set(['STRONG', 'EM', 'DEL', 'CODE', 'A', 'U', 'MARK', 'SUB', 'SUP']);
 const removedElements =
@@ -144,19 +145,7 @@ export function clipboardMarkupHTML(html: string): string {
       if (!allowed) node.removeAttribute(attribute.name);
       else if (
         (key === 'href' || key === 'src') &&
-        new RegExp(
-          `^(?:javascript|vbscript|${node.tagName === 'IMG' ? '' : 'file|'}blob|marklyra|recovered|typora):`,
-          'i',
-        ).test(
-          [...attribute.value]
-            .filter(
-              (character) =>
-                character.charCodeAt(0) > 32 &&
-                character.charCodeAt(0) !== 127 &&
-                !/\s/u.test(character),
-            )
-            .join(''),
-        )
+        !clipboardMarkupAddressAllowed(attribute.value, node.tagName === 'IMG')
       ) {
         throw new ClipboardMarkupAddressError();
       }
@@ -305,7 +294,7 @@ export function clipboardSelectionHTML(
       else if (name === 'class') {
         const publicClasses = attribute.value
           .split(/\s+/)
-          .filter((value) => value && !/^(?:md-|ty-|CodeMirror|MathJax)/.test(value));
+          .filter((value) => value && !/^(?:md-|marklyra-|CodeMirror|MathJax)/.test(value));
         if (publicClasses.length) copied.setAttribute('class', publicClasses.join(' '));
         else copied.removeAttribute('class');
       }

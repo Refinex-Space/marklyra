@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { nativeTitlebarManifest, verifyNativeIcons } from './prepare-native-icons.mjs';
 
-const input = fileURLToPath(new URL('../resources/native-titlebar', import.meta.url));
+const input = fileURLToPath(new URL('../apps/desktop/src-tauri/icons/titlebar', import.meta.url));
 
 test('all four tracked raster inputs retain their recorded identity and dimensions', async () => {
   assert.equal(await verifyNativeIcons(), 4);

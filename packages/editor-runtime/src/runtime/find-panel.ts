@@ -40,7 +40,7 @@ export class RuntimeFindPanel {
     else root.removeProperty('--marklyra-notification-top');
     const notification = this.notification;
     const message = notification?.querySelector('#md-notification');
-    const body = message?.querySelector('.ty-enter-mode-warning-body');
+    const body = message?.querySelector('.marklyra-enter-mode-warning-body');
     const compact = Boolean(body && !body.textContent?.trim());
     if (message && message.hasAttribute('data-marklyra-compact-hint') !== compact)
       message.toggleAttribute('data-marklyra-compact-hint', compact);
@@ -49,7 +49,7 @@ export class RuntimeFindPanel {
       notification &&
       notice &&
       notice.height > 0 &&
-      document.body.classList.contains('ty-show-notification');
+      document.body.classList.contains('marklyra-show-notification');
     const strips = [
       ...(visible
         ? [{ top: rect.top, bottom: rect.bottom, shadow: getComputedStyle(panel).boxShadow }]

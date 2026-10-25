@@ -1,6 +1,6 @@
 # WebKit 大文档粘贴与异步编辑加固
 
-日期：2026-10-24。起点：`61116d7`。本轮使用当前项目的锁文件、受版本控制的运行资源、独立浏览器和合成文稿；不依赖旧项目或本机 Typora 安装。
+日期：2026-10-24。起点：`61116d7`。本轮使用当前项目的锁文件、受版本控制的运行资源、独立浏览器和合成文稿；不依赖本机安装的其他编辑器。
 
 ## 结果
 
@@ -93,7 +93,7 @@ node scripts/runtime-server.mjs
 
 ```sh
 node scripts/benchmark-runtime-paste.mjs --help
-node scripts/benchmark-runtime-paste.mjs --run --label=baseline --scenario=fresh --zenuml-css=resources/editor/lib/diagram/css/mermaid-zenuml.css
+node scripts/benchmark-runtime-paste.mjs --run --label=baseline --scenario=fresh --zenuml-css=packages/editor-runtime/vendor/diagram/css/mermaid-zenuml.css
 node scripts/benchmark-runtime-paste.mjs --run --label=scoped --scenario=fresh
 node scripts/benchmark-runtime-paste.mjs --run --label=after-typing --scenario=typing-overlap
 pnpm test:performance-harness

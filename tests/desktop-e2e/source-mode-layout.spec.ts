@@ -35,16 +35,16 @@ for (const titlebar of ['appkit', 'web'] as const) {
           };
         });
         await emitLayoutMenu(page, 'view:source');
-        const mirror = frame.locator('#typora-source .CodeMirror');
+        const mirror = frame.locator('#marklyra-source .CodeMirror');
         await expect(mirror).toBeVisible();
         await expect(mirror).toHaveCSS('background-color', before.background);
-        await expect(frame.locator('#typora-source')).toHaveCSS(
+        await expect(frame.locator('#marklyra-source')).toHaveCSS(
           'background-color',
           before.background,
         );
         await expect
           .poll(async () => {
-            const box = await frame.locator('#typora-source .CodeMirror-code').boundingBox();
+            const box = await frame.locator('#marklyra-source .CodeMirror-code').boundingBox();
             const iframe = await page.locator('.marklyra-editor-frame').boundingBox();
             if (!box || !iframe) return Infinity;
             return Math.max(
@@ -53,16 +53,16 @@ for (const titlebar of ['appkit', 'web'] as const) {
             );
           })
           .toBeLessThanOrEqual(1);
-        const lineNumber = frame.locator('#typora-source .CodeMirror-linenumber-show').first();
+        const lineNumber = frame.locator('#marklyra-source .CodeMirror-linenumber-show').first();
         await expect(lineNumber).toBeVisible();
         const box = await lineNumber.boundingBox();
-        const pane = await frame.locator('#typora-source').boundingBox();
+        const pane = await frame.locator('#marklyra-source').boundingBox();
         expect(box && pane && box.x >= pane.x).toBe(true);
-        await expect(frame.locator('#typora-source .CodeMirror-gutters')).toHaveCSS(
+        await expect(frame.locator('#marklyra-source .CodeMirror-gutters')).toHaveCSS(
           'background-color',
           'rgba(0, 0, 0, 0)',
         );
-        await expect(frame.locator('#typora-source .CodeMirror-gutters')).toHaveCSS(
+        await expect(frame.locator('#marklyra-source .CodeMirror-gutters')).toHaveCSS(
           'pointer-events',
           'none',
         );

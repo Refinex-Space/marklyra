@@ -17,7 +17,7 @@ editor.destroy();
 
 通过 `load` 切换文稿，`execute` 执行类型化命令。`getMarkdown` 是缓存，不能替代保存前的 `flush`；同步失败时保留当前文稿并报告错误。React 适配位于 `@marklyra/editor-react`，不得逐次输入重建实例。详细接口以导出的 TypeScript 声明为准。
 
-编辑器引擎、主题和字体源码位于仓库的 `resources/editor`，运行页面生成到 `dist/editor-runtime`。SDK 归档只包含适配层，桌面构建会另行打包生成的运行页面。
+编辑器引擎与页面直接维护在本包的 `src/engine`、`src/page`，样式、字体和语言包位于 `assets`，随附库位于 `vendor`。主题由 `@marklyra/editor-themes` 管理，桌面设置页由应用管理。运行页面生成到本包的 `dist/page` 并随包归档；桌面构建消费同一运行页面，不依赖仓库外输入。自有代码统一采用根 `LICENSE` 的 Apache-2.0，根 `THIRD-PARTY-NOTICES.txt` 随运行页直接附带。
 
 ## Markdown 表格交互
 

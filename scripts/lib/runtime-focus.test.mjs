@@ -1,92 +1,31 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { createContext, Script } from 'node:vm';
-import { transformRuntimeFocus } from './runtime-focus.mjs';
-import { transformRuntimePairing } from './runtime-pairing.mjs';
-import { transformRuntimeSerialization } from './runtime-serialization.mjs';
+import { engineModule, expressionOf, hasHook, nodes, sourceOf } from './runtime-test-source.mjs';
 
-const sourcePath = new URL('../../resources/editor/appsrc/main.js', import.meta.url);
-const original = await readFile(sourcePath, 'utf8');
-const digest = (value) => createHash('sha256').update(value).digest('hex');
-
-test('brush focus capability requires exact artifact, unique module and unchanged AST', () => {
-  for (const input of ['', null, 42, `${original}\n`])
-    assert.throws(() => transformRuntimeFocus(input), /unknown original main.js SHA-256/);
-  assert.throws(() => transformRuntimeFocus(original, null), /Expected generated runtime source/);
-  const { metadata, code } = transformRuntimeFocus(original);
-  const [start, end] = metadata.moduleRange;
-  const [changedAt] = metadata.originalCallRanges[0];
-  assert.throws(
-    () =>
-      transformRuntimeFocus(
-        original,
-        `${original.slice(0, changedAt)} ${original.slice(changedAt)}`,
-      ),
-    /unknown module 2b AST\/SHA-256/,
-  );
-  assert.throws(
-    () => transformRuntimeFocus(original, `${original}\n${original.slice(start, end)}`),
-    /ambiguous module 2b/,
-  );
-  assert.throws(
-    () => transformRuntimeFocus(original, `var __MARKLYRA_RESTORE_BRUSH_CURSOR__;${original}`),
-    /duplicate focus capability/,
-  );
-  assert.throws(() => transformRuntimeFocus(original, code), /duplicate focus capability/);
-});
-
-test('three exact edits compose with existing transforms; every other byte remains unchanged', async () => {
-  const serialized = transformRuntimeSerialization(original).code;
-  const paired = transformRuntimePairing(original, serialized).code;
-  const transformed = transformRuntimeFocus(original, paired);
-  const { metadata, code } = transformed;
-  assert.equal(metadata.inputSha256, digest(paired));
-  assert.equal(metadata.transformedSha256, digest(code));
-  assert.equal(metadata.edits.length, 3);
+const wrappers = nodes(
+  engineModule('2b'),
+  (node) =>
+    node.type === 'CallExpression' &&
+    node.callee.type === 'FunctionExpression' &&
+    node.callee.params[0]?.name === '__marklyraBrushEditor' &&
+    hasHook(node.callee, '__MARKLYRA_RESTORE_BRUSH_CURSOR__'),
+);
+const roles = new Map([
+  ['this.editor', 'brushNode'],
+  ['e.editor', 'brushQueue'],
+  ['r', 'inline'],
+]);
+const focusSites = wrappers.map((node) => ({
+  role: roles.get(sourceOf(node.arguments[0])),
+  text: expressionOf(node),
+}));
+test('the checked-in engine exposes exactly the three cursor ownership boundaries', () => {
   assert.deepEqual(
-    metadata.edits.map((edit) => edit.role),
+    focusSites.map((site) => site.role),
     ['brushNode', 'brushQueue', 'inline'],
   );
-  assert.equal(metadata.untouchedCallRanges.length, 1);
-  assert.deepEqual(metadata.originalCallRanges, [
-    [119212, 119242],
-    [120189, 120216],
-    [131536, 131556],
-  ]);
-  let offset = 0;
-  let cursor = 0;
-  for (const edit of metadata.edits) {
-    assert.equal(
-      code.slice(cursor + offset, edit.start + offset),
-      paired.slice(cursor, edit.start),
-    );
-    assert.equal(
-      code.slice(edit.start + offset, edit.start + offset + edit.text.length),
-      edit.text,
-    );
-    offset += edit.text.length - (edit.end - edit.start);
-    cursor = edit.end;
-  }
-  assert.equal(code.slice(cursor + offset), paired.slice(cursor));
-  const reverseEdits = metadata.edits.map((edit, index) => ({
-    ...edit,
-    outputStart:
-      edit.start +
-      metadata.edits
-        .slice(0, index)
-        .reduce((sum, previous) => sum + previous.text.length - (previous.end - previous.start), 0),
-  }));
-  let restored = code;
-  for (const edit of reverseEdits.toReversed())
-    restored =
-      restored.slice(0, edit.outputStart) +
-      paired.slice(edit.start, edit.end) +
-      restored.slice(edit.outputStart + edit.text.length);
-  assert.equal(restored, paired);
-  assert.doesNotThrow(() => new Script(code));
-  assert.equal(digest(await readFile(sourcePath)), metadata.originalSha256);
+  for (const site of focusSites) assert.doesNotThrow(() => new Script(site.text));
 });
 
 function invocation(edit, hook, options = {}) {
@@ -152,7 +91,7 @@ function invocation(edit, hook, options = {}) {
   return { result: new Script(edit.text).runInContext(context), calls, originalResult };
 }
 
-for (const edit of transformRuntimeFocus(original).metadata.edits) {
+for (const edit of focusSites) {
   test(`${edit.role} absent/non-function hook preserves receiver, arguments, return and evaluation order`, () => {
     for (const value of [undefined, null, false, 1, {}]) {
       const result = invocation(edit, value);

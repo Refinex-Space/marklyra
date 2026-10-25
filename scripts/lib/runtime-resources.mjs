@@ -27,7 +27,7 @@ export async function verifyRuntimeSources(root = repositoryRoot) {
         throw new Error('source identity mismatch');
     } catch (error) {
       throw new Error(
-        `Runtime source unavailable (${path}): ${error.message}. Restore tracked resources with git restore -- resources config/runtime-source.json; do not copy private inputs.`,
+        `Runtime source unavailable (${path}): ${error.message}. Check the declared package/app input and config/runtime-source.json; restore the matching tracked file or update its reviewed identity.`,
         { cause: error },
       );
     }

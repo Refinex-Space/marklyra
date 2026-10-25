@@ -43,9 +43,9 @@ never builds, starts or stops shared services. Each run owns one browser server.
   --bytes=10240|102400|1048576 --paste-bytes=10240
   --page-url=http://127.0.0.1:4173/runtime.html
   --runtime-url=http://127.0.0.1:4174/index.html
-  --frame-host=dist/editor-runtime/frame-host.js [--frame-sha=<sha256>]
-  --main=dist/editor-runtime/appsrc/main.js [--main-sha=<sha256>]
-  --zenuml-css=dist/editor-runtime/lib/diagram/css/mermaid-zenuml.css [--css-sha=<sha256>]
+  --frame-host=packages/editor-runtime/dist/page/frame-host.js [--frame-sha=<sha256>]
+  --main=packages/editor-runtime/dist/page/appsrc/main.js [--main-sha=<sha256>]
+  --zenuml-css=packages/editor-runtime/dist/page/lib/diagram/css/mermaid-zenuml.css [--css-sha=<sha256>]
   --output=<new directory; default artifacts/performance/runtime-paste/timestamp-label-scenario-size>
 
 Frame, main and CSS buffers are frozen before browser launch and their actual
@@ -82,12 +82,19 @@ for (const url of [pageUrl, runtimeUrl])
     !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
   )
     throw Error('Benchmark requires explicit loopback HTTP services');
-const framePath = resolve(arg('frame-host', resolve(root, 'dist/editor-runtime/frame-host.js')));
-const mainPath = resolve(arg('main', resolve(root, 'dist/editor-runtime/appsrc/main.js')));
+const framePath = resolve(
+  arg('frame-host', resolve(root, 'packages/editor-runtime/dist/page/frame-host.js')),
+);
+const mainPath = resolve(
+  arg('main', resolve(root, 'packages/editor-runtime/dist/page/appsrc/main.js')),
+);
 const frameBytes = await readFile(framePath),
   mainBytes = await readFile(mainPath);
 const cssPath = resolve(
-  arg('zenuml-css', resolve(root, 'dist/editor-runtime/lib/diagram/css/mermaid-zenuml.css')),
+  arg(
+    'zenuml-css',
+    resolve(root, 'packages/editor-runtime/dist/page/lib/diagram/css/mermaid-zenuml.css'),
+  ),
 );
 const cssBytes = await readFile(cssPath);
 for (const [name, input] of [
@@ -126,7 +133,7 @@ async function fingerprint() {
       else if (entry.isFile()) paths.push(path);
     }
   }
-  await visit('dist/editor-runtime');
+  await visit('packages/editor-runtime/dist/page');
   await visit('apps/editor-playground/src');
   paths.push('apps/editor-playground/runtime.html', 'apps/editor-playground/vite.config.ts');
   for (const entry of await readdir(resolve(root, 'packages'), { withFileTypes: true }))

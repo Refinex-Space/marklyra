@@ -220,8 +220,34 @@ export function imageHostReference(source: string, root = ''): string {
   if (/^[\\/]|^[a-z]:[\\/]/i.test(value)) return value;
   return imageReference(value);
 }
+/** Prefer the current namespace while accepting a single existing editor's
+ * image field. Metadata declares a path; the host still owns all file authority. */
+export function imageMetadataValue(
+  entries: Iterable<readonly [string, unknown]>,
+  field: 'root-url' | 'copy-images-to',
+): unknown {
+  const canonical: unknown[] = [];
+  const compatible: unknown[] = [];
+  for (const [key, value] of entries) {
+    const name = key.toLowerCase();
+    if (name === `marklyra-${field}`) canonical.push(value);
+    else if (
+      name.endsWith(`-${field}`) &&
+      /^[a-z][a-z\d]*(?:-[a-z\d]+)*$/.test(name.slice(0, -field.length - 1))
+    )
+      compatible.push(value);
+  }
+  const selected = canonical.length ? canonical : compatible;
+  if (selected.length > 1) throw new ImageHostError(`图片元数据字段存在歧义：${field}`);
+  return selected[0];
+}
+
 export function imageRoot(frontMatter: string): string {
-  const value = /^\s*typora-root-url\s*:\s*(.*)$/im.exec(frontMatter)?.[1]?.trim() ?? '';
+  const entries = [...frontMatter.matchAll(/^[ \t]*([a-z][a-z\d-]*)[ \t]*:[ \t]*(.*)$/gim)].map(
+    (match): [string, unknown] => [match[1] ?? '', match[2]],
+  );
+  const setting = imageMetadataValue(entries, 'root-url');
+  const value = typeof setting === 'string' ? setting.trim() : '';
   if (value.startsWith('"') && value.endsWith('"')) {
     try {
       const parsed: unknown = JSON.parse(value);

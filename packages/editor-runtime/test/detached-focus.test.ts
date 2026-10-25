@@ -7,7 +7,7 @@ class FocusElement {
   isConnected = true;
   constructor(readonly area?: FocusElement) {}
   closest(selector: string) {
-    return selector === '#write,#typora-source' && this.area ? this.area : null;
+    return selector === '#write,#marklyra-source' && this.area ? this.area : null;
   }
   contains(value: unknown) {
     return (

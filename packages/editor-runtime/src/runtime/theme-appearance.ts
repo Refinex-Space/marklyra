@@ -132,7 +132,7 @@ function hoverRules(element: HTMLElement): string {
  * removed, and marked before insertion so host observers can ignore the probe. */
 export function readThemeAppearance(): ThemeAppearance {
   const body = document.body;
-  const sidebar = document.getElementById('typora-sidebar');
+  const sidebar = document.getElementById('marklyra-sidebar');
   if (!body || !sidebar) return {};
   const owned: HTMLElement[] = [];
   const sample = (parent: HTMLElement, className: string, name: string) => {
@@ -183,7 +183,7 @@ export function readThemeAppearance(): ThemeAppearance {
     );
     const outlineItem = child(outline, 'outline-item');
     outlineItem.setAttribute(marker, 'outline-hover');
-    const footer = document.getElementById('ty-sidebar-footer');
+    const footer = document.getElementById('marklyra-sidebar-footer');
     const footerItem = sample(footer ?? sidebar, 'sidebar-footer-item', 'footer-hover');
     const color = sample(sidebar, '', 'color');
     // The hidden original UI does not use the desktop Host's titlebar inset.

@@ -49,7 +49,7 @@ test('original focus/typewriter modes publish checks without changing raw, histo
   await expect(frame.locator('body')).toHaveClass(/on-focus-mode/);
   await execute(page, 'toggleTypewriter');
   await expect.poll(async () => (await menu(page))?.typewriterMode).toBe(true);
-  await expect(frame.locator('body')).toHaveClass(/ty-on-typewriter-mode/);
+  await expect(frame.locator('body')).toHaveClass(/marklyra-on-typewriter-mode/);
   expect(await flush(page)).toBe(raw);
   expect(await facts()).toEqual(before);
   await execute(page, 'toggleFocus');

@@ -155,7 +155,7 @@ test('the unified menu replaces the old toolbar and preserves column alignment e
   const frame = tableFrame(page);
   await frame.locator('#write tbody td').first().click();
   await frame.locator('#write tbody td').first().hover();
-  await expect(frame.locator('.ty-table-edit')).toBeHidden();
+  await expect(frame.locator('.marklyra-table-edit')).toBeHidden();
   const actions = await menu(page, '#write tbody td:first-child', 'column');
   await actions.getByRole('menuitem', { name: '对齐方式', exact: true }).hover();
   await frame

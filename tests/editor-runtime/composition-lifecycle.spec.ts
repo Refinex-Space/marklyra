@@ -20,7 +20,7 @@ for (const mode of ['wysiwyg', 'source'] as const)
         (window as unknown as Host).marklyraEditor.execute({ type: 'toggleSource' }),
       );
     const target = advancedFrame(page).locator(
-      mode === 'source' ? '#typora-source textarea' : '#write',
+      mode === 'source' ? '#marklyra-source textarea' : '#write',
     );
     await target.evaluate((element) => {
       // Synthetic lifecycle ordering proves ownership only. No system IME

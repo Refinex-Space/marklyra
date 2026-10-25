@@ -63,17 +63,15 @@ Playwright 的“预期结果”包含两个既有 `-K02` 预期失败，具体�
 
 最后一次构建后的六个 runtime 夹具再次全部完成，源文稿精确、错误数组为空，运行前后资源指纹一致。该轮未并行运行其他浏览器回归。Chromium 1 MiB 键入中位数约 109 毫秒、粘贴+flush 约 0.95 秒；WebKit 分别约 177 毫秒、9.92 秒。与前两轮的负载环境不同，不能据此做稳定回归幅度判断；可以明确的是，本轮没有消除该高节点密度 WebKit 延迟。
 
-## Typora 比对
+## 编辑器行为基线
 
-本机 Typora 1.11.7、旧 typora-recover vendor 与当前受追踪 `resources/editor/appsrc/main.js` 的 SHA-256 相同。原资源身份允许复用有明确范围的历史静态证据；不能据此推断新宿主运行行为相同。对比确认原版也有 Element 选区粘贴、异步粘贴历史、表格列元数据和长文档布局缺口。当前已有的原生线性序列化、空选区文本读取、节点查找和表格修复应保留，不重复叠加无失效依据的缓存。
-
-本轮使用 REA 技能检查已有会话及可复用证据，没有为缺少原生问题的 JavaScript 路径进行无目标 Hopper 扫描。具体证据 ID、原文件摘要和观察/推断边界位于本地对比报告；未将第三方反编译正文纳入本记录。
+本轮对照确认，Element 选区粘贴、异步粘贴历史、表格列元数据和长文档布局存在既有缺口。当前原生线性序列化、空选区文本读取、节点查找和表格修复需要保留。输入身份一致仅支持复用明确范围的历史静态证据，不能据此推断新宿主运行行为相同。
 
 ## 本地复现材料
 
 `artifacts/editor-hardening/` 为 Git 忽略目录，保留问题前后的 Playwright trace、截图、源码/模型记录、隔离 frame-host 和微基准。主要文件：
 
-- `typora-comparison.md`、`math-entry-confirmed.md`、`context-preview-validation.json`
+- `math-entry-confirmed.md`、`context-preview-validation.json`
 - `heading-benchmark.mjs`/`.json`、`inline-benchmark.mjs`/`.json`
 - `runtime-cost-probe.mjs`/`.json`、`runtime-cost-probe-initial.json`
 - `portable-source-results.json`、`recovery-source-results.json`

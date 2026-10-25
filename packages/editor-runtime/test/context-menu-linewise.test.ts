@@ -41,7 +41,7 @@ function fixture(
     CodeMirror: undefined as unknown,
     closest(selector: string): unknown {
       if (selector === '.CodeMirror') return mode === 'body' ? null : wrapper;
-      if (selector === '#typora-source') return mode === 'source' ? source : null;
+      if (selector === '#marklyra-source') return mode === 'source' ? source : null;
       if (selector === '[cid]') return cid ? { getAttribute: () => cid } : null;
       return null;
     },

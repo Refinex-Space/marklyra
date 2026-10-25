@@ -6,129 +6,12 @@ import { SHELL_FONT_MANIFEST } from './runtime-shell-font-manifest.mjs';
 
 export { SHELL_FONT_MANIFEST };
 export const SHELL_FONT_PREFIX = '/__runtime-fonts/';
-export const SHELL_FONT_LICENSE_PREFIX = '/__runtime-fonts/licenses/fonts/';
-const defaultSource = fileURLToPath(new URL('../dist/editor-runtime/style/', import.meta.url));
-const defaultLicenses = fileURLToPath(new URL('../licenses/fonts/', import.meta.url));
+const defaultSource = fileURLToPath(
+  new URL('../packages/editor-runtime/assets/styles/', import.meta.url),
+);
+const defaultThemes = fileURLToPath(new URL('../packages/editor-themes/assets/', import.meta.url));
 const privateRoot = fileURLToPath(new URL('../private/', import.meta.url));
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
-// Audit metadata is pinned as well as the received notices, so changing the mapping
-// and its declared notice hashes together cannot silently bypass the build gate.
-const LICENSE_METADATA = {
-  'manifest.json': 'b66c045a3b9a767e723be78bed93f853b6533eb6916532ba6faa84cc5f0bec8b',
-  'README.md': 'ae2b5ca150a7664f604166453e0398eb9ca5f7d6ca0b6bf5be98dffcf82278c7',
-};
-const LICENSE_NOTICES = [
-  'Apache-2.0.txt',
-  'FONT-NOTICES.txt',
-  'GUST-FONT-LICENSE-1.0.txt',
-  'GUST-FONT-LICENSE-2006.txt',
-  'LPPL-1.3c.txt',
-  'OFL-1.1.txt',
-  'Raleway-3.000g-OFL.txt',
-];
-
-async function licenseInput(root, name, expectedSha256) {
-  try {
-    const path = resolve(root, name);
-    const [metadata, canonical] = await Promise.all([lstat(path), realpath(path)]);
-    if (!metadata.isFile() || metadata.isSymbolicLink() || !canonical.startsWith(`${root}${sep}`))
-      throw new Error('not a regular license input');
-    const bytes = await readFile(path);
-    if (digest(bytes) !== expectedSha256) throw new Error('SHA-256 mismatch');
-    return {
-      bytes,
-      type:
-        name === 'manifest.json'
-          ? 'application/json; charset=utf-8'
-          : name === 'README.md'
-            ? 'text/markdown; charset=utf-8'
-            : 'text/plain; charset=utf-8',
-      sha256: expectedSha256,
-    };
-  } catch (error) {
-    throw new Error(
-      `Runtime shell font license input unavailable (${name}): ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
-function validateLicenseMapping(manifest, resources) {
-  const notices = new Map();
-  if (
-    !Array.isArray(manifest.noticeFiles) ||
-    manifest.noticeFiles.length !== LICENSE_NOTICES.length
-  )
-    throw new Error('Runtime shell font license notice inventory mismatch');
-  for (const notice of manifest.noticeFiles) {
-    if (
-      !notice ||
-      !LICENSE_NOTICES.includes(notice.file) ||
-      notices.has(notice.file) ||
-      !/^[a-f0-9]{64}$/.test(notice.sha256)
-    )
-      throw new Error('Runtime shell font license notice inventory mismatch');
-    notices.set(notice.file, notice.sha256);
-  }
-  const fonts = new Map(SHELL_FONT_MANIFEST.map((font) => [font.path, font]));
-  const seen = new Set();
-  const referencedNotices = new Set();
-  if (
-    fonts.size !== 24 ||
-    SHELL_FONT_MANIFEST.length !== 24 ||
-    !Array.isArray(manifest.fonts) ||
-    manifest.fonts.length !== fonts.size
-  )
-    throw new Error('Runtime shell font license/font correspondence mismatch');
-  for (const licensed of manifest.fonts) {
-    const font = fonts.get(licensed?.path);
-    if (
-      !font ||
-      seen.has(licensed.path) ||
-      licensed.sha256 !== font.sha256 ||
-      licensed.family !== font.family ||
-      licensed.bytes !== resources.get(font.path)?.bytes.length ||
-      typeof licensed.license !== 'string' ||
-      !licensed.license ||
-      !Array.isArray(licensed.licenseTextFiles) ||
-      !licensed.licenseTextFiles.length ||
-      new Set(licensed.licenseTextFiles).size !== licensed.licenseTextFiles.length ||
-      licensed.licenseTextFiles.some((file) => !notices.has(file))
-    )
-      throw new Error('Runtime shell font license/font correspondence mismatch');
-    seen.add(licensed.path);
-    for (const file of licensed.licenseTextFiles) referencedNotices.add(file);
-  }
-  if (referencedNotices.size !== notices.size)
-    throw new Error('Runtime shell font license notice references are incomplete');
-  return notices;
-}
-
-async function addLicenseResources(resources, licenseDirectory) {
-  const root = await realpath(licenseDirectory).catch(() => {
-    throw new Error(
-      'Runtime shell font licenses are missing; restore licenses/fonts before serving or building desktop',
-    );
-  });
-  const metadata = await Promise.all(
-    Object.entries(LICENSE_METADATA).map(async ([name, sha256]) => [
-      name,
-      await licenseInput(root, name, sha256),
-    ]),
-  );
-  const manifest = JSON.parse(
-    metadata.find(([name]) => name === 'manifest.json')[1].bytes.toString('utf8'),
-  );
-  const notices = validateLicenseMapping(manifest, resources);
-  const results = await Promise.allSettled(
-    [...notices].map(async ([name, sha256]) => [name, await licenseInput(root, name, sha256)]),
-  );
-  for (const result of results) {
-    if (result.status === 'rejected') throw result.reason;
-    metadata.push(result.value);
-  }
-  for (const [name, resource] of metadata) resources.set(`licenses/fonts/${name}`, resource);
-}
-
 function fontStylesheet() {
   return SHELL_FONT_MANIFEST.map((font) => {
     const format = font.mime === 'font/woff2' ? 'woff2' : 'woff';
@@ -136,20 +19,31 @@ function fontStylesheet() {
   }).join('\n');
 }
 
-async function verifiedResources(sourceDirectory, licenseDirectory) {
-  const root = await realpath(sourceDirectory).catch(() => {
-    throw new Error(
-      'Runtime shell fonts are missing; run pnpm prepare:runtime before serving or building desktop',
-    );
-  });
+async function verifiedResources(sourceDirectory, themeDirectory) {
+  const roots = new Map();
+  const sourceRoot = (directory) => {
+    if (!roots.has(directory))
+      roots.set(
+        directory,
+        (async () => {
+          const metadata = await lstat(directory);
+          if (!metadata.isDirectory() || metadata.isSymbolicLink())
+            throw new Error('font directory must be a regular source directory');
+          return realpath(directory);
+        })(),
+      );
+    return roots.get(directory);
+  };
   const results = await Promise.allSettled(
     SHELL_FONT_MANIFEST.map(async (font) => {
-      const path = resolve(root, font.path);
+      const themeFont = font.path.startsWith('themes/');
+      const root = await sourceRoot(themeFont ? themeDirectory : sourceDirectory);
+      const path = resolve(root, themeFont ? font.path.slice('themes/'.length) : font.path);
       const [metadata, canonical] = await Promise.all([lstat(path), realpath(path)]);
       if (!metadata.isFile() || metadata.isSymbolicLink() || !canonical.startsWith(`${root}${sep}`))
         throw new Error(`Runtime shell font is not a regular source input: ${font.path}`);
       const bytes = await readFile(path);
-      if (digest(bytes) !== font.sha256)
+      if (bytes.length !== font.bytes || digest(bytes) !== font.sha256)
         throw new Error(`Runtime shell font SHA-256 mismatch: ${font.path}`);
       return [font.path, { bytes, type: font.mime, sha256: font.sha256 }];
     }),
@@ -167,7 +61,6 @@ async function verifiedResources(sourceDirectory, licenseDirectory) {
   }
   const css = Buffer.from(fontStylesheet());
   resources.set('fonts.css', { bytes: css, type: 'text/css; charset=utf-8', sha256: digest(css) });
-  await addLicenseResources(resources, licenseDirectory);
   return resources;
 }
 
@@ -215,14 +108,14 @@ function middleware(resources) {
   };
 }
 
-/** Desktop delivery from verified generated resources; SDK packages stay independent. */
+/** Desktop delivery directly from the owning packages' built-in font assets. */
 export function runtimeShellFonts({
   sourceDirectory = defaultSource,
-  licenseDirectory = defaultLicenses,
+  themeDirectory = defaultThemes,
 } = {}) {
   let pending;
   let building = false;
-  const resources = () => (pending ??= verifiedResources(sourceDirectory, licenseDirectory));
+  const resources = () => (pending ??= verifiedResources(sourceDirectory, themeDirectory));
   return {
     name: 'runtime-shell-fonts',
     enforce: 'pre',
@@ -243,6 +136,7 @@ export function runtimeShellFonts({
               ...(config.server?.fs?.deny ?? []),
               `${resolve(privateRoot).split(sep).join('/')}/**`,
               `${resolve(sourceDirectory).split(sep).join('/')}/**`,
+              `${resolve(themeDirectory).split(sep).join('/')}/**`,
             ],
           },
         },

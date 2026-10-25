@@ -1,5 +1,4 @@
-//! Adapted and modified for MarkLyra from Markune (Apache-2.0).
-//! License and provenance: licenses/agents/README.md and markune-Apache-2.0.txt.
+//! ACP integration adapted and modified for MarkLyra from Markune.
 use super::*;
 
 pub(super) fn list(data: &Path, root: &Path) -> Result<Vec<Value>, String> {

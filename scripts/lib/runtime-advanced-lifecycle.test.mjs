@@ -1,124 +1,191 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { runInNewContext, Script } from 'node:vm';
-import { transformRuntimeContextCursor } from './runtime-context-cursor.mjs';
-import { transformRuntimeFocus } from './runtime-focus.mjs';
-import { transformRuntimeHTMLLifecycle } from './runtime-html-lifecycle.mjs';
-import { transformRuntimeHTMLPreview } from './runtime-html-preview.mjs';
-import { transformRuntimeLiteral } from './runtime-literal.mjs';
-import { transformRuntimePairing } from './runtime-pairing.mjs';
-import { transformRuntimeRenderLifecycle } from './runtime-render-lifecycle.mjs';
-import { transformRuntimeSerialization } from './runtime-serialization.mjs';
-import { transformRuntimeTableColumns } from './runtime-table-columns.mjs';
+import { runInNewContext } from 'node:vm';
+import { parse } from 'acorn';
+import {
+  engineAST,
+  engineModule,
+  expressionOf,
+  hasHook,
+  member,
+  nodes,
+  sourceOf,
+  unique,
+} from './runtime-test-source.mjs';
 
-const mainPath = new URL('../../resources/editor/appsrc/main.js', import.meta.url),
-  indexPath = new URL('../../resources/editor/index.html', import.meta.url),
-  original = await readFile(mainPath, 'utf8'),
-  index = await readFile(indexPath, 'utf8'),
-  digest = (value) => createHash('sha256').update(value).digest('hex');
-let prior = transformRuntimeSerialization(original).code;
-for (const transform of [
-  transformRuntimePairing,
-  transformRuntimeFocus,
-  transformRuntimeContextCursor,
-  transformRuntimeLiteral,
-  transformRuntimeTableColumns,
-])
-  prior = transform(original, prior).code;
-const html = transformRuntimeHTMLLifecycle(original, prior),
-  render = transformRuntimeRenderLifecycle(original, html.code),
-  pagePrior = index.replace('<head>', '<head><script src="frame-host.js"></script>'),
-  preview = transformRuntimeHTMLPreview(index, pagePrior);
+const enter = unique(
+  nodes(
+    engineAST,
+    (node) =>
+      node.type === 'ConditionalExpression' && hasHook(node.test, '__MARKLYRA_HTML_CALLBACK__'),
+  ),
+  'HTML Enter callback',
+);
+const message = unique(
+  nodes(
+    engineAST,
+    (node) => node.type === 'IfStatement' && hasHook(node.test, '__MARKLYRA_HTML_MESSAGE__'),
+  ),
+  'HTML message ownership guard',
+);
 
-function restored(output, input, edits) {
-  let shift = 0;
-  const positions = edits.map((edit) => {
-    const position = edit.start + shift;
-    shift += edit.text.length - (edit.end - edit.start);
-    return { edit, position };
-  });
-  for (const { edit, position } of positions.reverse())
-    output =
-      output.slice(0, position) +
-      input.slice(edit.start, edit.end) +
-      output.slice(position + edit.text.length);
-  return output;
-}
-function syntax(code) {
-  try {
-    new Script(code);
-    return true;
-  } catch {
-    return false;
-  }
-}
-test('HTML and render transforms require exact original provenance, unchanged modules and single application', () => {
-  for (const transform of [transformRuntimeHTMLLifecycle, transformRuntimeRenderLifecycle]) {
-    for (const bad of [null, 42, '', original + '\n'])
-      assert.throws(() => transform(bad), /unknown original/);
-    assert.throws(() => transform(original, null), /Expected generated/);
-  }
-  assert.throws(() => transformRuntimeHTMLLifecycle(original, html.code), /duplicate hook/);
-  assert.throws(() => transformRuntimeRenderLifecycle(original, render.code), /duplicate hook/);
-  const h = html.metadata.edits[0].start,
-    r = render.metadata.edits[0].start;
-  assert.throws(
-    () => transformRuntimeHTMLLifecycle(original, prior.slice(0, h) + ' ' + prior.slice(h)),
-    /unknown module/,
-  );
-  assert.throws(
-    () =>
-      transformRuntimeRenderLifecycle(original, html.code.slice(0, r) + ' ' + html.code.slice(r)),
-    /unknown module/,
-  );
-});
-test('only the two HTML and nine render boundary edits change the composed source bytes', async () => {
-  for (const [result, input, count] of [
-    [html, prior, 2],
-    [render, html.code, 9],
-  ]) {
-    assert.equal(result.metadata.edits.length, count);
-    assert.equal(result.metadata.inputSha256, digest(input));
-    assert.equal(result.metadata.transformedSha256, digest(result.code));
-    assert.equal(digest(restored(result.code, input, result.metadata.edits)), digest(input));
-    assert.ok(
-      restored(result.code, input, result.metadata.edits) === input,
-      'Bytes outside guarded edits changed',
-    );
-    assert.equal(syntax(result.code), true);
-  }
-  assert.equal(digest(await readFile(mainPath)), html.metadata.originalSha256);
-});
-test('the original Enter callback remains unchanged with no host hook and is suppressible at its exact hook', () => {
-  const expression = html.metadata.edits[0].text,
-    calls = [];
+test('the real HTML Enter callback retains its fallback and allows the host to suppress it', () => {
+  const calls = [];
   const context = { c: { UserOp: { insertParagraph: (...args) => calls.push(args) } } };
-  runInNewContext(expression, context)();
+  runInNewContext(expressionOf(enter), context)();
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0], []);
   calls.length = 0;
-  runInNewContext(expression, { ...context, __MARKLYRA_HTML_CALLBACK__: () => () => undefined })();
+  runInNewContext(expressionOf(enter), {
+    ...context,
+    __MARKLYRA_HTML_CALLBACK__: () => () => undefined,
+  })();
   assert.equal(calls.length, 0);
 });
-test('preview rewrites only four top destinations in the hash-bound generated iframe template', async () => {
-  assert.equal(preview.metadata.edits.length, 4);
-  assert.equal(
-    digest(restored(preview.code, pagePrior, preview.metadata.edits)),
-    digest(pagePrior),
-  );
-  assert.ok(
-    restored(preview.code, pagePrior, preview.metadata.edits) === pagePrior,
-    'Unrelated page bytes changed',
-  );
-  for (const edit of preview.metadata.edits) {
-    assert.equal(pagePrior.slice(edit.start, edit.end), 'top');
-    assert.equal(edit.text, 'parent');
+
+test('the real HTML message guard rejects an unowned event before continuing', () => {
+  const expression = `(function(){${sourceOf(message)}return 'accepted';})`;
+  const event = { marker: 'same event' };
+  assert.equal(runInNewContext(expression, { t: event })(), 'accepted');
+  for (const accepted of [true, false]) {
+    let calls = 0;
+    const callback = runInNewContext(expression, {
+      t: event,
+      __MARKLYRA_HTML_MESSAGE__: (value) => {
+        assert.equal(value, event);
+        calls++;
+        return accepted;
+      },
+    });
+    assert.equal(callback(), accepted ? 'accepted' : undefined);
+    assert.equal(calls, 1);
   }
-  assert.equal(preview.metadata.inputSha256, digest(pagePrior));
-  assert.equal(preview.metadata.transformedSha256, digest(preview.code));
-  assert.throws(() => transformRuntimeHTMLPreview(index + '\n'), /unknown original/);
-  assert.throws(() => transformRuntimeHTMLPreview(index, preview.code), /unknown iframe template/);
-  assert.equal(digest(await readFile(indexPath)), preview.metadata.originalSha256);
+});
+
+for (const [id, methodName, identifiers] of [
+  ['1c', 'updateDiagram', ['a', 'o']],
+  ['1c', 'startEditing', ['i', 'n']],
+  ['15', 'updateDiagram', ['n', 'm']],
+]) {
+  const method = unique(
+    nodes(
+      engineModule(id),
+      (node) => node.type === 'MethodDefinition' && node.key.name === methodName,
+    ),
+    `${id}.${methodName}`,
+  );
+  const ticket = unique(
+    nodes(
+      method,
+      (node) => node.type === 'VariableDeclarator' && node.id.name === '__marklyraRenderTicket',
+    ),
+    `${id}.${methodName} ticket`,
+  );
+  const guards = nodes(
+    method,
+    (node) =>
+      node.type === 'IfStatement' &&
+      node.test.type === 'LogicalExpression' &&
+      node.test.left.name === '__marklyraRenderTicket' &&
+      node.test.right.type === 'UnaryExpression' &&
+      member(node.test.right.argument?.callee, 'current'),
+  );
+  test(`${id}.${methodName} captures one exact render owner and checks success and failure continuations`, () => {
+    assert.equal(guards.length, 2);
+    assert.ok(guards.every((guard) => guard.start > ticket.end));
+    const preview = {},
+      cm = {},
+      owner = { current: () => true };
+    const context = { [identifiers[0]]: preview, [identifiers[1]]: cm };
+    assert.equal(runInNewContext(expressionOf(ticket.init), context), null);
+    let calls = 0;
+    assert.equal(
+      runInNewContext(expressionOf(ticket.init), {
+        ...context,
+        __MARKLYRA_RENDER_TICKET__: (...args) => {
+          assert.equal(args.length, 2);
+          assert.equal(args[0], preview);
+          assert.equal(args[1], cm);
+          calls++;
+          return owner;
+        },
+      }),
+      owner,
+    );
+    assert.equal(calls, 1);
+    for (const guard of guards) {
+      const expression = `(function(){${sourceOf(guard)}return 'continued';})`;
+      assert.equal(runInNewContext(expression, { __marklyraRenderTicket: null })(), 'continued');
+      assert.equal(runInNewContext(expression, { __marklyraRenderTicket: owner })(), 'continued');
+      assert.equal(
+        runInNewContext(expression, { __marklyraRenderTicket: { current: () => false } })(),
+        undefined,
+      );
+    }
+  });
+}
+
+const page = await readFile(
+  new URL('../../packages/editor-runtime/src/page/index.html', import.meta.url),
+  'utf8',
+);
+const preview = unique(
+  [
+    ...page.matchAll(
+      /<script\b[^>]*\bid=["']md-html-iframe-preload-temp["'][^>]*>([\s\S]*?)<\/script>/gu,
+    ),
+  ],
+  'HTML preview template',
+)[1];
+
+test('the embedded HTML preview sends all four message kinds to its immediate editor parent', () => {
+  const calls = nodes(
+    parse(preview, { ecmaVersion: 'latest' }),
+    (node) => node.type === 'CallExpression' && member(node.callee, 'postMessage'),
+  );
+  assert.equal(calls.length, 4);
+  assert.ok(calls.every((node) => node.callee.object.name === 'parent'));
+  const sent = [],
+    handlers = {};
+  const document = {
+    body: { parentElement: { offsetHeight: 42 } },
+    readyState: 'interactive',
+    addEventListener: (name, callback) => {
+      handlers[name] = callback;
+    },
+  };
+  runInNewContext(`${preview};iframePreloadScript('owned-preview');`, {
+    document,
+    window: { addEventListener() {} },
+    parent: {
+      postMessage: (message, target) => {
+        assert.equal(target, '*');
+        sent.push(message);
+      },
+    },
+    top: {
+      postMessage: () => {
+        throw Error('Preview escaped to the application host');
+      },
+    },
+    MutationObserver: class {
+      observe() {}
+      disconnect() {}
+    },
+    setTimeout() {},
+    clearTimeout() {},
+    requestAnimationFrame() {},
+  });
+  document.onreadystatechange();
+  handlers.mousedown({ target: { tagName: 'P' }, ctrlKey: true, preventDefault() {} });
+  handlers.contextmenu({ clientX: 3, clientY: 4 });
+  assert.deepEqual(
+    sent.map((message) => message.msg),
+    ['changeHeight', 'mousedown', 'startEditing', 'contextmenu'],
+  );
+  assert.ok(sent.every((message) => message.cid === 'owned-preview'));
+  assert.equal(sent[0].height, 42);
+  assert.equal(sent[3].event.clientX, 3);
+  assert.equal(sent[3].event.clientY, 4);
 });

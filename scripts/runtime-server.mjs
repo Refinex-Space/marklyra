@@ -5,7 +5,7 @@ import { extname, resolve, sep } from 'node:path';
 const root = await realpath(
   process.argv[3]
     ? resolve(process.argv[3])
-    : resolve(import.meta.dirname, '../dist/editor-runtime'),
+    : resolve(import.meta.dirname, '../packages/editor-runtime/dist/page'),
 );
 const port = Number(process.argv[2] ?? 4174);
 const mime = {

@@ -226,7 +226,9 @@ test('PDF goes straight to a file with the document variables, and the notice ca
   const notice = page.locator('.notice-host');
   await expect(notice).toContainText('已导出 PDF · /mock/A.pdf', { timeout: 20000 });
   const call = await page.evaluate(() =>
-    (window as TestWindow).__desktopMock.calls.filter((c) => c.command === 'save_export_pdf').at(-1),
+    (window as TestWindow).__desktopMock.calls
+      .filter((c) => c.command === 'save_export_pdf')
+      .at(-1),
   );
   // The front matter wins over the file name; nothing else crosses the boundary.
   expect(call?.args.context).toEqual({ title: '季度报告', author: '李' });
@@ -236,7 +238,7 @@ test('PDF goes straight to a file with the document variables, and the notice ca
     'sourceId',
     'suggestedName',
   ]);
-  expect(String(call?.args.html)).toContain('typora-print');
+  expect(String(call?.args.html)).toContain('marklyra-print');
   await notice.getByRole('button', { name: '在文件夹中显示' }).click();
   await expect
     .poll(() =>
@@ -269,7 +271,9 @@ test('without direct PDF the same menu item opens the system print panel with th
     mock.exportPreferences.pdf = { paper: 'A4', landscape: true };
   });
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText('Alpha');
+  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText(
+    'Alpha',
+  );
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('export-pdf'));
   await expect(page.locator('.notice-host')).toContainText('系统打印面板');
   const call = await page.evaluate(() =>
@@ -310,8 +314,13 @@ test('a custom export is routed by id, resolved against the writers Pandoc offer
     { id, pandoc },
   );
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText('Alpha');
-  await page.evaluate((id) => (window as TestWindow).__desktopMock.emitMenu(`export-custom:${id}`), id);
+  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText(
+    'Alpha',
+  );
+  await page.evaluate(
+    (id) => (window as TestWindow).__desktopMock.emitMenu(`export-custom:${id}`),
+    id,
+  );
   await expect(page.locator('.notice-host')).toContainText('已导出 AsciiDoc', { timeout: 20000 });
   const call = await page.evaluate(() =>
     (window as TestWindow).__desktopMock.calls
@@ -351,7 +360,9 @@ test('warnings from a written file get their own notice', async ({ page }) => {
     mock.exportWarnings = ['Could not fetch resource https://example.invalid/a.png'];
   }, pandoc);
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText('Alpha');
+  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText(
+    'Alpha',
+  );
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('export-docx'));
   await expect(page.locator('.notice-host')).toContainText('已导出 Word');
   await expect(page.locator('.notice-host')).toContainText('导出时的提示');

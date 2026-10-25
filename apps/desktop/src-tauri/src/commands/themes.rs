@@ -1,6 +1,6 @@
 use crate::themes::{PreparedThemeStyles, ThemeCatalog, ThemeHost};
 use tauri::{AppHandle, State, WebviewWindow};
-const THEME_GALLERY: &str = "https://theme.typora.io";
+const THEME_GALLERY: &str = "https://github.com/Refinex-Space/marklyra";
 
 fn editor_only(window: &WebviewWindow) -> Result<(), String> {
     if crate::windows::is_editor(window) {
@@ -130,7 +130,8 @@ mod tests {
     fn gallery_is_a_fixed_https_destination_without_input_or_credentials() {
         let url = tauri::Url::parse(THEME_GALLERY).unwrap();
         assert_eq!(url.scheme(), "https");
-        assert_eq!(url.host_str(), Some("theme.typora.io"));
+        assert_eq!(url.host_str(), Some("github.com"));
+        assert_eq!(url.path(), "/Refinex-Space/marklyra");
         assert!(url.username().is_empty());
         assert!(url.password().is_none());
         assert!(url.query().is_none());

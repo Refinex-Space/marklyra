@@ -18,8 +18,8 @@ for (const mode of ['wysiwyg', 'source'] as const) {
     await page.locator('.marklyra-editor-frame').focus();
     if (mode === 'source') {
       await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
-      await frame.locator('#typora-source .CodeMirror textarea').focus();
-      await frame.locator('#typora-source .CodeMirror').evaluate((element) => {
+      await frame.locator('#marklyra-source .CodeMirror textarea').focus();
+      await frame.locator('#marklyra-source .CodeMirror').evaluate((element) => {
         const cm = Reflect.get(element, 'CodeMirror') as {
           getValue(): string;
           posFromIndex(index: number): unknown;
@@ -42,7 +42,7 @@ for (const mode of ['wysiwyg', 'source'] as const) {
     const source = () =>
       mode === 'source'
         ? frame
-            .locator('#typora-source .CodeMirror')
+            .locator('#marklyra-source .CodeMirror')
             .evaluate((element) =>
               (Reflect.get(element, 'CodeMirror') as { getValue(): string }).getValue(),
             )
@@ -100,8 +100,8 @@ for (const nativeChrome of [false, true])
         await page.locator('.marklyra-editor-frame').focus();
         if (mode === 'source') {
           await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
-          await frame.locator('#typora-source .CodeMirror textarea').focus();
-          await frame.locator('#typora-source .CodeMirror').evaluate((element) => {
+          await frame.locator('#marklyra-source .CodeMirror textarea').focus();
+          await frame.locator('#marklyra-source .CodeMirror').evaluate((element) => {
             const cm = Reflect.get(element, 'CodeMirror') as {
               getValue(): string;
               posFromIndex(index: number): unknown;
@@ -123,7 +123,7 @@ for (const nativeChrome of [false, true])
         const source = () =>
           mode === 'source'
             ? frame
-                .locator('#typora-source .CodeMirror')
+                .locator('#marklyra-source .CodeMirror')
                 .evaluate((element) =>
                   (Reflect.get(element, 'CodeMirror') as { getValue(): string }).getValue(),
                 )

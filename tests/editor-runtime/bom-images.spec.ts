@@ -12,7 +12,7 @@ test('a file BOM does not prevent YAML image-root resolution or become part of i
   page,
 }) => {
   await setupImageHost(page);
-  const raw = '\uFEFF---\r\ntypora-root-url: media\n---\r\n\r\n![pixel](pixel.png)\n\nBody';
+  const raw = '\uFEFF---\r\nmarklyra-root-url: media\n---\r\n\r\n![pixel](pixel.png)\n\nBody';
   await createImageEditor(page, { source: raw, context: 'bom-image-doc' });
   await expect(imageFrame(page).locator('#write > .md-meta-block')).toHaveCount(1);
   await expectDecodedImage(page);

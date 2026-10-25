@@ -50,7 +50,7 @@ for (const yaml of [false, true]) {
   test(`relative image decodes through host mapping and preserves source (${yaml ? 'YAML root' : 'document root'})`, async ({
     page,
   }) => {
-    const source = `${yaml ? '---\r\ntypora-root-url: ./root\n---\r\n\r\n' : ''}![pixel](images/pixel.png)\r\n\r\nAfter\n`;
+    const source = `${yaml ? '---\r\nmarklyra-root-url: ./root\n---\r\n\r\n' : ''}![pixel](images/pixel.png)\r\n\r\nAfter\n`;
     await createImageEditor(page, { source, context: 'doc-a' });
     await expectDecodedImage(page);
     expect(await imageSource(page)).toBe(source);
@@ -376,7 +376,7 @@ test('same-ID location refresh changes the image without changing raw source, ca
 test('editing the YAML root in original source mode refreshes the display reference without rewriting sourceHref', async ({
   page,
 }) => {
-  const source = '---\ntypora-root-url: ./root\n---\n\n![pixel](images/pixel.png)\n\nAfter';
+  const source = '---\nmarklyra-root-url: ./root\n---\n\n![pixel](images/pixel.png)\n\nAfter';
   await createImageEditor(page, { source, context: 'doc-a' });
   await expectDecodedImage(page, 1);
   await page.evaluate(async () => {
@@ -386,7 +386,7 @@ test('editing the YAML root in original source mode refreshes the display refere
     await editor.execute({
       type: 'sourcePosition',
       line: 2,
-      column: 'typora-root-url: '.length + 1,
+      column: 'marklyra-root-url: '.length + 1,
     });
   });
   await imageFrame(page).locator('.CodeMirror:visible textarea').last().focus();
@@ -656,7 +656,7 @@ for (const root of ['./media', '../media']) {
   test(`import with YAML image root ${root} resolves the same asset after a full reload clears display cache`, async ({
     page,
   }) => {
-    const initial = `---\ntypora-root-url: ${root}\n---\n\nAfter`;
+    const initial = `---\nmarklyra-root-url: ${root}\n---\n\nAfter`;
     await createImageEditor(page, { source: initial, context: 'doc-a' });
     await focusEnd(page);
     const job = await page.evaluate(() =>

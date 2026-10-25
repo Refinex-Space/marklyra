@@ -22,7 +22,7 @@ const css: Record<string, string> = {
   'custom.css':
     ':root{--side-bar-bg-color:rgb(21,22,23)}body{background:rgb(240,241,242)}#write p{color:rgb(40,41,42)}',
   'base.user.css': '#write p{color:rgb(50,51,52)}',
-  'custom.user.css': '#write p{color:rgb(60,61,62)}#typora-sidebar{font-size:15px}',
+  'custom.user.css': '#write p{color:rgb(60,61,62)}#marklyra-sidebar{font-size:15px}',
   'blue.css': 'body{background:rgb(225,235,245)}#write p{color:rgb(10,20,180)}',
   'export.css': '@import "shared.css";body{color:rgb(14,27,39);background-image:url("pixel.png")}',
   'shared.css': 'h1{color:rgb(20,80,130)}',
@@ -30,6 +30,10 @@ const css: Record<string, string> = {
   'level.css': '@import "missing.css";',
   'local-only.css':
     '@font-face{font-family:"Local Alias";src:local("Arial")}#write{font-family:"Local Alias",serif}',
+  'namespaced.css':
+    '@import "namespaced-level.css";#legacy-editor-source .CodeMirror{font-size:19px}body.legacy-editor-export #write p{color:rgb(130,51,65)}body:not(.legacy-editor-export) #write p{color:rgb(13,25,37)}#custom-sidebar{font-size:3px}#write[data-note="#legacy-editor-source"]{--literal:"url(#legacy-editor-sidebar)"}',
+  'namespaced-level.css': '@import "namespaced-inner.css";#legacy-editor-sidebar{font-size:17px}',
+  'namespaced-inner.css': '@media screen{.cm-s-legacy-editor-default{--namespace-default:enabled}}',
 };
 const styles: ThemeStyles = {
   theme: `${root}custom.css`,
@@ -77,12 +81,18 @@ async function mount(page: Page): Promise<Frame> {
       await route.fulfill({
         contentType: 'font/woff2',
         body: readFileSync(
-          new URL('../../dist/editor-runtime/style/Raleway-latin.woff2', import.meta.url),
+          new URL(
+            '../../packages/editor-runtime/dist/page/style/Raleway-latin.woff2',
+            import.meta.url,
+          ),
         ),
       });
     } else if (name === 'font-data.css') {
       const bytes = readFileSync(
-        new URL('../../dist/editor-runtime/style/Raleway-latin.woff2', import.meta.url),
+        new URL(
+          '../../packages/editor-runtime/dist/page/style/Raleway-latin.woff2',
+          import.meta.url,
+        ),
       );
       await route.fulfill({
         contentType: 'text/css',
@@ -188,6 +198,83 @@ async function apply(
     { value, theme },
   );
 }
+
+test('namespaced editor roles keep user theme source, imported styles, source mode and offline export', async ({
+  page,
+  context,
+}) => {
+  const frame = await mount(page);
+  await frame.evaluate(() => {
+    const custom = document.createElement('aside');
+    custom.id = 'custom-sidebar';
+    custom.style.display = 'none';
+    document.body.append(custom);
+  });
+  await focusEnd(frame);
+  const before = await snapshot(frame);
+  const appearance = await apply(page, { theme: `${root}namespaced.css` });
+  expect(appearance['--marklyra-sidebar-font-size']).toBe('17px');
+  expect(await snapshot(frame)).toEqual(before);
+  await expect(frame.locator('#write p')).toHaveCSS('color', 'rgb(13, 25, 37)');
+  await expect(frame.locator('#custom-sidebar')).toHaveCSS('font-size', '3px');
+  const fetched = await frame.evaluate(async (root) => {
+    return Promise.all(
+      ['namespaced.css', 'namespaced-level.css', 'namespaced-inner.css'].map(async (name) =>
+        (await fetch(`${root}${name}`)).text(),
+      ),
+    );
+  }, root);
+  expect(fetched).toEqual([
+    css['namespaced.css'],
+    css['namespaced-level.css'],
+    css['namespaced-inner.css'],
+  ]);
+  const selectors = await frame.evaluate(() => {
+    const sheet = document.querySelector<HTMLLinkElement>('#theme_css')?.sheet;
+    if (!sheet) throw Error('Missing current user theme');
+    return [...sheet.cssRules]
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+      .map((rule) => rule.selectorText);
+  });
+  expect(selectors).toContain('#custom-sidebar');
+  expect(selectors).toContain('#write[data-note="#legacy-editor-source"]');
+  expect(selectors.some((selector) => selector.includes(':is(#legacy-editor-source,'))).toBe(true);
+
+  await page.evaluate(() =>
+    (window as unknown as Host).marklyraEditor.execute({ type: 'toggleSource' }),
+  );
+  await expect(frame.locator('#marklyra-source .CodeMirror')).toHaveCSS('font-size', '19px');
+  expect(
+    await frame
+      .locator('#marklyra-source .CodeMirror')
+      .evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('--namespace-default').trim(),
+      ),
+  ).toBe('enabled');
+  expect(await page.evaluate(() => (window as unknown as Host).marklyraEditor.flush())).toBe(
+    source,
+  );
+  await page.evaluate(() =>
+    (window as unknown as Host).marklyraEditor.execute({ type: 'toggleSource' }),
+  );
+  const html = await page.evaluate(() => (window as unknown as Host).marklyraEditor.exportHTML());
+  const offline = await context.newPage();
+  try {
+    await offline.route('**/*', (route) => route.abort());
+    await offline.setContent(html);
+    await expect(offline.locator('#write p')).toHaveCSS('color', 'rgb(130, 51, 65)');
+    expect(html).toContain('legacy-editor-export');
+    expect(html).toContain('marklyra-export');
+    expect(html).toContain('url(#legacy-editor-sidebar)');
+  } finally {
+    await offline.close();
+  }
+  expect(await page.evaluate(() => (window as unknown as Host).marklyraEditor.flush())).toBe(
+    source,
+  );
+  expect((await snapshot(frame)).history).toBe(before.history);
+  expect(await page.evaluate(() => (window as unknown as Host).themeTest.errors)).toEqual([]);
+});
 
 test('theme/base-user/theme-user retain original link order, source, range, DOM and history', async ({
   page,
@@ -430,7 +517,7 @@ test('data font CSS renders in the real runtime policy and crosses the SDK as bo
     }),
   ).toEqual([{ family: 'Transfer Test', status: 'loaded' }]);
   const bytes = readFileSync(
-    new URL('../../dist/editor-runtime/style/Raleway-latin.woff2', import.meta.url),
+    new URL('../../packages/editor-runtime/dist/page/style/Raleway-latin.woff2', import.meta.url),
   );
   expect(
     await page.evaluate(async () => {

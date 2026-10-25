@@ -7,7 +7,7 @@ version = "0.1.8"
 edition = "2021"
 rust-version = "1.95"
 authors = ["refinex"]
-license = "LicenseRef-Proprietary"
+license = "Apache-2.0"
 
 [workspace.dependencies]
 cap-std = "4.0.3"

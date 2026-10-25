@@ -1,7 +1,7 @@
 /** Layout of a disposable print artifact. Never applied to the editor DOM. */
 export const printArtifactStyles = `@media print {
   html, body { height: auto; overflow: visible; }
-  body.typora-export { padding: 0; }
+  body.marklyra-export { padding: 0; }
   #write { max-width: none; width: auto; padding: 0; overflow: visible; }
   #write .md-fences { break-inside: auto; page-break-inside: auto; white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; }
   #write .md-fences pre { white-space: pre-wrap; overflow-wrap: anywhere; }

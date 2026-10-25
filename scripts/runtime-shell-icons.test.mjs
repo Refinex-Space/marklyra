@@ -14,7 +14,7 @@ import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 import { SHELL_FONT_MANIFEST } from './runtime-shell-fonts.mjs';
 import { SEARCH_ICON_MANIFEST } from './runtime-shell-icon-manifest.mjs';
@@ -24,7 +24,8 @@ import {
   SHELL_ICON_PREFIX,
 } from './runtime-shell-icons.mjs';
 
-const source = fileURLToPath(new URL('../dist/editor-runtime/style/', import.meta.url));
+const source = fileURLToPath(new URL('../packages/editor-runtime/assets/styles/', import.meta.url));
+const pageSource = fileURLToPath(new URL('../packages/editor-runtime/src/page/', import.meta.url));
 const servers = new Map();
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -42,14 +43,11 @@ async function fixture(t, copy = false) {
   const fonts = join(root, 'private-icons');
   await mkdir(fonts);
   if (copy)
-    for (const path of [
-      ...SHELL_ICON_MANIFEST.map((font) => font.path),
-      'ionicons-2.0.1/LICENSE',
-    ]) {
+    for (const path of SHELL_ICON_MANIFEST.map((font) => font.path)) {
       await mkdir(dirname(join(fonts, path)), { recursive: true });
       await copyFile(join(source, path), join(fonts, path));
     }
-  if (copy) await copyFile(join(source, '../index.html'), join(root, 'index.html'));
+  if (copy) await copyFile(join(pageSource, 'index.html'), join(root, 'index.html'));
   return { root, fonts };
 }
 
@@ -59,7 +57,12 @@ async function server(t, root, sourceDirectory = source) {
     configFile: false,
     publicDir: false,
     logLevel: 'silent',
-    plugins: [runtimeShellIcons({ sourceDirectory })],
+    plugins: [
+      runtimeShellIcons({
+        sourceDirectory,
+        pageDirectory: sourceDirectory === source ? pageSource : root,
+      }),
+    ],
     server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false, watch: null },
   });
   servers.set(root, instance);
@@ -87,7 +90,7 @@ function request(origin, path, method = 'GET', headers = {}) {
   });
 }
 
-test('three tracked icon fonts, precise family aliases and the actual Ionicons notice are served unchanged', async (t) => {
+test('three tracked icon fonts and precise family aliases are served unchanged', async (t) => {
   const { root } = await fixture(t);
   const origin = await server(t, root);
   const html = await (await fetch(origin)).text();
@@ -121,28 +124,17 @@ test('three tracked icon fonts, precise family aliases and the actual Ionicons n
       304,
     );
   }
-  const notice = await request(origin, `${SHELL_ICON_PREFIX}licenses/ionicons-MIT.txt`);
-  assert.deepEqual(notice.bytes, await readFile(join(source, 'ionicons-2.0.1/LICENSE')));
   const provenance = JSON.parse(
     (await request(origin, `${SHELL_ICON_PREFIX}provenance.json`)).bytes,
   );
-  assert.equal(provenance.fonts.filter((font) => font.license === 'MIT').length, 1);
+  assert.ok(provenance.fonts.every((font) => !Object.hasOwn(font, 'license')));
+  assert.ok(!Object.hasOwn(provenance, 'notices'));
   assert.equal(
-    provenance.fonts.filter((font) => font.sourcePath?.startsWith('resources/editor/')).length,
+    provenance.fonts.filter((font) => font.sourcePath?.startsWith('packages/editor-runtime/'))
+      .length,
     1,
   );
-  assert.equal(provenance.fonts.filter((font) => font.license === 'OFL-1.1').length, 1);
-  const ofl = await request(origin, `${SHELL_ICON_PREFIX}licenses/fontawesome-OFL.txt`);
-  assert.deepEqual(
-    ofl.bytes,
-    await readFile(new URL('../licenses/fonts/OFL-1.1.txt', import.meta.url)),
-  );
-  const fontNotices = await request(origin, `${SHELL_ICON_PREFIX}licenses/icon-notices.txt`);
-  assert.equal(
-    digest(fontNotices.bytes),
-    '109142fc84aafcfd7824bd4dc489c76c8fd39db20e12a879f635e51455552682',
-  );
-  assert.equal(SHELL_FONT_MANIFEST.length, 24);
+  assert.equal(SHELL_FONT_MANIFEST.length, 6);
   assert.ok(
     SHELL_ICON_MANIFEST.every((font) => !SHELL_FONT_MANIFEST.some((f) => f.path === font.path)),
   );
@@ -154,7 +146,7 @@ test('search sprite preserves exactly the three original find-panel symbols', as
   const response = await request(origin, `${SHELL_ICON_PREFIX}search-options.svg`);
   assert.equal(response.status, 200);
   assert.equal(response.headers['content-type'], 'image/svg+xml');
-  const html = await readFile(join(source, '../index.html'), 'utf8');
+  const html = await readFile(join(pageSource, 'index.html'), 'utf8');
   const symbols = [...response.bytes.toString().matchAll(/<symbol\b[^>]*>[\s\S]*?<\/symbol>/g)];
   assert.equal(symbols.length, 3);
   for (const [index, { name, sha256 }] of SEARCH_ICON_MANIFEST.entries()) {
@@ -171,12 +163,17 @@ test('unknown, encoded and traversal requests cannot expose other private resour
   for (const path of [
     `${SHELL_ICON_PREFIX}../index.html`,
     `${SHELL_ICON_PREFIX}%2e%2e/index.html`,
-    `${SHELL_ICON_PREFIX}typora-icon\\fonts\\typora-icon.woff`,
-    '/__runtime-icons%2ftypora-icon/fonts/typora-icon.woff',
+    `${SHELL_ICON_PREFIX}marklyra-icon\\fonts\\marklyra-icon.woff`,
+    '/__runtime-icons%2fmarklyra-icon/fonts/marklyra-icon.woff',
   ])
     assert.equal((await request(origin, path)).status, 400, path);
   assert.equal(
-    (await request(origin, `${SHELL_ICON_PREFIX}typora-file-icon/fonts/ty-file.woff`)).status,
+    (await request(origin, `${SHELL_ICON_PREFIX}marklyra-file-icon/fonts/marklyra-file.woff`))
+      .status,
+    404,
+  );
+  assert.equal(
+    (await request(origin, `${SHELL_ICON_PREFIX}licenses/fontawesome-OFL.txt`)).status,
     404,
   );
   assert.equal((await request(origin, `${SHELL_ICON_PREFIX}icons.css`, 'POST')).status, 405);
@@ -186,7 +183,7 @@ test('unknown, encoded and traversal requests cannot expose other private resour
   );
 });
 
-for (const mutation of ['missing', 'corrupt', 'symlink', 'notice', 'search-symbol'])
+for (const mutation of ['missing', 'corrupt', 'symlink', 'search-symbol'])
   test(`private icon ${mutation} input fails before serving or emitting`, async (t) => {
     const { root, fonts } = await fixture(t, true);
     const target = join(fonts, SHELL_ICON_MANIFEST[0].path);
@@ -198,13 +195,11 @@ for (const mutation of ['missing', 'corrupt', 'symlink', 'notice', 'search-symbo
       await rm(target);
       await symlink(outside, target);
     }
-    if (mutation === 'notice')
-      await writeFile(join(fonts, 'ionicons-2.0.1/LICENSE'), 'changed notice');
     if (mutation === 'search-symbol') {
       const page = join(root, 'index.html');
       await writeFile(page, (await readFile(page, 'utf8')).replace('M10.919,13', 'M10.918,13'));
     }
-    const plugin = runtimeShellIcons({ sourceDirectory: fonts });
+    const plugin = runtimeShellIcons({ sourceDirectory: fonts, pageDirectory: root });
     plugin.configResolved({ command: 'build' });
     let emitted = 0;
     await assert.rejects(
@@ -218,7 +213,7 @@ for (const mutation of ['missing', 'corrupt', 'symlink', 'notice', 'search-symbo
     assert.equal(emitted, 0);
   });
 
-test('build hooks emit exactly nine identity-verified assets including mandatory notices while serve never emits', async () => {
+test('build hooks emit exactly six identity-verified icon assets while serve never emits', async () => {
   const serving = runtimeShellIcons();
   serving.configResolved({ command: 'serve' });
   await serving.buildStart.call({
@@ -234,51 +229,11 @@ test('build hooks emit exactly nine identity-verified assets including mandatory
       output.set(asset.fileName, asset.source);
     },
   });
-  assert.equal(output.size, 9);
+  assert.equal(output.size, 6);
   for (const font of SHELL_ICON_MANIFEST)
     assert.equal(digest(output.get(`${SHELL_ICON_PREFIX.slice(1)}${font.path}`)), font.sha256);
-  assert.ok(output.has('__runtime-icons/licenses/ionicons-MIT.txt'));
-  assert.ok(output.has('__runtime-icons/licenses/fontawesome-OFL.txt'));
-  assert.ok(output.has('__runtime-icons/licenses/icon-notices.txt'));
+  assert.ok([...output.keys()].every((path) => !path.includes('/licenses/')));
   assert.ok(output.has('__runtime-icons/provenance.json'));
   assert.ok(output.has('__runtime-icons/icons.css'));
   assert.ok(output.has('__runtime-icons/search-options.svg'));
 });
-
-for (const mutation of ['missing-ofl', 'changed-notices', 'notice-symlink'])
-  test(`public icon notice ${mutation} fails before emitting any font`, async (t) => {
-    const { root } = await fixture(t);
-    for (const file of [
-      'scripts/runtime-shell-icons.mjs',
-      'scripts/runtime-shell-icon-manifest.mjs',
-      'licenses/fonts/OFL-1.1.txt',
-      'licenses/icons/FONT-NOTICES.txt',
-    ]) {
-      await mkdir(dirname(join(root, file)), { recursive: true });
-      await copyFile(fileURLToPath(new URL(`../${file}`, import.meta.url)), join(root, file));
-    }
-    const ofl = join(root, 'licenses/fonts/OFL-1.1.txt');
-    if (mutation === 'missing-ofl') await rm(ofl);
-    if (mutation === 'changed-notices')
-      await writeFile(join(root, 'licenses/icons/FONT-NOTICES.txt'), 'unreviewed notice');
-    if (mutation === 'notice-symlink') {
-      await copyFile(ofl, join(root, 'outside.txt'));
-      await rm(ofl);
-      await symlink(join(root, 'outside.txt'), ofl);
-    }
-    const { runtimeShellIcons: isolated } = await import(
-      pathToFileURL(join(root, 'scripts/runtime-shell-icons.mjs')).href
-    );
-    const plugin = isolated({ sourceDirectory: source });
-    plugin.configResolved({ command: 'build' });
-    let emitted = 0;
-    await assert.rejects(
-      plugin.buildStart.call({
-        emitFile() {
-          emitted++;
-        },
-      }),
-      /Runtime shell icon/,
-    );
-    assert.equal(emitted, 0);
-  });

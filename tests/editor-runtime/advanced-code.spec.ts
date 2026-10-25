@@ -49,7 +49,7 @@ for (const nested of [false, true])
         cm = frame.locator('#write .md-fences .CodeMirror-line').first();
       await cm.click();
       const initial = await codeState(page),
-        control = frame.locator('#write .md-fences .ty-cm-lang-input');
+        control = frame.locator('#write .md-fences .marklyra-cm-lang-input');
       await expect(control).toBeVisible();
       await control.dblclick();
       await control.press('Backspace');
@@ -86,7 +86,7 @@ for (const statistics of [false, true])
     await mountAdvanced(page, source);
     const frame = advancedFrame(page),
       cm = frame.locator('#write .md-fences .CodeMirror-line').first(),
-      control = frame.locator('#write .md-fences .ty-cm-lang-input');
+      control = frame.locator('#write .md-fences .marklyra-cm-lang-input');
     await cm.click();
     const initial = await codeState(page);
     await control.dblclick();

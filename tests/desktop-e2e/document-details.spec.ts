@@ -221,7 +221,7 @@ test('right outline stays independent of files/search and adapts to resizing and
   await emitLayoutMenu(page, 'view:source');
   const sourceView = page
     .frameLocator('.runtime-area .marklyra-editor-frame')
-    .locator('#typora-source');
+    .locator('#marklyra-source');
   await expect(sourceView).toBeVisible();
   await expect
     .poll(async () => {
@@ -360,14 +360,14 @@ test('both side panels resize live within their limits and keep thin dividers wi
   const sourceEdge = async () => {
     const view = await page
       .frameLocator('.runtime-area iframe')
-      .locator('#typora-source .CodeMirror-scroll')
+      .locator('#marklyra-source .CodeMirror-scroll')
       .boundingBox();
     return view && Math.abs(view.x + view.width - (await paneInnerRight(page)));
   };
   await expect.poll(sourceEdge).toBeLessThanOrEqual(2);
   const sourceInput = await page
     .frameLocator('.runtime-area iframe')
-    .locator('#typora-source textarea')
+    .locator('#marklyra-source textarea')
     .elementHandle();
   const sourceHandle = await handle.boundingBox();
   if (!sourceHandle) throw Error('Missing source outline resize handle');
@@ -570,7 +570,7 @@ test('rapid outline reversals keep the real document scrollbar on the document p
       await expectAligned(page);
       await emitLayoutMenu(page, 'view:source');
       await expect(
-        page.frameLocator('.runtime-area iframe').locator('#typora-source .CodeMirror-scroll'),
+        page.frameLocator('.runtime-area iframe').locator('#marklyra-source .CodeMirror-scroll'),
       ).toBeVisible();
     }
     const positions = await page.evaluate(async (sourceMode) => {
@@ -619,7 +619,7 @@ test('rapid outline reversals keep the real document scrollbar on the document p
       .poll(async () => {
         const port = await page
           .frameLocator('.runtime-area iframe')
-          .locator(sourceMode ? '#typora-source .CodeMirror-scroll' : 'content')
+          .locator(sourceMode ? '#marklyra-source .CodeMirror-scroll' : 'content')
           .boundingBox();
         return port && Math.abs(port.x + port.width - (await paneInnerRight(page)));
       })
@@ -711,9 +711,9 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await frame.locator('head').evaluate((head) => {
       const style = document.createElement('style');
       style.textContent =
-        'content,#typora-source .CodeMirror-scroll{scrollbar-width:auto!important;overflow-y:scroll!important}' +
-        'content::-webkit-scrollbar,#typora-source .CodeMirror-scroll::-webkit-scrollbar{width:12px!important;display:block!important;background:transparent}' +
-        'content::-webkit-scrollbar-thumb,#typora-source .CodeMirror-scroll::-webkit-scrollbar-thumb{background:#999!important;border-radius:6px}';
+        'content,#marklyra-source .CodeMirror-scroll{scrollbar-width:auto!important;overflow-y:scroll!important}' +
+        'content::-webkit-scrollbar,#marklyra-source .CodeMirror-scroll::-webkit-scrollbar{width:12px!important;display:block!important;background:transparent}' +
+        'content::-webkit-scrollbar-thumb,#marklyra-source .CodeMirror-scroll::-webkit-scrollbar-thumb{background:#999!important;border-radius:6px}';
       head.append(style);
     });
     const history = await layoutHistory(page);
@@ -798,9 +798,9 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       .toBeGreaterThan(0);
     await page.screenshot({ path: info.outputPath('single-pane-scrollbar.png') });
     await emitLayoutMenu(page, 'view:source');
-    const sourceScroll = frame.locator('#typora-source .CodeMirror-scroll');
+    const sourceScroll = frame.locator('#marklyra-source .CodeMirror-scroll');
     await expect(sourceScroll).toBeVisible();
-    await expect(frame.locator('#typora-source textarea')).toBeFocused();
+    await expect(frame.locator('#marklyra-source textarea')).toBeFocused();
     await expect
       .poll(() => sourceScroll.evaluate((element) => element.scrollHeight - element.clientHeight))
       .toBeGreaterThan(600);

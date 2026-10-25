@@ -1,42 +1,40 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { Script } from 'node:vm';
-import { transformRuntimeSerialization } from './runtime-serialization.mjs';
+import { createContext, Script } from 'node:vm';
+import { capability, engineModule, engineSource, expressionOf } from './runtime-test-source.mjs';
 
-const sourcePath = new URL('../../resources/editor/appsrc/main.js', import.meta.url);
-const hash = (value) => createHash('sha256').update(value).digest('hex');
-
-test('only the verified runtime artifact can grant the native line capability', () => {
-  for (const source of ['', 'console.log("unrelated");', null, 12])
-    assert.throws(() => transformRuntimeSerialization(source), /unknown original main.js SHA-256/);
+test('the complete internal engine is valid JavaScript with one native serialization capability', () => {
+  assert.doesNotThrow(() => new Script(engineSource));
+  capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('12'));
 });
 
-test('one AST-verified insertion preserves every original byte and its executable syntax', async () => {
-  const source = await readFile(sourcePath, 'utf8');
-  const before = hash(source);
-  const result = transformRuntimeSerialization(source);
-  const { metadata, code } = result;
-  assert.equal(metadata.originalSha256, before);
-  assert.equal(
-    metadata.moduleSha256,
-    'd7402487d948173fb41732f84f601ecbc409cc22cfd3b54cbc1df8b1caffa5eb',
-  );
-  assert.equal(metadata.transformedSha256, hash(code));
-  assert.equal(metadata.version, 1);
-  const offset = metadata.insertionUtf16Offset;
-  const addedLength = code.length - source.length;
-  assert.equal(code.slice(0, offset), source.slice(0, offset));
-  assert.equal(code.slice(offset + addedLength), source.slice(offset));
-  assert.equal((code.match(/__MARKLYRA_NATIVE_SERIALIZATION__/g) ?? []).length, 1);
-  assert.equal(Buffer.byteLength(code) - Buffer.byteLength(source), metadata.insertedBytes);
-  assert.doesNotThrow(() => new Script(code));
-  assert.equal(hash(await readFile(sourcePath)), before);
-  assert.deepEqual(transformRuntimeSerialization(source), result);
-  assert.throws(() => transformRuntimeSerialization(code), /unknown original main.js SHA-256/);
-  assert.throws(
-    () => transformRuntimeSerialization(source + '\n'),
-    /unknown original main.js SHA-256/,
-  );
+test('the native serialization capability exposes the actual bindings as an immutable value', () => {
+  class Node {
+    toMark() {
+      return 'node';
+    }
+  }
+  class NodeMap {
+    toMark() {
+      return 'map';
+    }
+  }
+  const lines = () => 'lines';
+  const context = createContext({ r: Node, o: NodeMap, u: lines });
+  new Script(
+    expressionOf(capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('12'))),
+  ).runInContext(context);
+  const value = context.__MARKLYRA_NATIVE_SERIALIZATION__;
+  assert.equal(value.version, 1);
+  assert.equal(value.nodePrototype, Node.prototype);
+  assert.equal(value.mapPrototype, NodeMap.prototype);
+  assert.equal(value.nodeToMark, Node.prototype.toMark);
+  assert.equal(value.mapToMark, NodeMap.prototype.toMark);
+  assert.equal(value.lines, lines);
+  assert.equal(value.array, new Script('Array').runInContext(context));
+  assert.ok(Object.isFrozen(value));
+  const descriptor = Object.getOwnPropertyDescriptor(context, '__MARKLYRA_NATIVE_SERIALIZATION__');
+  assert.equal(descriptor.writable, false);
+  assert.equal(descriptor.configurable, false);
+  assert.equal(descriptor.enumerable, false);
 });

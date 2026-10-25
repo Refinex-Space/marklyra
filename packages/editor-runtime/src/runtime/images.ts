@@ -11,6 +11,7 @@ import {
   type ImageImportMessage,
   type ImageResolutionMessage,
   imageHostReference,
+  imageMetadataValue,
   imageRoot,
   imageType,
   MAX_IMAGE_FILES,
@@ -501,7 +502,10 @@ export class RuntimeImages {
     const editor = this.deps.runtime.editor;
     const setting = editor?.sourceView.inSourceMode
       ? undefined
-      : editor?.docMenu.buildMetaMap?.()['typora-copy-images-to'];
+      : imageMetadataValue(
+          Object.entries(editor?.docMenu.buildMetaMap?.() ?? {}),
+          'copy-images-to',
+        );
     let storageFolder: string | undefined;
     if (typeof setting === 'string' && setting.trim()) {
       if (/^(?:ipic|upload)$/i.test(setting)) storageFolder = 'upload';
@@ -539,7 +543,7 @@ export class RuntimeImages {
       const target = document.elementFromPoint(x, y);
       if (editor.sourceView.inSourceMode) {
         const cm = editor.sourceView.cm;
-        if (!cm || !target?.closest('#typora-source'))
+        if (!cm || !target?.closest('#marklyra-source'))
           throw new ImageHostError('文件拖入位置不在源码编辑区域');
         cm.focus();
         cm.setCursor(cm.coordsChar({ left: x, top: y }, 'window'));
@@ -811,7 +815,7 @@ export class RuntimeImages {
   }
   private paste = (event: ClipboardEvent): void => {
     const target = event.target instanceof Element ? event.target : null;
-    if (!target?.closest('#write,#typora-source')) return;
+    if (!target?.closest('#write,#marklyra-source')) return;
     const language = codeLanguageField(this.deps.runtime.editor, target);
     if (language) {
       event.preventDefault();
@@ -881,7 +885,7 @@ export class RuntimeImages {
   };
   private drop = (event: DragEvent): void => {
     const target = event.target instanceof Element ? event.target : null;
-    if (!target?.closest('#write,#typora-source')) return;
+    if (!target?.closest('#write,#marklyra-source')) return;
     // Native has relinquished rich drops to WebKit. Preserve every original
     // rich flavor and its priority; Files must not claim that same gesture.
     const markup = event.dataTransfer?.getData('text/markhtml') ?? '';

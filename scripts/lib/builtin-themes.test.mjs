@@ -6,18 +6,15 @@ import test from 'node:test';
 import { builtinThemeIds, prepareBuiltinThemes } from './builtin-themes.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
-test('only the branded pair is generated with one GitHub layout, local fonts and distinct palettes', async (t) => {
+test('only the branded pair is generated with shared package typography, local fonts and distinct palettes', async (t) => {
   const output = await mkdtemp(resolve(tmpdir(), 'marklyra-themes-'));
   t.after(() => rm(output, { recursive: true, force: true }));
-  const original = await readFile(
-    resolve(root, 'resources/editor/style/themes/github.css'),
-    'utf8',
-  );
+  const original = await readFile(resolve(root, 'packages/editor-themes/base.css'), 'utf8');
   const directory = resolve(output, 'style/themes');
   await mkdir(directory, { recursive: true });
   for (const id of ['github', 'gothic', 'night', 'newsprint', 'pixyll', 'whitey'])
     await writeFile(resolve(directory, `${id}.css`), 'stale generated theme');
-  const generated = await prepareBuiltinThemes(root, output, original);
+  const generated = await prepareBuiltinThemes(root, output);
   assert.deepEqual(
     (await readdir(directory)).sort(),
     builtinThemeIds.map((id) => `${id}.css`).sort(),
@@ -34,8 +31,5 @@ test('only the branded pair is generated with one GitHub layout, local fonts and
   }
   assert.match(themes[0], /--bg-color: #fff/);
   assert.match(themes[1], /--bg-color: #0d1117/);
-  assert.equal(
-    await readFile(resolve(root, 'resources/editor/style/themes/github.css'), 'utf8'),
-    original,
-  );
+  assert.equal(await readFile(resolve(root, 'packages/editor-themes/base.css'), 'utf8'), original);
 });

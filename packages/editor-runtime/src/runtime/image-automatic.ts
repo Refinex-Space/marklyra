@@ -51,7 +51,7 @@ export class RuntimeAutomaticImages {
       'paste',
       (event) => {
         const target = event.target instanceof Element ? event.target : null;
-        if (target?.closest('#write,#typora-source') && !event.clipboardData?.files.length)
+        if (target?.closest('#write,#marklyra-source') && !event.clipboardData?.files.length)
           this.arm();
       },
       { capture: true, signal: this.abort.signal },

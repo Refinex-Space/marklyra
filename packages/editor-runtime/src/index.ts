@@ -9,6 +9,7 @@ export {
   marklyraStartupPreferences,
 } from './startup-preferences.js';
 
+import { marklyraLocale } from './locale.js';
 import {
   type MarkLyraMarkdownPreferences,
   markdownSerializationPolicy,
@@ -20,6 +21,12 @@ import type { MarkLyraMenuState } from './menu-state.js';
 import { MenuStateObserver } from './menu-state-observer.js';
 import { type MarkLyraEditorPreferences, marklyraEditorPreferences } from './preferences.js';
 
+export {
+  type MarkLyraLocale,
+  marklyraLocale,
+  marklyraLocaleDirectory,
+  marklyraLocales,
+} from './locale.js';
 export type { MarkLyraMenuState } from './menu-state.js';
 
 import { type MarkLyraStatistics, type StatisticsOptions, statisticsSpeed } from './statistics.js';
@@ -362,7 +369,7 @@ export class MarkLyraEditor {
     url.searchParams.set('startup-preferences', JSON.stringify(this.startupPreferences));
     url.searchParams.set('markdown-preferences', JSON.stringify(this.activeMarkdownPreferences));
     url.searchParams.set('channel', this.channel);
-    url.searchParams.set('locale', options.configuration?.locale ?? 'en');
+    url.searchParams.set('locale', marklyraLocale(options.configuration?.locale));
     url.searchParams.set('theme', options.configuration?.theme ?? 'marklyra-light');
     this.ready = new Promise<void>((resolve, reject) => {
       this.readyResolve = resolve;
@@ -2176,9 +2183,9 @@ export class MarkLyraEditor {
       const configuration: RuntimeConfiguration = {
         nativeMenus: false,
         platform: 'browser',
-        locale: 'en',
         theme: 'marklyra-light',
         ...this.options.configuration,
+        locale: marklyraLocale(this.options.configuration?.locale),
         sourceBOM: this.sourceBOM,
         contextMenu: this.contextMenu.capabilities,
       };

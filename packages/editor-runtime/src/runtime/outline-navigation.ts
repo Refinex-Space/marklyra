@@ -28,7 +28,7 @@ export class RuntimeOutlineNavigation {
   }
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
-    const sidebar = document.getElementById('typora-sidebar');
+    const sidebar = document.getElementById('marklyra-sidebar');
     sidebar?.classList.toggle('open', enabled);
     sidebar?.classList.toggle('active-tab-outline', enabled);
     document.body.classList.toggle('pin-outline', enabled);

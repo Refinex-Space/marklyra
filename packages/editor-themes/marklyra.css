@@ -13,13 +13,13 @@
   }
 }
 #write,
-#typora-source .CodeMirror-lines {
+#marklyra-source .CodeMirror-lines {
   max-width: var(--ml-document-width);
   padding-left: 30px;
   padding-right: 30px;
 }
 /* Keep line numbers in the shared page padding without narrowing the text column. */
-#typora-source .CodeMirror-gutter-wrapper {
+#marklyra-source .CodeMirror-gutter-wrapper {
   /* biome-ignore lint/complexity/noImportantStyles: Override the bundled runtime's important gutter offset. */
   left: -30px !important;
   /* biome-ignore lint/complexity/noImportantStyles: Override the bundled runtime's important gutter minimum. */
@@ -112,12 +112,12 @@ tt {
   border-right-color: var(--ml-border);
 }
 /* Source is the document surface, not an embedded code block. */
-#typora-source,
-#typora-source .CodeMirror {
+#marklyra-source,
+#marklyra-source .CodeMirror {
   background: var(--bg-color);
 }
 /* Line numbers live in per-line wrappers. The fixed gutter must not cover text. */
-#typora-source .CodeMirror-gutters {
+#marklyra-source .CodeMirror-gutters {
   background: transparent;
   border-right: 0;
   pointer-events: none;
@@ -181,11 +181,11 @@ tt {
 .md-rawblock-control,
 .md-rawblock-tooltip,
 .code-tooltip,
-#typora-quick-open,
-#typora-quick-open-item,
+#marklyra-quick-open,
+#marklyra-quick-open-item,
 .dropdown-menu,
 .context-menu,
-.ty-tooltip {
+.marklyra-tooltip {
   background: var(--ml-surface);
   color: var(--text-color);
   border-color: var(--ml-border);
@@ -193,8 +193,8 @@ tt {
 .code-tooltip {
   box-shadow: 0 1px 3px #0002;
 }
-#typora-sidebar,
-.mac-seamless-mode #typora-sidebar {
+#marklyra-sidebar,
+.mac-seamless-mode #marklyra-sidebar {
   background: var(--side-bar-bg-color);
   color: var(--text-color);
 }

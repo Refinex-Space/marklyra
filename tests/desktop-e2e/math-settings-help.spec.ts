@@ -29,7 +29,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     );
     await expect(lineBreak).toHaveAttribute('aria-label', /\\newline/);
     await expect(numbering).toHaveAttribute('aria-label', /AMS 编号规则/);
-    const tooltip = ui.locator('#ty-tooltip');
+    const tooltip = ui.locator('#marklyra-tooltip');
     for (const width of [1280, 700]) {
       await page.setViewportSize({ width, height: 850 });
       for (const [name, hint, texts] of [

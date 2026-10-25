@@ -14,13 +14,18 @@ import {
 } from 'node:fs/promises';
 import { basename, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { inspectBytes, inspectPath, loadPolicy } from './lib/provenance.mjs';
+import { verifyProjectNotices } from './lib/project-notices.mjs';
+import {
+  inspectBytes,
+  inspectPath,
+  loadPolicy,
+  verifyRuntimeInputMapping,
+} from './lib/provenance.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const destination = join(root, 'artifacts/npm');
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
-const forbidden =
-  /(?:^|\/)(?:private|runtime-assets|recovered|appsrc|node_modules|target|\.git)(?:\/|$)/;
+const forbidden = /(?:^|\/)(?:private|runtime-assets|recovered|node_modules|target|\.git)(?:\/|$)/;
 
 function safePath(path) {
   inspectPath(path);
@@ -43,8 +48,10 @@ function safePath(path) {
 function manifestGate(manifest) {
   if (['prepack', 'prepare', 'postpack'].some((name) => manifest.scripts?.[name]))
     throw new Error(`${manifest.name}: packing lifecycle scripts require separate review`);
-  if (manifest.private !== true || manifest.license !== 'UNLICENSED')
-    throw new Error(`${manifest.name}: private/UNLICENSED publication gate is required`);
+  if (manifest.private !== true || manifest.license !== 'Apache-2.0')
+    throw new Error(
+      `${manifest.name}: private package and root Apache-2.0 declaration are required`,
+    );
   if (!/^@marklyra\/[a-z][a-z0-9-]*$/.test(manifest.name))
     throw new Error('SDK package must use the MarkLyra namespace');
   if (!Array.isArray(manifest.files) || !manifest.files.length)
@@ -53,6 +60,25 @@ function manifestGate(manifest) {
   if (manifest.bundledDependencies?.length || manifest.bundleDependencies?.length)
     throw new Error(`${manifest.name}: bundled dependencies need separate provenance review`);
 }
+function verifyArchiveLicense(entries, license, name) {
+  const candidates = entries.filter(
+    ({ path }) => path === 'LICENSE' || path === 'dist/page/LICENSE',
+  );
+  assert.ok(candidates.length, `${name}: root Apache-2.0 LICENSE missing from archive`);
+  for (const entry of candidates)
+    assert.equal(
+      entry.sha256,
+      digest(license),
+      `${name}: archive license must match the repository root`,
+    );
+}
+
+function verifyRuntimeArchiveNotice(entries, notice, name) {
+  const entry = entries.find(({ path }) => path === 'dist/page/THIRD-PARTY-NOTICES.txt');
+  assert.ok(entry, `${name}: centralized third-party notice missing from archive`);
+  assert.equal(entry.sha256, digest(notice), `${name}: centralized notice differs from the root`);
+}
+
 function run(command, args, cwd = root, json = false) {
   const result = spawnSync(command, args, {
     cwd,
@@ -76,7 +102,6 @@ if (process.argv.includes('--self-test')) {
     '../secret',
     '/private/a',
     'dist/private/main.js',
-    'dist/appsrc/main.js',
     'dist/runtime-assets/index.html',
     'dist\\x.js',
     'dist/../x.js',
@@ -86,15 +111,10 @@ if (process.argv.includes('--self-test')) {
   assert.equal(safePath('dist/runtime/frame-host.js'), 'dist/runtime/frame-host.js');
   const original = Buffer.from('synthetic original resource fixture');
   const hashes = new Set([digest(original)]);
-  assert.throws(() => inspectBytes('dist/engine.js', original, hashes));
-  assert.throws(() =>
-    inspectBytes(
-      'dist/engine.js.map',
-      Buffer.from(
-        JSON.stringify({ sources: ['engine.ts'], sourcesContent: [original.toString()] }),
-      ),
-      hashes,
-    ),
+  inspectBytes('dist/engine.js', original);
+  inspectBytes(
+    'dist/engine.js.map',
+    Buffer.from(JSON.stringify({ sources: ['engine.ts'], sourcesContent: [original.toString()] })),
   );
   assert.throws(() =>
     inspectBytes(
@@ -106,31 +126,74 @@ if (process.argv.includes('--self-test')) {
   assert.throws(() =>
     manifestGate({ name: 'fixture', private: false, license: 'MIT', files: ['dist'] }),
   );
-  inspectBytes('README.md', Buffer.from('Editor resource sources are managed separately.'), hashes);
+  inspectBytes(
+    'README.md',
+    Buffer.from('Editor engine sources are owned by their workspace package.'),
+    hashes,
+  );
   assert.throws(() =>
-    manifestGate({ name: '@other/editor', private: true, license: 'UNLICENSED', files: ['dist'] }),
+    manifestGate({ name: '@other/editor', private: true, license: 'Apache-2.0', files: ['dist'] }),
+  );
+  const projectLicense = Buffer.from('synthetic root project license');
+  verifyArchiveLicense(
+    [{ path: 'dist/page/LICENSE', sha256: digest(projectLicense) }],
+    projectLicense,
+    'runtime-fixture',
+  );
+  assert.throws(
+    () => verifyArchiveLicense([], projectLicense, 'missing-fixture'),
+    /LICENSE missing/,
+  );
+  assert.throws(
+    () =>
+      verifyArchiveLicense(
+        [{ path: 'dist/page/LICENSE', sha256: digest(Buffer.from('different text')) }],
+        projectLicense,
+        'changed-fixture',
+      ),
+    /license must match/,
+  );
+  const centralizedNotice = Buffer.from('synthetic centralized third-party notice');
+  verifyRuntimeArchiveNotice(
+    [{ path: 'dist/page/THIRD-PARTY-NOTICES.txt', sha256: digest(centralizedNotice) }],
+    centralizedNotice,
+    'runtime-fixture',
+  );
+  assert.throws(
+    () => verifyRuntimeArchiveNotice([], centralizedNotice, 'missing-fixture'),
+    /notice missing/,
+  );
+  assert.throws(
+    () =>
+      verifyRuntimeArchiveNotice(
+        [{ path: 'dist/page/THIRD-PARTY-NOTICES.txt', sha256: digest(Buffer.from('changed')) }],
+        centralizedNotice,
+        'changed-fixture',
+      ),
+    /notice differs/,
   );
   console.log('Package provenance preflight regression checks passed.');
   process.exit(0);
 }
 
-const { hashes: restrictedHashes } = await loadPolicy(root);
-let generatedManifestChecked = false;
-try {
-  const generated = JSON.parse(
-    await readFile(join(root, 'dist/editor-runtime/runtime-manifest.json'), 'utf8'),
-  );
-  // frame-host.js is our new adapter; only the transformed original resources
-  // belong to this deny set, not generated.adapterSha256.
-  for (const manifest of [generated, generated.preferences]) {
-    for (const resource of manifest?.resources ?? []) {
-      if (resource.runtimeSha256) restrictedHashes.add(resource.runtimeSha256);
-    }
+await loadPolicy(root);
+const runtimeDirectory = join(root, 'packages/editor-runtime/dist/page');
+const projectNotices = await verifyProjectNotices(root, runtimeDirectory);
+const generated = JSON.parse(
+  await readFile(join(runtimeDirectory, 'runtime-manifest.json'), 'utf8'),
+);
+const runtimeInputIntegrity = await verifyRuntimeInputMapping(root, generated);
+for (const [prefix, manifest] of [
+  ['', generated],
+  ['preferences/', generated.preferences],
+]) {
+  for (const resource of manifest?.resources ?? []) {
+    const path = safePath(prefix + resource.path);
+    if (digest(await readFile(join(runtimeDirectory, path))) !== resource.runtimeSha256)
+      throw new Error(`Runtime output identity mismatch: ${path}`);
   }
-  generatedManifestChecked = true;
-} catch (error) {
-  if (error.code !== 'ENOENT') throw error;
 }
+const generatedManifestChecked = true;
 await mkdir(destination, { recursive: true });
 const staging = await mkdtemp(join(destination, '.preflight-'));
 const report = [];
@@ -158,8 +221,7 @@ try {
           throw new Error(`${name}: symlink in package input`);
       }
       if (!(await lstat(full)).isFile()) throw new Error(`${name}: non-file package entry`);
-      if (file.path !== 'package.json')
-        inspectBytes(file.path, await readFile(full), restrictedHashes);
+      if (file.path !== 'package.json') inspectBytes(file.path, await readFile(full));
     }
     const packed = run(pnpm, ['pack', '--json', '--pack-destination', staging], directory, true);
     const archiveName = basename(packed.filename);
@@ -204,12 +266,19 @@ try {
       if (!path.startsWith('package/')) throw new Error(`${name}: unknown archive root`);
       const short = safePath(path.slice(8));
       const bytes = run('tar', ['-xOzf', archive, '--', path]);
-      inspectBytes(short, bytes, restrictedHashes);
+      inspectBytes(short, bytes);
       entries.push({ path: short, bytes: bytes.length, sha256: digest(bytes) });
       if (short === 'package.json') packedManifest = JSON.parse(bytes.toString('utf8'));
     }
     assert.ok(packedManifest, `${name}: packed manifest missing`);
     manifestGate(packedManifest);
+    verifyArchiveLicense(entries, await readFile(join(root, 'LICENSE')), name);
+    if (packedManifest.name === '@marklyra/editor-runtime')
+      verifyRuntimeArchiveNotice(
+        entries,
+        await readFile(join(root, 'THIRD-PARTY-NOTICES.txt')),
+        name,
+      );
     for (const target of exportsList(packedManifest.exports)) {
       if (!target.startsWith('./') || !entries.some((entry) => entry.path === target.slice(2)))
         throw new Error(`${name}: missing exported build output ${target}`);
@@ -226,18 +295,18 @@ try {
       files: entries,
     });
     console.log(
-      `Verified ${packedManifest.name}@${packedManifest.version}: ${entries.length} archive files; SDK archive excludes editor resource payloads.`,
+      `Verified ${packedManifest.name}@${packedManifest.version}: ${entries.length} archive files; package-owned runtime inputs are included according to the manifest allowlist.`,
     );
   }
   for (const result of report)
     await rename(join(staging, result.archive), join(destination, result.archive));
   await writeFile(
     join(destination, 'pack-report.json'),
-    `${JSON.stringify({ generatedAt: new Date().toISOString(), generatedManifestChecked, restrictedAssetDigestCount: restrictedHashes.size, limitation: 'Checks archive paths, source resource separation, manifest identities and export targets.', packages: report }, null, 2)}\n`,
+    `${JSON.stringify({ generatedAt: new Date().toISOString(), generatedManifestChecked, projectNotices, runtimeInputIntegrity, limitation: 'Checks archive paths, root license inheritance and runtime output identities, manifest identities and export targets.', packages: report }, null, 2)}\n`,
   );
 } finally {
   await rm(staging, { recursive: true, force: true });
 }
 console.log(
-  `Verified ${report.length} local SDK archives. All remain private/UNLICENSED. No publishing or source upload performed. Report: ${relative(root, join(destination, 'pack-report.json'))}`,
+  `Verified ${report.length} local SDK archives. All remain private with Apache-2.0 project licensing. No publishing or source upload performed. Report: ${relative(root, join(destination, 'pack-report.json'))}`,
 );

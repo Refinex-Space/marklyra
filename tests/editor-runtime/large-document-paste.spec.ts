@@ -113,7 +113,7 @@ test('1 MiB mixed-EOL tail paste retains history, next input and synthetic compo
       await page.evaluate(() =>
         (window as unknown as Host).marklyraEditor.execute({ type: 'toggleSource' }),
       );
-    const target = frame.locator(mode === 'source' ? '#typora-source textarea' : '#write');
+    const target = frame.locator(mode === 'source' ? '#marklyra-source textarea' : '#write');
     await target.evaluate((element) => {
       // Only lifecycle ordering is synthesized. This is not a real system IME
       // candidate, confirmation, cancellation or native WK/WebView2 test.

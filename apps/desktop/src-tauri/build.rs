@@ -4,7 +4,7 @@ fn main() {
         for path in [
             "scripts/prepare-native-icons.mjs",
             "scripts/native-titlebar-manifest.json",
-            "resources/native-titlebar",
+            "apps/desktop/src-tauri/icons/titlebar",
         ] {
             println!("cargo:rerun-if-changed={}", root.join(path).display());
         }

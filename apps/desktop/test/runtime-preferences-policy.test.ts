@@ -13,6 +13,14 @@ import {
 } from '../src/features/settings/runtime-preferences/policy.js';
 
 describe('runtime preferences policy', () => {
+  it('loads only bundled UI dictionaries and falls back from retired locale values', () => {
+    for (const locale of ['en', 'Base', 'en-US'])
+      expect(initialPreferencesOptions({ locale }).locale).toBe('Base');
+    for (const locale of ['zh-Hans', 'zh-CN', 'ja-JP', 'zh-Hant', '../outside', null])
+      expect(initialPreferencesOptions({ locale }).locale).toBe('zh-Hans');
+    expect(initialPreferencesOptions({}).locale).toBe('zh-Hans');
+    expect(() => preferenceChange('userLanguage', 'ja-JP')).toThrow();
+  });
   it('accepts supported values without granting source code, upload or filesystem capabilities', () => {
     expect(preferenceChange('theme', 'marklyra-dark.css')).toEqual({
       key: 'theme',

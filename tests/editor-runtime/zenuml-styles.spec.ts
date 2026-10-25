@@ -8,16 +8,14 @@ import {
   mountAdvanced,
 } from './advanced-lifecycle.helpers.js';
 
-const rawCSS = await readFile(
-  new URL('../../resources/editor/lib/diagram/css/mermaid-zenuml.css', import.meta.url),
+const scopedCSS = await readFile(
+  new URL('../../packages/editor-runtime/vendor/diagram/css/mermaid-zenuml.css', import.meta.url),
   'utf8',
 );
-const transformUrl = new URL('../../scripts/lib/runtime-zenuml-styles.mjs', import.meta.url).href;
-const { transformRuntimeZenUMLStyles } = (await import(transformUrl)) as {
-  transformRuntimeZenUMLStyles(source: string): { code: string };
-};
-const scopedCSS = transformRuntimeZenUMLStyles(rawCSS).code;
-const initializer = rawCSS.slice(rawCSS.indexOf('*,:before,:after{')).split('}')[0] ?? '';
+const scope = ':where(.zenuml,.zenuml *)';
+const initializer =
+  scopedCSS.slice(scopedCSS.indexOf(`${scope},${scope}:before,${scope}:after{`)).split('}')[0] ??
+  '';
 const defaults = [...initializer.matchAll(/(--tw-[\w-]+):/g)].map((match) => match[1] as string);
 const properties = [...defaults, 'transform', 'opacity', 'filter', 'box-shadow', 'content'];
 const pseudoContent = '[data-probe]::before,[data-probe]::after{content:"probe";display:block}';
@@ -55,10 +53,8 @@ async function styles(page: Page, ids: string[], pseudos = ['', '::before', '::a
 
 test('ZenUML scoped defaults preserve root, descendants, pseudo-elements and real utilities', async ({
   page,
-  context,
 }) => {
   expect(defaults).toHaveLength(44);
-  const reference = await context.newPage();
   const markup = `
     <section id="root" class="zenuml" data-probe>
       <div id="child" data-probe><span id="deep" data-probe>Diagram</span></div>
@@ -70,56 +66,47 @@ test('ZenUML scoped defaults preserve root, descendants, pseudo-elements and rea
     </section>
     <p id="outside" data-probe>Ordinary document text</p>
     <dialog id="outside-dialog">Ordinary dialog</dialog>`;
-  try {
-    await loadStyleFixture(reference, rawCSS, markup);
-    await loadStyleFixture(page, scopedCSS, markup);
-    const ids = ['root', 'child', 'deep', 'nested-root', 'nested-child', 'utility'];
-    const original = await styles(reference, ids);
-    const transformed = await styles(page, ids);
-    expect(transformed).toEqual(original);
-    for (const id of ['root', 'child', 'deep', 'nested-root', 'nested-child'])
-      for (const pseudo of ['', '::before', '::after']) {
-        expect(transformed[id + pseudo]?.['--tw-rotate']).toBe('0');
-        expect(transformed[id + pseudo]?.['--tw-scale-x']).toBe('1');
-      }
-    expect(transformed.utility?.['--tw-translate-y']).toBe('-2rem');
-    expect(transformed.utility?.opacity).toBe('0.5');
-    expect(transformed.utility?.transform).not.toBe('none');
+  await loadStyleFixture(page, scopedCSS, markup);
+  const ids = ['root', 'child', 'deep', 'nested-root', 'nested-child', 'utility'];
+  const current = await styles(page, ids);
+  for (const id of ['root', 'child', 'deep', 'nested-root', 'nested-child'])
+    for (const pseudo of ['', '::before', '::after']) {
+      expect(current[id + pseudo]?.['--tw-rotate']).toBe('0');
+      expect(current[id + pseudo]?.['--tw-scale-x']).toBe('1');
+      for (const property of defaults)
+        expect(current[id + pseudo]?.[property], `${id}${pseudo} ${property}`).toBe(
+          current.root?.[property],
+        );
+    }
+  expect(current.utility?.['--tw-translate-y']).toBe('-2rem');
+  expect(current.utility?.opacity).toBe('0.5');
+  expect(current.utility?.transform).not.toBe('none');
+  const outside = await styles(page, ['outside']);
+  for (const snapshot of Object.values(outside))
+    for (const property of defaults) expect(snapshot[property], property).toBe('');
 
-    const outsideBefore = await styles(reference, ['outside']);
-    const outsideAfter = await styles(page, ['outside']);
-    expect(outsideBefore.outside?.['--tw-scale-x']).toBe('1');
-    for (const snapshot of Object.values(outsideAfter))
-      for (const property of defaults) expect(snapshot[property], property).toBe('');
-
-    for (const target of [reference, page])
-      await target.evaluate(() => {
-        for (const element of document.querySelectorAll('dialog')) element.showModal();
-      });
-    expect(await styles(page, ['inside-dialog'], ['::backdrop'])).toEqual(
-      await styles(reference, ['inside-dialog'], ['::backdrop']),
+  await page.evaluate(() => {
+    for (const element of document.querySelectorAll('dialog')) element.showModal();
+  });
+  const insideBackdrop = await styles(page, ['inside-dialog'], ['::backdrop']);
+  for (const property of defaults)
+    expect(insideBackdrop['inside-dialog::backdrop']?.[property], property).toBe(
+      current.root?.[property],
     );
-    const outsideBackdrop = await styles(page, ['outside-dialog'], ['::backdrop']);
-    for (const property of defaults)
-      expect(outsideBackdrop['outside-dialog::backdrop']?.[property], property).toBe('');
-  } finally {
-    await reference.close();
-  }
+  const outsideBackdrop = await styles(page, ['outside-dialog'], ['::backdrop']);
+  for (const property of defaults)
+    expect(outsideBackdrop['outside-dialog::backdrop']?.[property], property).toBe('');
 });
 
 test('ZenUML initializer scoping preserves existing cascade and pseudo-element specificity', async ({
   page,
-  context,
 }) => {
-  const reference = await context.newPage();
   const markup = `
     <section id="root" class="zenuml" data-probe>
       <div id="early" class="host-rule transform" data-probe>Earlier custom rule</div>
       <div id="late" class="late-zero transform" data-probe>Later zero-specificity rule</div>
       <div id="utility" class="opacity-50 custom-opacity" data-probe>Utility override</div>
     </section>`;
-  // These are ordinary host overrides, not invented bundled rotate utilities.
-  // They catch both a raised element specificity and a lost pseudo specificity.
   const before = `
     section{--tw-rotate:7deg}
     .host-rule{--tw-rotate:17deg;--tw-scale-x:1.25}
@@ -129,23 +116,16 @@ test('ZenUML initializer scoping preserves existing cascade and pseudo-element s
     :where(.late-zero){--tw-rotate:37deg}
     :where(.late-zero)::before{--tw-rotate:41deg}
     .zenuml .custom-opacity{opacity:.625}`;
-  try {
-    await loadStyleFixture(reference, rawCSS, markup, before, after);
-    await loadStyleFixture(page, scopedCSS, markup, before, after);
-    const ids = ['root', 'early', 'late', 'utility'];
-    const transformed = await styles(page, ids);
-    expect(transformed).toEqual(await styles(reference, ids));
-    expect(transformed.root?.['--tw-rotate']).toBe('7deg');
-    expect(transformed.early?.['--tw-rotate']).toBe('17deg');
-    expect(transformed.early?.['--tw-scale-x']).toBe('1.25');
-    expect(transformed['early::before']?.['--tw-rotate']).toBe('23deg');
-    expect(transformed['early::after']?.['--tw-rotate']).toBe('0');
-    expect(transformed.late?.['--tw-rotate']).toBe('37deg');
-    expect(transformed['late::before']?.['--tw-rotate']).toBe('41deg');
-    expect(transformed.utility?.opacity).toBe('0.625');
-  } finally {
-    await reference.close();
-  }
+  await loadStyleFixture(page, scopedCSS, markup, before, after);
+  const current = await styles(page, ['root', 'early', 'late', 'utility']);
+  expect(current.root?.['--tw-rotate']).toBe('7deg');
+  expect(current.early?.['--tw-rotate']).toBe('17deg');
+  expect(current.early?.['--tw-scale-x']).toBe('1.25');
+  expect(current['early::before']?.['--tw-rotate']).toBe('23deg');
+  expect(current['early::after']?.['--tw-rotate']).toBe('0');
+  expect(current.late?.['--tw-rotate']).toBe('37deg');
+  expect(current['late::before']?.['--tw-rotate']).toBe('41deg');
+  expect(current.utility?.opacity).toBe('0.625');
 });
 
 test('bundled Mermaid renders actual ZenUML and preserves BOM and mixed-EOL source roundtrips', async ({
@@ -181,7 +161,7 @@ test('bundled Mermaid renders actual ZenUML and preserves BOM and mixed-EOL sour
       }),
     );
   await toggle();
-  await expect(frame.locator('#typora-source')).toBeVisible();
+  await expect(frame.locator('#marklyra-source')).toBeVisible();
   expect(await advancedSource(page)).toBe(source);
   await toggle();
   await assertRendered();

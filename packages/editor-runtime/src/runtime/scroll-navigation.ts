@@ -19,7 +19,7 @@ export class RuntimeScrollNavigation {
       (event) => {
         if (
           event.target instanceof Element &&
-          event.target.matches('content, #typora-source .CodeMirror-scroll')
+          event.target.matches('content, #marklyra-source .CodeMirror-scroll')
         )
           this.schedule();
       },
@@ -35,7 +35,7 @@ export class RuntimeScrollNavigation {
       this.frame = 0;
       const source = this.deps.runtime.editor?.sourceView.inSourceMode;
       const port = document.querySelector<HTMLElement>(
-        source ? '#typora-source .CodeMirror-scroll' : 'content',
+        source ? '#marklyra-source .CodeMirror-scroll' : 'content',
       );
       this.publish(
         Boolean(

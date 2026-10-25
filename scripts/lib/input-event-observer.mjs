@@ -114,7 +114,7 @@ export function installInputEventObserver() {
   };
   const listener = (event) => {
     const node = event.target instanceof Element ? event.target : document.activeElement;
-    if (!node?.closest('#write,#typora-source') || node === panel) return;
+    if (!node?.closest('#write,#marklyra-source') || node === panel) return;
     capture('capture', event, node);
     queueMicrotask(() => capture('after-dispatch', event, node));
     if (event.type === 'compositionend') {

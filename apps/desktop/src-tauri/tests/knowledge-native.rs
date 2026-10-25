@@ -321,7 +321,7 @@ fn main() {
     tauri::Builder::default()
         .invoke_system(runtime_assets::ipc_initialization_script())
         .manage(services)
-        .manage(runtime_assets::RuntimeAssets::fixture(&std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../dist/editor-runtime")).expect("prepared runtime"))
+        .manage(runtime_assets::RuntimeAssets::fixture(&std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../packages/editor-runtime/dist/page")).expect("prepared runtime"))
         .manage(themes::ThemeHost::default())
         .register_uri_scheme_protocol("marklyra", |context,request|runtime_assets::handle(context.app_handle(),context.webview_label(),&request))
         .manage(knowledge::KnowledgeHost::default())

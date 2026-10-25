@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { lstat, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 export const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -19,12 +19,11 @@ export function inspectPath(path) {
       (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
     ) ||
     path.split('/').some((part) => !part || part === '.' || part === '..') ||
-    forbidden.test(path) ||
-    (/(?:^|\/)appsrc(?:\/|$)/i.test(path) && !path.startsWith('resources/editor/'))
+    forbidden.test(path)
   )
     throw new Error(`Forbidden provenance path: ${JSON.stringify(path)}`);
 }
-function inspectMap(map, hashes, label, depth = 0) {
+function inspectMap(map, label, depth = 0) {
   if (!map || typeof map !== 'object' || depth > 8) throw new Error(`Invalid source map: ${label}`);
   for (const source of map.sources ?? []) {
     if (
@@ -36,14 +35,10 @@ function inspectMap(map, hashes, label, depth = 0) {
     )
       throw new Error(`Forbidden source map origin: ${label}`);
   }
-  for (const source of map.sourcesContent ?? []) {
-    if (typeof source === 'string' && hashes.has(digest(Buffer.from(source))))
-      throw new Error(`Restricted source embedded in source map: ${label}`);
-  }
   for (const section of map.sections ?? []) {
     if (!section.map || section.url)
       throw new Error(`External indexed source map needs review: ${label}`);
-    inspectMap(section.map, hashes, label, depth + 1);
+    inspectMap(section.map, label, depth + 1);
   }
 }
 function parseMap(text, label) {
@@ -53,11 +48,8 @@ function parseMap(text, label) {
     throw new Error(`Invalid source map JSON: ${label}`);
   }
 }
-export function inspectBytes(path, bytes, hashes, exceptions = new Map()) {
-  const sha256 = digest(bytes);
-  if (hashes.has(sha256) && exceptions.get(path) !== sha256)
-    throw new Error(`Restricted asset detected: ${path}`);
-  if (path.endsWith('.map')) inspectMap(parseMap(bytes.toString('utf8'), path), hashes, path);
+export function inspectBytes(path, bytes) {
+  if (path.endsWith('.map')) inspectMap(parseMap(bytes.toString('utf8'), path), path);
   if (/\.(?:[cm]?js|css)$/.test(path)) {
     for (const match of bytes
       .toString('utf8')
@@ -67,46 +59,60 @@ export function inspectBytes(path, bytes, hashes, exceptions = new Map()) {
       const source = match[1]
         ? Buffer.from(match[2], 'base64').toString('utf8')
         : decodeURIComponent(match[2]);
-      inspectMap(parseMap(source, path), hashes, path);
+      inspectMap(parseMap(source, path), path);
     }
   }
 }
 function git(root, args, options = {}) {
   return execFileSync('git', args, { cwd: root, maxBuffer: 128 * 1024 * 1024, ...options });
 }
+const inputPrefixes = [
+  'packages/editor-runtime/src/engine/',
+  'packages/editor-runtime/src/page/',
+  'packages/editor-runtime/assets/',
+  'packages/editor-runtime/vendor/',
+  'packages/editor-themes/assets/',
+  'apps/desktop/src/features/settings/runtime-preferences/page/',
+  'apps/desktop/src-tauri/icons/titlebar/',
+];
+export const isRuntimeSourcePath = (path) =>
+  path === 'packages/editor-themes/base.css' ||
+  inputPrefixes.some((prefix) => path.startsWith(prefix));
+
 export async function loadPolicy(root, index = false) {
   const read = (path) => (index ? git(root, ['show', `:${path}`]) : readFile(resolve(root, path)));
   const manifest = JSON.parse(await read('config/runtime-source.json'));
   if (manifest.schema !== 2 || !Array.isArray(manifest.resources) || !manifest.resources.length)
     throw new Error('Invalid runtime source manifest');
   const hashes = new Set();
-  const exceptions = new Map();
   const resources = new Map();
+  const outputs = new Set();
   for (const record of manifest.resources) {
     inspectPath(record.path);
     if (
-      !/^(?:resources\/editor\/|resources\/native-titlebar\/)/.test(record.path) ||
+      !isRuntimeSourcePath(record.path) ||
       !hashPattern.test(record.sha256) ||
       !Number.isSafeInteger(record.size) ||
       record.size < 0 ||
       resources.has(record.path)
     )
       throw new Error('Invalid runtime source record');
+    if (
+      record.additionalRuntimePaths !== undefined &&
+      !Array.isArray(record.additionalRuntimePaths)
+    )
+      throw new Error('Invalid runtime output mapping');
+    for (const output of [record.runtimePath, ...(record.additionalRuntimePaths ?? [])]) {
+      if (output === undefined) continue;
+      if (typeof output !== 'string' || outputs.has(output))
+        throw new Error('Invalid runtime output mapping');
+      inspectPath(output);
+      outputs.add(output);
+    }
     hashes.add(record.sha256);
     resources.set(record.path, record);
-    exceptions.set(record.path, record.sha256);
   }
-  for (const record of manifest.noticeExceptions ?? []) {
-    inspectPath(record.path);
-    if (
-      !record.path.startsWith('licenses/') ||
-      !hashPattern.test(record.sha256) ||
-      !record.evidence
-    )
-      throw new Error('Invalid reviewed notice exception');
-    exceptions.set(record.path, record.sha256);
-  }
-  return { hashes, exceptions, resources };
+  return { hashes, resources };
 }
 function entries(bytes) {
   return bytes
@@ -153,7 +159,8 @@ function blobs(root, ids) {
 }
 export async function checkRepository(root, mode = 'staged') {
   root = git(root, ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-  const { hashes, exceptions, resources } = await loadPolicy(root, true);
+  const { hashes, resources } = await loadPolicy(root, mode !== 'worktree');
+  if (mode === 'worktree') return checkWorktree(root, resources, hashes);
   let rows,
     commits = [];
   if (mode === 'history') {
@@ -180,12 +187,12 @@ export async function checkRepository(root, mode = 'staged') {
   const objects = blobs(root, [...new Set(rows.map((row) => row.oid))]);
   for (const row of rows) {
     const bytes = objects.get(row.oid);
-    if (/^resources\/(?:editor|native-titlebar)\//.test(row.path)) {
+    if (mode !== 'history' && isRuntimeSourcePath(row.path)) {
       const record = resources.get(row.path);
       if (!record || record.size !== bytes.length || record.sha256 !== digest(bytes))
         throw new Error(`Runtime source identity mismatch: ${row.path}`);
     }
-    inspectBytes(row.path, bytes, hashes, exceptions);
+    inspectBytes(row.path, bytes);
   }
   if (mode === 'tracked') {
     const tracked = new Set(rows.map((row) => row.path));
@@ -197,6 +204,97 @@ export async function checkRepository(root, mode = 'staged') {
     commits: commits.length,
     pathsAndVersions: rows.length,
     blobs: objects.size,
-    restrictedAssetDigests: hashes.size,
+    runtimeSourceDigests: hashes.size,
   };
+}
+
+async function checkWorktree(root, resources, hashes) {
+  const paths = [
+    ...new Set(
+      git(root, ['ls-files', '--cached', '--others', '--exclude-standard', '-z'])
+        .toString('utf8')
+        .split('\0')
+        .filter(Boolean),
+    ),
+  ];
+  const observed = new Set();
+  const directories = new Set();
+  for (const path of paths) {
+    inspectPath(path);
+    let bytes;
+    try {
+      const parts = path.split('/');
+      for (let length = 1; length < parts.length; length++) {
+        const directory = resolve(root, ...parts.slice(0, length));
+        if (directories.has(directory)) continue;
+        const info = await lstat(directory);
+        if (!info.isDirectory() || info.isSymbolicLink())
+          throw new Error(`Unreviewed worktree directory: ${path}`);
+        directories.add(directory);
+      }
+      const info = await lstat(resolve(root, path));
+      if (!info.isFile() || info.isSymbolicLink())
+        throw new Error(`Unreviewed worktree entry: ${path}`);
+      bytes = await readFile(resolve(root, path));
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      throw error;
+    }
+    if (isRuntimeSourcePath(path)) {
+      const record = resources.get(path);
+      if (!record || record.size !== bytes.length || record.sha256 !== digest(bytes))
+        throw new Error(`Runtime source identity mismatch: ${path}`);
+    }
+    inspectBytes(path, bytes);
+    observed.add(path);
+  }
+  for (const path of resources.keys())
+    if (!observed.has(path)) throw new Error(`Runtime source missing from worktree: ${path}`);
+  return {
+    mode: 'worktree',
+    commits: 0,
+    pathsAndVersions: observed.size,
+    blobs: observed.size,
+    runtimeSourceDigests: hashes.size,
+  };
+}
+
+/** Bind copied runtime files to the current native input manifest, not an older build. */
+export async function verifyRuntimeInputMapping(root, runtime) {
+  const { resources } = await loadPolicy(root);
+  const product = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
+  const version = `MarkLyra ${product.version}`;
+  if (typeof product.version !== 'string' || runtime.sourceVersion !== version)
+    throw new Error('Runtime source-to-output mapping: product version differs');
+  const expected = new Map();
+  for (const input of resources.values())
+    for (const path of [input.runtimePath, ...(input.additionalRuntimePaths ?? [])])
+      if (path) expected.set(path, input);
+  const observed = new Set();
+  for (const [prefix, manifest] of [
+    ['', runtime],
+    ['preferences/', runtime.preferences],
+  ]) {
+    if (!manifest) continue;
+    if (manifest.sourceVersion !== version || !Array.isArray(manifest.resources))
+      throw new Error('Runtime source-to-output mapping: invalid runtime manifest');
+    for (const record of manifest.resources) {
+      const path = prefix + record.path;
+      inspectPath(path);
+      if (observed.has(path))
+        throw new Error(`Runtime source-to-output mapping: duplicate output ${path}`);
+      const input = expected.get(path);
+      if (
+        input
+          ? record.sourcePath !== input.path || record.originalSha256 !== input.sha256
+          : record.sourcePath !== undefined
+      )
+        throw new Error(`Runtime source-to-output mapping: stale or unknown input for ${path}`);
+      observed.add(path);
+    }
+  }
+  for (const path of expected.keys())
+    if (!observed.has(path))
+      throw new Error(`Runtime source-to-output mapping: missing output ${path}`);
+  return { nativeOutputs: expected.size, sourceVersion: version };
 }

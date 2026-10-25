@@ -299,7 +299,7 @@ for (const sourceMode of [false, true]) {
       await expect(page.locator('.document-title')).toHaveText('未命名 •');
       const mirror = page
         .frameLocator('.marklyra-editor-frame')
-        .locator('#typora-source .CodeMirror');
+        .locator('#marklyra-source .CodeMirror');
       if (sourceMode) {
         await menu(page, 'view:source');
         await expect(mirror).toBeVisible();

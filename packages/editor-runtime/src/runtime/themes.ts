@@ -2,6 +2,7 @@ import { sameRuntimeOrigin } from '../export/options.js';
 import { resourceBytes } from '../export/resources.js';
 import type { ThemeAppearance } from '../styles/appearance.js';
 import { emptyThemeStyles, type ThemeStyles, themeStyles } from '../styles/contracts.js';
+import { adaptEditorTheme } from '../styles/theme-namespaces.js';
 import { readThemeAppearance } from './theme-appearance.js';
 import { readThemeFonts } from './theme-fonts.js';
 
@@ -212,6 +213,7 @@ export class RuntimeThemes {
       if (!link.sheet) throw new Error('Theme stylesheet did not load');
       await verify(link.sheet);
     }
+    for (const sheet of visited) adaptEditorTheme(sheet, visited);
   }
 
   private loadedLink(link: HTMLLinkElement): Promise<void> {

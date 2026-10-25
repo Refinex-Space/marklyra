@@ -36,9 +36,9 @@ for (const theme of layoutThemes) {
     const history = await layoutHistory(page);
     await link(page);
     const notice = frame(page).locator('#md-notification');
-    const title = notice.locator('.ty-enter-mode-warning-header');
-    const suppress = notice.locator('#ty-suppress-mode-warning-input');
-    const close = notice.locator('#ty-suppress-mode-warning-close-btn');
+    const title = notice.locator('.marklyra-enter-mode-warning-header');
+    const suppress = notice.locator('#marklyra-suppress-mode-warning-input');
+    const close = notice.locator('#marklyra-suppress-mode-warning-close-btn');
     await expect(title).toContainText('您可以按下');
     await expect(title).toContainText('点击');
     await expect(close).toBeVisible();
@@ -60,7 +60,7 @@ for (const theme of layoutThemes) {
           notice.evaluate((element) => {
             const bounds = element.getBoundingClientRect();
             const button = element
-              .querySelector('#ty-suppress-mode-warning-close-btn')
+              .querySelector('#marklyra-suppress-mode-warning-close-btn')
               ?.getBoundingClientRect();
             if (!button) return -1;
             return document.documentElement.clientWidth - button.right;
@@ -73,10 +73,10 @@ for (const theme of layoutThemes) {
         const boxes = [...range.getClientRects()].filter((box) => box.width && box.height);
         const notice = document.getElementById('md-notification');
         const close = notice
-          ?.querySelector('#ty-suppress-mode-warning-close-btn')
+          ?.querySelector('#marklyra-suppress-mode-warning-close-btn')
           ?.getBoundingClientRect();
         const checkbox = notice
-          ?.querySelector('#ty-suppress-mode-warning-input')
+          ?.querySelector('#marklyra-suppress-mode-warning-input')
           ?.getBoundingClientRect();
         if (!close || !checkbox) throw Error('Missing hint actions');
         if (!notice) throw Error('Missing hint');

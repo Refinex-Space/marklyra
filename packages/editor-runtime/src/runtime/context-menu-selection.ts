@@ -99,7 +99,7 @@ export function currentContextCodeMirror(editor: LegacyEditor, saved: ContextSel
     Reflect.get(wrapper, 'CodeMirror') === cm &&
     cm.doc === saved.cmDocument &&
     (editor.sourceView.inSourceMode
-      ? editor.sourceView.cm === cm && Boolean(wrapper.closest('#typora-source'))
+      ? editor.sourceView.cm === cm && Boolean(wrapper.closest('#marklyra-source'))
       : editor.writingArea.contains(wrapper))
   );
 }

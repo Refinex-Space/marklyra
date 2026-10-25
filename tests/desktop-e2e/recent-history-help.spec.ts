@@ -14,7 +14,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const hint = ui.locator(
       '.checkbox:has([data-marklyra-preference="noRecentFiles"]) .label-hint',
     );
-    const tooltip = ui.locator('#ty-tooltip');
+    const tooltip = ui.locator('#marklyra-tooltip');
     await expect(toggle).toBeChecked();
     await expect(hint).toHaveAttribute('aria-label', /关闭开关不会清除已有历史/);
     const icon = hint.locator('a');

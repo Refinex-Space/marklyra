@@ -532,8 +532,9 @@ fn validate_import_ast(value: &serde_json::Value) -> Result<(), String> {
         }
         match value {
             serde_json::Value::Object(object) => {
-                if object.contains_key("typora-root-url")
-                    || object.contains_key("typora-copy-images-to")
+                if object
+                    .keys()
+                    .any(|key| key.ends_with("-root-url") || key.ends_with("-copy-images-to"))
                 {
                     return Err(
                         "导入元数据包含图片目录权限设置；请先移除后重试，未创建Markdown".into(),
@@ -682,7 +683,10 @@ mod tests {
     fn imported_images_raw_content_and_root_permissions_fail_explicitly() {
         for ast in [
             serde_json::json!({"blocks":[{"t":"Image","c":[]}]}),
-            serde_json::json!({"meta":{"typora-root-url":{"t":"MetaString","c":"/private"}}}),
+            serde_json::json!({"meta":{"marklyra-root-url":{"t":"MetaString","c":"/private"}}}),
+            serde_json::json!({"meta":{"marklyra-copy-images-to":{"t":"MetaString","c":"/private"}}}),
+            serde_json::json!({"meta":{"legacy-editor-root-url":{"t":"MetaString","c":"/private"}}}),
+            serde_json::json!({"meta":{"legacy-editor-copy-images-to":{"t":"MetaString","c":"/private"}}}),
             serde_json::json!({"t":"RawBlock","c":["html","<img src=file:///private>"]}),
         ] {
             assert!(validate_import_ast(&ast).is_err());

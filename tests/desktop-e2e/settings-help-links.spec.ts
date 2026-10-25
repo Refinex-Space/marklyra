@@ -44,7 +44,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await ui
       .locator('.checkbox:has([data-marklyra-preference="autoEscapeImageURL"]) .label-hint')
       .hover();
-    await expect(ui.locator('#ty-tooltip')).toContainText('%20 表示空格');
+    await expect(ui.locator('#marklyra-tooltip')).toContainText('%20 表示空格');
     await ui.getByRole('button', { name: '返回应用', exact: true }).click();
     await expect(page.locator('.preferences-page')).toHaveCount(0);
   });

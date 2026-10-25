@@ -9,20 +9,17 @@ const source = resolve(import.meta.dirname, '..');
 test('source audit rejects missing runtime, unknown package and mismatched notices in an isolated copy', async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'marklyra-audit-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const inventory = JSON.parse(
-    await readFile(join(source, 'config/dependency-inventory.json'), 'utf8'),
-  );
   for (const file of [
     '.gitignore',
-    'pnpm-lock.yaml',
-    'Cargo.lock',
+    'LICENSE',
+    'THIRD-PARTY-NOTICES.txt',
+    'package.json',
     'scripts/audit-source-boundaries.mjs',
     'scripts/lib/provenance.mjs',
+    'scripts/lib/project-notices.mjs',
+    'scripts/lib/runtime-resources.mjs',
     'scripts/native-titlebar-manifest.json',
     'config/runtime-source.json',
-    'config/dependency-inventory.json',
-    'licenses/fonts/manifest.json',
-    'licenses/icons/manifest.json',
     ...[
       'editor-core',
       'editor-markdown',
@@ -36,21 +33,26 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
     await mkdir(dirname(join(root, file)), { recursive: true });
     await copyFile(join(source, file), join(root, file));
   }
-  for (const directory of [
-    'dist/editor-runtime',
-    'resources/editor',
-    'resources/native-titlebar',
-    inventory.noticeBundle.directory,
-  ])
-    await cp(join(source, directory), join(root, directory), { recursive: true });
+  const inputManifest = JSON.parse(
+    await readFile(join(source, 'config/runtime-source.json'), 'utf8'),
+  );
+  for (const { path } of inputManifest.resources) {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await copyFile(join(source, path), join(root, path));
+  }
+  await cp(
+    join(source, 'packages/editor-runtime/dist/page'),
+    join(root, 'packages/editor-runtime/dist/page'),
+    { recursive: true },
+  );
   const git = (args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
   git(['init', '--quiet']);
   git(['add', '.']);
   git([
     '-c',
-    'user.name=refinex',
+    'user.name=liyao',
     '-c',
-    'user.email=refinex@users.noreply.github.com',
+    'user.email=fixture@example.invalid',
     'commit',
     '--quiet',
     '-m',
@@ -63,7 +65,23 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
     });
   const initial = run();
   assert.equal(initial.status, 0, initial.stderr);
-  const resource = 'dist/editor-runtime/appsrc/editor/EmojiSearchMap.js';
+  const noticePath = join(root, 'packages/editor-runtime/dist/page/THIRD-PARTY-NOTICES.txt');
+  const noticeBytes = await readFile(noticePath);
+  await writeFile(noticePath, 'changed bundled notice');
+  const changedNotice = run();
+  assert.notEqual(changedNotice.status, 0);
+  assert.match(changedNotice.stderr, /Project notice bundle mismatch/);
+  await writeFile(noticePath, noticeBytes);
+  const runtimePath = join(root, 'packages/editor-runtime/dist/page/runtime-manifest.json');
+  const runtimeBytes = await readFile(runtimePath);
+  const staleRuntime = JSON.parse(runtimeBytes.toString('utf8'));
+  staleRuntime.resources.find((entry) => entry.sourcePath).originalSha256 = '0'.repeat(64);
+  await writeFile(runtimePath, JSON.stringify(staleRuntime));
+  const staleInput = run();
+  assert.notEqual(staleInput.status, 0);
+  assert.match(staleInput.stderr, /Runtime source-to-output mapping/);
+  await writeFile(runtimePath, runtimeBytes);
+  const resource = 'packages/editor-runtime/dist/page/appsrc/editor/EmojiSearchMap.js';
   await rm(join(root, resource));
   const missing = run();
   assert.notEqual(missing.status, 0);
@@ -75,11 +93,28 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
   assert.notEqual(unknown.status, 0);
   assert.match(unknown.stderr, /Package needs source classification/);
   await rm(join(root, 'packages/unreviewed'), { recursive: true });
-  const manifestPath = join(root, inventory.noticeBundle.directory, 'manifest.json');
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-  manifest.packages[0].version = 'unknown-version';
-  await writeFile(manifestPath, JSON.stringify(manifest));
-  const mismatch = run();
-  assert.notEqual(mismatch.status, 0);
-  assert.match(mismatch.stderr, /Notice package mapping differs/);
+  const packagePath = join(root, 'packages/editor-runtime/package.json');
+  const packageManifest = JSON.parse(await readFile(packagePath, 'utf8'));
+  packageManifest.private = false;
+  await writeFile(packagePath, JSON.stringify(packageManifest));
+  const publicPackage = run();
+  assert.notEqual(publicPackage.status, 0);
+  assert.match(publicPackage.stderr, /Unexpected release status/);
+  packageManifest.private = true;
+  packageManifest.license = 'MIT';
+  await writeFile(packagePath, JSON.stringify(packageManifest));
+  const wrongProjectLicense = run();
+  assert.notEqual(wrongProjectLicense.status, 0);
+  assert.match(wrongProjectLicense.stderr, /Unexpected release status/);
+  assert.ok(
+    (await readFile(join(root, 'artifacts/source-audit.json'), 'utf8')).includes(
+      'runtimeInputIntegrity',
+    ),
+  );
+  for (const file of [
+    'config/source-audit.json',
+    'config/runtime-audit.json',
+    'config/dependency-inventory.json',
+  ])
+    await assert.rejects(readFile(join(root, file)), { code: 'ENOENT' });
 });

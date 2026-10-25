@@ -1,26 +1,29 @@
-# 编辑器源码资源迁移验证
+# 编辑器内部源码构建与验证
 
-日期：2026-10-19。
+编辑器核心输入与宿主适配由工作区中的包和应用管理。项目采用根 `LICENSE` 的 Apache-2.0，必要第三方通知集中在根 `THIRD-PARTY-NOTICES.txt`；构建直接附带这两份文本。
 
-## 变更
+## 源码归属
 
-- 将 351 项编辑器前端输入纳入 `resources/editor/`，四张原生标题栏 PNG 纳入 `resources/native-titlebar/`，全部由 Git 管理。
-- 源码包括编辑器代码、样式、字体、语言包及设置页面。未使用的两个平台 `rg` 可执行文件不纳入；原始版权和第三方通知保留。
-- 生成目录统一为忽略的 `dist/editor-runtime/`，同步开发服务、Tauri 资源打包、原生嵌入、SDK 检查、基准脚本与测试路径。macOS 标题栏不再从已安装应用提取。
-- 资源清单只记录项目输入的路径、大小和 SHA-256；删除旧私有资源禁入清单及不再适用的准备说明。构建前校验全部输入，拒绝缺失、变更或符号链接。
-- 资源、通知、图标和字节夹具保持原始字节；代码与配置使用 LF。锁文件也固定 LF，防止 Windows 自动换行转换破坏资源或依赖摘要。
-- 依赖通知迁到 Git 管理的 `licenses/dependencies/`，更新版本映射，资源审计测试不再依赖本机忽略目录中的通知副本。
+- `packages/editor-runtime/src/engine/`：编辑器程序、worker 和编辑器数据。
+- `packages/editor-runtime/src/page/`：运行页面与 HTML 模板。
+- `packages/editor-runtime/assets/`：样式、语言包、图像及编辑器资产。
+- `packages/editor-runtime/vendor/`：保持既有版本的随附库。
+- `packages/editor-themes/`：项目主题及主题资产。
+- `apps/desktop/src/features/settings/runtime-preferences/page/`：设置页内部源码。
+- `apps/desktop/src-tauri/icons/titlebar/`：原生标题栏 PNG。
 
-## 已执行验证
+`pnpm prepare:runtime` 从上述输入构建 `packages/editor-runtime/dist/page/`。生成目录由 Git 忽略，不作为第二份可编辑源码。桌面打包与开发服务器读取相同输出，编辑器和设置页保持独立 origin、类型化消息与受限原生能力。
 
-从 Git 暂存内容建立独立测试仓库并再次克隆，开启 `core.autocrlf=true`。克隆中起初不存在 `private/`、`node_modules/` 或生成的运行资源；没有复制任何已有构建目录。
+## 完整性
 
-- `pnpm install --frozen-lockfile --offline`、`pnpm build` 成功。
-- `pnpm check`：类型、依赖边界及 1511 项 TypeScript 测试通过；lint 通过。
-- Node 脚本回归：147 项通过，包含资源缺失/修改、符号链接、Windows 路径兼容、自动换行检出、原生图像与 SDK 边界。
-- Chromium/WebKit：118 项编辑器回归及 48 项桌面 Shell 回归通过，覆盖真实生成的编辑器、设置页、主题、字体和窗口控件。桌面复测使用关闭 HMR 的隔离服务，构建与浏览器验证分开执行。
-- Rust：fmt、clippy 全目标检查通过；工作区库与二进制测试 785 项通过，5 项既有 ignored。
-- 七个 SDK 归档检查通过；Git 暂存区及完整受追踪资源校验通过。
-- 从独立检出构建 macOS ARM64 debug app/DMG 成功，未签名。包内 293 项运行文件与该检出生成目录逐文件比较，文件集合和字节均一致。
+`config/runtime-source.json` 记录输入路径、大小、SHA-256 和输出映射。修改被登记的输入后同步更新对应身份记录。资源及原始通知的 Git 属性关闭自动换行转换，保证不同宿主的检出字节一致。
 
-浏览器验证使用真实生成资源及浏览器引擎，宿主 IPC 使用现有测试替身。Windows 真机的原生编译、WebView2、输入法和系统集成未执行，不将上述检出与构建验证扩大为 Windows 平台验收。
+`pnpm check:resources` 校验声明的构建输入，拒绝缺失、字节漂移及符号链接。`node scripts/check-provenance.mjs --worktree` 检查未提交的实际文件；`--tracked` 检查 Git 暂存内容；`--history` 检查可达历史中的路径与 source-map 边界，不重写历史。
+
+源码内化允许内部引擎及其构建输出进入包的显式文件清单，不再以相同字节禁止自有源码分发。`private: true` 继续禁止自动包发布。`pnpm pack:editor` 在本地核对真实归档、根许可证、文件安全边界和导出目标。
+
+## 验证范围
+
+按根 README 执行类型、依赖边界、单元、Node 脚本、编辑器浏览器、桌面 Shell、Rust 和构建检查。原生 GUI、真实输入法、打印、剪贴板和安装升级需要在对应平台另行验证；浏览器替身和跨平台静态检查不能替代这些结果。
+
+每次迁移的实际测试结果单独记录，不从历史报告推定当前构建通过。

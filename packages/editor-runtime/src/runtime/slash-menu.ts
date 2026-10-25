@@ -190,7 +190,7 @@ export class RuntimeSlashMenu {
       !editor?.sourceView.inSourceMode &&
       !this.host.runtime.File?.isLocked &&
       !document.body.classList.contains('modal-open') &&
-      !document.body.classList.contains('typora-export')
+      !document.body.classList.contains('marklyra-export')
     );
   }
 

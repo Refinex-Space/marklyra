@@ -10,7 +10,7 @@ export interface BlockIndentFixture {
   readonly edited: string;
   readonly noop: boolean;
 }
-/** Authored documents; original 1.11.7 command observations plus reviewed raw-format intent. */
+/** Authored documents; internal editor command observations plus reviewed raw-format intent. */
 export const blockIndentFixtures: readonly BlockIndentFixture[] = [
   {
     name: 'indent-middle',

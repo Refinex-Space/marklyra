@@ -61,7 +61,7 @@ for (const rich of [false, true]) {
     await mountClipboard(page);
     const frame = advancedFrame(page);
     await frame.locator('.md-fences .CodeMirror-line').first().click();
-    const field = frame.locator('.ty-cm-lang-input');
+    const field = frame.locator('.marklyra-cm-lang-input');
     await field.dblclick();
     await field.evaluate((element, rich) => {
       const data = new DataTransfer();
@@ -95,7 +95,7 @@ for (const action of ['edit.paste', 'edit.pastePlain'] as const)
     await mountClipboard(page);
     const frame = advancedFrame(page);
     await frame.locator('.md-fences .CodeMirror-line').first().click();
-    const field = frame.locator('.ty-cm-lang-input');
+    const field = frame.locator('.marklyra-cm-lang-input');
     await field.dblclick();
     await field.click({ button: 'right' });
     await page.waitForFunction(() => Boolean((window as unknown as Host).languageClipboard.choose));
@@ -119,7 +119,7 @@ test('language paste respects a partial selection and ignores rich-only or compo
   await mountClipboard(page);
   const frame = advancedFrame(page);
   await frame.locator('.md-fences .CodeMirror-line').first().click();
-  const field = frame.locator('.ty-cm-lang-input');
+  const field = frame.locator('.marklyra-cm-lang-input');
   await field.dblclick();
   await field.evaluate((element) => {
     const data = new DataTransfer();
@@ -161,7 +161,7 @@ for (const action of ['edit.copy', 'edit.cut'] as const)
     await mountClipboard(page);
     const frame = advancedFrame(page);
     await frame.locator('.md-fences .CodeMirror-line').first().click();
-    const field = frame.locator('.ty-cm-lang-input');
+    const field = frame.locator('.marklyra-cm-lang-input');
     await field.dblclick();
     await field.click({ button: 'right' });
     await page.waitForFunction(() => Boolean((window as unknown as Host).languageClipboard.choose));

@@ -44,7 +44,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     });
     const hint = ui.locator('.settings-file-content .label-hint').first();
     await hint.hover();
-    const tooltip = ui.locator('#ty-tooltip');
+    const tooltip = ui.locator('#marklyra-tooltip');
     await expect(tooltip).toBeVisible();
     await expect(tooltip).toHaveCSS('opacity', '1');
     expect(await tooltip.evaluate((el) => getComputedStyle(el).filter)).toBe('none');

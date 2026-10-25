@@ -15,7 +15,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await expect(row.getByRole('checkbox', { name: '严格模式', exact: true })).toBeEnabled();
     await expect(row.getByRole('link')).toHaveCount(0);
     await expect(hint).toHaveAttribute('aria-label', /#标题 会保留为普通文本/);
-    const tooltip = ui.locator('#ty-tooltip');
+    const tooltip = ui.locator('#marklyra-tooltip');
     for (const width of [1280, 700]) {
       await page.setViewportSize({ width, height: 900 });
       await hint.hover();

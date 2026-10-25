@@ -1,4 +1,4 @@
-//! Hash-checked AppKit raster inputs and the application-owned graph SVG; excluded from editor SDK packages.
+//! Built-in AppKit titlebar images and the application-owned knowledge-graph SVG.
 use objc2::{rc::Retained, AnyThread};
 use objc2_app_kit::NSImage;
 use objc2_foundation::{NSData, NSSize};
@@ -32,7 +32,7 @@ impl TitlebarImages {
             outline: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../../resources/native-titlebar/tocButton@2x.png"
+                    "/icons/titlebar/tocButton@2x.png"
                 )),
                 13.0,
                 10.0,
@@ -40,7 +40,7 @@ impl TitlebarImages {
             outline_dark: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../../resources/native-titlebar/tocButtonWhite@2x.png"
+                    "/icons/titlebar/tocButtonWhite@2x.png"
                 )),
                 13.0,
                 10.0,
@@ -48,7 +48,7 @@ impl TitlebarImages {
             sidebar: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../../resources/native-titlebar/sideButton@2x.png"
+                    "/icons/titlebar/sideButton@2x.png"
                 )),
                 12.0,
                 12.0,
@@ -56,7 +56,7 @@ impl TitlebarImages {
             sidebar_dark: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../../resources/native-titlebar/sideButtonWhite@2x.png"
+                    "/icons/titlebar/sideButtonWhite@2x.png"
                 )),
                 12.0,
                 12.0,

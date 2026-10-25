@@ -87,7 +87,7 @@ test('native Source drop point keeps mixed EOL bytes and one exact Undo', async 
     (window as ImageTestWindow).imageHostFixture.editors[0]?.execute({ type: 'toggleSource' }),
   );
   const point = await imageFrame(page)
-    .locator('#typora-source .CodeMirror')
+    .locator('#marklyra-source .CodeMirror')
     .evaluate((element) => {
       const cm = Reflect.get(element, 'CodeMirror') as {
         focus(): void;

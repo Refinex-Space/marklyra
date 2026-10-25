@@ -38,7 +38,10 @@ test('input instrumentation changes only the copied authored adapter and manifes
 });
 test('an unknown adapter or an existing/symlink destination is never overwritten', async () => {
   await assert.rejects(instrumentInputRuntime(source, source), /new ignored/);
-  await assert.rejects(instrumentInputRuntime(source, '/Applications/Typora.app'), /new ignored/);
+  await assert.rejects(
+    instrumentInputRuntime(source, '/Applications/Unrelated.app'),
+    /new ignored/,
+  );
   const link = resolve(directory, 'link');
   await symlink(source, link);
   await assert.rejects(instrumentInputRuntime(source, resolve(link, 'nested')), /symlink parents/);

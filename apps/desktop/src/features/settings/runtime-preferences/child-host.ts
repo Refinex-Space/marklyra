@@ -203,7 +203,7 @@ function themeAction(element: Element): 'open-theme-folder' | 'theme-gallery' | 
   for (let index = 0; fiber && index < 18; index++, fiber = fiber.return) {
     const label = fiber.memoizedProps?.label;
     if (label === 'Open Theme Folder') return 'open-theme-folder';
-    if (label === 'Get Themes') return 'theme-gallery';
+    if (label === 'MarkLyra Project') return 'theme-gallery';
   }
   return undefined;
 }

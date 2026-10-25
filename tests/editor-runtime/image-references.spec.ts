@@ -280,47 +280,47 @@ test('image context actions use source URLs, explicit host import and original U
   );
 });
 
-test('storage context follows original WYS YAML override and Source preference fallback without an edit', async ({
-  page,
-}) => {
-  const source =
-    '---\r\ntypora-root-url: ./root\ntypora-copy-images-to: ./${filename}.assets\r\n---\r\n\r\n![A](images/pixel.png)\n\nAfter';
-  await createImageEditor(page, { source, context: 'doc-a' });
-  await expectDecodedImage(page);
-  await focusEnd(page);
-  const before = await page.evaluate(() => {
-    const editor = (window as ImageTestWindow).imageHostFixture.editors[0];
-    return {
-      source: editor?.getMarkdown(),
-      revision: editor?.revision,
-      selection: editor?.getSelection(),
-    };
-  });
-  expect(
-    await page.evaluate(() =>
-      (window as ImageTestWindow).imageHostFixture.editors[0]?.getImageStorageContext(),
-    ),
-  ).toEqual({ referenceRoot: './root', storageFolder: '${filename}.assets', sourceMode: false });
-  expect(
-    await page.evaluate(() => {
+for (const namespace of ['marklyra', 'legacy-editor'])
+  test(`storage context follows ${namespace} WYS YAML override and Source preference fallback without an edit`, async ({
+    page,
+  }) => {
+    const source = `---\r\n${namespace}-root-url: ./root\n${namespace}-copy-images-to: ./\${filename}.assets\r\n---\r\n\r\n![A](images/pixel.png)\n\nAfter`;
+    await createImageEditor(page, { source, context: 'doc-a' });
+    await expectDecodedImage(page);
+    await focusEnd(page);
+    const before = await page.evaluate(() => {
       const editor = (window as ImageTestWindow).imageHostFixture.editors[0];
       return {
         source: editor?.getMarkdown(),
         revision: editor?.revision,
         selection: editor?.getSelection(),
       };
-    }),
-  ).toEqual(before);
-  await page.evaluate(() =>
-    (window as ImageTestWindow).imageHostFixture.editors[0]?.execute({ type: 'toggleSource' }),
-  );
-  expect(
+    });
+    expect(
+      await page.evaluate(() =>
+        (window as ImageTestWindow).imageHostFixture.editors[0]?.getImageStorageContext(),
+      ),
+    ).toEqual({ referenceRoot: './root', storageFolder: '${filename}.assets', sourceMode: false });
+    expect(
+      await page.evaluate(() => {
+        const editor = (window as ImageTestWindow).imageHostFixture.editors[0];
+        return {
+          source: editor?.getMarkdown(),
+          revision: editor?.revision,
+          selection: editor?.getSelection(),
+        };
+      }),
+    ).toEqual(before);
     await page.evaluate(() =>
-      (window as ImageTestWindow).imageHostFixture.editors[0]?.getImageStorageContext(),
-    ),
-  ).toEqual({ referenceRoot: './root', sourceMode: true });
-  expect(await imageSource(page)).toBe(source);
-});
+      (window as ImageTestWindow).imageHostFixture.editors[0]?.execute({ type: 'toggleSource' }),
+    );
+    expect(
+      await page.evaluate(() =>
+        (window as ImageTestWindow).imageHostFixture.editors[0]?.getImageStorageContext(),
+      ),
+    ).toEqual({ referenceRoot: './root', sourceMode: true });
+    expect(await imageSource(page)).toBe(source);
+  });
 
 for (const sourceMode of [false, true])
   test(`${sourceMode ? 'Source' : 'WYS'} migrates distinct inline HTML and reference-definition images`, async ({
@@ -437,7 +437,7 @@ test('Source semantic proof rejects an image example inside an HTML attribute an
 test('YAML slash copy folder stays document-relative while Source skips the override', async ({
   page,
 }) => {
-  const source = '---\r\ntypora-copy-images-to: /shared\r\n---\r\n\r\nBody';
+  const source = '---\r\nmarklyra-copy-images-to: /shared\r\n---\r\n\r\nBody';
   await createImageEditor(page, { source, context: 'doc-a' });
   expect(
     await page.evaluate(() =>
@@ -521,7 +521,7 @@ for (const [setting, folder] of [
   test(`YAML storage distinguishes special ${setting} from an ordinary folder`, async ({
     page,
   }) => {
-    const source = `---\ntypora-copy-images-to: ${setting}\n---\n\nBody`;
+    const source = `---\nmarklyra-copy-images-to: ${setting}\n---\n\nBody`;
     await createImageEditor(page, { source, context: 'doc-a' });
     expect(
       await page.evaluate(() =>

@@ -26,7 +26,7 @@ export function preserveImageCodeSelection(
   const owned = () =>
     sourceMode
       ? currentSource?.() === value &&
-        Boolean(document.getElementById('typora-source')?.contains(element))
+        Boolean(document.getElementById('marklyra-source')?.contains(element))
       : area.contains(element);
   if (!owned()) return;
   for (const method of ['getDoc', 'getCursor', 'listSelections', 'setSelections'])

@@ -1,70 +1,23 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { createContext, Script } from 'node:vm';
-import { transformRuntimeContextCursor } from './runtime-context-cursor.mjs';
-import { transformRuntimeFocus } from './runtime-focus.mjs';
-import { transformRuntimePairing } from './runtime-pairing.mjs';
-import { transformRuntimeSerialization } from './runtime-serialization.mjs';
+import { engineModule, expressionOf, hasHook, nodes, unique } from './runtime-test-source.mjs';
 
-const sourcePath = new URL('../../resources/editor/appsrc/main.js', import.meta.url);
-const original = await readFile(sourcePath, 'utf8');
-const digest = (value) => createHash('sha256').update(value).digest('hex');
-const transformed = transformRuntimeContextCursor(original);
+const handler = unique(
+  nodes(
+    engineModule('49'),
+    (node) =>
+      node.type === 'FunctionExpression' &&
+      node.params.length === 2 &&
+      node.params[0]?.name === 't' &&
+      node.params[1]?.name === 'n' &&
+      hasHook(node, '__MARKLYRA_REPLAY_SOURCE_CONTEXT__'),
+  ),
+  'source context handler',
+);
+const handlerSource = expressionOf(handler);
 
-test('source context replay requires exact provenance, unique unchanged module and callback', () => {
-  for (const value of ['', null, 42, `${original}\n`])
-    assert.throws(() => transformRuntimeContextCursor(value), /unknown original main.js SHA-256/);
-  assert.throws(
-    () => transformRuntimeContextCursor(original, null),
-    /Expected generated runtime source/,
-  );
-  const { metadata, code } = transformed;
-  const [start, end] = metadata.moduleRange;
-  const [at] = metadata.originalCallRange;
-  assert.throws(
-    () => transformRuntimeContextCursor(original, `${original.slice(0, at)} ${original.slice(at)}`),
-    /unknown module 49 AST\/SHA-256/,
-  );
-  assert.throws(
-    () => transformRuntimeContextCursor(original, `${original}\n${original.slice(start, end)}`),
-    /ambiguous module 49/,
-  );
-  assert.throws(
-    () =>
-      transformRuntimeContextCursor(original, `var __MARKLYRA_REPLAY_SOURCE_CONTEXT__;${original}`),
-    /duplicate replay capability/,
-  );
-  assert.throws(() => transformRuntimeContextCursor(original, code), /duplicate replay capability/);
-});
-
-test('one expression replacement composes with serializer/pairing/brush and preserves every other byte', async () => {
-  const prior = transformRuntimeFocus(
-    original,
-    transformRuntimePairing(original, transformRuntimeSerialization(original).code).code,
-  ).code;
-  const { code, metadata } = transformRuntimeContextCursor(original, prior);
-  assert.equal(metadata.inputSha256, digest(prior));
-  assert.equal(metadata.transformedSha256, digest(code));
-  assert.equal(metadata.delay, 180);
-  assert.deepEqual(metadata.originalCallRange, [401420, 401451]);
-  assert.equal(metadata.edits.length, 1);
-  const [edit] = metadata.edits;
-  assert.equal(code.slice(0, edit.start), prior.slice(0, edit.start));
-  assert.equal(code.slice(edit.start, edit.start + edit.text.length), edit.text);
-  assert.equal(code.slice(edit.start + edit.text.length), prior.slice(edit.end));
-  assert.equal(
-    code.slice(0, edit.start) +
-      prior.slice(edit.start, edit.end) +
-      code.slice(edit.start + edit.text.length),
-    prior,
-  );
-  assert.doesNotThrow(() => new Script(code));
-  assert.equal(digest(await readFile(sourcePath)), metadata.originalSha256);
-});
-
-function fixture({ hook, failure, sourceMode = true, adapted = true } = {}) {
+function fixture({ hook, failure, sourceMode = true } = {}) {
   const events = [],
     timers = [];
   const from = { line: 0, ch: 1 },
@@ -118,13 +71,7 @@ function fixture({ hook, failure, sourceMode = true, adapted = true } = {}) {
       return 19;
     },
   });
-  const { code, metadata } = transformed;
-  const [edit] = metadata.edits;
-  const [start, end] = adapted ? metadata.handlerRange : metadata.originalHandlerRange;
-  const text = adapted
-    ? code.slice(start, end + edit.text.length - (edit.end - edit.start))
-    : original.slice(start, end);
-  const handler = new Script(`(${text})`).runInContext(context);
+  const handler = new Script(handlerSource).runInContext(context);
   assert.equal(Reflect.apply(handler, undefined, [cm, event]), undefined);
   return {
     events,
@@ -152,18 +99,12 @@ test('unclaimed source context preserves original scheduling, receiver, endpoint
     ]);
     assert.equal(f.executions(), 1);
   }
-  const original = fixture({ adapted: false });
-  assert.equal(original.timers[0].delay, 180);
-  original.run();
-  assert.deepEqual(original.events, ['cursor:from', 'cursor:to', 'schedule', 'setter', 'execute']);
 });
 
 test('source-mode guard still schedules nothing outside source mode', () => {
-  for (const adapted of [false, true]) {
-    const f = fixture({ sourceMode: false, adapted });
-    assert.deepEqual(f.events, []);
-    assert.equal(f.timers.length, 0);
-  }
+  const f = fixture({ sourceMode: false });
+  assert.deepEqual(f.events, []);
+  assert.equal(f.timers.length, 0);
 });
 
 test('host gets the original event and CM at callback time and can suppress only that replay', () => {

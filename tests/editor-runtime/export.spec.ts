@@ -166,7 +166,7 @@ test('print serialization carries original boundaries, portable base/theme style
   await offline.setContent(html ?? '');
   await offline.emulateMedia({ media: 'print' });
   await expect(offline.locator('script,link')).toHaveCount(0);
-  await expect(offline.locator('body')).toHaveClass(/typora-print/);
+  await expect(offline.locator('body')).toHaveClass(/marklyra-print/);
   await expect(offline.locator('h1[data-breakpage]')).toHaveText('Second chapter');
   await expect(offline.locator('.footnotes-area[data-breakpage]')).toHaveCount(1);
   await expect(offline.locator('h1').last()).toHaveCSS('break-before', 'page');

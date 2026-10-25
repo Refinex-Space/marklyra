@@ -270,7 +270,7 @@ test('entering Source during a real math await preserves the new CodeMirror owne
         generation: cm.doc.history.generation,
         done: cm.doc.history.done.length,
         undone: cm.doc.history.undone.length,
-        focused: Boolean(document.activeElement?.closest('#typora-source')),
+        focused: Boolean(document.activeElement?.closest('#marklyra-source')),
       };
     });
   const raw = initial.replace('Alpha ', 'Alpha $x$');

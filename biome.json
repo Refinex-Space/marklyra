@@ -6,9 +6,16 @@
       "apps/**",
       "tests/**",
       "scripts/**",
-      "!**/dist/**",
-      "!**/src-tauri/**",
-      "!**/artifacts/**"
+      "!**/dist",
+      "!**/src-tauri",
+      "!**/artifacts",
+      "!packages/editor-runtime/src/engine",
+      "!packages/editor-runtime/src/page",
+      "!packages/editor-runtime/assets",
+      "!packages/editor-runtime/vendor",
+      "!packages/editor-themes/assets",
+      "!packages/editor-themes/base.css",
+      "!apps/desktop/src/features/settings/runtime-preferences/page"
     ]
   },
   "formatter": {

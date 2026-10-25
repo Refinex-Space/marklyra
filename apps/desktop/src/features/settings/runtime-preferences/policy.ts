@@ -1,4 +1,7 @@
-import { defaultMarkLyraEditorPreferences } from '@marklyra/editor-runtime';
+import {
+  defaultMarkLyraEditorPreferences,
+  marklyraLocaleDirectory,
+} from '@marklyra/editor-runtime';
 import { validThemeId } from '../../themes/model.js';
 import { validateImageStorageFolder } from '../image-storage.js';
 import { applicationPreferenceChange } from './application-preferences.js';
@@ -157,7 +160,7 @@ export function initialPreferencesOptions(
 ): Record<string, unknown> {
   const themes = preferenceThemeFiles(input.allThemes);
   const result: Record<string, unknown> = {
-    locale: input.locale === 'Base' || input.locale === 'en' ? 'Base' : 'zh-Hans',
+    locale: marklyraLocaleDirectory(input.locale, 'zh-Hans'),
     osVersion:
       typeof input.osVersion === 'string' && /^\d+(?:\.\d+){0,3}$/.test(input.osVersion)
         ? input.osVersion

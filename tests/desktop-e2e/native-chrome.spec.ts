@@ -139,7 +139,9 @@ test('native titlebar follows accepted view mode when statistics fail and preser
     );
   await expect.poll(mode).toMatchObject({ sourceMode: false });
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#typora-source')).toBeVisible();
+  await expect(
+    page.frameLocator('.marklyra-editor-frame').locator('#marklyra-source'),
+  ).toBeVisible();
   await expect.poll(mode).toMatchObject({ sourceMode: true });
   await expect
     .poll(() =>
@@ -152,7 +154,9 @@ test('native titlebar follows accepted view mode when statistics fail and preser
     .toBeGreaterThan(0);
   await expect.poll(mode).toMatchObject({ sourceMode: true });
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#typora-source')).toBeHidden();
+  await expect(
+    page.frameLocator('.marklyra-editor-frame').locator('#marklyra-source'),
+  ).toBeHidden();
   await expect.poll(mode).toMatchObject({ sourceMode: false });
   for (let index = 0; index < 3; index++) {
     await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));

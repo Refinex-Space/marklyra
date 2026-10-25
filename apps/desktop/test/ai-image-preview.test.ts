@@ -60,7 +60,7 @@ it('ships licensed viewer icons with verified packaged bytes and upstream geomet
   const { createHash } = await import('node:crypto');
   const manifest = JSON.parse(
     await readFile(
-      new URL('../../../licenses/icons/image-viewer-provenance.json', import.meta.url),
+      new URL('./fixtures/image-viewer-icon-identities.json', import.meta.url),
       'utf8',
     ),
   ) as { name: string; sha256: string; upstreamSha256: string }[];
@@ -74,6 +74,6 @@ it('ships licensed viewer icons with verified packaged bytes and upstream geomet
     expect(createHash('sha256').update(upstream).digest('hex')).toBe(item.upstreamSha256);
   }
   expect(
-    await readFile(new URL('../public/icons/image-viewer/LICENSE.txt', import.meta.url), 'utf8'),
+    await readFile(new URL('../../../THIRD-PARTY-NOTICES.txt', import.meta.url), 'utf8'),
   ).toContain('MIT License');
 });

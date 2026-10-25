@@ -87,7 +87,7 @@ test('file BOM is hidden from YAML parsing while raw prefix, EOL and history rem
   await command(page, { type: 'toggleSource' });
   expect(
     await frame(page)
-      .locator('#typora-source .CodeMirror')
+      .locator('#marklyra-source .CodeMirror')
       .evaluate((element) => {
         const cm = Reflect.get(element, 'CodeMirror') as { getValue(): string };
         return cm.getValue().startsWith('\uFEFF');
@@ -105,7 +105,7 @@ for (const policy of ['metadata', 'text'] as const) {
     expect(await source(page)).toBe(raw);
     await command(page, { type: 'toggleSource' });
     const canonical = await frame(page)
-      .locator('#typora-source .CodeMirror')
+      .locator('#marklyra-source .CodeMirror')
       .evaluate((element) => {
         const cm = Reflect.get(element, 'CodeMirror') as { getValue(): string };
         return cm.getValue();
@@ -173,7 +173,7 @@ for (const initial of ['Alpha\n\nEnd', '😀 Alpha\n\nEnd', '\nAlpha\n\nEnd', ''
     await setup(page, initial);
     await command(page, { type: 'toggleSource' });
     await frame(page)
-      .locator('#typora-source .CodeMirror')
+      .locator('#marklyra-source .CodeMirror')
       .evaluate((element) => {
         const cm = Reflect.get(element, 'CodeMirror') as {
           getValue(): string;
@@ -216,7 +216,7 @@ for (const policy of ['metadata', 'text'] as const) {
     await command(page, { type: 'toggleSource' });
     expect(
       await frame(page)
-        .locator('#typora-source .CodeMirror')
+        .locator('#marklyra-source .CodeMirror')
         .evaluate((element) =>
           (Reflect.get(element, 'CodeMirror') as { getValue(): string }).getValue(),
         ),

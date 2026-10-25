@@ -33,7 +33,9 @@ test('compatibility menu events respect Source formatting restrictions and prese
   page,
 }) => {
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#typora-source')).toBeVisible();
+  await expect(
+    page.frameLocator('.marklyra-editor-frame').locator('#marklyra-source'),
+  ).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(() => {

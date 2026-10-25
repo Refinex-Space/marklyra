@@ -214,7 +214,7 @@ test('editor settings omit the unsupported exit-mode row and preserve caret pref
   await emitLayoutMenu(page, 'view:focus');
   await expect(editor.locator('body')).toHaveClass(/on-focus-mode/);
   await emitLayoutMenu(page, 'view:typewriter');
-  await expect(editor.locator('body')).toHaveClass(/ty-on-typewriter-mode/);
+  await expect(editor.locator('body')).toHaveClass(/marklyra-on-typewriter-mode/);
   await emitLayoutMenu(page, 'preferences');
   const ui = settings(page);
   await ui.getByRole('button', { name: '编辑器', exact: true }).click();
@@ -243,7 +243,7 @@ test('editor settings omit the unsupported exit-mode row and preserve caret pref
   await ui.getByRole('button', { name: '返回应用', exact: true }).click();
   await expect(page.locator('.preferences-page')).toHaveCount(0);
   await expect(editor.locator('body')).toHaveClass(/on-focus-mode/);
-  await expect(editor.locator('body')).toHaveClass(/ty-on-typewriter-mode/);
+  await expect(editor.locator('body')).toHaveClass(/marklyra-on-typewriter-mode/);
   await expect
     .poll(() =>
       editor.locator('body').evaluate(() => {

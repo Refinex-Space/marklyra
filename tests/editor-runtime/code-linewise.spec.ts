@@ -108,7 +108,9 @@ async function enter(page: Page, mode: 'source' | 'fence') {
       (_body, { mode, legacyControl }) => {
         const child = window as unknown as Child;
         const owner = document.querySelector<HTMLElement>(
-          mode === 'source' ? '#typora-source .CodeMirror' : '#write [mdtype="fences"] .CodeMirror',
+          mode === 'source'
+            ? '#marklyra-source .CodeMirror'
+            : '#write [mdtype="fences"] .CodeMirror',
         );
         const cm =
           mode === 'source'

@@ -51,14 +51,14 @@ for (const mode of ['wysiwyg', 'source'] as const)
       .not.toBeNull();
     if (mode === 'source') {
       await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
-      await frame(page).locator('#typora-source .CodeMirror textarea').focus();
+      await frame(page).locator('#marklyra-source .CodeMirror textarea').focus();
     } else await frame(page).locator('#write > p').click();
     await page.keyboard.press('End');
     await page.keyboard.type('X');
     const value = () =>
       mode === 'source'
         ? frame(page)
-            .locator('#typora-source .CodeMirror')
+            .locator('#marklyra-source .CodeMirror')
             .evaluate((element) =>
               (Reflect.get(element, 'CodeMirror') as { getValue(): string }).getValue(),
             )

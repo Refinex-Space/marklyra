@@ -188,7 +188,7 @@ export class RuntimeTableControls {
       !editor?.isIME &&
       !editor?.sourceView.inSourceMode &&
       !this.host.runtime.File?.isLocked &&
-      !document.body.classList.contains('typora-export')
+      !document.body.classList.contains('marklyra-export')
     );
   }
 

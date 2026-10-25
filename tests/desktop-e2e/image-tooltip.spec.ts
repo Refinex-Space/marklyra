@@ -31,7 +31,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const hint = ui.locator(
       '.checkbox:has([data-marklyra-preference="autoEscapeImageURL"]) .label-hint',
     );
-    const tooltip = ui.locator('#ty-tooltip');
+    const tooltip = ui.locator('#marklyra-tooltip');
     await hint.hover();
     await expect(tooltip).toBeVisible();
     await expect(tooltip).toContainText('%20 表示空格');

@@ -12,7 +12,7 @@ async function source(page: Page, mode: Mode) {
   const frame = page.frameLocator('.marklyra-editor-frame');
   return mode === 'source'
     ? frame
-        .locator('#typora-source .CodeMirror')
+        .locator('#marklyra-source .CodeMirror')
         .evaluate((element) =>
           (Reflect.get(element, 'CodeMirror') as { getValue(): string }).getValue(),
         )
@@ -40,8 +40,8 @@ async function start(page: Page, mode: Mode) {
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
   if (mode === 'source') {
     await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
-    await frame.locator('#typora-source .CodeMirror textarea').focus();
-    await frame.locator('#typora-source .CodeMirror').evaluate((element) => {
+    await frame.locator('#marklyra-source .CodeMirror textarea').focus();
+    await frame.locator('#marklyra-source .CodeMirror').evaluate((element) => {
       const cm = Reflect.get(element, 'CodeMirror') as {
         getValue(): string;
         posFromIndex(offset: number): unknown;

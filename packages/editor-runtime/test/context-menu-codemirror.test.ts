@@ -16,7 +16,7 @@ function fixture(sourceMode = true) {
     ownerDocument: document,
     CodeMirror: undefined as unknown,
     closest: (selector: string) =>
-      selector === '#typora-source' ? source : selector === '.CodeMirror' ? wrapper : null,
+      selector === '#marklyra-source' ? source : selector === '.CodeMirror' ? wrapper : null,
   };
   const leaf = {
     nodeType: 1,

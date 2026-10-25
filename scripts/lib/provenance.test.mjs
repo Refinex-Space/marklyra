@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import test from 'node:test';
-import { checkRepository, digest, inspectBytes, inspectPath } from './provenance.mjs';
+import { verifyProjectNotices } from './project-notices.mjs';
+import { checkRepository, digest, inspectBytes, inspectPath, loadPolicy } from './provenance.mjs';
 
-const original = Buffer.from('synthetic tracked editor resource');
-const derived = Buffer.from('synthetic tracked auxiliary resource');
+const original = Buffer.from('synthetic package-owned editor source');
+const sourcePath = 'packages/editor-runtime/src/engine/main.js';
 function git(root, args) {
   return execFileSync('git', args, {
     cwd: root,
@@ -16,32 +17,20 @@ function git(root, args) {
   });
 }
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'marklyra-'));
+  const root = await mkdtemp(join(tmpdir(), 'marklyra-provenance-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   git(root, ['init', '--quiet']);
-  git(root, ['config', 'user.name', 'refinex']);
-  git(root, ['config', 'user.email', 'refinex@users.noreply.github.com']);
-  await mkdir(join(root, 'config'), { recursive: true });
+  git(root, ['config', 'user.name', 'liyao']);
+  git(root, ['config', 'user.email', 'fixture@example.invalid']);
+  await mkdir(join(root, 'config'));
   await mkdir(join(root, 'src'));
-  await mkdir(join(root, 'resources/editor/appsrc'), { recursive: true });
-  const resources = [
-    { path: 'resources/editor/appsrc/main.js', size: original.length, sha256: digest(original) },
-    { path: 'resources/editor/auxiliary.js', size: derived.length, sha256: digest(derived) },
-  ];
-  await writeFile(join(root, resources[0].path), original);
-  await writeFile(join(root, resources[1].path), derived);
+  await mkdir(join(root, 'packages/editor-runtime/src/engine'), { recursive: true });
+  await writeFile(join(root, sourcePath), original);
   await writeFile(
     join(root, 'config/runtime-source.json'),
     JSON.stringify({
       schema: 2,
-      resources,
-      noticeExceptions: [
-        {
-          path: 'licenses/received.txt',
-          sha256: digest(original),
-          evidence: 'synthetic notice',
-        },
-      ],
+      resources: [{ path: sourcePath, size: original.length, sha256: digest(original) }],
     }),
   );
   git(root, ['add', '.']);
@@ -49,25 +38,39 @@ async function fixture(t) {
   return root;
 }
 
-test('actual staged bytes cannot be concealed by clean worktree bytes or edited policy', async (t) => {
-  const root = await fixture(t),
-    file = join(root, 'src/engine.js');
-  await writeFile(file, original);
-  git(root, ['add', 'src/engine.js']);
-  await writeFile(file, 'export const safe = true;');
-  await assert.rejects(checkRepository(root), /Restricted asset/);
+test('staged source identity cannot be concealed by clean worktree bytes or edited policy', async (t) => {
+  const root = await fixture(t);
+  await writeFile(join(root, sourcePath), 'changed source');
+  git(root, ['add', sourcePath]);
+  await writeFile(join(root, sourcePath), original);
+  await assert.rejects(checkRepository(root), /Runtime source identity mismatch/);
   await writeFile(join(root, 'config/runtime-source.json'), '[]');
-  await assert.rejects(checkRepository(root), /Restricted asset/);
+  await assert.rejects(checkRepository(root), /Runtime source identity mismatch/);
 });
 
-test('clean index remains clean when unstaged worktree contains a private fixture', async (t) => {
-  const root = await fixture(t),
-    file = join(root, 'src/engine.js');
-  await writeFile(file, 'export const safe = true;');
+test('index and worktree checks inspect their own bytes', async (t) => {
+  const root = await fixture(t);
+  await writeFile(join(root, sourcePath), 'unstaged changed source');
+  assert.equal((await checkRepository(root, 'tracked')).pathsAndVersions, 2);
+  await assert.rejects(checkRepository(root, 'worktree'), /Runtime source identity mismatch/);
+});
+
+test('package-owned code can be copied and embedded in regular source maps', async (t) => {
+  const root = await fixture(t);
+  await writeFile(join(root, 'src/engine.js'), original);
   git(root, ['add', 'src/engine.js']);
-  await writeFile(file, original);
-  const result = await checkRepository(root);
-  assert.equal(result.pathsAndVersions, 1);
+  assert.equal((await checkRepository(root)).pathsAndVersions, 1);
+  const map = { version: 3, sources: ['engine.ts'], sourcesContent: [original.toString()] };
+  inspectBytes('engine.js.map', Buffer.from(JSON.stringify(map)));
+  inspectBytes(
+    'engine.js.map',
+    Buffer.from(JSON.stringify({ sections: [{ offset: { line: 0, column: 0 }, map }] })),
+  );
+  const comment = '//# source' + 'MappingURL=data:application/json;base64,';
+  inspectBytes(
+    'engine.js',
+    Buffer.from(comment + Buffer.from(JSON.stringify(map)).toString('base64')),
+  );
 });
 
 test('reachable history detects a removed private file without rewriting commits', async (t) => {
@@ -78,107 +81,89 @@ test('reachable history detects a removed private file without rewriting commits
   git(root, ['commit', '--quiet', '-m', 'controlled leak']);
   git(root, ['rm', '--quiet', 'private/engine.js']);
   git(root, ['commit', '--quiet', '-m', 'controlled removal']);
-  assert.equal((await checkRepository(root, 'tracked')).pathsAndVersions, 3);
+  assert.equal((await checkRepository(root, 'tracked')).pathsAndVersions, 2);
   await assert.rejects(checkRepository(root, 'history'), /Forbidden provenance path/);
   assert.equal(git(root, ['rev-list', '--all', '--count']).trim(), '3');
 });
 
-test('exact notice exception is location bound; derivatives and symlinks stay denied', async (t) => {
+test('symlink entries remain denied in both index and worktree checks', async (t) => {
   const root = await fixture(t);
-  await mkdir(join(root, 'licenses'));
-  await writeFile(join(root, 'licenses/received.txt'), original);
-  git(root, ['add', '.']);
-  await checkRepository(root);
-  await writeFile(join(root, 'src/renamed.txt'), original);
-  git(root, ['add', '.']);
-  await assert.rejects(checkRepository(root), /Restricted asset/);
-  git(root, ['rm', '--cached', '--quiet', 'src/renamed.txt']);
-  await writeFile(join(root, 'src/variant.js'), derived);
-  git(root, ['add', 'src/variant.js']);
-  await assert.rejects(checkRepository(root), /Restricted asset/);
-  git(root, ['rm', '--cached', '--quiet', 'src/variant.js']);
-  await symlink('variant.js', join(root, 'src/link.js'));
+  await symlink('engine.js', join(root, 'src/link.js'));
   git(root, ['add', 'src/link.js']);
   await assert.rejects(checkRepository(root), /Unreviewed Git entry/);
+  await assert.rejects(checkRepository(root, 'worktree'), /Unreviewed worktree entry/);
 });
 
-test('known runtime source in flat, indexed and inline maps is rejected', () => {
-  const hashes = new Set([digest(original)]),
-    map = { version: 3, sources: ['engine.ts'], sourcesContent: [original.toString()] };
-  assert.throws(
-    () => inspectBytes('engine.js.map', Buffer.from(JSON.stringify(map)), hashes),
-    /Restricted source/,
-  );
-  assert.throws(
-    () =>
-      inspectBytes(
-        'engine.js.map',
-        Buffer.from(JSON.stringify({ sections: [{ offset: { line: 0, column: 0 }, map }] })),
-        hashes,
-      ),
-    /Restricted source/,
-  );
+test('source-map origins stay restricted in flat, indexed and inline maps', () => {
+  const map = { version: 3, sources: ['../../PRIVATE/main.js'] };
+  for (const object of [map, { sections: [{ offset: { line: 0, column: 0 }, map }] }])
+    assert.throws(
+      () => inspectBytes('engine.js.map', Buffer.from(JSON.stringify(object))),
+      /Forbidden source map/,
+    );
   const comment = '//# source' + 'MappingURL=data:application/json;base64,';
   assert.throws(
     () =>
       inspectBytes(
         'engine.js',
         Buffer.from(comment + Buffer.from(JSON.stringify(map)).toString('base64')),
-        hashes,
       ),
-    /Restricted source/,
+    /Forbidden source map/,
   );
   assert.throws(
     () =>
       inspectBytes(
         'engine.js.map',
-        Buffer.from(JSON.stringify({ sources: ['../../PRIVATE/main.js'] })),
-        hashes,
+        Buffer.from(JSON.stringify({ sections: [{ url: 'https://example.invalid/map' }] })),
       ),
-    /Forbidden source map/,
+    /External indexed source map/,
   );
-  inspectBytes('frame-host.js', Buffer.from('export const adapter = true;'), hashes);
 });
 
 test('subdirectory invocation still checks the complete repository index', async (t) => {
   const root = await fixture(t);
-  await writeFile(join(root, 'leak.js'), derived);
-  git(root, ['add', 'leak.js']);
-  await assert.rejects(checkRepository(join(root, 'src'), 'tracked'), /Restricted asset/);
+  await writeFile(join(root, sourcePath), 'changed');
+  git(root, ['add', sourcePath]);
+  await assert.rejects(
+    checkRepository(join(root, 'src'), 'tracked'),
+    /Runtime source identity mismatch/,
+  );
 });
 
 test('malformed source maps fail without printing embedded source content', () => {
   const hidden = 'synthetic private content must not be in an error';
   assert.throws(
-    () => inspectBytes('broken.js.map', Buffer.from(`{${hidden}`), new Set()),
+    () => inspectBytes('broken.js.map', Buffer.from(`{${hidden}`)),
     (error) => error.message === 'Invalid source map JSON: broken.js.map',
   );
 });
 
-test('invalid staged manifest and changed or untracked runtime sources fail inspection', async (t) => {
+test('invalid staged manifests and untracked declared inputs fail inspection', async (t) => {
   const root = await fixture(t);
-  const path = 'resources/editor/appsrc/main.js';
-  await writeFile(join(root, path), 'changed source');
-  git(root, ['add', path]);
-  await assert.rejects(checkRepository(root, 'tracked'), /Runtime source identity mismatch/);
-  git(root, ['restore', '--staged', path]);
-  git(root, ['rm', '--cached', '--quiet', path]);
+  git(root, ['rm', '--cached', '--quiet', sourcePath]);
   await assert.rejects(checkRepository(root, 'tracked'), /Runtime source not tracked/);
-  git(root, ['restore', '--staged', path]);
+  assert.equal((await checkRepository(root, 'worktree')).pathsAndVersions, 2);
   await writeFile(join(root, 'config/runtime-source.json'), '[]');
   git(root, ['add', 'config/runtime-source.json']);
   await assert.rejects(checkRepository(root, 'tracked'), /Invalid runtime source manifest/);
 });
 
-test('tracked resource bytes are allowed at their exact source path without weakening private paths', async (t) => {
+test('unlisted engine inputs fail in both index and unstaged worktree', async (t) => {
   const root = await fixture(t);
-  await checkRepository(root, 'tracked');
-  await writeFile(join(root, 'resources/editor/unlisted.js'), 'unlisted');
-  git(root, ['add', '.']);
+  const path = 'packages/editor-runtime/src/engine/unlisted.js';
+  await writeFile(join(root, path), 'unlisted');
+  await assert.rejects(checkRepository(root, 'worktree'), /Runtime source identity mismatch/);
+  git(root, ['add', path]);
   await assert.rejects(checkRepository(root), /Runtime source identity mismatch/);
 });
 
-test('paths reject nested/case/Windows/private outputs while keeping actual adapter source valid', () => {
+test('missing declared worktree inputs fail after a local deletion', async (t) => {
+  const root = await fixture(t);
+  await rm(join(root, sourcePath));
+  await assert.rejects(checkRepository(root, 'worktree'), /Runtime source missing from worktree/);
+});
+
+test('paths reject nested/case/Windows/private outputs while keeping authored sources valid', () => {
   for (const path of [
     'x/Private/main.js',
     'x/.env.local',
@@ -190,15 +175,92 @@ test('paths reject nested/case/Windows/private outputs while keeping actual adap
   ])
     assert.throws(() => inspectPath(path));
   inspectPath('packages/editor-runtime/src/runtime/frame-host.ts');
+  inspectPath(sourcePath);
   inspectPath('config/runtime-source.json');
   for (const source of ['C:\\Users\\own\\engine.ts', 'file:///Users/own/engine.ts'])
     assert.throws(
-      () =>
-        inspectBytes(
-          'engine.js.map',
-          Buffer.from(JSON.stringify({ sources: [source] })),
-          new Set(),
-        ),
+      () => inspectBytes('engine.js.map', Buffer.from(JSON.stringify({ sources: [source] }))),
       /Forbidden source map/,
     );
+});
+
+test('runtime output aliases reject traversal and collisions', async (t) => {
+  const root = await fixture(t);
+  const path = join(root, 'config/runtime-source.json');
+  const policy = JSON.parse(await readFile(path, 'utf8'));
+  policy.resources[0].runtimePath = '../outside.js';
+  await writeFile(path, JSON.stringify(policy));
+  await assert.rejects(loadPolicy(root), /Forbidden provenance path/);
+  policy.resources[0].runtimePath = 'appsrc/main.js';
+  policy.resources[0].additionalRuntimePaths = ['appsrc/main.js'];
+  await writeFile(path, JSON.stringify(policy));
+  await assert.rejects(loadPolicy(root), /Invalid runtime output mapping/);
+  policy.resources[0].additionalRuntimePaths = ['preferences/main.js'];
+  await writeFile(path, JSON.stringify(policy));
+  assert.equal((await loadPolicy(root)).resources.size, 1);
+});
+
+async function noticeFixture(t) {
+  const root = await mkdtemp(join(tmpdir(), 'marklyra-notices-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const output = join(root, 'generated');
+  for (const directory of [root, output]) {
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, 'LICENSE'), 'root project license');
+    await writeFile(join(directory, 'THIRD-PARTY-NOTICES.txt'), 'centralized third-party notices');
+  }
+  return { root, output };
+}
+
+test('centralized notice verification rejects changed and missing copies', async (t) => {
+  const { root, output } = await noticeFixture(t);
+  await verifyProjectNotices(root, output);
+  const notice = join(output, 'THIRD-PARTY-NOTICES.txt');
+  await writeFile(notice, 'different notice');
+  await assert.rejects(verifyProjectNotices(root, output), /Project notice bundle mismatch/);
+  await rm(notice);
+  await assert.rejects(verifyProjectNotices(root, output), /Project notice must be a regular file/);
+  await writeFile(notice, 'centralized third-party notices');
+  await verifyProjectNotices(root, output);
+});
+
+test('project license and generated notice symlinks remain rejected', async (t) => {
+  const { root, output } = await noticeFixture(t);
+  const license = join(output, 'LICENSE');
+  await rm(license);
+  await symlink(join(root, 'LICENSE'), license);
+  await assert.rejects(verifyProjectNotices(root, output), /regular file/);
+  await rm(license);
+  await writeFile(license, 'root project license');
+  const notice = join(root, 'THIRD-PARTY-NOTICES.txt');
+  await rm(notice);
+  await symlink(join(output, 'THIRD-PARTY-NOTICES.txt'), notice);
+  await assert.rejects(verifyProjectNotices(root, output), /regular file/);
+});
+
+test('retired notice directories cannot silently remain beside the shared texts', async (t) => {
+  const { root, output } = await noticeFixture(t);
+  await mkdir(join(output, 'licenses'));
+  await assert.rejects(
+    verifyProjectNotices(root, output),
+    /Retired per-component notice directory/,
+  );
+});
+
+test('root notice source bytes survive an autocrlf checkout', async (t) => {
+  const root = await fixture(t);
+  await writeFile(
+    join(root, '.gitattributes'),
+    await readFile(new URL('../../.gitattributes', import.meta.url)),
+  );
+  const notices = new Map([
+    ['LICENSE', Buffer.from('synthetic project license\r\nunchanged text\r\n')],
+    ['THIRD-PARTY-NOTICES.txt', Buffer.from('synthetic copyright\noriginal notice\n')],
+  ]);
+  git(root, ['config', 'core.autocrlf', 'true']);
+  for (const [name, bytes] of notices) await writeFile(join(root, name), bytes);
+  git(root, ['add', '.']);
+  for (const name of notices.keys()) await rm(join(root, name));
+  git(root, ['checkout-index', '--all', '--force']);
+  for (const [name, bytes] of notices) assert.deepEqual(await readFile(join(root, name)), bytes);
 });

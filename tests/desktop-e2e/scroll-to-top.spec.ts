@@ -95,9 +95,9 @@ for (const theme of layoutThemes) {
     await saveLayoutSource(page, info, 'back-to-top-preserves-rich-source', source);
 
     await emitLayoutMenu(page, 'view:source');
-    await expect(frame.locator('#typora-source')).toBeVisible();
+    await expect(frame.locator('#marklyra-source')).toBeVisible();
     const sourceState = () =>
-      frame.locator('#typora-source').evaluate(() => {
+      frame.locator('#marklyra-source').evaluate(() => {
         const runtime = Reflect.get(window, 'editor') as {
           sourceView: { cm: { getCursor(): { line: number; ch: number }; historySize(): unknown } };
         };
@@ -106,7 +106,7 @@ for (const theme of layoutThemes) {
           history: runtime.sourceView.cm.historySize(),
         };
       });
-    await frame.locator('#typora-source').evaluate(() => {
+    await frame.locator('#marklyra-source').evaluate(() => {
       const runtime = Reflect.get(window, 'editor') as {
         sourceView: {
           cm: {
@@ -122,7 +122,7 @@ for (const theme of layoutThemes) {
       cm.scrollTo(0, 1600);
     });
     const before = await sourceState();
-    const sourcePort = frame.locator('#typora-source .CodeMirror-scroll');
+    const sourcePort = frame.locator('#marklyra-source .CodeMirror-scroll');
     await expect
       .poll(() => sourcePort.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(500);

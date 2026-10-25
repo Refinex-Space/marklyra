@@ -1,1788 +1,439 @@
 {
   "schema": 2,
-  "sourceVersion": "Typora 1.11.7 (7472)",
+  "project": "MarkLyra",
   "resources": [
     {
-      "path": "resources/editor/Docs/Auto Save, Version Control and Recovery.md",
-      "size": 1644,
-      "sha256": "18816ac26cef263566b8ed05417c738648a62a9f03d61297cf266fb773141e94"
-    },
-    {
-      "path": "resources/editor/Docs/Change Log.md",
-      "size": 16277,
-      "sha256": "c41c3429c9ce17cb3bbd3c3a5d9a8f8cd42705150d49eaec1e06b89100e315aa"
-    },
-    {
-      "path": "resources/editor/Docs/Code Fences Language Support.md",
-      "size": 2348,
-      "sha256": "e6381a913510de0657d53bfbb607ec83c397a7048c743f37a3041785c9910674"
-    },
-    {
-      "path": "resources/editor/Docs/Credits.md",
-      "size": 15161,
-      "sha256": "27b35a5515ef38bea4a0cdf7c5f0e2fdde628cf93f34c8f51d9d01a0acf4360a"
-    },
-    {
-      "path": "resources/editor/Docs/Custom Font.md",
-      "size": 1368,
-      "sha256": "ea22dc3c5a36117e4b97862ab6744d2dba87baa759c3cbd526418e246a48da6d"
-    },
-    {
-      "path": "resources/editor/Docs/Custom Shortcut Keys.md",
-      "size": 1427,
-      "sha256": "d73e31c74a6828f4267722e015e7931c5b0b1d73e5f7b34ef29358c46979c1cb"
-    },
-    {
-      "path": "resources/editor/Docs/Custom Themes.md",
-      "size": 2165,
-      "sha256": "27d0d1faf646ce6696471a6a68766434e32a846cad49ca76de90654683d3f217"
-    },
-    {
-      "path": "resources/editor/Docs/DO NOT ADD FILES HERE",
-      "size": 95,
-      "sha256": "8b82bc04c9303183dbcbe9aa9a4bc661d218f92c3d1e939dbaeeeb6e8af042b2"
-    },
-    {
-      "path": "resources/editor/Docs/Draw Diagrams With Markdown.md",
-      "size": 3597,
-      "sha256": "34157eb0075ba1686e36bdc7d2591961c9bc97d307688e05e783fde0ced478c1"
-    },
-    {
-      "path": "resources/editor/Docs/Install and Use Pandoc.md",
-      "size": 5522,
-      "sha256": "c7d752d77dccb627177af5fb6a87d2d10b8ba2f2d495c612c69bbf1f5a067329"
-    },
-    {
-      "path": "resources/editor/Docs/License Agreement.md",
-      "size": 12875,
-      "sha256": "d6d61eecebd87fde75116fbf8dbc1c3349795ff1337b7baf0d62bbad47984d45"
-    },
-    {
-      "path": "resources/editor/Docs/Markdown Reference.md",
-      "size": 14038,
-      "sha256": "9f7f0c227851ba5173b785d93e32af57d58858fa452ddeb2885ee775111e5837"
-    },
-    {
-      "path": "resources/editor/Docs/More Documents.md",
-      "size": 53,
-      "sha256": "adc72b44f3d2bbb1b5f007f9ccbe7a756d63572ea8c6e4f0bf55cf91976a9f78"
-    },
-    {
-      "path": "resources/editor/Docs/Privacy Policy.md",
-      "size": 6315,
-      "sha256": "00d4c819a82924fec6cdb8599a1ad6f6bc964b2e77c60672e9ec55f8526d061b"
-    },
-    {
-      "path": "resources/editor/Docs/Quick Start.md",
-      "size": 4633,
-      "sha256": "fa8566478b5e1b68e054562dc4aff27f10c03238cd5a2778e56f684abd96fcd2"
-    },
-    {
-      "path": "resources/editor/Docs/Table Editing.md",
-      "size": 2651,
-      "sha256": "e3fc2f6849d0e50c1f27a7af775a394b6017eaf90ffebc65327e5b4b0dae9987"
-    },
-    {
-      "path": "resources/editor/Docs/Use Images in Typora.md",
-      "size": 6837,
-      "sha256": "0bece968567fd387773cd2fbe736551262d36558c52d430e5b7020735e67d1ca"
-    },
-    {
-      "path": "resources/editor/Docs/Use Typora From Shell or cmd.md",
-      "size": 1009,
-      "sha256": "1bd719072b7897f59c06e9a5db8c71b050e34f6853b63bd7d5070e04264bc0d5"
-    },
-    {
-      "path": "resources/editor/Docs/img/1.png",
-      "size": 68812,
-      "sha256": "588aeb09802897203cc5ee3411f67b62a8595f73413a4868e7e6d26d95726c48"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160502_1.png",
-      "size": 23548,
-      "sha256": "44e10c24963535ad339552db85d499783974e437368577cf4cf270f98032cfa9"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160814_1.png",
-      "size": 131401,
-      "sha256": "99a6bed12cbaba123bdbefaa07092954fb3585b80c976c88e5786c44e1725f01"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160814_5.png",
-      "size": 101090,
-      "sha256": "b924d19d915c972808bde7f7d95dc8f9287cb317377453982596f4819f96c3fa"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160814_7.png",
-      "size": 83959,
-      "sha256": "4dddc8cf721e4af82a6d1dfa4278711e02d178659a19be5dac2d0021813a737c"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160816_1.png",
-      "size": 9659,
-      "sha256": "33c929e067d45080dc375afb9c048bc23f24225327249561a3ce1c2063226285"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160816_2.png",
-      "size": 9628,
-      "sha256": "e1f715d04010d2e8e8fc0af6733eacb54068d466afc49766b7542f1e8e4d7317"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160816_3.png",
-      "size": 35643,
-      "sha256": "2bac34764bf6106ff3fc638875d7eff8cba0414fc90d5f0b2f26eb59e0879fe2"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160816_4.png",
-      "size": 17170,
-      "sha256": "17b9e92e9d5bb62cc8e1ecab23bc8d819a818a169bbabdba6a189cb20439a6ed"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160816_5.png",
-      "size": 78058,
-      "sha256": "f96d16e2c3092c87a383ee20083f519cb11726d7ac1fce0804b7ebf4bef39565"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160921_1.png",
-      "size": 67034,
-      "sha256": "752511d6b22ceb63c9eed2d313f7c1bf79a1f3c79848b340ffb670d82ba5eab5"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20160921_2.png",
-      "size": 101112,
-      "sha256": "c180c19c52fac2a73a436da3061d5f43474eb4e6d4e9a7ebb3baff281b4f783a"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20161027_2.png",
-      "size": 123014,
-      "sha256": "18fddea21f0eaa27c635db7c0cf24977eb6eef2f452852f37a10c0c6d997cba2"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20161117_2.png",
-      "size": 129198,
-      "sha256": "e96d1b9b823b4f58f26c42a3d3aeb1e312c23353cb5089431e0896a8e91928d9"
-    },
-    {
-      "path": "resources/editor/Docs/img/Snip20161117_6.png",
-      "size": 139835,
-      "sha256": "abba120790e6fa18497cd500436d9d51379b61fc16c729dc2ff55d8fc2584b36"
-    },
-    {
-      "path": "resources/editor/Docs/img/Touch Bar Shot 2017-02-28 at 00.40.32.png",
-      "size": 10796,
-      "sha256": "932eedaf191d895fb9fbac2b4c1eb3bcfba0b237b6c3f2b7c4e9dde3c63271a7"
-    },
-    {
-      "path": "resources/editor/Docs/img/drag-img.gif",
-      "size": 112550,
-      "sha256": "4011af155db869b96b89e24c7e4c7f530f6656e5df00f0344a92656eff54408e"
-    },
-    {
-      "path": "resources/editor/Docs/img/general.png",
-      "size": 127403,
-      "sha256": "0e4517417cd29551a6ec2bc873d0713c6b45f4961a99a784ae62db06b424273d"
-    },
-    {
-      "path": "resources/editor/Docs/img/ipic.jpg",
-      "size": 10433,
-      "sha256": "30fd158029338f9d24098be85dfb5b3732c011bb24fae1bdeb241ce6c343135b"
-    },
-    {
-      "path": "resources/editor/Docs/img/pandoc-win.PNG",
-      "size": 17419,
-      "sha256": "6f328a272c783c804c78732c4307603ccba18815cf32660567164368b46dacc5"
-    },
-    {
-      "path": "resources/editor/Docs/img/sshot-1.png",
-      "size": 34623,
-      "sha256": "78028b186a4d1a1932b17df9687c6851896156cf9a464f4bebf636a0d40e426c"
-    },
-    {
-      "path": "resources/editor/Docs/img/sshot-2.png",
-      "size": 43071,
-      "sha256": "41d52cc7895ca068bc725650818b5a3fb76fb7508c9f41a4fee4df149447db0e"
-    },
-    {
-      "path": "resources/editor/Docs/img/table-edit.png",
-      "size": 131843,
-      "sha256": "72bb09d9f829735cf461f517ac42106096dd3258f464e14c5ff8f936f4a0c489"
-    },
-    {
-      "path": "resources/editor/appsrc/editor/EmojiSearchMap.js",
-      "size": 50393,
-      "sha256": "4e12de1163ba6899dc904a3a946271f3264425e71e2712fbc472eaa1087b5a67"
-    },
-    {
-      "path": "resources/editor/appsrc/finder-worker.js",
-      "size": 9585,
-      "sha256": "a5c7363392de657c608adf8762e1f6d4027ac59038f6306b0f5e0342a746a3c8"
-    },
-    {
-      "path": "resources/editor/appsrc/main.js",
-      "size": 1638973,
-      "sha256": "7248dc702a190d2f0ed90c1e3b5f895686a278e124a2bf9becc7c15114270b79"
-    },
-    {
-      "path": "resources/editor/assets/Typora.VisualElementsManifest.xml",
-      "size": 312,
-      "sha256": "cfbebc265f9825015bdaa824ccf719434b1413430f589ce19cc2b18ff4e963d6"
-    },
-    {
-      "path": "resources/editor/assets/app.ico",
-      "size": 476263,
-      "sha256": "9e80814431753d3b641b0d98adcc6e5b122839c640203b3fec32d178f4ec7b49"
-    },
-    {
-      "path": "resources/editor/assets/file.ico",
-      "size": 410701,
-      "sha256": "f992d24fe7dab948b827ee218c5e8db640f424a8412cf38a82ffc69ef5676649"
-    },
-    {
-      "path": "resources/editor/assets/file.png",
-      "size": 56839,
-      "sha256": "544daa3c48ed41fddbc63bbf32cfeda89bbbf9360b006d09c21af1aa249a988a"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_128x128.png",
-      "size": 8314,
-      "sha256": "3bf15057b223d941f4aa486633d169b16f7d122e7f6be0ec7acaaed22416fbc3"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_128x128@2x.png",
-      "size": 20675,
-      "sha256": "74e3dd2d57abc7cbff17deddcc2fe9ce2ef47ddfd4d7c2ae3814124767df7dde"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_150.png",
-      "size": 4109,
-      "sha256": "8538da2899736543e780512e44d219d425fecf9bdd4a579c6b304981167bae8f"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_16x16.png",
-      "size": 567,
-      "sha256": "c47051fa56587d863dbadc99ecae4613d3f207a4302a81c8a32fc10ecea741c7"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_16x16@2x.png",
-      "size": 1193,
-      "sha256": "af6326e0790fd1b643ea81c687fc5cf901d5c8f74303a1fb3b6d8de290f7405e"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_256x256.png",
-      "size": 21810,
-      "sha256": "7105d7d01fc5263d7a3f83025ff6bc2556b3920a30fa8c11f9f1b6df9f0e746b"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_256x256@2x.png",
-      "size": 59444,
-      "sha256": "0d54bc6d4e471caa887a74da88afc1d424cdca97769f3f4c5fc0c05be76a781c"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_32x32.png",
-      "size": 1351,
-      "sha256": "743b8b41b6fafae22d84b2927a32f9df0b9d4ad6c9711631335d71fcb36dfbc0"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_32x32@2x.png",
-      "size": 3068,
-      "sha256": "72456907ba9e2f9570b0bf945c2ebc4fde995629717bd2ebbcdb2b7100a56549"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_512x512.png",
-      "size": 59444,
-      "sha256": "0d54bc6d4e471caa887a74da88afc1d424cdca97769f3f4c5fc0c05be76a781c"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_512x512@2x.png",
-      "size": 168894,
-      "sha256": "7f2d773ad2a02852888ab94710b0d52939daab5dadff6d35a747d10bd7d8c537"
-    },
-    {
-      "path": "resources/editor/assets/icon/icon_70.png",
-      "size": 2920,
-      "sha256": "7294efcdbf3c8b4e8aa03865bf395ad4f87bd32ff04aa21c4df56a00bf0411b1"
-    },
-    {
-      "path": "resources/editor/assets/installer.ico",
-      "size": 40399,
-      "sha256": "ffd5fd8ea31f42dd963d9ceca6883f6f8cf520674892c9291c84366b5a87a292"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-LargeTile.scale.png",
-      "size": 9073,
-      "sha256": "232b3aeab2c98dfe9db37101b5bf82a76983bd2b56c46f14d37de3ae4c2efbec"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-MediumTile.scale-100.png",
-      "size": 3554,
-      "sha256": "90eab306b91caa4fcb479e11b171822f9ee46070deafbfca7d30470742756e45"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-MediumTile.scale-200.png",
-      "size": 9281,
-      "sha256": "36e4524a2d9818203ad1547b181288e230bc4a73640012a9cc33e543819cdbce"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-MediumTile.scale-400.png",
-      "size": 31619,
-      "sha256": "64bad5d8def52986189916df2032bf1d08a2154b2982aace89bcd7b63063e1b5"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-SmallTile.scale-100.png",
-      "size": 3055,
-      "sha256": "7846639071556392e51f07b4b43d058bba04fb20ac948cd836b720bf4c5fda0e"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-SmallTile.scale-200.png",
-      "size": 7344,
-      "sha256": "c5b9ad81103ff2906d9398e689a92b91d944cb58c67ebb0bbec982558c7a2966"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-SmallTile.scale-400.png",
-      "size": 24786,
-      "sha256": "742f922f18bf56a222d4e65d5831f8d07fd927bff5863064c278b85dcbd945af"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-WideTile.scale-100.png",
-      "size": 4254,
-      "sha256": "4feaf3cb11e526825cc50f3e876adfa6e95c5f5675824345c218d53de610e7b3"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-WideTile.scale-200.png",
-      "size": 11337,
-      "sha256": "c23932a913b05827d2c5409805480f6821554b727af573c85a90ba9fb89667a1"
-    },
-    {
-      "path": "resources/editor/assets/tile/OD-WideTile.scale-400.png",
-      "size": 39672,
-      "sha256": "c62ea148193ec977ec46b8175787b4d1791ffc7610c8fb49be6168d9a96bbbf4"
-    },
-    {
-      "path": "resources/editor/html/content.html",
-      "size": 23999,
-      "sha256": "e76653f1025edd751f8d9b3fbf3b09f42b8864cb8b53e6b41336eda74444e33d"
-    },
-    {
-      "path": "resources/editor/index.html",
-      "size": 78209,
-      "sha256": "8d2048f9fc9aff8a307a784dd8bf5976dce50a35eb8c9b8b334e2933e58f1289"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/a11y/complexity.js",
-      "size": 18034,
-      "sha256": "cc05edc9c9ead1b972410d0e7c1b8611c565a87fe513822bce94268954d03463"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/a11y/explorer.js",
-      "size": 36348,
-      "sha256": "8729b09b7f23927c724a0a502b04acb2df0943109bb75602c26db68cb87643ac"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/a11y/semantic-enrich.js",
-      "size": 8084,
-      "sha256": "366e94cbf3ca49386413d64a910ecf5db018449fbed03275f93d6f2e81d5c596"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/input/mml.js",
-      "size": 14583,
-      "sha256": "65c93277d980860f34341112c59520b9d2745cd46280d9c2fe036718b826624d"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/input/tex/extensions/xypic.js",
-      "size": 355205,
-      "sha256": "4f43a95cee098687614efe3c6bd8ffaaa10a086ba30dec1049b67e8eab6f8e7b"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/sre/mathmaps/base.json",
-      "size": 115025,
-      "sha256": "83311887b069476a6a4d0c6afe7f8e55075c85b44b029588739c0d835fc912b8"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/sre/mathmaps/en.json",
-      "size": 409173,
-      "sha256": "19d9b309dc0d25d2bde2d3130bd3772b6d7c3f8316ebbd85306bef55ac89b2a7"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/sre/sre_browser.js",
-      "size": 475166,
-      "sha256": "82438ae616bc8c1f658f1e3fcb64c7c72323d5c2cb3433619124db799d16fb4a"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/tex-svg-full.js",
-      "size": 2275115,
-      "sha256": "ba5336213874be63131aef64d25b24d962e9c8eda048227d02dda056dce09b4a"
-    },
-    {
-      "path": "resources/editor/lib/MathJax3/es5/ui/safe.js",
-      "size": 11189,
-      "sha256": "9fef48d868277a8bc1852f7ba796b33ead812d38916a7131b0a29ea48961a6a4"
-    },
-    {
-      "path": "resources/editor/lib/aws-sdk.min.js",
-      "size": 316586,
-      "sha256": "8012e228cd8ddabd88dbd151b99c1b34a35dffe2e19437ca71b46e1315e2f0bd"
-    },
-    {
-      "path": "resources/editor/lib/bootstrape/config.json",
-      "size": 17002,
-      "sha256": "c62aebc97a746f1211c29027f218ce665bc118d89374c0b2a538608d37b25d27"
-    },
-    {
-      "path": "resources/editor/lib/bootstrape/css/bootstrap.css",
-      "size": 27344,
-      "sha256": "02ed0309dffc51722acac4192ce04419a1fa0c7539918faf6fcc49f0e410441e"
-    },
-    {
-      "path": "resources/editor/lib/codemirror/mode.min.js",
-      "size": 572258,
-      "sha256": "471e741f9f1c1ecf56805635b85a9992036daa1ca98c7a55fa0970effa5966c9"
-    },
-    {
-      "path": "resources/editor/lib/diagram/css/mermaid-zenuml.css",
-      "size": 413953,
-      "sha256": "61225843f078dd2ec9155bbf588423fb12db7ac66dc87a2082346792d04a0899"
-    },
-    {
-      "path": "resources/editor/lib/diagram/css/mermaid.css",
-      "size": 200,
-      "sha256": "ed89fec9f30fee175998b4ae25ce1b4eb5b717f1305bf4fdc43fa7a853f8f40c"
-    },
-    {
-      "path": "resources/editor/lib/diagram/diagram.min.js",
-      "size": 212151,
-      "sha256": "7bcf6eaaabcf03cd3fdac03d9f8ff1a69e6153f11321f797c0191c07a18a19db"
-    },
-    {
-      "path": "resources/editor/lib/diagram/mermaid-zenuml.min.js",
-      "size": 856503,
-      "sha256": "be3b94513df8db0e3322bbeff7319c01db534b4993620f71c6f362ab46fd1786"
-    },
-    {
-      "path": "resources/editor/lib/diagram/mermaid.min.js",
-      "size": 2841573,
-      "sha256": "06946234d65fdc5ce34aaa878efc6bc6f15c17b8f712fb90a21bd3e753569f9b"
-    },
-    {
-      "path": "resources/editor/locales/Base.lproj/Front.json",
-      "size": 9099,
-      "sha256": "45c8cb8786172a80e5be81d5c6997bf78fbb682c8a9ff8741c6fb3c0e08a4184"
-    },
-    {
-      "path": "resources/editor/locales/Base.lproj/Menu.json",
-      "size": 9805,
-      "sha256": "990324dcb077a5040709a283242853696ea0af278533730a1c7bf5c9e6fc9ed8"
-    },
-    {
-      "path": "resources/editor/locales/Base.lproj/Panel.json",
-      "size": 31399,
-      "sha256": "4d518a2fe2fc93de66fb060541ed3bb4ab9d8a2d6223626698094c1fbc0f07c2"
-    },
-    {
-      "path": "resources/editor/locales/Base.lproj/Welcome.json",
-      "size": 4366,
-      "sha256": "2d5e962468db43144ac3831894fd2d8da4ff3ed0b6656ebf1cb8a620fe08d240"
-    },
-    {
-      "path": "resources/editor/locales/ar-SA.lproj/Front.json",
-      "size": 8981,
-      "sha256": "af3c317e126343f32317665804327e573ec4540f3813324548e65491b290ed14"
-    },
-    {
-      "path": "resources/editor/locales/ar-SA.lproj/Menu.json",
-      "size": 10640,
-      "sha256": "bb30ade37bbb9fe970095d6910bad64465d5c477d8997defaa18c0adbeeb7835"
-    },
-    {
-      "path": "resources/editor/locales/ar-SA.lproj/Panel.json",
-      "size": 26634,
-      "sha256": "3cbd893b391ddac3576411f249f7c6c89f6c6bc068cf206b7839dc2d86c93e78"
-    },
-    {
-      "path": "resources/editor/locales/ar-SA.lproj/Welcome.json",
-      "size": 4699,
-      "sha256": "ea9ab44b4c198a0cb20588ba466848bd78ac5d2bab9ae75dd6092d49ef4e01b4"
-    },
-    {
-      "path": "resources/editor/locales/ca-ES.lproj/Front.json",
-      "size": 4550,
-      "sha256": "3b56586c3c2e76ec287fee14b0cb3d32afec0bf6f31efea55aa6238bf622524d"
-    },
-    {
-      "path": "resources/editor/locales/ca-ES.lproj/Menu.json",
-      "size": 9792,
-      "sha256": "3f7b171b0511651432788321cfb811c3555155e22803fa5fdc07a89e7cdb358c"
-    },
-    {
-      "path": "resources/editor/locales/ca-ES.lproj/Panel.json",
-      "size": 11570,
-      "sha256": "2fae250bd2d11246ac86c993ac4ac6a936b98b06c72fcfab243436edbbeb8562"
-    },
-    {
-      "path": "resources/editor/locales/ca-ES.lproj/Welcome.json",
-      "size": 4278,
-      "sha256": "1f71b966d4e6abb34ad0a713f8959170fa94b193a5818c668c688d7b1c00c247"
-    },
-    {
-      "path": "resources/editor/locales/cs-CZ.lproj/Front.json",
-      "size": 6895,
-      "sha256": "207abea7b6c7f710a780ad00e54cf790bc1b839b4d00819e2f2be4c8cd8d82f0"
-    },
-    {
-      "path": "resources/editor/locales/cs-CZ.lproj/Menu.json",
-      "size": 8103,
-      "sha256": "f1123220bc2b666981d7ab7dc2e0af9db9b6a2bac728dcf4114d24f9c7a4c3a7"
-    },
-    {
-      "path": "resources/editor/locales/cs-CZ.lproj/Panel.json",
-      "size": 16463,
-      "sha256": "26b5b9b1d8410ad55f8c5fafa34f98b0f5902a4d2790a3b08e62b90a07a84558"
-    },
-    {
-      "path": "resources/editor/locales/cs-CZ.lproj/Welcome.json",
-      "size": 4146,
-      "sha256": "9c609b49b6475ce4d4c1cf6a4273d197ec8a27583a455dd398333e706e2e488c"
-    },
-    {
-      "path": "resources/editor/locales/da-DK.lproj/Front.json",
-      "size": 9358,
-      "sha256": "e5c07eca3d0a4f12456648fea82f94e66d584699000357fc9a7290746323aba4"
-    },
-    {
-      "path": "resources/editor/locales/da-DK.lproj/Menu.json",
-      "size": 10057,
-      "sha256": "e73cab5e25a32824689455a7f93aabef2345514dba40dda5a414bc6af488747e"
-    },
-    {
-      "path": "resources/editor/locales/da-DK.lproj/Panel.json",
-      "size": 33523,
-      "sha256": "1ad19c8c1bb1f4624d72f215ad9a1698f66a959385207141ee81bbd1d8527c17"
-    },
-    {
-      "path": "resources/editor/locales/da-DK.lproj/Welcome.json",
-      "size": 4473,
-      "sha256": "98bdf06b666bdd0fa7123e5c0215247ac46afb1f37c0f92e1d540ca79d08e676"
-    },
-    {
-      "path": "resources/editor/locales/de-CH.lproj/Front.json",
-      "size": 7322,
-      "sha256": "331547b87deb7f8e7c085dd878b394940f33ef8b9870a4bae0b83e8049863729"
-    },
-    {
-      "path": "resources/editor/locales/de-CH.lproj/Menu.json",
-      "size": 8802,
-      "sha256": "8991f58026f37210dcd3c98f6ea320e3efe374cb77bf1aa9bb06478de395c810"
-    },
-    {
-      "path": "resources/editor/locales/de-CH.lproj/Panel.json",
-      "size": 20630,
-      "sha256": "3cf4ca7756fa000349d17fbd42a889cbadcea99178302bc0b46e35607cb81cfc"
-    },
-    {
-      "path": "resources/editor/locales/de-CH.lproj/Welcome.json",
-      "size": 3810,
-      "sha256": "c9a6b15f2de47193547aeadb590d8c0a1637a19333293e8da17b8596ae989b7e"
-    },
-    {
-      "path": "resources/editor/locales/de-DE.lproj/Front.json",
-      "size": 7319,
-      "sha256": "28aabbf9608a13532066c98801d49f43f3ebb760612273ff9c21a16e45b07faf"
-    },
-    {
-      "path": "resources/editor/locales/de-DE.lproj/Menu.json",
-      "size": 10163,
-      "sha256": "eb678f1c8366e2382aeeaa3ecc3f0f8d45fc65067ebf8472e911a8c1a4f738cf"
-    },
-    {
-      "path": "resources/editor/locales/de-DE.lproj/Panel.json",
-      "size": 21458,
-      "sha256": "f2de166946272777ee83ec734a8890220bcffa28bbaf7be3036d20049272aef8"
-    },
-    {
-      "path": "resources/editor/locales/de-DE.lproj/Welcome.json",
-      "size": 4074,
-      "sha256": "bc233fe186628ca30e0f09c05371c77cae0f4ed55d7bbf5e8834a5dc9ac1b181"
-    },
-    {
-      "path": "resources/editor/locales/el-GR.lproj/Front.json",
-      "size": 6626,
-      "sha256": "78c1fe0a828344ad6e123efac8e28fc190e9434004ee8129013bb300013e9779"
-    },
-    {
-      "path": "resources/editor/locales/el-GR.lproj/Menu.json",
-      "size": 10002,
-      "sha256": "1387dff09a1763bb18c3cae509236bd0351771bdcd2bcb8b41111f974690ee5f"
-    },
-    {
-      "path": "resources/editor/locales/el-GR.lproj/Panel.json",
-      "size": 16964,
-      "sha256": "4cf962f60b76fa2dc0da871e2f80383c4cdfbae489e8c18e7fbaba599f7d15f6"
-    },
-    {
-      "path": "resources/editor/locales/el-GR.lproj/Welcome.json",
-      "size": 3810,
-      "sha256": "c9a6b15f2de47193547aeadb590d8c0a1637a19333293e8da17b8596ae989b7e"
-    },
-    {
-      "path": "resources/editor/locales/es-ES.lproj/Front.json",
-      "size": 4780,
-      "sha256": "3ab9f529519eb7f592b28bf9778a7b7b5ed5c1b1a83fc8e3f7de80d5d216f974"
-    },
-    {
-      "path": "resources/editor/locales/es-ES.lproj/Menu.json",
-      "size": 7050,
-      "sha256": "bf934fd777a19d34769211f3ff0fdd8ad6ccbf5d4a08b094377bacd7e5e472a5"
-    },
-    {
-      "path": "resources/editor/locales/es-ES.lproj/Panel.json",
-      "size": 11625,
-      "sha256": "ac06a79d6362543217735d0750224b397d6802e6ea059995e2105a4632766301"
-    },
-    {
-      "path": "resources/editor/locales/es-ES.lproj/Welcome.json",
-      "size": 4267,
-      "sha256": "5f59dcaec15139913f7392e2a64889e823dc0ef050695914bea43509c5f3ed9e"
-    },
-    {
-      "path": "resources/editor/locales/fa-IR.lproj/Front.json",
-      "size": 11977,
-      "sha256": "5512134afea0845e892073ec9f884ee81328e70058bda026a5a34a9af712e748"
-    },
-    {
-      "path": "resources/editor/locales/fa-IR.lproj/Menu.json",
-      "size": 9689,
-      "sha256": "6790e54e74186ae2b488c5589b4fc3484a346305ac3052a42221996a7603fd42"
-    },
-    {
-      "path": "resources/editor/locales/fa-IR.lproj/Panel.json",
-      "size": 21213,
-      "sha256": "e03e6e3b214f3a14bf623a13dda29d2d06a73a274a5eb4612b2b041e2a8e5fa1"
-    },
-    {
-      "path": "resources/editor/locales/fa-IR.lproj/Welcome.json",
-      "size": 4225,
-      "sha256": "ddb4bfa21ed2863bb6ac6b4dbba35358d85c8e3e9aa3d627f1506bd4eab79f32"
-    },
-    {
-      "path": "resources/editor/locales/fr-FR.lproj/Front.json",
-      "size": 10059,
-      "sha256": "ac36d77b016485771e4075f03acc2fd641a1edf515ef4bcb266fad7504657d02"
-    },
-    {
-      "path": "resources/editor/locales/fr-FR.lproj/Menu.json",
-      "size": 10416,
-      "sha256": "bc12b4e7dc356ffd5c4d2ab23d2e6aa4c7cdc7243cc880f55922fd0af3bf2ad6"
-    },
-    {
-      "path": "resources/editor/locales/fr-FR.lproj/Panel.json",
-      "size": 31873,
-      "sha256": "1ab82a7adc33a135df65b818a66b5f5bdfaecdcb6fb41e4d54c002215b8bcca0"
-    },
-    {
-      "path": "resources/editor/locales/fr-FR.lproj/Welcome.json",
-      "size": 4865,
-      "sha256": "202d262012d79d389bfc1662d821ef4b50e74608ea18dafbb08d5806f691c532"
-    },
-    {
-      "path": "resources/editor/locales/gl-ES.lproj/Front.json",
-      "size": 9867,
-      "sha256": "157145bbfb39e4e7f7555bd6417a7daf0680ad229ca81f657e19bab6101d0daa"
-    },
-    {
-      "path": "resources/editor/locales/gl-ES.lproj/Menu.json",
-      "size": 10571,
-      "sha256": "a1821a3f9fae23d953c0b51987c07de16e1e875de51f0b05fa9dec8625a10547"
-    },
-    {
-      "path": "resources/editor/locales/gl-ES.lproj/Panel.json",
-      "size": 33178,
-      "sha256": "2e460274fadce20d16c9df011a345cbdda4977f4ed77fc23bc59a766bee3e463"
-    },
-    {
-      "path": "resources/editor/locales/gl-ES.lproj/Welcome.json",
-      "size": 4684,
-      "sha256": "5fbc79953072cb06abfbc72db737ccf83bcda552a2d412e2a88a5db5bef8c44a"
-    },
-    {
-      "path": "resources/editor/locales/he-IL.lproj/Front.json",
-      "size": 8568,
-      "sha256": "22519ddbd8859fbebd8ad5baa393c9c195cec07669d70a89ba9b98cdaeb40bca"
-    },
-    {
-      "path": "resources/editor/locales/he-IL.lproj/Menu.json",
-      "size": 10200,
-      "sha256": "754bae0b7ef54b8d6536da080a34ca0a7f3d768d2f5576045eb9b2b45badf119"
-    },
-    {
-      "path": "resources/editor/locales/he-IL.lproj/Panel.json",
-      "size": 28230,
-      "sha256": "5c6d0cee0094dcad8a1760243de06cbe1626440fd6641b6119453c714e76570d"
-    },
-    {
-      "path": "resources/editor/locales/he-IL.lproj/Welcome.json",
-      "size": 3810,
-      "sha256": "c9a6b15f2de47193547aeadb590d8c0a1637a19333293e8da17b8596ae989b7e"
-    },
-    {
-      "path": "resources/editor/locales/hi-IN.lproj/Front.json",
-      "size": 16328,
-      "sha256": "67efb16dc610b03f43ca0fb29b4aa51311a1556ba525772b931dff9dd34a3203"
-    },
-    {
-      "path": "resources/editor/locales/hi-IN.lproj/Menu.json",
-      "size": 17434,
-      "sha256": "d100a06a3c0214c5a771d73d4d18add11800bc731bfaafe5e006614a3275de77"
-    },
-    {
-      "path": "resources/editor/locales/hi-IN.lproj/Panel.json",
-      "size": 55071,
-      "sha256": "d078ea346958f9c36baf9c06c9ef2cf523d550ba655df787888ac135a4b9b50b"
-    },
-    {
-      "path": "resources/editor/locales/hi-IN.lproj/Welcome.json",
-      "size": 7593,
-      "sha256": "04e5c9b6ae678f038f62b8746575d229623fcbeb43e151a87f1ded9cbf5129fb"
-    },
-    {
-      "path": "resources/editor/locales/hi_IN.lproj/Front.json",
-      "size": 14912,
-      "sha256": "0d4a4c1782813d2505bf3cfc42446228d3568ba9413001e0babd849242a415a5"
-    },
-    {
-      "path": "resources/editor/locales/hi_IN.lproj/Menu.json",
-      "size": 15514,
-      "sha256": "a8ca1f69d9dc829599a06fcc062172895cb1fd2ee5c8b459bc27db78a8a01dc9"
-    },
-    {
-      "path": "resources/editor/locales/hi_IN.lproj/Panel.json",
-      "size": 46117,
-      "sha256": "179eb6b18cb09ddf394488a6281428b9fe5abf055420ba0fc24ebba8c078a8ca"
-    },
-    {
-      "path": "resources/editor/locales/hi_IN.lproj/Welcome.json",
-      "size": 7859,
-      "sha256": "b1aafb6c926f06cd8bcc67fce1ba4090c0848c4e5c38ac4e56bef2cb4e661359"
-    },
-    {
-      "path": "resources/editor/locales/hr-HR.lproj/Front.json",
-      "size": 5028,
-      "sha256": "2e1d2a4c1713ae0d1154d070513ccbf51faf4dd080d9493e123c55c048dde92a"
-    },
-    {
-      "path": "resources/editor/locales/hr-HR.lproj/Menu.json",
-      "size": 7395,
-      "sha256": "d8a5c202510aba58ec9150b8ea7f3bba797c70b0bb8c9d747c48ac405473341b"
-    },
-    {
-      "path": "resources/editor/locales/hr-HR.lproj/Panel.json",
-      "size": 12390,
-      "sha256": "795fe2037523adbd3de5930dcfee6b39c5a95ca7463cd3f6dcb32c4427809236"
-    },
-    {
-      "path": "resources/editor/locales/hr-HR.lproj/Welcome.json",
-      "size": 3890,
-      "sha256": "378516394e094b52231c8fa4a9fbd3e413ad49c5c5215f3be522b939f510d4d3"
-    },
-    {
-      "path": "resources/editor/locales/hu-HU.lproj/Front.json",
-      "size": 10014,
-      "sha256": "61023d15caefc0c19bdb759df5832c212c9a81af3b3acf6f8c07c23269bc9b85"
-    },
-    {
-      "path": "resources/editor/locales/hu-HU.lproj/Menu.json",
-      "size": 10761,
-      "sha256": "6e81e424bb7a94c500a1417c619871dcae6ef28ee4f257f836d9c3ddef6227c9"
-    },
-    {
-      "path": "resources/editor/locales/hu-HU.lproj/Panel.json",
-      "size": 31926,
-      "sha256": "af1774f08f4962b567e5d876f469ae11b8901be6190de0477ef6cd3a35acb023"
-    },
-    {
-      "path": "resources/editor/locales/hu-HU.lproj/Welcome.json",
-      "size": 4840,
-      "sha256": "52b80d242c4a1953cc62412ac4905e6e55e57a0409604e6b46a3dcf1da77dd19"
-    },
-    {
-      "path": "resources/editor/locales/id-ID.lproj/Front.json",
-      "size": 8841,
-      "sha256": "a39e5355dca1619991df822ec7c85643f95aebb93428959ac224794703069003"
-    },
-    {
-      "path": "resources/editor/locales/id-ID.lproj/Menu.json",
-      "size": 9449,
-      "sha256": "ec76957f2b8306585a9029298d60fe63691460f0f4c67d472734ad45b061455e"
-    },
-    {
-      "path": "resources/editor/locales/id-ID.lproj/Panel.json",
-      "size": 28806,
-      "sha256": "effe07ac67b8eddf6b6d42f1245c185622c5e30e3067d00d2d253f46da919caf"
-    },
-    {
-      "path": "resources/editor/locales/id-ID.lproj/Welcome.json",
-      "size": 4978,
-      "sha256": "dd130ae7fa5cc35c108f43d39fb15830a34ace3f2c10f8529b8a934ad8885653"
-    },
-    {
-      "path": "resources/editor/locales/it-IT.lproj/Front.json",
-      "size": 9543,
-      "sha256": "4b2b105e9406bd0a26d06daa1d5474ab42859e1ceff5cfdd3834e7d35ba689b2"
-    },
-    {
-      "path": "resources/editor/locales/it-IT.lproj/Menu.json",
-      "size": 9846,
-      "sha256": "e5b7c5a2bfeea3ea5526ee4716340a0f9f1fe1543f6f65401084ddaaaf41096e"
-    },
-    {
-      "path": "resources/editor/locales/it-IT.lproj/Panel.json",
-      "size": 29882,
-      "sha256": "9c09de559aa6239a91c40fd59028892d5d1f778c48d7f67315587152343653ed"
-    },
-    {
-      "path": "resources/editor/locales/it-IT.lproj/Welcome.json",
-      "size": 4656,
-      "sha256": "4f0b6488ea07072c48e7a43b253b05db42bbf0af7cbb7bf05f4b82a71d86f240"
-    },
-    {
-      "path": "resources/editor/locales/ja-JP.lproj/Front.json",
-      "size": 10936,
-      "sha256": "ee8f45a9ccbb86b8b5a5da0d2848d9023b7b6831df8a04da2d88134638bb05b1"
-    },
-    {
-      "path": "resources/editor/locales/ja-JP.lproj/Menu.json",
-      "size": 11463,
-      "sha256": "43a3113ecff9f81bde8ecdb692380c7fcfa43e6e1332a21024d4e17ab07bf158"
-    },
-    {
-      "path": "resources/editor/locales/ja-JP.lproj/Panel.json",
-      "size": 36659,
-      "sha256": "c789c3590fcd5e24c57ca03c97d816d8c7e314977a8e25269506792d33b11d1a"
-    },
-    {
-      "path": "resources/editor/locales/ja-JP.lproj/Welcome.json",
-      "size": 5500,
-      "sha256": "5dfca747690edab8cba0e6677d55e671673bf35007c717513f2ae19286f049ff"
-    },
-    {
-      "path": "resources/editor/locales/ko-KR.lproj/Front.json",
-      "size": 8863,
-      "sha256": "e57222fb8912361dc5ec558761317f36319e75899f99b855d69c45050c6419ff"
-    },
-    {
-      "path": "resources/editor/locales/ko-KR.lproj/Menu.json",
-      "size": 10005,
-      "sha256": "7e1b9d3e1dbfca6da55aeac3eb4c343f1c9f74af452eaf9b2882dfaf06531ea6"
-    },
-    {
-      "path": "resources/editor/locales/ko-KR.lproj/Panel.json",
-      "size": 31460,
-      "sha256": "1a7ed18cb349e8b79f09232b45f0d52319561d1bf298735f0a9f71c59de9cbc9"
-    },
-    {
-      "path": "resources/editor/locales/ko-KR.lproj/Welcome.json",
-      "size": 5088,
-      "sha256": "6d634116f5c7d813354e8267fc6488f872d5dd599788e9da5d3b9035e4de0529"
-    },
-    {
-      "path": "resources/editor/locales/ms-MY.lproj/Front.json",
-      "size": 8835,
-      "sha256": "1a7c4a9096c4c2d0627f18dd01d014ff1b6f4ec7166e855011dcc2cdfc141922"
-    },
-    {
-      "path": "resources/editor/locales/ms-MY.lproj/Menu.json",
-      "size": 9121,
-      "sha256": "3f3e98e5294e7d407de5d883d2c29374a859cd44f5e543ff5aea66f9155a58a0"
-    },
-    {
-      "path": "resources/editor/locales/ms-MY.lproj/Panel.json",
-      "size": 27973,
-      "sha256": "aa14ef05cf0d78cbc1fa4a737e8d703ae0d4d209a9c0feb87da9b370ce80fbcf"
-    },
-    {
-      "path": "resources/editor/locales/ms-MY.lproj/Welcome.json",
-      "size": 4735,
-      "sha256": "80d8874f1912919f672bab8c7614bc1751373b2dc3fdd2d40e2f03bc94925ecd"
-    },
-    {
-      "path": "resources/editor/locales/nb-NO.lproj/Front.json",
-      "size": 9036,
-      "sha256": "17c698ac6b79db1dc103957d4331e2e61508733a01ad2a8930fa2dd8f1e3c82b"
-    },
-    {
-      "path": "resources/editor/locales/nb-NO.lproj/Menu.json",
-      "size": 9260,
-      "sha256": "f794f7ff43abf2fcb22f56389c08f44a98c4a3b88b39e08a1a494e67ad48e380"
-    },
-    {
-      "path": "resources/editor/locales/nb-NO.lproj/Panel.json",
-      "size": 28430,
-      "sha256": "3f71602c6c837c50bca33219030422620ef1db9cd4d2273e03d4b5b431a005b8"
-    },
-    {
-      "path": "resources/editor/locales/nb-NO.lproj/Welcome.json",
-      "size": 4366,
-      "sha256": "2d5e962468db43144ac3831894fd2d8da4ff3ed0b6656ebf1cb8a620fe08d240"
-    },
-    {
-      "path": "resources/editor/locales/nl-NL.lproj/Front.json",
-      "size": 8985,
-      "sha256": "6ae931082e70ad921ccf841dc993bab21ebf7575a33a45fc9f659eaea71672d0"
-    },
-    {
-      "path": "resources/editor/locales/nl-NL.lproj/Menu.json",
-      "size": 9432,
-      "sha256": "45a7a8eda4427e1c4b77534280c018bb738b5dfa0168e24219bbf13f95a081e7"
-    },
-    {
-      "path": "resources/editor/locales/nl-NL.lproj/Panel.json",
-      "size": 12915,
-      "sha256": "0b43436f34ba719877009ccf5002ae4f822abcc13af97eed195c5e3f4bea5320"
-    },
-    {
-      "path": "resources/editor/locales/nl-NL.lproj/Welcome.json",
-      "size": 4728,
-      "sha256": "a112ddb3bdf0f3693843850c6e29421bdce0ad9b15378fed69af2ea2af788ccc"
-    },
-    {
-      "path": "resources/editor/locales/nn-NO.lproj/Front.json",
-      "size": 9336,
-      "sha256": "47661feee4db5d1f3f3c2730760f146b23b1ea498c27b36a886a4a068b62865c"
-    },
-    {
-      "path": "resources/editor/locales/nn-NO.lproj/Menu.json",
-      "size": 9985,
-      "sha256": "e1cbeae41159f69752ad3353c8d12231fca359a11eed8e65647c9b09ae3bce1d"
-    },
-    {
-      "path": "resources/editor/locales/nn-NO.lproj/Panel.json",
-      "size": 32420,
-      "sha256": "7bad3d1b731095d4422123200efcdba887eb493bc2b1b2278003dbc21b3516ee"
-    },
-    {
-      "path": "resources/editor/locales/nn-NO.lproj/Welcome.json",
-      "size": 4449,
-      "sha256": "14123bcf8d792b23070dda3b85ac845df0de7d562ba048b7934e727ffee49ab5"
-    },
-    {
-      "path": "resources/editor/locales/pl-PL.lproj/Front.json",
-      "size": 9899,
-      "sha256": "4f98b253e915061a2fbc608abf69c32cbeaaa99aeaec388d9ba0d275c37bd27d"
-    },
-    {
-      "path": "resources/editor/locales/pl-PL.lproj/Menu.json",
-      "size": 10880,
-      "sha256": "594b989e6f3e643152052ade5118a772c4fdc0cddf28e660d5768ee6c1988b30"
-    },
-    {
-      "path": "resources/editor/locales/pl-PL.lproj/Panel.json",
-      "size": 34933,
-      "sha256": "bfd0539a4c5935c10bfed77bce7db9de729cfc24f68062079b1794552766addd"
-    },
-    {
-      "path": "resources/editor/locales/pl-PL.lproj/Welcome.json",
-      "size": 4678,
-      "sha256": "c625924f0188ed9d9a5a619c374314975da643ce4ecb50091947dc6750bc1055"
-    },
-    {
-      "path": "resources/editor/locales/pt-BR.lproj/Front.json",
-      "size": 10019,
-      "sha256": "fda5289bf20b099f339c183180fe4a31b087dffea584d738c8b32979c3a9f714"
-    },
-    {
-      "path": "resources/editor/locales/pt-BR.lproj/Menu.json",
-      "size": 10845,
-      "sha256": "c7d463e95c5ecdff2cf7820db9fd491612ec46a7f43b13763bdddfa817e7a647"
-    },
-    {
-      "path": "resources/editor/locales/pt-BR.lproj/Panel.json",
-      "size": 34808,
-      "sha256": "e3eb1ae81d523e3f6adf73f433c726f9088abfc38f2590a0ae7b5bb64b5b3c80"
-    },
-    {
-      "path": "resources/editor/locales/pt-BR.lproj/Welcome.json",
-      "size": 4806,
-      "sha256": "a590bb0cae326c7026b41840845031987e4a7f14fec5c45168e606a952bcefb4"
-    },
-    {
-      "path": "resources/editor/locales/pt-PT.lproj/Front.json",
-      "size": 4770,
-      "sha256": "d1fbb4a11ee4a067bc8a3919c46455e043ccaf32ca4c2c266feb3333a217d5fe"
-    },
-    {
-      "path": "resources/editor/locales/pt-PT.lproj/Menu.json",
-      "size": 6901,
-      "sha256": "0bcada760586982194aa18a9c928dc333fd3b5e1d9e636340a900a495599ac0c"
-    },
-    {
-      "path": "resources/editor/locales/pt-PT.lproj/Panel.json",
-      "size": 11414,
-      "sha256": "7865fa966cec757f66da320288a04fb3f50d05f8c9f8097d69eb902d73d72601"
-    },
-    {
-      "path": "resources/editor/locales/pt-PT.lproj/Welcome.json",
-      "size": 3810,
-      "sha256": "c9a6b15f2de47193547aeadb590d8c0a1637a19333293e8da17b8596ae989b7e"
-    },
-    {
-      "path": "resources/editor/locales/ro-RO.lproj/Front.json",
-      "size": 8292,
-      "sha256": "5382e646b34445d2f5ea00418b004a9f199023c2af9456fdf10185505738f578"
-    },
-    {
-      "path": "resources/editor/locales/ro-RO.lproj/Menu.json",
-      "size": 9350,
-      "sha256": "7153848a73ce04bcf64ac623c1ba68a70b47fb050dc4ba1dd1aa1b645bf773cd"
-    },
-    {
-      "path": "resources/editor/locales/ro-RO.lproj/Panel.json",
-      "size": 28490,
-      "sha256": "f9ed93a7c01f49bd85b2c645146f7bfc4c161fd0516533d7dfb861622edb8d45"
-    },
-    {
-      "path": "resources/editor/locales/ro-RO.lproj/Welcome.json",
-      "size": 3810,
-      "sha256": "c9a6b15f2de47193547aeadb590d8c0a1637a19333293e8da17b8596ae989b7e"
-    },
-    {
-      "path": "resources/editor/locales/ru-RU.lproj/Front.json",
-      "size": 12621,
-      "sha256": "4c5529bc7719bd715bbaf2bdc0ccf31596bcc7be624e468171708504b4666f24"
-    },
-    {
-      "path": "resources/editor/locales/ru-RU.lproj/Menu.json",
-      "size": 13821,
-      "sha256": "5f2ba59307f6232628bd12699f54a9ac8d4c34fbd4b9b2734faf46e6deb21f1d"
-    },
-    {
-      "path": "resources/editor/locales/ru-RU.lproj/Panel.json",
-      "size": 39515,
-      "sha256": "2f589b8a044d3248d28a64a1c94fea063202c39603e2e9a1bc3878d91960507a"
-    },
-    {
-      "path": "resources/editor/locales/ru-RU.lproj/Welcome.json",
-      "size": 6890,
-      "sha256": "806b0d6fceb5ae6dc29d394325450aee03515600b37e9fc37867848a885e2514"
-    },
-    {
-      "path": "resources/editor/locales/sk-SK.lproj/Front.json",
-      "size": 7662,
-      "sha256": "8a5c134f943a3187ec1f2999d4d10e5de82d1b5e1dba288d0fd9318d8d82c0a9"
-    },
-    {
-      "path": "resources/editor/locales/sk-SK.lproj/Menu.json",
-      "size": 8405,
-      "sha256": "74734d2b85b61a5a88648f6d95b598876efee1d1b944679efe061f35b87f87a8"
-    },
-    {
-      "path": "resources/editor/locales/sk-SK.lproj/Panel.json",
-      "size": 17128,
-      "sha256": "aae57e993e11e6f98bb6589c8ea633e1750fd091c1ca329c97969a208fba91eb"
-    },
-    {
-      "path": "resources/editor/locales/sk-SK.lproj/Welcome.json",
-      "size": 3810,
-      "sha256": "c9a6b15f2de47193547aeadb590d8c0a1637a19333293e8da17b8596ae989b7e"
-    },
-    {
-      "path": "resources/editor/locales/sl-SI.lproj/Front.json",
-      "size": 9615,
-      "sha256": "c4aeb13aa3b211505fe8bdd171103567ce2a522a85a72c119dd62fe3d886ba4f"
-    },
-    {
-      "path": "resources/editor/locales/sl-SI.lproj/Menu.json",
-      "size": 10483,
-      "sha256": "f623d3ac5d95325834c7e3fc4beba74ed7274d82e8a633515a2cee84d62007cc"
-    },
-    {
-      "path": "resources/editor/locales/sl-SI.lproj/Panel.json",
-      "size": 33108,
-      "sha256": "865015990c8c8a375aed877be1a11ce863f2323bc453991ca5e310f3bd509c28"
-    },
-    {
-      "path": "resources/editor/locales/sl-SI.lproj/Welcome.json",
-      "size": 4618,
-      "sha256": "d480a3196f6981d4f59a198f032eee59b8f7c3ce3cb7c105787dc463678963f0"
-    },
-    {
-      "path": "resources/editor/locales/sv-SE.lproj/Front.json",
-      "size": 9453,
-      "sha256": "6e4e2d2a9ecdb42520e5b22272e4db55cf31c99cd9b0ce1be3caf5d1f3e728d7"
-    },
-    {
-      "path": "resources/editor/locales/sv-SE.lproj/Menu.json",
-      "size": 10157,
-      "sha256": "2d9d4b3237697954a5d092d72ed342df9d61ca28aea77a1ff052285cd4fd60cc"
-    },
-    {
-      "path": "resources/editor/locales/sv-SE.lproj/Panel.json",
-      "size": 33184,
-      "sha256": "0f969f69ad9a8cbc331d1acc3ad28c187dd632881b17d6fb8fad374a1895d122"
-    },
-    {
-      "path": "resources/editor/locales/sv-SE.lproj/Welcome.json",
-      "size": 4553,
-      "sha256": "d5a9c50956f1e900f44d7fd64b4ce0d5cebc783c7494dce16e72402956b0432d"
-    },
-    {
-      "path": "resources/editor/locales/th-TH.lproj/Front.json",
-      "size": 15560,
-      "sha256": "fd3daf40b7268b27fc54dcf67829eadc09ba1ad32bfa49cef1adcfdd358a2ac1"
-    },
-    {
-      "path": "resources/editor/locales/th-TH.lproj/Menu.json",
-      "size": 16793,
-      "sha256": "29ae189628bd0374ba679bd29b89150d573887d37c39dae610713b13fe451879"
-    },
-    {
-      "path": "resources/editor/locales/th-TH.lproj/Panel.json",
-      "size": 50261,
-      "sha256": "8356f494a56b0bac89f245c15119ef52da38e380963c3f2c4cd3bd610ec1c4d7"
-    },
-    {
-      "path": "resources/editor/locales/th-TH.lproj/Welcome.json",
-      "size": 7487,
-      "sha256": "06e3f479c80553e7b62a1b3bffcc41ec5646254434f1385be44d0673a3ee75dc"
-    },
-    {
-      "path": "resources/editor/locales/tr-TR.lproj/Front.json",
-      "size": 7850,
-      "sha256": "b88f9f616b14052402156ff7c0f03f8a5929a09dd13031a1a6226876160707c1"
-    },
-    {
-      "path": "resources/editor/locales/tr-TR.lproj/Menu.json",
-      "size": 8973,
-      "sha256": "f28648b523c590345411640dd50771e2aa821e36b149ab14f6b5b13168ed8799"
-    },
-    {
-      "path": "resources/editor/locales/tr-TR.lproj/Panel.json",
-      "size": 23021,
-      "sha256": "51e125049fc35d6c3e10135686d4586b34c2c79c63149c1cf1c6fe10b9969c8d"
-    },
-    {
-      "path": "resources/editor/locales/tr-TR.lproj/Welcome.json",
-      "size": 4189,
-      "sha256": "5c5e5591d1f0670f69efc01c4a9078da6c6770231bfd3ae1119fa56faff50bb7"
-    },
-    {
-      "path": "resources/editor/locales/uk-UA.lproj/Front.json",
-      "size": 10433,
-      "sha256": "c3be45bf79345fb0cfde728a0fdc4ca20242536b071409a66fbf9c3a1debaba3"
-    },
-    {
-      "path": "resources/editor/locales/uk-UA.lproj/Menu.json",
-      "size": 12211,
-      "sha256": "a9d7afb7939a4040e2390b612b532987969c23f93cdfd8d71c8606196c9c51cd"
-    },
-    {
-      "path": "resources/editor/locales/uk-UA.lproj/Panel.json",
-      "size": 26704,
-      "sha256": "9bf53a9e76890f4a6c0f5c452194f72c33dadc4929cc02850700b937543d04da"
-    },
-    {
-      "path": "resources/editor/locales/uk-UA.lproj/Welcome.json",
-      "size": 3810,
-      "sha256": "c9a6b15f2de47193547aeadb590d8c0a1637a19333293e8da17b8596ae989b7e"
-    },
-    {
-      "path": "resources/editor/locales/vi-VN.lproj/Front.json",
-      "size": 11046,
-      "sha256": "091b318b714799ad56a7c2f4470b4b7c2ed5b20fafb8669e689f5b825106c9a1"
-    },
-    {
-      "path": "resources/editor/locales/vi-VN.lproj/Menu.json",
-      "size": 12167,
-      "sha256": "51c3f4ae133a2b7cfbda2a1643e450f76a1ab21bf67cd791a5a1c20f3e23ebcc"
-    },
-    {
-      "path": "resources/editor/locales/vi-VN.lproj/Panel.json",
-      "size": 37728,
-      "sha256": "47184211cd60f7d652a03df62795eada0bd3b1ae850099b208fe7732570bbd09"
-    },
-    {
-      "path": "resources/editor/locales/vi-VN.lproj/Welcome.json",
-      "size": 5457,
-      "sha256": "c3514aa7c9256def99b80d061f6390c89d1724621cb20eebd6e2e6aea702cff4"
-    },
-    {
-      "path": "resources/editor/locales/zh-Hans.lproj/Front.json",
-      "size": 8674,
-      "sha256": "a775547a4efc2b918d70cb2719a930323bc46b38bb66bf6a9f31dfed20edacd6"
-    },
-    {
-      "path": "resources/editor/locales/zh-Hans.lproj/Menu.json",
-      "size": 10054,
-      "sha256": "ab0efd57d56b0a3ec8ebf52f2eb08696b6bf9bacef40b910c1bbe75ad5a30c78"
-    },
-    {
-      "path": "resources/editor/locales/zh-Hans.lproj/Panel.json",
-      "size": 31300,
-      "sha256": "94747cfab07957f2afadea37ade9b526f7698a10371bb7aa099c9ee5dd6ec70e"
-    },
-    {
-      "path": "resources/editor/locales/zh-Hans.lproj/Welcome.json",
-      "size": 4686,
-      "sha256": "b21dc74e6218cf46dd8055114376a52823cd5da7a93c8a45dc616d98c3e39a57"
-    },
-    {
-      "path": "resources/editor/locales/zh-Hant.lproj/Front.json",
-      "size": 9013,
-      "sha256": "3f6815d659b4bc266e69adcf33e1a94d27465553ea58bcfc35d3884dfc1eb403"
-    },
-    {
-      "path": "resources/editor/locales/zh-Hant.lproj/Menu.json",
-      "size": 9885,
-      "sha256": "24d3293584e332de7a05869c8bf37aac5e8045e1e8620bef99a2a7efb253ca08"
-    },
-    {
-      "path": "resources/editor/locales/zh-Hant.lproj/Panel.json",
-      "size": 31074,
-      "sha256": "4028fe7d891a443600224854372d164c4ef072bee6ae70b53a9278dc51b742bc"
-    },
-    {
-      "path": "resources/editor/locales/zh-Hant.lproj/Welcome.json",
-      "size": 4206,
-      "sha256": "d9d9b50dd250e3596f7715d35a37340e96e1349665eb8fa71fc45f48d240e35c"
-    },
-    {
-      "path": "resources/editor/page-dist/asset-manifest.json",
-      "size": 2280,
-      "sha256": "3fb86871ae74d0bca90995011e3e563c9ee93b099ba9f43b6d9c76717722ef8c"
-    },
-    {
-      "path": "resources/editor/page-dist/cocoa.css",
-      "size": 3449,
-      "sha256": "d258750c8064222d9bf84a550ff9176a56d32e6af6e7e6185bbf8a59c736e42a"
-    },
-    {
-      "path": "resources/editor/page-dist/electron.css",
-      "size": 7417,
-      "sha256": "630f13d10814ea9f3cecf928228be81be18d97e9e15365bbc23c3de0f2be19cd"
-    },
-    {
-      "path": "resources/editor/page-dist/index.html",
-      "size": 4716,
-      "sha256": "fa7bb2ea0df063ce3c5c88aff9b3163d8cc77edacfd1d54df02204cce0e07984"
-    },
-    {
-      "path": "resources/editor/page-dist/license.html",
-      "size": 4536,
-      "sha256": "df0df55cab1843eae589ca29085bb6388e70700c7a8278328b775f06b8d7f85d"
-    },
-    {
-      "path": "resources/editor/page-dist/local-setting.html",
-      "size": 4893,
-      "sha256": "93e78287a7366bae53c81348a741be4152e1d2c7f349ce2d436c4f2df61d2052"
-    },
-    {
-      "path": "resources/editor/page-dist/precache-manifest.f02c1659dba0fd208195e2fd99700be3.js",
-      "size": 2724,
-      "sha256": "d197c4895889d9f6fe71ea7fead8d9568895ab59450fe412951a5918b835a519"
-    },
-    {
-      "path": "resources/editor/page-dist/service-worker.js",
-      "size": 1183,
-      "sha256": "de3fd8c8b3597e96f2858328ba8102b67426d829e3259ccbefcb9d6b532f22e1"
-    },
-    {
-      "path": "resources/editor/page-dist/setting.html",
-      "size": 5214,
-      "sha256": "0e0ffdb90d19bb9bf1405668ee24dfe9333804872a00426d531a79f75b556a8f"
-    },
-    {
-      "path": "resources/editor/page-dist/static/css/LicenseIndex.180dd4c7.302ceaec.chunk.css",
-      "size": 4376,
-      "sha256": "536d25dc408538ab657fb11a6f4986e4c9c17046960387e457fa382a08fe7729"
-    },
-    {
-      "path": "resources/editor/page-dist/static/css/Preferences.962926a4.d430ac69.chunk.css",
-      "size": 32464,
-      "sha256": "9cee878ad8d6fcd15fb984e1d2597c92206e9b06a6d63cae297606e80ac35e06"
-    },
-    {
-      "path": "resources/editor/page-dist/static/css/WelcomeIndex.63db304f.8eb582ed.chunk.css",
-      "size": 6241,
-      "sha256": "b71e56cb3b94c26658fb8accaa50ea9f1dc33453778091f237e97c37cd3b3bca"
-    },
-    {
-      "path": "resources/editor/page-dist/static/css/localSettingIndex.a2c75cbd.694f4ef9.chunk.css",
-      "size": 25035,
-      "sha256": "ae350fc463d603fb680c133941605140216bb4042750f76c4d63d5470e1af5a4"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/0.99879679.chunk.js",
-      "size": 153571,
-      "sha256": "87f0a5f324307aec8a5ba3c15db4c39f1d7d06ae581ba3daa82cc02157d64409"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/0.99879679.chunk.js.LICENSE.txt",
-      "size": 1051,
-      "sha256": "669371ab0a5c8bc1586605683ec414a14274cce3dac1da12a8908b96f591795e"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/1.a0005c60.chunk.js",
-      "size": 14241,
-      "sha256": "d99d15dbec8a928f8652f2a0301b860fa649a2c883de81848e6b94ac235cc675"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/12.41027302.chunk.js",
-      "size": 75711,
-      "sha256": "349565c49f2d13f5ffe4cbd1cf1c7d8964bfad8235f11da5e87b073da3e02831"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/12.41027302.chunk.js.LICENSE.txt",
-      "size": 412,
-      "sha256": "45c49d3f80331c3ee17b928f3843158693258ff95e0a129cef6e05525dc5c1f7"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/LicenseIndex.180dd4c7.54684560.chunk.js",
-      "size": 49483,
-      "sha256": "8421f195ae1c5b700744ca6d23ea9acb44182527ff92bcb0ed66bd0a0563d06b"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/Preferences.962926a4.d7f6a912.chunk.js",
-      "size": 140609,
-      "sha256": "4565af0b527cf7061d02b5952cf815bc606b7ff571e2e08da0b7e3259f7d714b"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/WelcomeIndex.63db304f.9d9e058b.chunk.js",
-      "size": 53534,
-      "sha256": "1a3ad7f0cb892463cf32e2dafdbb5746adf9f83b14a06ffdd353ece5d8948257"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/localSettingIndex.a2c75cbd.6a74b309.chunk.js",
-      "size": 42934,
-      "sha256": "a2cd63bafa07770497f00e9a52798e64110550111142ae9972041ec7e182e9c6"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/main.ff8bdafd.chunk.js",
-      "size": 135,
-      "sha256": "4b899d1cf7bb17d905955d12799177918729eefc0460aeebc6628b792b761600"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/runtime-LicenseIndex.180dd4c7.f7c007dd.js",
-      "size": 1506,
-      "sha256": "dc46b6dcf9a227eb0631d14732add9eaf7052ec3e302277471f2fe5df2c95221"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/runtime-Preferences.962926a4.285eabb5.js",
-      "size": 1506,
-      "sha256": "836eea4afff578bdc1ee128e9268d780043f1817faf449ed206dde5ecb56cd1f"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/runtime-WelcomeIndex.63db304f.ab2b23b4.js",
-      "size": 1506,
-      "sha256": "169648fcae3742936dd7d5b2b83b7eeb5957954d0956ce84909f91669c561110"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/runtime-localSettingIndex.a2c75cbd.6f0fb930.js",
-      "size": 1507,
-      "sha256": "07c1912023fb54a095dd8bfe43c6cd4111f57fd11689405e628179c7994f35e4"
-    },
-    {
-      "path": "resources/editor/page-dist/static/js/runtime-main.97d0b459.js",
-      "size": 1507,
-      "sha256": "57a50a01e70abe9c5215f42ce8092fd2d15f428d94077213f9cb3e21ff86b288"
-    },
-    {
-      "path": "resources/editor/page-dist/static/media/icon.06a6aa23.png",
-      "size": 21810,
-      "sha256": "7105d7d01fc5263d7a3f83025ff6bc2556b3920a30fa8c11f9f1b6df9f0e746b"
-    },
-    {
-      "path": "resources/editor/page-dist/static/media/photon-entypo.1382c29c.ttf",
-      "size": 48456,
-      "sha256": "1733aa2b56f9d8a2684228f7d6383c992d8088bf95ab5d505e440c0802632d55"
-    },
-    {
-      "path": "resources/editor/page-dist/static/media/photon-entypo.2614e058.eot",
-      "size": 48644,
-      "sha256": "9431f363419a61693609085356105790cc56d048388c5bb91a315fd677418642"
-    },
-    {
-      "path": "resources/editor/page-dist/static/media/photon-entypo.bf614256.woff",
-      "size": 30692,
-      "sha256": "05bcf57599c2bd78b35162d8ab41c1b516b49d295b7f7d046d49834bf68bc60e"
-    },
-    {
-      "path": "resources/editor/page-dist/welcome.html",
-      "size": 4507,
-      "sha256": "8d122ea12ad091a2b148cc949285be99195680115fa8eb4959759807831663ee"
-    },
-    {
-      "path": "resources/editor/style/Raleway-latin-ext.woff2",
-      "size": 9144,
-      "sha256": "b04c8b4854ef524f779d9c35e8cb6aca0237b135872b5ac59b1c797e670395b8"
-    },
-    {
-      "path": "resources/editor/style/Raleway-latin.woff2",
-      "size": 13128,
-      "sha256": "f37df5fd112825a2d0b8292145bf094083d903e6017d4b60703bad746ecba614"
-    },
-    {
-      "path": "resources/editor/style/base-control.css",
-      "size": 77061,
-      "sha256": "d312ca1174216a94a9ce4fd02bf7c816c0c06fff186ec5cb4e4cf955c731fe4e"
-    },
-    {
-      "path": "resources/editor/style/base.css",
-      "size": 13520,
-      "sha256": "4a7fa9e03a640ff3904bda129a8cc3480abec594802ca3af3656b32d413435ba"
-    },
-    {
-      "path": "resources/editor/style/bg.png",
-      "size": 2126,
-      "sha256": "43d63542ab10040e14ddaeb9ee5a49ca3f54b1081892d5926aa22df8ba8227f9"
-    },
-    {
-      "path": "resources/editor/style/codemirror.css",
-      "size": 4453,
-      "sha256": "9e5d04376ba01339e359e9d57bd53dab7cfdd7cc0391fde27c7608aaf8981718"
-    },
-    {
-      "path": "resources/editor/style/cubes.png",
-      "size": 723,
-      "sha256": "da6faadda2796ba5d6b3ff03de905d3688209175bc7ed0754e4d88e254096701"
-    },
-    {
-      "path": "resources/editor/style/file-icon-big.png",
-      "size": 112007,
-      "sha256": "91b1cb4d33f44225379334278201a6b306f8161760ef4a602936a8421897c27f"
-    },
-    {
-      "path": "resources/editor/style/font-awesome-4.1.0/css/font-awesome.css",
-      "size": 24964,
-      "sha256": "40c15e30c16208542aca35f929fb66c390483cbf9c6cbcea0329773d96dda3c5"
-    },
-    {
-      "path": "resources/editor/style/font-awesome-4.1.0/css/font-awesome.min.css",
-      "size": 20537,
-      "sha256": "a5204a49ef8af6a09e3113cbf564a5dac001592a6edda6821fc3c45fcac3cfea"
-    },
-    {
-      "path": "resources/editor/style/font-awesome-4.1.0/fonts/fontawesome-webfont.woff",
-      "size": 83760,
-      "sha256": "66db52b456efe7e29cec11fa09421d03cb09e37ed1b567307ec0444fd605ce31"
-    },
-    {
-      "path": "resources/editor/style/ionicons-2.0.1/LICENSE",
-      "size": 1094,
-      "sha256": "5407c91b6c8b7305f72aec4ee5ffb99b32ed9a5413c19cf3cd1b94354d2645e8"
-    },
-    {
-      "path": "resources/editor/style/ionicons-2.0.1/css/ionicons.css",
-      "size": 47799,
-      "sha256": "bab1d83a05e6be2fb17efb17159aadb2478efd2d7e32690b53c74fe0649a6869"
-    },
-    {
-      "path": "resources/editor/style/ionicons-2.0.1/css/ionicons.min.css",
-      "size": 42815,
-      "sha256": "d1ca972ea2b8adf8bc9135c175b5feb721116113aac38a5eab849ffb6f90f097"
-    },
-    {
-      "path": "resources/editor/style/ionicons-2.0.1/fonts/ionicons.woff",
-      "size": 57276,
-      "sha256": "c5fd4000901f835054a4e6ed4bf0ddd5800ba2a3aebe5e5e4fc3147497c14636"
-    },
-    {
-      "path": "resources/editor/style/ionicons-2.0.1/readme.md",
-      "size": 2492,
-      "sha256": "babf9fbb910867c1e3278a57d972db81ee3c46b9f62bd17278008978b60ed957"
-    },
-    {
-      "path": "resources/editor/style/mac.css",
-      "size": 3293,
-      "sha256": "edbe3c7a9ad0053b46fb318f3b978ecf34083f7acdfa7f4d2c56c0577b8a7fb6"
-    },
-    {
-      "path": "resources/editor/style/megamenu.css",
-      "size": 8968,
-      "sha256": "f9ed9e6737968c0ae021b72739e0340c1310caa19e5c9eb22c7deb7caaba8803"
-    },
-    {
-      "path": "resources/editor/style/themes/Readme.md",
-      "size": 254,
-      "sha256": "b82039fd5a0a94bf81ff1f529113bacedb126d45f3bfb5c4ac0b6e31a561588e"
-    },
-    {
-      "path": "resources/editor/style/themes/github/open-sans-v17-latin-ext_latin-700.woff2",
-      "size": 20108,
-      "sha256": "59a3166f7bacce6a65bf901ad20f141b619bca39a1318ea5efbdaa587b48a800"
-    },
-    {
-      "path": "resources/editor/style/themes/github/open-sans-v17-latin-ext_latin-700italic.woff2",
-      "size": 18456,
-      "sha256": "a250cc9c90a94d628301cbeaca7d8aa6276cda73c8a32af07d3ede513447931a"
-    },
-    {
-      "path": "resources/editor/style/themes/github/open-sans-v17-latin-ext_latin-italic.woff2",
-      "size": 18604,
-      "sha256": "8ddc89881ca5f355826d20b2229266c56a2c8d7be69ff9533b1891b55dc15825"
-    },
-    {
-      "path": "resources/editor/style/themes/github/open-sans-v17-latin-ext_latin-regular.woff2",
-      "size": 19396,
-      "sha256": "537d46273fe124bbced2f098f26222fa3155741e9d76f906c3c39e7fa09bf6a8"
-    },
-    {
-      "path": "resources/editor/style/themes/github.css",
-      "size": 8272,
-      "sha256": "0225b3c456252023b46d71b05c7ae592ac247207d5e4aabd99a1f07ef70d02a0"
-    },
-    {
-      "path": "resources/editor/style/themes/gothic/GUST e-foundry License.txt",
-      "size": 1399,
-      "sha256": "d318fdf9d55ee12be207788b99991b54170efecc633a7e9ec8352ea4a90726bc"
-    },
-    {
-      "path": "resources/editor/style/themes/gothic/didact-gothic-c-ext.woff2",
-      "size": 4808,
-      "sha256": "4c3ce7d5fb8b7082e11d6ba6972cedd58875573387f32525630a25a78f32507e"
-    },
-    {
-      "path": "resources/editor/style/themes/gothic/didact-gothic-c.woff2",
-      "size": 5368,
-      "sha256": "bba9bd182bb9dc301b7fb8890ba108b38ab17ea94132253b6f344d3a4f4b86f5"
-    },
-    {
-      "path": "resources/editor/style/themes/gothic/texgyreadventor-bold.woff",
-      "size": 15344,
-      "sha256": "66ec1b68a5b9121a11e6e67914084bbba10698257a7efa5a22b4f6dcd29f5882"
-    },
-    {
-      "path": "resources/editor/style/themes/gothic/texgyreadventor-bolditalic.woff",
-      "size": 15884,
-      "sha256": "95c7d7e03da6219a85e4a3ac1dc9ff327fdb8646fc18b889afacfd49a6947e8d"
-    },
-    {
-      "path": "resources/editor/style/themes/gothic/texgyreadventor-italic.woff",
-      "size": 15612,
-      "sha256": "5f9817cc442fa3a02872c297a074fd713dc7a2194e5d67b424b0dcf3ffb06860"
-    },
-    {
-      "path": "resources/editor/style/themes/gothic/texgyreadventor-regular.woff",
-      "size": 15140,
-      "sha256": "a05e1db555ee9870a8a59cd13599d3452fbba2fc2a7ec708c34503067734e410"
-    },
-    {
-      "path": "resources/editor/style/themes/gothic.css",
-      "size": 7719,
-      "sha256": "bfdc69b8ea083ca1e52c5be9cac658953d96617bbca1e9f92f630f3f96b4a758"
-    },
-    {
-      "path": "resources/editor/style/themes/newsprint/pt-serif-v11-latin-700.woff2",
-      "size": 29400,
-      "sha256": "e548abcd8734bfcf8b4ebbbca1af98f9e8ae1e0ff884c0971f29498a4fc108f4"
-    },
-    {
-      "path": "resources/editor/style/themes/newsprint/pt-serif-v11-latin-700italic.woff2",
-      "size": 28388,
-      "sha256": "e1bd3f9f50d4876fc67111ab41b60880f08b2eb89f8a0075c2ad3394a79c4063"
-    },
-    {
-      "path": "resources/editor/style/themes/newsprint/pt-serif-v11-latin-italic.woff2",
-      "size": 34732,
-      "sha256": "be5daba1b69c2dad0eed50cc17bea9659ab23d79d8d412dc8e5c6013b41f39c3"
-    },
-    {
-      "path": "resources/editor/style/themes/newsprint/pt-serif-v11-latin-regular.woff2",
-      "size": 32960,
-      "sha256": "ef391572f9fbb7bab7fef6ce2c4fc92ad68a8c148889a79cb9f9b1452d851fab"
-    },
-    {
-      "path": "resources/editor/style/themes/newsprint.css",
-      "size": 10586,
-      "sha256": "74f8e327abb48ac331dc1096c1e244d20ff9f5b05beb1204e9867b919cdecade"
-    },
-    {
-      "path": "resources/editor/style/themes/night/codeblock.dark.css",
-      "size": 1550,
-      "sha256": "35128e810df10cdb0913f4f094ed0d1fbe86a2ca9859a21ef58fd6cd29f1f9df"
-    },
-    {
-      "path": "resources/editor/style/themes/night/credit.html",
-      "size": 295,
-      "sha256": "c27e4aee3966fb7fd89f87111605e4566151e74500392e7514f38beca416d6de"
-    },
-    {
-      "path": "resources/editor/style/themes/night/cursor.png",
-      "size": 372,
-      "sha256": "79baa72e496c066efe279d87def13ef0f5be7cb3eef8ba90969182f9ce2127dd"
-    },
-    {
-      "path": "resources/editor/style/themes/night/cursor@2x.png",
-      "size": 407,
-      "sha256": "9cf5bdaba44275012a0b3966ad2cd3913d5cc0924b97988162a710ab626a9ad5"
-    },
-    {
-      "path": "resources/editor/style/themes/night/mermaid.dark.css",
-      "size": 79,
-      "sha256": "6a2571cceda6259f785383910be615ef2e4b05dde21bbe08ca64cc22115afc57"
-    },
-    {
-      "path": "resources/editor/style/themes/night/sourcemode.dark.css",
-      "size": 714,
-      "sha256": "506a99d9e092d822da39c674a07216b17c945ac0cd9ab2cddc78834f4c8e6891"
-    },
-    {
-      "path": "resources/editor/style/themes/night.css",
-      "size": 16829,
-      "sha256": "8c74d124c74a327faccce839b1c9ea3d5b953b541291ff2aff14d2c67d7e7bc0"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll/lato-v14-latin-300.woff",
-      "size": 29852,
-      "sha256": "8084a57f30a2d3d730b5d25b8d2ccb18369d90d333144231704418d555c20c0f"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll/lato-v14-latin-300italic.woff",
-      "size": 22312,
-      "sha256": "cca6a06b797908e58ca2f61c3572dcc8c38ad954cfd5c4b28f054b5ab5722ff0"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll/lato-v14-latin-900.woff",
-      "size": 27260,
-      "sha256": "2a6deb3135f92894e02fc63f6faa395e639fd44bfb3e7664608746715cd21bb7"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll/lato-v14-latin-900italic.woff",
-      "size": 28688,
-      "sha256": "dc77515a1fa579cc5fd321b71ea6c86b7c87dc131fdff7793c8441cfd1ea96b4"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll/merriweather-v19-latin-300.woff",
-      "size": 22872,
-      "sha256": "b218f71fe5aed94274e74900d26a23a2d1cb3f4ce996a91f8fcdc12225eec3ad"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll/merriweather-v19-latin-300italic.woff",
-      "size": 22884,
-      "sha256": "f913b4b7095e46a38b950817327530cb8408c72455d961540b19d56d4c955c5e"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll/merriweather-v19-latin-700.woff",
-      "size": 22696,
-      "sha256": "9f3beb1842e820a05015f6f441dfb98bb81172128d43b2397db83134c75c38f1"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll/merriweather-v19-latin-700italic.woff",
-      "size": 23024,
-      "sha256": "b86cf6cbe82990b92fc7657f24c2a05c9c07be31b97f560d6ea4772d99221f27"
-    },
-    {
-      "path": "resources/editor/style/themes/pixyll.css",
-      "size": 10568,
-      "sha256": "90e27bc256d6ce61802e7f643bdc7bd9956b04013b3b36b00e1a4b191ff4fe8d"
-    },
-    {
-      "path": "resources/editor/style/themes/whitey.css",
-      "size": 4651,
-      "sha256": "93b2c21baa15b08f6b355d0d2e422b7d1e75562f9f36dcf90d0796234d1202ab"
-    },
-    {
-      "path": "resources/editor/style/typora-file-icon/Read Me.txt",
-      "size": 755,
-      "sha256": "766eb502bb52884e56ed034da72954cc2cf6b91388f7bdbd8a374ccb7fc6531a"
-    },
-    {
-      "path": "resources/editor/style/typora-file-icon/demo-files/demo.css",
-      "size": 1996,
-      "sha256": "9e66886ce305efe4a3c6e1fc0ab810d7235534fe6b3947a8c06a8bd38c91541b"
-    },
-    {
-      "path": "resources/editor/style/typora-file-icon/fonts/ty-file.svg",
-      "size": 466495,
-      "sha256": "c78e6e7a1c9e2fff4ddc920cb87f1675677f26da3be9d4f32158c392b444140d"
-    },
-    {
-      "path": "resources/editor/style/typora-file-icon/fonts/ty-file.ttf",
-      "size": 127300,
-      "sha256": "0e02a5a2be765e1cb01bbc0e066072715a6e607a4ab2213cc878faa8aead9c86"
-    },
-    {
-      "path": "resources/editor/style/typora-file-icon/fonts/ty-file.woff",
-      "size": 127376,
-      "sha256": "2ce9c949e7878baee8fa7d3e0f2b9c3c0ab5bdaa1ce9ae94c819e32cec0ed9f3"
-    },
-    {
-      "path": "resources/editor/style/typora-file-icon/style.css",
-      "size": 68801,
-      "sha256": "df027327e121201f049e621a2490dfb19bc1fc96832f938a472647db3761d512"
-    },
-    {
-      "path": "resources/editor/style/typora-file-icon.png",
-      "size": 597,
-      "sha256": "02c871bd333cc6918d1928375ac07ff8b14ede75b9fec96c5a414a0119c02795"
-    },
-    {
-      "path": "resources/editor/style/typora-file-icon@2x.png",
-      "size": 1142,
-      "sha256": "def831aed30e6110864709c8544201ed46846dc31764dbf3e39bdf390254b28d"
-    },
-    {
-      "path": "resources/editor/style/typora-icon/Read Me.txt",
-      "size": 748,
-      "sha256": "ef408de5a2bcfc444553ce81ad1da8a31c0c41f95dde8377ae71edf7c86c2900"
-    },
-    {
-      "path": "resources/editor/style/typora-icon/fonts/typora-icon.eot",
-      "size": 15620,
-      "sha256": "fb0f002c2a1058855c5e8eabd67602dd1f5cfdbf526e59577320530b331594bc"
-    },
-    {
-      "path": "resources/editor/style/typora-icon/fonts/typora-icon.svg",
-      "size": 51854,
-      "sha256": "489958633a9426052ae562a7ac327184e5f11468c549d53b1d650d218c94c10e"
-    },
-    {
-      "path": "resources/editor/style/typora-icon/fonts/typora-icon.ttf",
-      "size": 15440,
-      "sha256": "a2f53b393b4af203c9d8865507b0b106b171165b65695aa882d6647ef5ee8164"
-    },
-    {
-      "path": "resources/editor/style/typora-icon/fonts/typora-icon.woff",
-      "size": 15516,
-      "sha256": "49a95eea5e45c2dfbb2483cfc64b7f6b5b3f4d5d863dc8d39ad2ea1c00fe659d"
-    },
-    {
-      "path": "resources/editor/style/typora-icon/style.css",
-      "size": 4472,
-      "sha256": "6e9b83fd41247999a3fe092451b596bc1c20cc9be01e0bb8060b20dfc7fe1e00"
-    },
-    {
-      "path": "resources/editor/style/window.css",
-      "size": 26740,
-      "sha256": "b27227fa2353a19b1cf772e93eb9dbb0120f4761f4ccacc5b7c2be15bc5328fa"
-    },
-    {
-      "path": "resources/editor/style/windows-folder-icon.png",
-      "size": 993,
-      "sha256": "1d5e7cdd059703db82a3999e931bfcb4a92b9e07ac000ec354bbf0b6edbcde72"
-    },
-    {
-      "path": "resources/native-titlebar/sideButton@2x.png",
+      "path": "apps/desktop/src-tauri/icons/titlebar/sideButton@2x.png",
       "size": 293,
       "sha256": "b6b1ac819431967ca3d2294692bee9e5fedd4aa3b6a92725d5ba990e009e8047"
     },
     {
-      "path": "resources/native-titlebar/sideButtonWhite@2x.png",
+      "path": "apps/desktop/src-tauri/icons/titlebar/sideButtonWhite@2x.png",
       "size": 301,
       "sha256": "6615e272b3a927e0c472048bb1456d9d804df15f72c5afa9ecd537d0ef1e1060"
     },
     {
-      "path": "resources/native-titlebar/tocButton@2x.png",
+      "path": "apps/desktop/src-tauri/icons/titlebar/tocButton@2x.png",
       "size": 501,
       "sha256": "95eb4ac2b02234699987b7247d1dee7b54cdfd134ff383f6c8c9cf0f934007a8"
     },
     {
-      "path": "resources/native-titlebar/tocButtonWhite@2x.png",
+      "path": "apps/desktop/src-tauri/icons/titlebar/tocButtonWhite@2x.png",
       "size": 314,
       "sha256": "eec8355f1b2ea9db309492406d1e4316aaef0f0ffdc5443e3c73fe6cc197512c"
-    }
-  ],
-  "noticeExceptions": [
+    },
     {
-      "path": "licenses/fonts/GUST-FONT-LICENSE-2006.txt",
-      "sha256": "d318fdf9d55ee12be207788b99991b54170efecc633a7e9ec8352ea4a90726bc",
-      "evidence": "licenses/fonts/manifest.json: exact received license text and copyright mapping"
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/cocoa.css",
+      "size": 3455,
+      "sha256": "64ff592cc9484d1a064b536ade4c14e9d0844bad715fc7acdf2b5dd0026470ee",
+      "runtimePath": "preferences/cocoa.css"
+    },
+    {
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/electron.css",
+      "size": 7417,
+      "sha256": "630f13d10814ea9f3cecf928228be81be18d97e9e15365bbc23c3de0f2be19cd",
+      "runtimePath": "preferences/electron.css"
+    },
+    {
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/setting.html",
+      "size": 5452,
+      "sha256": "36342783ea4330bfec560c5444f1b5ed1d93bc49107ad8eb46ebf61725f8891c",
+      "runtimePath": "preferences/setting.html"
+    },
+    {
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/static/css/Preferences.962926a4.d430ac69.chunk.css",
+      "size": 32476,
+      "sha256": "94c9c60ef6acffed7c65f19e86f7f2f354e9b1417cacfd3c7b8d55081bb18f31",
+      "runtimePath": "preferences/static/css/Preferences.962926a4.d430ac69.chunk.css"
+    },
+    {
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/static/js/0.99879679.chunk.js",
+      "size": 153588,
+      "sha256": "ec4226fe11c59966b5ef022e316a419402e808af4915d48d5c84dc0c1562118a",
+      "runtimePath": "preferences/static/js/0.99879679.chunk.js"
+    },
+    {
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/static/js/Preferences.962926a4.d7f6a912.chunk.js",
+      "size": 136523,
+      "sha256": "41a168a00416e1cc9407aa2d2ac492910d3909a221e65cd18f355058f3525a73",
+      "runtimePath": "preferences/static/js/Preferences.962926a4.d7f6a912.chunk.js"
+    },
+    {
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/static/media/photon-entypo.1382c29c.ttf",
+      "size": 48456,
+      "sha256": "1733aa2b56f9d8a2684228f7d6383c992d8088bf95ab5d505e440c0802632d55",
+      "runtimePath": "preferences/static/media/photon-entypo.1382c29c.ttf"
+    },
+    {
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/static/media/photon-entypo.2614e058.eot",
+      "size": 48644,
+      "sha256": "9431f363419a61693609085356105790cc56d048388c5bb91a315fd677418642",
+      "runtimePath": "preferences/static/media/photon-entypo.2614e058.eot"
+    },
+    {
+      "path": "apps/desktop/src/features/settings/runtime-preferences/page/static/media/photon-entypo.bf614256.woff",
+      "size": 30692,
+      "sha256": "05bcf57599c2bd78b35162d8ab41c1b516b49d295b7f7d046d49834bf68bc60e",
+      "runtimePath": "preferences/static/media/photon-entypo.bf614256.woff"
+    },
+    {
+      "path": "packages/editor-runtime/assets/locales/Base.lproj/Front.json",
+      "size": 9115,
+      "sha256": "e76a6208a37ca5867c1383482b6115afa622ca57c36ebb0ee1f93aae3bdaa870",
+      "runtimePath": "locales/Base.lproj/Front.json",
+      "additionalRuntimePaths": [
+        "preferences/locales/Base.lproj/Front.json"
+      ]
+    },
+    {
+      "path": "packages/editor-runtime/assets/locales/Base.lproj/Menu.json",
+      "size": 9817,
+      "sha256": "15113b4e0d8c8a4643ae3ce72e13159f4ec0a9328b0db9a0c012669ccc095f51",
+      "runtimePath": "locales/Base.lproj/Menu.json",
+      "additionalRuntimePaths": [
+        "preferences/locales/Base.lproj/Menu.json"
+      ]
+    },
+    {
+      "path": "packages/editor-runtime/assets/locales/Base.lproj/Panel.json",
+      "size": 31759,
+      "sha256": "453d6b5fa59490c35d73997fe248f1b96b202d29a7eb7154035468b4e996f023",
+      "runtimePath": "locales/Base.lproj/Panel.json",
+      "additionalRuntimePaths": [
+        "preferences/locales/Base.lproj/Panel.json"
+      ]
+    },
+    {
+      "path": "packages/editor-runtime/assets/locales/Base.lproj/Welcome.json",
+      "size": 4476,
+      "sha256": "619f6b3a2e83fae0841058032a6859482b100d7eecb85e7fe308de7088a629a8",
+      "runtimePath": "locales/Base.lproj/Welcome.json",
+      "additionalRuntimePaths": [
+        "preferences/locales/Base.lproj/Welcome.json"
+      ]
+    },
+    {
+      "path": "packages/editor-runtime/assets/locales/zh-Hans.lproj/Front.json",
+      "size": 8690,
+      "sha256": "344c00c16e6f62c58afb47d466ffa9459b6e3929a73fc843029b8132849d5627",
+      "runtimePath": "locales/zh-Hans.lproj/Front.json",
+      "additionalRuntimePaths": [
+        "preferences/locales/zh-Hans.lproj/Front.json"
+      ]
+    },
+    {
+      "path": "packages/editor-runtime/assets/locales/zh-Hans.lproj/Menu.json",
+      "size": 10062,
+      "sha256": "ce158dfc213bf5e2a3026c44303c84e071d625aeeaabb6dbfd01160bc9c604b7",
+      "runtimePath": "locales/zh-Hans.lproj/Menu.json",
+      "additionalRuntimePaths": [
+        "preferences/locales/zh-Hans.lproj/Menu.json"
+      ]
+    },
+    {
+      "path": "packages/editor-runtime/assets/locales/zh-Hans.lproj/Panel.json",
+      "size": 31656,
+      "sha256": "1115104ccf430a9a9d31954b04c320612a8426123bb04aed18e177563c2d1796",
+      "runtimePath": "locales/zh-Hans.lproj/Panel.json",
+      "additionalRuntimePaths": [
+        "preferences/locales/zh-Hans.lproj/Panel.json"
+      ]
+    },
+    {
+      "path": "packages/editor-runtime/assets/locales/zh-Hans.lproj/Welcome.json",
+      "size": 4792,
+      "sha256": "9b51cbc986d776673baa39ed53ce8c85c9ffc88796c02fc6fa81d42844e60c6c",
+      "runtimePath": "locales/zh-Hans.lproj/Welcome.json",
+      "additionalRuntimePaths": [
+        "preferences/locales/zh-Hans.lproj/Welcome.json"
+      ]
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/base-control.css",
+      "size": 78303,
+      "sha256": "6f1be96934d97bb18ab7a62f7e6e77d690caa8ef59d4adf51c8715b8bcd0579b",
+      "runtimePath": "style/base-control.css"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/base.css",
+      "size": 13596,
+      "sha256": "f4edfadaf7988f6bbe552fa9c77567359fac404eded9c64976bdb82a059ba814",
+      "runtimePath": "style/base.css"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/codemirror.css",
+      "size": 4453,
+      "sha256": "9e5d04376ba01339e359e9d57bd53dab7cfdd7cc0391fde27c7608aaf8981718",
+      "runtimePath": "style/codemirror.css"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/font-awesome-4.1.0/css/font-awesome.min.css",
+      "size": 20537,
+      "sha256": "a5204a49ef8af6a09e3113cbf564a5dac001592a6edda6821fc3c45fcac3cfea",
+      "runtimePath": "style/font-awesome-4.1.0/css/font-awesome.min.css"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/font-awesome-4.1.0/fonts/fontawesome-webfont.woff",
+      "size": 83760,
+      "sha256": "66db52b456efe7e29cec11fa09421d03cb09e37ed1b567307ec0444fd605ce31",
+      "runtimePath": "style/font-awesome-4.1.0/fonts/fontawesome-webfont.woff"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/ionicons-2.0.1/css/ionicons.min.css",
+      "size": 42815,
+      "sha256": "d1ca972ea2b8adf8bc9135c175b5feb721116113aac38a5eab849ffb6f90f097",
+      "runtimePath": "style/ionicons-2.0.1/css/ionicons.min.css"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/ionicons-2.0.1/fonts/ionicons.woff",
+      "size": 57276,
+      "sha256": "c5fd4000901f835054a4e6ed4bf0ddd5800ba2a3aebe5e5e4fc3147497c14636",
+      "runtimePath": "style/ionicons-2.0.1/fonts/ionicons.woff"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/mac.css",
+      "size": 3339,
+      "sha256": "9b1035567b23097b095abd3bbcb25f043030d8d84e7e5f05ac7befc35b5c4b43",
+      "runtimePath": "style/mac.css"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-file-icon.png",
+      "size": 597,
+      "sha256": "02c871bd333cc6918d1928375ac07ff8b14ede75b9fec96c5a414a0119c02795",
+      "runtimePath": "style/marklyra-file-icon.png"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-file-icon@2x.png",
+      "size": 1142,
+      "sha256": "def831aed30e6110864709c8544201ed46846dc31764dbf3e39bdf390254b28d",
+      "runtimePath": "style/marklyra-file-icon@2x.png"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-file-icon/fonts/marklyra-file.svg",
+      "size": 466501,
+      "sha256": "57072f20940f0c8125fccd517873973fe44722e97ea588d1796605f0a9603b15",
+      "runtimePath": "style/marklyra-file-icon/fonts/marklyra-file.svg"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-file-icon/fonts/marklyra-file.ttf",
+      "size": 127256,
+      "sha256": "c79d2930fd0adc7823fd85bf432f8b6b858e67c0f1879d9a64cdd250e244177e",
+      "runtimePath": "style/marklyra-file-icon/fonts/marklyra-file.ttf"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-file-icon/fonts/marklyra-file.woff",
+      "size": 73148,
+      "sha256": "3fa55630dc57470c0529644243a527519dad091058184196467911cc4ad862bd",
+      "runtimePath": "style/marklyra-file-icon/fonts/marklyra-file.woff"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-file-icon/style.css",
+      "size": 73523,
+      "sha256": "a548f305320b2a524aa951a5a8a32e6c035281ff46c3ebc3ebcf4698d2aaeb2b",
+      "runtimePath": "style/marklyra-file-icon/style.css"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-icon/fonts/marklyra-icon.eot",
+      "size": 15536,
+      "sha256": "ef4a22b04c69ee7b1b07bbad8472fa7d123c359c8856d0b380ecaec434f23ed0",
+      "runtimePath": "style/marklyra-icon/fonts/marklyra-icon.eot"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-icon/fonts/marklyra-icon.svg",
+      "size": 51860,
+      "sha256": "a90e97b034cc2894b674bf4922495bfbabfb0b4cdc45e5558f2e7c57881f8ca1",
+      "runtimePath": "style/marklyra-icon/fonts/marklyra-icon.svg"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-icon/fonts/marklyra-icon.ttf",
+      "size": 15348,
+      "sha256": "bcd2b8814a47582d1029dc0507c0a876a5de3a3416294ca93a411ff9940157b4",
+      "runtimePath": "style/marklyra-icon/fonts/marklyra-icon.ttf"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-icon/fonts/marklyra-icon.woff",
+      "size": 8100,
+      "sha256": "42b76f17ce883f44320e0a9679a47c39088406135884c0bdf24968c87f4f037b",
+      "runtimePath": "style/marklyra-icon/fonts/marklyra-icon.woff"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/marklyra-icon/style.css",
+      "size": 4984,
+      "sha256": "6c4b87759a11309ed5bf0a1e1487f31157d6eb8bad28ef66776d45376c1ded76",
+      "runtimePath": "style/marklyra-icon/style.css"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/Raleway-latin-ext.woff2",
+      "size": 9144,
+      "sha256": "b04c8b4854ef524f779d9c35e8cb6aca0237b135872b5ac59b1c797e670395b8",
+      "runtimePath": "style/Raleway-latin-ext.woff2"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/Raleway-latin.woff2",
+      "size": 13128,
+      "sha256": "f37df5fd112825a2d0b8292145bf094083d903e6017d4b60703bad746ecba614",
+      "runtimePath": "style/Raleway-latin.woff2"
+    },
+    {
+      "path": "packages/editor-runtime/assets/styles/windows-folder-icon.png",
+      "size": 993,
+      "sha256": "1d5e7cdd059703db82a3999e931bfcb4a92b9e07ac000ec354bbf0b6edbcde72",
+      "runtimePath": "style/windows-folder-icon.png"
+    },
+    {
+      "path": "packages/editor-runtime/src/engine/editor/EmojiSearchMap.js",
+      "size": 50393,
+      "sha256": "4e12de1163ba6899dc904a3a946271f3264425e71e2712fbc472eaa1087b5a67",
+      "runtimePath": "appsrc/editor/EmojiSearchMap.js"
+    },
+    {
+      "path": "packages/editor-runtime/src/engine/finder-worker.js",
+      "size": 9595,
+      "sha256": "e82ce291e869cc5a4de699e2617296e04235f3a475122573489439785c80d29c",
+      "runtimePath": "appsrc/finder-worker.js"
+    },
+    {
+      "path": "packages/editor-runtime/src/engine/main.js",
+      "size": 1642163,
+      "sha256": "0610d94980a45d70014e2551176ead14c5161b2de61d53934c8bb1d2c342ffbc",
+      "runtimePath": "appsrc/main.js"
+    },
+    {
+      "path": "packages/editor-runtime/src/page/index.html",
+      "size": 79289,
+      "sha256": "b8677bdae2b4eb4c300c0fa31aef4517fb6e5a47d4b8b305835f1ff839943d2c",
+      "runtimePath": "index.html"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/bootstrape/css/bootstrap.css",
+      "size": 27344,
+      "sha256": "02ed0309dffc51722acac4192ce04419a1fa0c7539918faf6fcc49f0e410441e",
+      "runtimePath": "lib/bootstrape/css/bootstrap.css"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/codemirror/mode.min.js",
+      "size": 572193,
+      "sha256": "f94c465a5a34ad0393fe308a93348f328c153b56e7111e8123b0aa236aa8a460",
+      "runtimePath": "lib/codemirror/mode.min.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/diagram/css/mermaid-zenuml.css",
+      "size": 414052,
+      "sha256": "bd18f0818b574117c00d89a97fdb2ef27245d06901a3920de517c49a27fd0183",
+      "runtimePath": "lib/diagram/css/mermaid-zenuml.css"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/diagram/css/mermaid.css",
+      "size": 200,
+      "sha256": "ed89fec9f30fee175998b4ae25ce1b4eb5b717f1305bf4fdc43fa7a853f8f40c",
+      "runtimePath": "lib/diagram/css/mermaid.css"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/diagram/diagram.min.js",
+      "size": 212151,
+      "sha256": "7bcf6eaaabcf03cd3fdac03d9f8ff1a69e6153f11321f797c0191c07a18a19db",
+      "runtimePath": "lib/diagram/diagram.min.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/diagram/mermaid-zenuml.min.js",
+      "size": 856503,
+      "sha256": "be3b94513df8db0e3322bbeff7319c01db534b4993620f71c6f362ab46fd1786",
+      "runtimePath": "lib/diagram/mermaid-zenuml.min.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/diagram/mermaid.min.js",
+      "size": 2841573,
+      "sha256": "06946234d65fdc5ce34aaa878efc6bc6f15c17b8f712fb90a21bd3e753569f9b",
+      "runtimePath": "lib/diagram/mermaid.min.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/a11y/complexity.js",
+      "size": 18034,
+      "sha256": "cc05edc9c9ead1b972410d0e7c1b8611c565a87fe513822bce94268954d03463",
+      "runtimePath": "lib/MathJax3/es5/a11y/complexity.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/a11y/explorer.js",
+      "size": 36348,
+      "sha256": "8729b09b7f23927c724a0a502b04acb2df0943109bb75602c26db68cb87643ac",
+      "runtimePath": "lib/MathJax3/es5/a11y/explorer.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/a11y/semantic-enrich.js",
+      "size": 8084,
+      "sha256": "366e94cbf3ca49386413d64a910ecf5db018449fbed03275f93d6f2e81d5c596",
+      "runtimePath": "lib/MathJax3/es5/a11y/semantic-enrich.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/input/mml.js",
+      "size": 14583,
+      "sha256": "65c93277d980860f34341112c59520b9d2745cd46280d9c2fe036718b826624d",
+      "runtimePath": "lib/MathJax3/es5/input/mml.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/input/tex/extensions/xypic.js",
+      "size": 355205,
+      "sha256": "4f43a95cee098687614efe3c6bd8ffaaa10a086ba30dec1049b67e8eab6f8e7b",
+      "runtimePath": "lib/MathJax3/es5/input/tex/extensions/xypic.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/sre/mathmaps/base.json",
+      "size": 115025,
+      "sha256": "83311887b069476a6a4d0c6afe7f8e55075c85b44b029588739c0d835fc912b8",
+      "runtimePath": "lib/MathJax3/es5/sre/mathmaps/base.json"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/sre/mathmaps/en.json",
+      "size": 409173,
+      "sha256": "19d9b309dc0d25d2bde2d3130bd3772b6d7c3f8316ebbd85306bef55ac89b2a7",
+      "runtimePath": "lib/MathJax3/es5/sre/mathmaps/en.json"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/sre/sre_browser.js",
+      "size": 475166,
+      "sha256": "82438ae616bc8c1f658f1e3fcb64c7c72323d5c2cb3433619124db799d16fb4a",
+      "runtimePath": "lib/MathJax3/es5/sre/sre_browser.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/tex-svg-full.js",
+      "size": 2275115,
+      "sha256": "ba5336213874be63131aef64d25b24d962e9c8eda048227d02dda056dce09b4a",
+      "runtimePath": "lib/MathJax3/es5/tex-svg-full.js"
+    },
+    {
+      "path": "packages/editor-runtime/vendor/MathJax3/es5/ui/safe.js",
+      "size": 11189,
+      "sha256": "9fef48d868277a8bc1852f7ba796b33ead812d38916a7131b0a29ea48961a6a4",
+      "runtimePath": "lib/MathJax3/es5/ui/safe.js"
+    },
+    {
+      "path": "packages/editor-themes/assets/github/open-sans-v17-latin-ext_latin-700.woff2",
+      "size": 20108,
+      "sha256": "59a3166f7bacce6a65bf901ad20f141b619bca39a1318ea5efbdaa587b48a800",
+      "runtimePath": "style/themes/github/open-sans-v17-latin-ext_latin-700.woff2"
+    },
+    {
+      "path": "packages/editor-themes/assets/github/open-sans-v17-latin-ext_latin-700italic.woff2",
+      "size": 18456,
+      "sha256": "a250cc9c90a94d628301cbeaca7d8aa6276cda73c8a32af07d3ede513447931a",
+      "runtimePath": "style/themes/github/open-sans-v17-latin-ext_latin-700italic.woff2"
+    },
+    {
+      "path": "packages/editor-themes/assets/github/open-sans-v17-latin-ext_latin-italic.woff2",
+      "size": 18604,
+      "sha256": "8ddc89881ca5f355826d20b2229266c56a2c8d7be69ff9533b1891b55dc15825",
+      "runtimePath": "style/themes/github/open-sans-v17-latin-ext_latin-italic.woff2"
+    },
+    {
+      "path": "packages/editor-themes/assets/github/open-sans-v17-latin-ext_latin-regular.woff2",
+      "size": 19396,
+      "sha256": "537d46273fe124bbced2f098f26222fa3155741e9d76f906c3c39e7fa09bf6a8",
+      "runtimePath": "style/themes/github/open-sans-v17-latin-ext_latin-regular.woff2"
+    },
+    {
+      "path": "packages/editor-themes/base.css",
+      "size": 8169,
+      "sha256": "e0e827c9f17f12a1099ad736d47413621d272e74a54c0f5e1a4d4492157207ed"
     }
   ]
 }

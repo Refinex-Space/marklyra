@@ -634,7 +634,41 @@ test('header-before row insertion is offered with source proof and cancellation 
   await choose(page, null);
   expect(await flush(page)).toBe(tableSource);
 });
-for (const url of ['file:///private/no-authority.md', 'javascript:alert(1)'])
+test('rich copy and paste preserve a custom URI as data without granting a host launch', async ({
+  page,
+}) => {
+  const url = 'custom-editor://document/item';
+  const original = `[site](${url})\n\nTarget`;
+  await mount(page, original);
+  await select(page, 4, 0, '#write a');
+  await open(page);
+  await choose(page, 'edit.copy');
+  await expect.poll(async () => (await writes(page)).length).toBe(1);
+  const copied = (await writes(page))[0];
+  expect(copied?.markHtml).toContain(url);
+  await page.evaluate((content) => {
+    if (!content) throw Error('Missing rich clipboard content');
+    (window as Host).menu.read = content;
+  }, copied);
+  await select(page, 6, 0, '#write > p:last-child');
+  await open(page);
+  await choose(page, 'edit.paste');
+  await expect.poll(async () => (await flush(page)).split(url).length).toBe(3);
+  const request = await open(page, '#write > p:last-child a');
+  expect(flatten(request?.items ?? []).find((item) => item.actionId === 'link.open')?.enabled).toBe(
+    false,
+  );
+  await choose(page, null);
+  expect(await page.evaluate(() => (window as Host).menu.opened)).toEqual([]);
+  await command(page, 'undo');
+  expect(await flush(page)).toBe(original);
+});
+
+for (const url of [
+  'file:///private/no-authority.md',
+  'javascript:alert(1)',
+  'custom-editor://document/item',
+])
   test(`unsafe link opening is disabled: ${url.split(':')[0]}`, async ({ page }) => {
     const raw = `[site](${url})`;
     await mount(page, raw);

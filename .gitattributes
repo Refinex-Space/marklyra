@@ -12,11 +12,19 @@
 *.css text eol=lf
 *.html text eol=lf
 
-# Keep upstream notices and their pinned hashes byte-exact on all hosts.
-licenses/** -text -whitespace
+# Keep the two authoritative notice files byte-exact on all hosts.
+LICENSE -text -whitespace
+THIRD-PARTY-NOTICES.txt -text -whitespace
 
 # Editor sources contain pinned bytes; do not apply Windows CRLF conversion.
-resources/** -text -whitespace
+packages/editor-runtime/src/engine/** -text -whitespace
+packages/editor-runtime/src/page/** -text -whitespace
+packages/editor-runtime/assets/** -text -whitespace
+packages/editor-runtime/vendor/** -text -whitespace
+packages/editor-themes/assets/** -text -whitespace
+packages/editor-themes/base.css -text -whitespace
+apps/desktop/src/features/settings/runtime-preferences/page/** -text -whitespace
+apps/desktop/src-tauri/icons/titlebar/** -text -whitespace
 apps/desktop/public/icons/** -text -whitespace
 **/test-fixtures/** -text -whitespace
 

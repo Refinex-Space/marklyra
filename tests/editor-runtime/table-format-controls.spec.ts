@@ -200,7 +200,7 @@ for (const [label, delimiter, alignment] of [
     await mountTableEditor(page, source);
     const frame = tableFrame(page);
     await frame.locator('#write tbody td').first().click();
-    await expect(frame.locator('.ty-table-edit')).toBeHidden();
+    await expect(frame.locator('.marklyra-table-edit')).toBeHidden();
     await menu(page, 'column', '#write tbody td:first-child');
     await align(page, label);
     const actual = await tableSource(page);

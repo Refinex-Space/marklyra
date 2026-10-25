@@ -1,6 +1,6 @@
-import { readFile } from 'node:fs/promises';
 import type { MarkLyraEditor } from '@marklyra/editor-runtime';
 import { expect, type Page, test } from '@playwright/test';
+import { engineWithoutCapability } from './engine-source-fixture.js';
 
 type Host = Window & { marklyraEditor: MarkLyraEditor; literalErrors: string[] };
 interface SourceView {
@@ -137,7 +137,7 @@ for (const fixture of fixtures) {
       collapsed: true,
     });
     await command(page, 'toggleSource');
-    const code = frame(page).locator('#typora-source .CodeMirror');
+    const code = frame(page).locator('#marklyra-source .CodeMirror');
     const canonical = await code.evaluate((element) =>
       (Reflect.get(element, 'CodeMirror') as SourceView).getValue(),
     );
@@ -189,9 +189,7 @@ for (const fixture of fixtures) {
 test('without the proven parser hook a later FEFF rule is rejected and the old document retained', async ({
   page,
 }) => {
-  const original = await readFile(
-    new URL('../../resources/editor/appsrc/main.js', import.meta.url),
-  );
+  const original = await engineWithoutCapability('__MARKLYRA_NATIVE_LITERAL__');
   await page.route('http://127.0.0.1:4174/appsrc/main.js', (route) =>
     route.fulfill({ body: original, contentType: 'text/javascript' }),
   );
@@ -218,7 +216,7 @@ test('a literal FEFF on its own line stays content rather than being equated to 
   await command(page, 'toggleSource');
   expect(
     await frame(page)
-      .locator('#typora-source .CodeMirror')
+      .locator('#marklyra-source .CodeMirror')
       .evaluate((element) => (Reflect.get(element, 'CodeMirror') as SourceView).getValue()),
   ).toContain('\uFEFF');
   await command(page, 'toggleSource');

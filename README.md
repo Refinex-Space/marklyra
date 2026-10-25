@@ -16,7 +16,7 @@ Node.js 22+、pnpm 10.33.0 和 Rust stable 为开发依赖。Windows 还需安�
 
 开发运行与 debug 构建使用独立的 `marklyra-dev` 原生数据/配置目录，release 构建继续使用 `marklyra`，避免开发实例与安装版竞争草稿存储锁。开发目录从默认配置开始，不迁移或清理安装版的设置和草稿；图谱索引也随构建环境隔离。
 
-编辑器源码资源位于 `resources/editor`，原生标题栏图像位于 `resources/native-titlebar`，均随 Git 克隆，无需手动复制本机目录或安装其他编辑器。`pnpm prepare:runtime` 校验源码、构建适配层并生成 `dist/editor-runtime`；开发和打包命令会自动执行。资源按原始字节检出，不受 Windows `core.autocrlf` 影响。目录约定见 [resources](resources/README.md)。
+编辑器引擎、页面、样式、语言包及随附库由 `packages/editor-runtime` 直接管理，主题位于 `packages/editor-themes`，设置页和原生标题栏图像位于 `apps/desktop`。这些源码随 Git 克隆，无需手动复制本机目录或安装其他编辑器。`pnpm prepare:runtime` 校验内部源码、构建适配层并生成 `packages/editor-runtime/dist/page`；开发和打包命令会自动执行。身份清单中的输入按原始字节检出，不受 Windows `core.autocrlf` 影响。目录与验证约定见 [内部源码构建](docs/RUNTIME-SOURCE-VERIFICATION.md)。
 
 ## 验证
 
@@ -24,6 +24,7 @@ Node.js 22+、pnpm 10.33.0 和 Rust stable 为开发依赖。Windows 还需安�
 pnpm typecheck
 pnpm check:boundaries
 pnpm check:resources
+node scripts/check-provenance.mjs --worktree
 pnpm test
 pnpm test:runtime-transform
 pnpm test:runtime
@@ -42,12 +43,14 @@ cargo test --workspace --lib --bins --locked
 - `packages/editor-react`、`editor-extensions`、`editor-themes`：React 生命周期、扩展及样式。
 - `apps/desktop`：桌面窗口、设置和受限原生服务。
 - `crates`：文档、目录、图片、导出、最近文件及崩溃草稿存储。
-- `config`：资源身份、依赖和分发校验清单。
+- `config`：构建输入身份与应用配置。
 
 所有文件保存以源文本为准，保留编码、BOM 和换行；崩溃草稿、撤销重做和自动保存是产品能力。配置、编译、打包、运行和签名分别验证。
 
-仓库地址：`git@github.com:Refinex-Space/marklyra.git`。第三方组件原始通知保留在资源目录和 [licenses](licenses/README.md)。
+仓库地址：`git@github.com:Refinex-Space/marklyra.git`。项目使用根 [LICENSE](LICENSE) 的 Apache-2.0；必要第三方通知统一维护在 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)，构建时直接附带。
 
 ## 版本发布
 
 Mac、Windows GitHub Release 构建、首次密钥配置、版本递增、草稿验收与手动发布步骤见 [发布与更新手册](docs/releases/README.md)。应用内更新不显示版本摘要；平台安装包无需付费签名证书。
+
+依赖版本更新后运行 `pnpm update:notices` 更新合并通知；正常开发和构建不需要维护逐组件许可文件。

@@ -814,7 +814,7 @@ html[data-settings-page] {
     padding-top: 0;
   }
 }
-[data-settings-page] .ty-tooltip {
+[data-settings-page] .marklyra-tooltip {
   display: block;
   max-width: 300px;
   padding: 10px 12px;
@@ -1045,7 +1045,7 @@ html[data-settings-page] {
 [data-settings-page] .settings-select-popup li[aria-selected="true"]::after {
   content: "✓";
 }
-[data-settings-page] .ty-tooltip {
+[data-settings-page] .marklyra-tooltip {
   position: fixed;
   width: max-content;
   max-width: min(300px, calc(100vw - 16px));
