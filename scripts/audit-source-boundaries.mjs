@@ -165,7 +165,7 @@ for (const path of await walk(resolve(root, 'packages/editor-runtime/dist/page')
   const sourcePath = inputByOutput.get(path);
   let classification = sourcePath ? 'WORKSPACE_INPUT' : 'GENERATED_OUTPUT';
   if (record?.sourceInputs) classification = 'GENERATED_SOURCE_BUNDLE';
-  if (path === 'LICENSE' || path === 'THIRD-PARTY-NOTICES.txt') classification = 'PROJECT_NOTICE';
+  if (path === 'LICENSE') classification = 'PROJECT_NOTICE';
   if (
     ['frame-host.js', 'preferences/child-host.js', 'empty.css', 'preferences/empty.css'].includes(
       path,
@@ -230,6 +230,6 @@ console.log(
     packages: packageRules.length,
     runtimeResources: resources.length,
     nativeAssets: nativeAssets.length,
-    notices: ['LICENSE', 'THIRD-PARTY-NOTICES.txt'],
+    notices: ['LICENSE'],
   }),
 );

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
 
-it('ships the two selected Tabler folder assets with fixed identities and their license', () => {
+it('ships the two selected Tabler folder assets with fixed identities', () => {
   const root = new URL('../public/icons/workspace/', import.meta.url);
   const manifest = JSON.parse(
     readFileSync(new URL('./fixtures/workspace-icon-identities.json', import.meta.url), 'utf8'),
@@ -17,7 +17,4 @@ it('ships the two selected Tabler folder assets with fixed identities and their 
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(item.sha256);
     expect(bytes.toString()).not.toMatch(/<script|<foreignObject|\son[a-z]+=|href=["']https?:/i);
   }
-  expect(
-    readFileSync(new URL('../../../THIRD-PARTY-NOTICES.txt', import.meta.url), 'utf8'),
-  ).toContain('Copyright (c) 2020-2026 Paweł Kuna');
 });

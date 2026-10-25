@@ -55,7 +55,7 @@ it('renders annotations in normalized coordinates to match resized exports', () 
   expect(context.fillText).toHaveBeenCalledWith('Note', 400, 200, 40);
 });
 
-it('ships licensed viewer icons with verified packaged bytes and upstream geometry', async () => {
+it('ships viewer icons with verified packaged bytes and upstream geometry', async () => {
   const { readFile } = await import('node:fs/promises');
   const { createHash } = await import('node:crypto');
   const manifest = JSON.parse(
@@ -73,7 +73,4 @@ it('ships licensed viewer icons with verified packaged bytes and upstream geomet
     const upstream = bytes.toString('utf8').replace(/\n {2}<title>[^<]*<\/title>/, '');
     expect(createHash('sha256').update(upstream).digest('hex')).toBe(item.upstreamSha256);
   }
-  expect(
-    await readFile(new URL('../../../THIRD-PARTY-NOTICES.txt', import.meta.url), 'utf8'),
-  ).toContain('MIT License');
 });

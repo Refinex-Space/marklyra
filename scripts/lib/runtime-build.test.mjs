@@ -16,7 +16,6 @@ async function fixture(t) {
     await mkdir(resolve(root, directory), { recursive: true });
   for (const file of [
     'LICENSE',
-    'THIRD-PARTY-NOTICES.txt',
     'package.json',
     'config/runtime-source.json',
     'packages/editor-runtime/dist/frame-host.js',
@@ -79,7 +78,6 @@ test('ordinary package build layout accepts a not-yet-generated page', async (t)
 
 for (const path of [
   'LICENSE',
-  'THIRD-PARTY-NOTICES.txt',
   'packages/editor-runtime/dist',
   'packages/editor-runtime/dist/page',
 ]) {
@@ -87,10 +85,7 @@ for (const path of [
     const root = await fixture(t);
     await rm(resolve(root, path), { recursive: true, force: true });
     await symlink(
-      resolve(
-        root,
-        ['LICENSE', 'THIRD-PARTY-NOTICES.txt'].includes(path) ? 'outside/page/sentinel' : 'outside',
-      ),
+      resolve(root, path === 'LICENSE' ? 'outside/page/sentinel' : 'outside'),
       resolve(root, path),
     );
     await assert.rejects(buildRuntimePage({ root }), /Runtime build path must be a regular/);

@@ -16,7 +16,7 @@ Node.js 22+、pnpm 10.33.0 和 Rust stable 为开发依赖。Windows 还需安�
 
 开发运行与 debug 构建使用独立的 `marklyra-dev` 原生数据/配置目录，release 构建继续使用 `marklyra`，避免开发实例与安装版竞争草稿存储锁。开发目录从默认配置开始，不迁移或清理安装版的设置和草稿；图谱索引也随构建环境隔离。
 
-编辑器引擎、页面、样式、语言包及随附库由 `packages/editor-runtime` 直接管理，主题位于 `packages/editor-themes`，设置页和原生标题栏图像位于 `apps/desktop`。这些源码随 Git 克隆，无需手动复制本机目录或安装其他编辑器。`pnpm prepare:runtime` 校验内部源码、构建适配层并生成 `packages/editor-runtime/dist/page`；开发和打包命令会自动执行。身份清单中的输入按原始字节检出，不受 Windows `core.autocrlf` 影响。目录与验证约定见 [内部源码构建](docs/RUNTIME-SOURCE-VERIFICATION.md)。
+编辑器引擎、页面、样式、语言包及随附库由 `packages/editor-runtime` 直接管理，主题位于 `packages/editor-themes`，设置页和原生标题栏图像位于 `apps/desktop`。这些源码随 Git 克隆，无需手动复制本机目录或安装其他编辑器。`pnpm prepare:runtime` 校验内部源码、构建适配层并生成 `packages/editor-runtime/dist/page`；开发和打包命令会自动执行。身份清单中的输入按原始字节检出，不受 Windows `core.autocrlf` 影响。
 
 ## 验证
 
@@ -47,10 +47,8 @@ cargo test --workspace --lib --bins --locked
 
 所有文件保存以源文本为准，保留编码、BOM 和换行；崩溃草稿、撤销重做和自动保存是产品能力。配置、编译、打包、运行和签名分别验证。
 
-仓库地址：`git@github.com:Refinex-Space/marklyra.git`。项目使用根 [LICENSE](LICENSE) 的 Apache-2.0；必要第三方通知统一维护在 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)，构建时直接附带。
+仓库地址：`git@github.com:Refinex-Space/marklyra.git`。项目自有代码使用根 [LICENSE](LICENSE) 的 Apache-2.0，构建时直接附带根许可证。
 
 ## 版本发布
 
 Mac、Windows GitHub Release 构建、首次密钥配置、版本递增、草稿验收与手动发布步骤见 [发布与更新手册](docs/releases/README.md)。应用内更新不显示版本摘要；平台安装包无需付费签名证书。
-
-依赖版本更新后运行 `pnpm update:notices` 更新合并通知；正常开发和构建不需要维护逐组件许可文件。

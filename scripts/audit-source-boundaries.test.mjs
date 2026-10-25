@@ -6,13 +6,12 @@ import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
 const source = resolve(import.meta.dirname, '..');
-test('source audit rejects missing runtime, unknown package and mismatched notices in an isolated copy', async (t) => {
+test('source audit rejects missing runtime, unknown package and mismatched license in an isolated copy', async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'marklyra-audit-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   for (const file of [
     '.gitignore',
     'LICENSE',
-    'THIRD-PARTY-NOTICES.txt',
     'package.json',
     'scripts/audit-source-boundaries.mjs',
     'scripts/lib/provenance.mjs',
@@ -70,7 +69,7 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
     });
   const initial = run();
   assert.equal(initial.status, 0, initial.stderr);
-  const noticePath = join(root, 'packages/editor-runtime/dist/page/THIRD-PARTY-NOTICES.txt');
+  const noticePath = join(root, 'packages/editor-runtime/dist/page/LICENSE');
   const noticeBytes = await readFile(noticePath);
   await writeFile(noticePath, 'changed bundled notice');
   const changedNotice = run();

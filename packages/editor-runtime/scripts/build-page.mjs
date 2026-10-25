@@ -32,7 +32,6 @@ export async function verifyRuntimeBuildLayout(root) {
   }
   await regular('packages/editor-runtime/dist/page', 'directory', true);
   await regular('LICENSE', 'file');
-  await regular('THIRD-PARTY-NOTICES.txt', 'file');
   await regular('package.json', 'file');
   await regular('config/runtime-source.json', 'file');
   await regular('packages/editor-runtime/dist/frame-host.js', 'file');

@@ -106,7 +106,6 @@ cargo clippy -p knowledge-index -p file-index -p marklyra-desktop --all-targets 
 pnpm exec playwright test -c playwright.desktop.config.ts tests/desktop-e2e/knowledge-graph.spec.ts tests/desktop-e2e/app.spec.ts tests/desktop-e2e/document-details.spec.ts --workers=2
 node tools/performance/knowledge-native.mjs --release
 pnpm build:desktop --no-bundle
-pnpm update:notices
 ```
 
 原生工具只创建自有临时笔记目录和无持久配置的 WKWebView 窗口，不打开用户文稿、不复用已运行应用的数据。它采用产品相同的 IPC 隔离与编辑器协议：合成 10,000 篇文档/50,000 条关系，验证冷索引、真实文件事件增量、跨窗口拒绝、原生 SVG 按钮与点击路由、500/5,000 节点绘制、拖动、静止、20 次创建销毁，并与真实隔离编辑器共存。报告附代码 SHA-256、构建模式、操作系统、进程内存和逐次采样。

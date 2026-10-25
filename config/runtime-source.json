@@ -43,8 +43,8 @@
     },
     {
       "path": "apps/desktop/src/features/settings/runtime-preferences/page/static/js/0.99879679.chunk.js",
-      "size": 287,
-      "sha256": "a460924d280808f0dc633331047bd8a98d444de7b14fe1a563b5db9b36b5775a",
+      "size": 196,
+      "sha256": "a09b73e4338aaa492ac0063040679dc73b1523b3c752fd68b74054ca31226b05",
       "runtimePath": "preferences/static/js/0.99879679.chunk.js"
     },
     {
@@ -357,8 +357,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/styles/codemirror.css",
-      "size": 6189,
-      "sha256": "60bc55c6bcad709ec00889efef335e790f0f5541884ce3803e55c0fa0cd4939c",
+      "size": 6127,
+      "sha256": "d307402424514b56df3b20bb4c333657d533b88a972c9cc3ff9dd9612601add5",
       "runtimePath": "style/codemirror.css"
     },
     {

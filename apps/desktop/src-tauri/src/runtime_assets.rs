@@ -38,7 +38,6 @@ pub fn ipc_initialization_script() -> String {
 
 const ROOT_FILES: &[&str] = &[
     "LICENSE",
-    "THIRD-PARTY-NOTICES.txt",
     "index.html",
     "frame-host.js",
     "empty.css",
@@ -516,30 +515,26 @@ mod tests {
     }
 
     #[test]
-    fn bundled_project_and_dependency_notices_use_the_same_read_only_boundary() {
+    fn bundled_project_license_uses_the_read_only_boundary() {
         let (temporary, directory) = fixture();
-        for (path, content) in [
-            ("LICENSE", "Apache License"),
-            ("THIRD-PARTY-NOTICES.txt", "Third-party notice"),
-        ] {
-            fs::write(temporary.path().join(path), content).unwrap();
-            let url = format!("marklyra://localhost/{path}");
-            let response = serve(Some(&directory), &request("GET", &url));
-            assert_eq!(response.status(), StatusCode::OK);
-            assert_eq!(response.body(), content.as_bytes());
-            assert_eq!(
-                response.headers()[header::CONTENT_TYPE],
-                "text/plain; charset=utf-8"
-            );
-            assert_eq!(response.headers()["X-Content-Type-Options"], "nosniff");
-            let head = serve(Some(&directory), &request("HEAD", &url));
-            assert_eq!(head.status(), StatusCode::OK);
-            assert!(head.body().is_empty());
-            assert_eq!(
-                serve(Some(&directory), &request("POST", &url)).status(),
-                StatusCode::METHOD_NOT_ALLOWED
-            );
-        }
+        let content = "Apache License";
+        fs::write(temporary.path().join("LICENSE"), content).unwrap();
+        let url = "marklyra://localhost/LICENSE";
+        let response = serve(Some(&directory), &request("GET", url));
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.body(), content.as_bytes());
+        assert_eq!(
+            response.headers()[header::CONTENT_TYPE],
+            "text/plain; charset=utf-8"
+        );
+        assert_eq!(response.headers()["X-Content-Type-Options"], "nosniff");
+        let head = serve(Some(&directory), &request("HEAD", url));
+        assert_eq!(head.status(), StatusCode::OK);
+        assert!(head.body().is_empty());
+        assert_eq!(
+            serve(Some(&directory), &request("POST", url)).status(),
+            StatusCode::METHOD_NOT_ALLOWED
+        );
         assert!(
             resource_path(&"marklyra://localhost/licenses/../LICENSE".parse().unwrap()).is_err()
         );
@@ -549,11 +544,7 @@ mod tests {
             "stale standalone notice",
         )
         .unwrap();
-        for path in [
-            "licenses/dependency.txt",
-            "LICENSE.backup",
-            "THIRD-PARTY-NOTICES.txt/extra",
-        ] {
+        for path in ["licenses/dependency.txt", "LICENSE.backup", "LICENSE/extra"] {
             assert_eq!(
                 serve(
                     Some(&directory),

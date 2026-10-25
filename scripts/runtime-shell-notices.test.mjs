@@ -10,9 +10,13 @@ import { projectNoticeFiles, readProjectNotices } from './lib/project-notices.mj
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const desktopConfig = fileURLToPath(new URL('../apps/desktop/vite.config.ts', import.meta.url));
 
-async function fixture(t) {
+async function fixture(t, beforeRemove = async () => {}) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'marklyra-desktop-notices-')));
-  t.after(() => rm(root, { recursive: true, force: true }));
+  t.after(async () => {
+    // Stop Vite before removing its working directory and optimizer cache.
+    await beforeRemove();
+    await rm(root, { recursive: true, force: true });
+  });
   await writeFile(
     join(root, 'index.html'),
     '<!doctype html><html><head></head><body></body></html>',
@@ -20,9 +24,10 @@ async function fixture(t) {
   return root;
 }
 
-test('desktop configuration emits the shared notice texts once while assets keep their own identities', async (t) => {
+test('desktop configuration emits the project license once while assets keep their own identities', async (t) => {
   const root = await fixture(t);
   const expected = await readProjectNotices(repository);
+  assert.deepEqual(projectNoticeFiles, ['LICENSE']);
   const loaded = await loadConfigFromFile({ command: 'build', mode: 'production' }, desktopConfig);
   assert.ok(loaded);
   const plugins = loaded.config.plugins.flat();
@@ -60,17 +65,20 @@ test('desktop configuration emits the shared notice texts once while assets keep
   assert.ok(bundle.output.every((asset) => !asset.fileName.includes('/licenses/')));
 });
 
-test('desktop serves the shared root texts and retires the separate font and icon notice routes', async (t) => {
-  const root = await fixture(t);
+test('desktop serves the project license and retires the separate font and icon notice routes', async (t) => {
+  let server;
+  const root = await fixture(t, async () => {
+    server?.httpServer?.closeAllConnections();
+    await server?.close();
+  });
   const expected = await readProjectNotices(repository);
-  const server = await createServer({
+  server = await createServer({
     root,
     configFile: desktopConfig,
     publicDir: false,
     logLevel: 'silent',
     server: { host: '127.0.0.1', port: 0, strictPort: false, hmr: false, watch: null },
   });
-  t.after(() => server.close());
   await server.listen();
   const address = server.httpServer.address();
   assert.ok(address && typeof address === 'object');
@@ -96,6 +104,9 @@ test('desktop serves the shared root texts and retires the separate font and ico
     '/__runtime-fonts/licenses/fonts/manifest.json',
     '/__runtime-icons/licenses/ionicons-MIT.txt',
     '/__runtime-icons/licenses/fontawesome-OFL.txt',
-  ])
-    assert.equal((await fetch(`${origin}${path}`)).status, 404, path);
+  ]) {
+    const response = await fetch(`${origin}${path}`);
+    assert.equal(response.status, 404, path);
+    await response.arrayBuffer();
+  }
 });

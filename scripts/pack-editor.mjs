@@ -73,12 +73,6 @@ function verifyArchiveLicense(entries, license, name) {
     );
 }
 
-function verifyRuntimeArchiveNotice(entries, notice, name) {
-  const entry = entries.find(({ path }) => path === 'dist/page/THIRD-PARTY-NOTICES.txt');
-  assert.ok(entry, `${name}: centralized third-party notice missing from archive`);
-  assert.equal(entry.sha256, digest(notice), `${name}: centralized notice differs from the root`);
-}
-
 function run(command, args, cwd = root, json = false) {
   const result = spawnSync(command, args, {
     cwd,
@@ -152,25 +146,6 @@ if (process.argv.includes('--self-test')) {
         'changed-fixture',
       ),
     /license must match/,
-  );
-  const centralizedNotice = Buffer.from('synthetic centralized third-party notice');
-  verifyRuntimeArchiveNotice(
-    [{ path: 'dist/page/THIRD-PARTY-NOTICES.txt', sha256: digest(centralizedNotice) }],
-    centralizedNotice,
-    'runtime-fixture',
-  );
-  assert.throws(
-    () => verifyRuntimeArchiveNotice([], centralizedNotice, 'missing-fixture'),
-    /notice missing/,
-  );
-  assert.throws(
-    () =>
-      verifyRuntimeArchiveNotice(
-        [{ path: 'dist/page/THIRD-PARTY-NOTICES.txt', sha256: digest(Buffer.from('changed')) }],
-        centralizedNotice,
-        'changed-fixture',
-      ),
-    /notice differs/,
   );
   console.log('Package provenance preflight regression checks passed.');
   process.exit(0);
@@ -273,12 +248,6 @@ try {
     assert.ok(packedManifest, `${name}: packed manifest missing`);
     manifestGate(packedManifest);
     verifyArchiveLicense(entries, await readFile(join(root, 'LICENSE')), name);
-    if (packedManifest.name === '@marklyra/editor-runtime')
-      verifyRuntimeArchiveNotice(
-        entries,
-        await readFile(join(root, 'THIRD-PARTY-NOTICES.txt')),
-        name,
-      );
     for (const target of exportsList(packedManifest.exports)) {
       if (!target.startsWith('./') || !entries.some((entry) => entry.path === target.slice(2)))
         throw new Error(`${name}: missing exported build output ${target}`);

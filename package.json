@@ -35,8 +35,7 @@
     "release:prepare": "node scripts/release.mjs prepare",
     "test:release": "node --test scripts/release.test.mjs",
     "sync:runtime-sources": "node scripts/sync-runtime-sources.mjs",
-    "check:native-sources": "node scripts/check-native-sources.mjs",
-    "update:notices": "node scripts/update-notices.mjs"
+    "check:native-sources": "node scripts/check-native-sources.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

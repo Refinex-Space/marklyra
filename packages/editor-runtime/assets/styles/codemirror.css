@@ -1,7 +1,6 @@
 /* CodeMirror compatibility styles.
  * Library/legacy fragments retain their original bytes. Only confirmed local
  * adaptations are expanded in place; never move them to an override sheet.
- * Ownership references: docs/RUNTIME-SOURCE-VERIFICATION.md.
  */
 
 /* Local declarations within a retained rule. */

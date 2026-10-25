@@ -207,24 +207,23 @@ async function noticeFixture(t) {
   for (const directory of [root, output]) {
     await mkdir(directory, { recursive: true });
     await writeFile(join(directory, 'LICENSE'), 'root project license');
-    await writeFile(join(directory, 'THIRD-PARTY-NOTICES.txt'), 'centralized third-party notices');
   }
   return { root, output };
 }
 
-test('centralized notice verification rejects changed and missing copies', async (t) => {
+test('project license verification rejects changed and missing copies', async (t) => {
   const { root, output } = await noticeFixture(t);
   await verifyProjectNotices(root, output);
-  const notice = join(output, 'THIRD-PARTY-NOTICES.txt');
-  await writeFile(notice, 'different notice');
+  const notice = join(output, 'LICENSE');
+  await writeFile(notice, 'different license');
   await assert.rejects(verifyProjectNotices(root, output), /Project notice bundle mismatch/);
   await rm(notice);
   await assert.rejects(verifyProjectNotices(root, output), /Project notice must be a regular file/);
-  await writeFile(notice, 'centralized third-party notices');
+  await writeFile(notice, 'root project license');
   await verifyProjectNotices(root, output);
 });
 
-test('project license and generated notice symlinks remain rejected', async (t) => {
+test('project license source and output symlinks remain rejected', async (t) => {
   const { root, output } = await noticeFixture(t);
   const license = join(output, 'LICENSE');
   await rm(license);
@@ -232,9 +231,9 @@ test('project license and generated notice symlinks remain rejected', async (t) 
   await assert.rejects(verifyProjectNotices(root, output), /regular file/);
   await rm(license);
   await writeFile(license, 'root project license');
-  const notice = join(root, 'THIRD-PARTY-NOTICES.txt');
+  const notice = join(root, 'LICENSE');
   await rm(notice);
-  await symlink(join(output, 'THIRD-PARTY-NOTICES.txt'), notice);
+  await symlink(join(output, 'LICENSE'), notice);
   await assert.rejects(verifyProjectNotices(root, output), /regular file/);
 });
 
@@ -247,7 +246,7 @@ test('retired notice directories cannot silently remain beside the shared texts'
   );
 });
 
-test('root notice source bytes survive an autocrlf checkout', async (t) => {
+test('root license source bytes survive an autocrlf checkout', async (t) => {
   const root = await fixture(t);
   await writeFile(
     join(root, '.gitattributes'),
@@ -255,7 +254,6 @@ test('root notice source bytes survive an autocrlf checkout', async (t) => {
   );
   const notices = new Map([
     ['LICENSE', Buffer.from('synthetic project license\r\nunchanged text\r\n')],
-    ['THIRD-PARTY-NOTICES.txt', Buffer.from('synthetic copyright\noriginal notice\n')],
   ]);
   git(root, ['config', 'core.autocrlf', 'true']);
   for (const [name, bytes] of notices) await writeFile(join(root, name), bytes);

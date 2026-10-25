@@ -12,9 +12,8 @@
 *.css text eol=lf
 *.html text eol=lf
 
-# Keep the two authoritative notice files byte-exact on all hosts.
+# Keep the project license byte-exact on all hosts.
 LICENSE -text -whitespace
-THIRD-PARTY-NOTICES.txt -text -whitespace
 
 # Editor sources contain pinned bytes; do not apply Windows CRLF conversion.
 packages/editor-runtime/src/engine/** -text -whitespace

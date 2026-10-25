@@ -3,39 +3,8 @@ import { lstat, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const repository = resolve(import.meta.dirname, '../..');
-export const projectNoticeFiles = Object.freeze(['LICENSE', 'THIRD-PARTY-NOTICES.txt']);
+export const projectNoticeFiles = Object.freeze(['LICENSE']);
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
-const normalized = (text) => text.replace(/\s+/g, ' ').trim();
-
-/** Share identical terms while retaining every received attribution and extra condition. */
-export function sharedNoticeParts(text, projectLicense) {
-  const apache = /Apache License\s+Version 2\.0[\s\S]*?END OF TERMS AND CONDITIONS/;
-  const source = apache.exec(text);
-  const common = apache.exec(projectLicense);
-  if (source && common && normalized(source[0]) === normalized(common[0])) {
-    const remainder = text.slice(source.index + source[0].length);
-    const commonRemainder = projectLicense.slice(common.index + common[0].length);
-    return {
-      attribution: [
-        text.slice(0, source.index).trim(),
-        normalized(remainder) === normalized(commonRemainder) ? '' : remainder.trim(),
-      ]
-        .filter(Boolean)
-        .join('\n\n'),
-      terms: 'Apache License, Version 2.0. The complete text is supplied in LICENSE.',
-    };
-  }
-  const grant =
-    /^[ \t]*(?:Permission is hereby granted|Permission to use, copy|Redistribution and use in source and binary forms)/m.exec(
-      text,
-    );
-  if (grant)
-    return {
-      attribution: text.slice(0, grant.index).trim(),
-      terms: text.slice(grant.index).trim(),
-    };
-  return { attribution: '', terms: text.trim() };
-}
 
 async function regularDirectory(directory) {
   const info = await lstat(directory).catch(() => undefined);
@@ -43,7 +12,7 @@ async function regularDirectory(directory) {
     throw new Error('Project notices require a regular directory');
 }
 
-/** One project license and one consolidated set of required third-party notices. */
+/** Read the root project license without following redirected inputs. */
 export async function readProjectNotices(root = repository) {
   await regularDirectory(root);
   const result = new Map();
@@ -62,7 +31,6 @@ export async function readProjectNotices(root = repository) {
 function identity(files) {
   return {
     projectLicenseSha256: files.get('LICENSE').sha256,
-    thirdPartyNoticesSha256: files.get('THIRD-PARTY-NOTICES.txt').sha256,
     noticeFiles: 1,
   };
 }
@@ -70,7 +38,7 @@ function identity(files) {
 export async function copyProjectNotices(root, output) {
   const files = await readProjectNotices(root);
   await regularDirectory(output);
-  // Validate both destinations before writing either file.
+  // Validate destinations before writing the project license.
   for (const name of projectNoticeFiles) {
     const info = await lstat(resolve(output, name)).catch((error) => {
       if (error.code === 'ENOENT') return undefined;
@@ -99,7 +67,7 @@ export async function verifyProjectNotices(root, output) {
   return identity(expected);
 }
 
-/** Publish the shared texts once per desktop frontend, independently of asset providers. */
+/** Publish the project license once per frontend, independently of asset providers. */
 export function projectNotices({ root = repository } = {}) {
   let pending;
   let building = false;
