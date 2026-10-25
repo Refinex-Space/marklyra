@@ -162,6 +162,10 @@ any copyright notice or the scope of a component's license.
 MIT
 ~~~
 
+Lucide panel-left icon (derived from Feather sidebar)
+Copyright (c) 2013-present Cole Bemis
+Source: https://lucide.dev/license
+
 Font Awesome CSS
 Font Awesome 4.1.0 by Dave Gandy — http://fontawesome.io
 
@@ -424,6 +428,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ISC
 ~~~
+
+Lucide panel-left and panel-right icons
+Copyright (c) 2026 Lucide Icons and Contributors
+Source: https://github.com/lucide-icons/lucide
 
 d3-array 3.2.4
 Copyright 2010-2023 Mike Bostock

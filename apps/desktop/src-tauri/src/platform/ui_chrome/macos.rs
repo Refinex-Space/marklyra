@@ -227,7 +227,6 @@ struct EditorChrome {
     outline: Retained<NSButton>,
     ai: Retained<NSButton>,
     graph: Retained<NSButton>,
-    images: TitlebarImages,
     fullscreen_constraints: Option<Retained<NSArray<NSLayoutConstraint>>>,
     dark: Option<bool>,
 }
@@ -310,11 +309,11 @@ impl EditorChrome {
             );
             native_hover::set_frame(
                 &actions[0],
-                titlebar_icon_rect(leading + home + width - 4.0, 10.0),
+                titlebar_icon_rect(leading + home + width - 4.0, 14.0),
             );
             native_hover::set_frame(
                 &actions[1],
-                titlebar_icon_rect(leading + home + width + 28.0, 13.0),
+                titlebar_icon_rect(leading + home + width + 28.0, 14.0),
             );
         }
         if let Some(source) = self.view.ivars().source_button.get() {
@@ -433,7 +432,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             &view,
             "大纲",
             sel!(toggleOutline:),
-            titlebar_icon_rect(0.0, 10.0),
+            titlebar_icon_rect(0.0, 14.0),
             true,
         );
         outline.setImage(Some(&images.outline));
@@ -444,7 +443,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             &view,
             "侧边栏",
             sel!(toggleSidebar:),
-            titlebar_icon_rect(0.0, 13.0),
+            titlebar_icon_rect(0.0, 14.0),
             true,
         );
         sidebar.setImage(Some(&images.sidebar));
@@ -511,7 +510,6 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             outline,
             ai,
             graph,
-            images,
             fullscreen_constraints: None,
             dark: None,
         };
@@ -536,18 +534,6 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
                 }
             });
             chrome.window.setAppearance(appearance.as_deref());
-            chrome.outline.setImage(Some(if update.dark {
-                &chrome.images.outline_dark
-            } else {
-                &chrome.images.outline
-            }));
-            if let Some(actions) = chrome.view.ivars().actions.get() {
-                actions[1].setImage(Some(if update.dark {
-                    &chrome.images.sidebar_dark
-                } else {
-                    &chrome.images.sidebar
-                }));
-            }
             chrome.dark = Some(update.dark);
         }
         chrome

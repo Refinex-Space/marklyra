@@ -8,9 +8,12 @@ import { nativeTitlebarManifest, verifyNativeIcons } from './prepare-native-icon
 
 const input = fileURLToPath(new URL('../apps/desktop/src-tauri/icons/titlebar', import.meta.url));
 
-test('all four tracked raster inputs retain their recorded identity and dimensions', async () => {
-  assert.equal(await verifyNativeIcons(), 4);
-  assert.equal(new Set(nativeTitlebarManifest.assets.map((entry) => entry.file)).size, 4);
+test('both shared Lucide SVG inputs retain their recorded identity and dimensions', async () => {
+  assert.equal(await verifyNativeIcons(), 2);
+  assert.deepEqual(
+    nativeTitlebarManifest.assets.map((entry) => entry.file),
+    ['panel-left.svg', 'panel-right.svg'],
+  );
 });
 
 test('changed bytes cannot become a trusted native image', async () => {

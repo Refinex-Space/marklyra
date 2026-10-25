@@ -3,24 +3,14 @@
   "project": "MarkLyra",
   "resources": [
     {
-      "path": "apps/desktop/src-tauri/icons/titlebar/sideButton@2x.png",
-      "size": 293,
-      "sha256": "b6b1ac819431967ca3d2294692bee9e5fedd4aa3b6a92725d5ba990e009e8047"
+      "path": "apps/desktop/src-tauri/icons/titlebar/panel-left.svg",
+      "size": 284,
+      "sha256": "029f67b9e3eeb7ddf7c7c499b174c50388725e8ea50d4ea59ed7dbaf8d61cb82"
     },
     {
-      "path": "apps/desktop/src-tauri/icons/titlebar/sideButtonWhite@2x.png",
-      "size": 301,
-      "sha256": "6615e272b3a927e0c472048bb1456d9d804df15f72c5afa9ecd537d0ef1e1060"
-    },
-    {
-      "path": "apps/desktop/src-tauri/icons/titlebar/tocButton@2x.png",
-      "size": 501,
-      "sha256": "95eb4ac2b02234699987b7247d1dee7b54cdfd134ff383f6c8c9cf0f934007a8"
-    },
-    {
-      "path": "apps/desktop/src-tauri/icons/titlebar/tocButtonWhite@2x.png",
-      "size": 314,
-      "sha256": "eec8355f1b2ea9db309492406d1e4316aaef0f0ffdc5443e3c73fe6cc197512c"
+      "path": "apps/desktop/src-tauri/icons/titlebar/panel-right.svg",
+      "size": 285,
+      "sha256": "327d197328f9feb1f88c36c9db04e9b00fe717d877459f92fcd892f5e4c349fa"
     },
     {
       "path": "apps/desktop/src/features/settings/runtime-preferences/page/cocoa.css",

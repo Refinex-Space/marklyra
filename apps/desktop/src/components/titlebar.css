@@ -227,19 +227,17 @@
 }
 .titlebar-glyph {
   display: block;
+  width: 14px;
+  height: 14px;
   background: currentColor;
   -webkit-mask: var(--glyph) center / contain no-repeat;
   mask: var(--glyph) center / contain no-repeat;
 }
 .titlebar-glyph-outline {
-  --glyph: url("../../src-tauri/icons/titlebar/tocButton@2x.png");
-  width: 13px;
-  height: 10px;
+  --glyph: url("../../src-tauri/icons/titlebar/panel-right.svg");
 }
 .titlebar-glyph-sidebar {
-  --glyph: url("../../src-tauri/icons/titlebar/sideButton@2x.png");
-  width: 12px;
-  height: 12px;
+  --glyph: url("../../src-tauri/icons/titlebar/panel-left.svg");
 }
 .titlebar .titlebar-source {
   height: 20px;

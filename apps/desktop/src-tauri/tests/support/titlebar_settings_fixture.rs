@@ -45,6 +45,13 @@ pub(crate) fn verify_preferences_layout(window: &WebviewWindow) {
                     CHROME.with(|registry| {
                         let registry = registry.borrow();
                         let chrome = &registry[label];
+                        for button in &chrome.view.ivars().actions.get().unwrap()[..2] {
+                            let image = button.image().expect("panel icon");
+                            assert!(image.isValid(), "AppKit must decode the Lucide SVG");
+                            assert!(image.isTemplate(), "panel icons follow the native appearance");
+                            assert_eq!(image.size(), NSSize::new(14.0, 14.0));
+                            assert!(button.frame().size.height >= image.size().height);
+                        }
                         assert!(chrome.view.ivars().home_button.get().unwrap().isHidden());
                         assert!(chrome.view.ivars().source_button.get().unwrap().isHidden());
                         assert!(chrome.view.ivars().actions.get().unwrap().iter().all(|button| button.isHidden()));

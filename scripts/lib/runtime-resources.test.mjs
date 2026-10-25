@@ -30,7 +30,8 @@ test('tracked project inputs verify without a private directory or installed edi
   assert.ok(resources.size > 0);
   assert.ok(resources.has('packages/editor-runtime/src/engine/main.js'));
   assert.ok(resources.has('packages/editor-runtime/src/page/index.html'));
-  assert.ok(resources.has('apps/desktop/src-tauri/icons/titlebar/tocButton@2x.png'));
+  assert.ok(resources.has('apps/desktop/src-tauri/icons/titlebar/panel-left.svg'));
+  assert.ok(resources.has('apps/desktop/src-tauri/icons/titlebar/panel-right.svg'));
   for (const path of resources.keys()) assert.ok(isRuntimeSourcePath(path));
 });
 
