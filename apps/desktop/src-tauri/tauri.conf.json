@@ -4,8 +4,8 @@
   "version": "0.2.0",
   "identifier": "dev.refinex.marklyra",
   "build": {
-    "beforeDevCommand": "pnpm -w prepare:native-icons && pnpm -w prepare:runtime && pnpm --filter @marklyra/desktop dev",
-    "beforeBuildCommand": "pnpm -w prepare:native-icons && pnpm -w prepare:runtime && pnpm --filter @marklyra/desktop build",
+    "beforeDevCommand": "pnpm -w prepare:runtime && pnpm --filter @marklyra/desktop dev",
+    "beforeBuildCommand": "pnpm -w prepare:runtime && pnpm --filter @marklyra/desktop build",
     "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../dist"
   },

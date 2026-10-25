@@ -1,20 +1,17 @@
-import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
 
-it('ships the two selected Tabler folder assets with fixed identities', () => {
+it('ships the two folder SVGs required by the explorer without executable content', () => {
   const root = new URL('../public/icons/workspace/', import.meta.url);
-  const manifest = JSON.parse(
-    readFileSync(new URL('./fixtures/workspace-icon-identities.json', import.meta.url), 'utf8'),
-  ) as { name: string; sha256: string }[];
   expect(
     readdirSync(root)
       .filter((name) => name.endsWith('.svg'))
       .sort(),
   ).toEqual(['folder-open.svg', 'folder.svg']);
-  for (const item of manifest) {
-    const bytes = readFileSync(new URL(`${item.name}.svg`, root));
-    expect(createHash('sha256').update(bytes).digest('hex')).toBe(item.sha256);
-    expect(bytes.toString()).not.toMatch(/<script|<foreignObject|\son[a-z]+=|href=["']https?:/i);
+  for (const file of ['folder-open.svg', 'folder.svg']) {
+    const svg = readFileSync(new URL(file, root), 'utf8');
+    expect(svg).toMatch(/<svg\b/);
+    expect(svg).toMatch(/\bviewBox=["'][^"']+["']/);
+    expect(svg).not.toMatch(/<script|<foreignObject|\son[a-z]+=|href=["']https?:/i);
   }
 });

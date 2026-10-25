@@ -12,19 +12,13 @@ const defaultSource = fileURLToPath(
 const defaultPage = fileURLToPath(new URL('../packages/editor-runtime/src/page/', import.meta.url));
 const privateRoot = fileURLToPath(new URL('../private/', import.meta.url));
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
-async function verifiedInput(root, relativePath, expectedHash, expectedBytes) {
+async function readInput(root, relativePath) {
   try {
     const path = resolve(root, relativePath);
     const [metadata, canonical] = await Promise.all([lstat(path), realpath(path)]);
     if (!metadata.isFile() || metadata.isSymbolicLink() || !canonical.startsWith(`${root}${sep}`))
       throw new Error('not a regular source input');
-    const bytes = await readFile(path);
-    if (
-      (expectedHash !== undefined && digest(bytes) !== expectedHash) ||
-      (expectedBytes !== undefined && bytes.length !== expectedBytes)
-    )
-      throw new Error('identity mismatch');
-    return bytes;
+    return await readFile(path);
   } catch (error) {
     throw new Error(
       `Runtime shell icon input unavailable (${relativePath}): ${error instanceof Error ? error.message : String(error)}`,
@@ -37,14 +31,10 @@ async function verifiedResources(sourceDirectory, pageDirectory) {
     throw new Error('Runtime shell icon sources are missing from the editor package');
   });
   const results = await Promise.allSettled(
-    SHELL_ICON_MANIFEST.map(async (font) => [
-      font.path,
-      {
-        bytes: await verifiedInput(root, font.path, font.sha256, font.bytes),
-        type: 'font/woff',
-        sha256: font.sha256,
-      },
-    ]),
+    SHELL_ICON_MANIFEST.map(async (font) => {
+      const bytes = await readInput(root, font.path);
+      return [font.path, { bytes, type: 'font/woff', sha256: digest(bytes) }];
+    }),
   );
   const resources = new Map();
   for (const result of results) {
@@ -52,15 +42,14 @@ async function verifiedResources(sourceDirectory, pageDirectory) {
     resources.set(...result.value);
   }
   const pageRoot = await realpath(pageDirectory);
-  const html = (await verifiedInput(pageRoot, 'index.html')).toString('utf8');
-  const symbols = SEARCH_ICON_MANIFEST.map(({ name, sha256 }) => {
+  const html = (await readInput(pageRoot, 'index.html')).toString('utf8');
+  const symbols = SEARCH_ICON_MANIFEST.map(({ name }) => {
     const matches = [
       ...html.matchAll(
         new RegExp(`<symbol id="find-and-replace-icon-${name}"[^>]*>[\\s\\S]*?</symbol>`, 'g'),
       ),
     ];
-    if (matches.length !== 1 || digest(matches[0][0]) !== sha256)
-      throw new Error(`Runtime shell icon identity mismatch (search ${name})`);
+    if (matches.length !== 1) throw new Error(`Expected one runtime search icon: ${name}`);
     return matches[0][0];
   });
   const searchIcons = Buffer.from(
@@ -78,27 +67,6 @@ async function verifiedResources(sourceDirectory, pageDirectory) {
     ).join('\n'),
   );
   resources.set('icons.css', { bytes: css, type: 'text/css; charset=utf-8', sha256: digest(css) });
-  const provenance = Buffer.from(
-    `${JSON.stringify(
-      {
-        purpose: 'Desktop icons built directly from the editor package assets',
-        fonts: SHELL_ICON_MANIFEST,
-        searchIcons: {
-          file: 'search-options.svg',
-          source: 'index.html',
-          symbols: SEARCH_ICON_MANIFEST,
-          sourcePath: 'packages/editor-runtime/src/page/index.html',
-        },
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  resources.set('provenance.json', {
-    bytes: provenance,
-    type: 'application/json; charset=utf-8',
-    sha256: digest(provenance),
-  });
   return resources;
 }
 

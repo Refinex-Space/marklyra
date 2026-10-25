@@ -12,7 +12,7 @@ pub(super) struct TitlebarImages {
 
 fn image(bytes: &[u8], width: f64, height: f64) -> Result<Retained<NSImage>, String> {
     let image = NSImage::initWithData(NSImage::alloc(), &NSData::with_bytes(bytes))
-        .ok_or("无法解码已核验的标题栏图像")?;
+        .ok_or("无法解码标题栏图像")?;
     image.setSize(NSSize::new(width, height));
     image.setTemplate(true);
     Ok(image)

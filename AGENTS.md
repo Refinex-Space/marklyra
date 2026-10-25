@@ -15,8 +15,8 @@
 - 无修改保存字节一致；局部编辑仅修改有明确证明的范围，保留 BOM、编码、空白与换行。
 - 输入和 IME 期间不由 React 重建编辑器 DOM；异步操作核对 owner、revision、selection 和当前输入状态。
 - MarkLyra 使用独立应用标识和数据命名空间，不兼容开发期旧标识与旧数据；草稿校验和权限边界必须保持有效。
-- `private/`、`artifacts/` 和构建产物不进入 Git。第三方版权、许可通知和资源身份校验必须保留。
-- 编辑器源码、样式、语言与随附库由 `packages/editor-runtime/` 管理；主题位于 `packages/editor-themes/`，设置页与原生图像位于 `apps/desktop/`。运行页生成到 `packages/editor-runtime/dist/page/`；启动和构建不得依赖 `private/` 或本机其他应用。身份清单中的输入按原始字节保存，不转换换行。
+- `private/`、`artifacts/` 和构建产物不进入 Git。第三方版权与许可通知必须保留。
+- 编辑器源码、样式、语言与随附库由 `packages/editor-runtime/` 管理；主题位于 `packages/editor-themes/`，设置页与原生图像位于 `apps/desktop/`。运行页生成到 `packages/editor-runtime/dist/page/`；启动和构建不得依赖 `private/` 或本机其他应用。构建直接收集当前源码目录，模块加载顺序由 `bundles.json` 显式维护。
 - 项目自有代码统一使用根 `LICENSE` 的 Apache-2.0；各包仅声明相同许可证标识，构建直接附带根许可证。
 
 ## 验证

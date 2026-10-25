@@ -55,22 +55,19 @@ it('renders annotations in normalized coordinates to match resized exports', () 
   expect(context.fillText).toHaveBeenCalledWith('Note', 400, 200, 40);
 });
 
-it('ships viewer icons with verified packaged bytes and upstream geometry', async () => {
-  const { readFile } = await import('node:fs/promises');
-  const { createHash } = await import('node:crypto');
-  const manifest = JSON.parse(
-    await readFile(
-      new URL('./fixtures/image-viewer-icon-identities.json', import.meta.url),
-      'utf8',
-    ),
-  ) as { name: string; sha256: string; upstreamSha256: string }[];
-  expect(manifest.length).toBe(9);
-  for (const item of manifest) {
-    const bytes = await readFile(
-      new URL(`../public/icons/image-viewer/${item.name}.svg`, import.meta.url),
-    );
-    expect(createHash('sha256').update(bytes).digest('hex')).toBe(item.sha256);
-    const upstream = bytes.toString('utf8').replace(/\n {2}<title>[^<]*<\/title>/, '');
-    expect(createHash('sha256').update(upstream).digest('hex')).toBe(item.upstreamSha256);
+it('ships the SVG assets required by the image viewer without executable content', async () => {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const root = new URL('../public/icons/image-viewer/', import.meta.url);
+  const files = (await readdir(root)).filter((name) => name.endsWith('.svg')).sort();
+  expect(files).toEqual(
+    'arrow-back-up arrows-maximize chevron-down download external-link message-circle pencil photo x'
+      .split(' ')
+      .map((name) => `${name}.svg`),
+  );
+  for (const file of files) {
+    const svg = await readFile(new URL(file, root), 'utf8');
+    expect(svg).toMatch(/<svg\b/);
+    expect(svg).toMatch(/\bviewBox=["'][^"']+["']/);
+    expect(svg).not.toMatch(/<script|<foreignObject|\son[a-z]+=|href=["']https?:/i);
   }
 });

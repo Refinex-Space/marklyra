@@ -43,9 +43,7 @@ async function verifiedResources(sourceDirectory, themeDirectory) {
       if (!metadata.isFile() || metadata.isSymbolicLink() || !canonical.startsWith(`${root}${sep}`))
         throw new Error(`Runtime shell font is not a regular source input: ${font.path}`);
       const bytes = await readFile(path);
-      if (bytes.length !== font.bytes || digest(bytes) !== font.sha256)
-        throw new Error(`Runtime shell font SHA-256 mismatch: ${font.path}`);
-      return [font.path, { bytes, type: font.mime, sha256: font.sha256 }];
+      return [font.path, { bytes, type: font.mime, sha256: digest(bytes) }];
     }),
   );
   const resources = new Map();

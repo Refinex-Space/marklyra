@@ -2,15 +2,15 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { parse as parseJavaScript } from 'acorn';
+import { collectRuntimeInputs } from './lib/runtime-resources.mjs';
 
-// Native engine/vendor inputs keep their established representation. Validate their
-// executable/data syntax separately from the authored TypeScript/React lint surface.
+// Discover current assets and validate their executable/data syntax.
 const require = createRequire(import.meta.resolve('vite'));
 const { parse: parseCSS } = require('postcss');
 const root = resolve(import.meta.dirname, '..');
-const manifest = JSON.parse(await readFile(resolve(root, 'config/runtime-source.json'), 'utf8'));
+const inputs = await collectRuntimeInputs(root);
 const counts = { javascript: 0, css: 0, json: 0, htmlScripts: 0 };
-for (const { path } of manifest.resources) {
+for (const { path } of inputs) {
   if (!/\.(js|css|json|html)$/.test(path)) continue;
   const source = await readFile(resolve(root, path), 'utf8');
   if (path.endsWith('.js')) {

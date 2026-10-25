@@ -5,7 +5,11 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'acorn';
-import { assembleSourceBundle, loadSourceBundlePlans } from './source-bundles.mjs';
+import {
+  assembleSourceBundle,
+  loadSourceBundlePlans,
+  sourceBundleInputs,
+} from './source-bundles.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
 const base = 'packages/editor-runtime/src/engine';
@@ -40,7 +44,7 @@ async function fixture(t, kind = 'sequence', parts = ['modules/first.js', 'modul
 }
 
 test('assembly preserves expression order, shared lexical state, this and lazy factories', async (t) => {
-  const { write, build } = await fixture(t);
+  const { root: fixtureRoot, write, build } = await fixture(t);
   await write(
     'main.js',
     '(function() { var value = 0, saved; __MARKLYRA_TEST__; this.result = saved; }).call(host);',
@@ -50,7 +54,7 @@ test('assembly preserves expression order, shared lexical state, this and lazy f
     'modules/second.js',
     '// Preserve this comment.\n(saved = function() { return ++value; }, trace.push("second"));',
   );
-  const { code, sourceInputs } = await build();
+  const { code } = await build();
   const host = { seed: 10 };
   const trace = [];
   runInNewContext(code, { host, trace });
@@ -58,8 +62,9 @@ test('assembly preserves expression order, shared lexical state, this and lazy f
   assert.equal(host.result(), 11);
   assert.equal(host.result(), 12);
   assert.match(code, /Preserve this comment/);
-  assert.equal(sourceInputs.length, 4);
-  assert.equal(new Set(sourceInputs.map((input) => input.path)).size, 4);
+  const [plan] = await loadSourceBundlePlans(fixtureRoot);
+  assert.equal(sourceBundleInputs(plan).length, 4);
+  assert.equal(new Set(sourceBundleInputs(plan)).size, 4);
 });
 
 test('Webpack leading, interior and trailing holes retain indices and array length', async (t) => {

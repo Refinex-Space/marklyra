@@ -4,8 +4,8 @@ import { dirname, resolve } from 'node:path';
 import { build } from 'vite';
 import { prepareBuiltinThemes } from '../../../scripts/lib/builtin-themes.mjs';
 import { copyProjectNotices } from '../../../scripts/lib/project-notices.mjs';
-import { verifyRuntimeSources } from '../../../scripts/lib/runtime-resources.mjs';
-import { assembleSourceBundles } from '../../../scripts/lib/source-bundles.mjs';
+import { collectRuntimeInputs } from '../../../scripts/lib/runtime-resources.mjs';
+import { assembleSourceBundles, bundleManifests } from '../../../scripts/lib/source-bundles.mjs';
 
 const repository = resolve(import.meta.dirname, '../../..');
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -33,26 +33,23 @@ export async function verifyRuntimeBuildLayout(root) {
   await regular('packages/editor-runtime/dist/page', 'directory', true);
   await regular('LICENSE', 'file');
   await regular('package.json', 'file');
-  await regular('config/runtime-source.json', 'file');
+  await regular('packages/editor-runtime/src/page/index.html', 'file');
+  await regular('apps/desktop/src/features/settings/runtime-preferences/page/setting.html', 'file');
+  for (const manifest of bundleManifests) await regular(manifest, 'file');
   await regular('packages/editor-runtime/dist/frame-host.js', 'file');
 }
 
 /** Build the isolated editor page from the source owned by workspace packages. */
 export async function buildRuntimePage({ root = repository } = {}) {
   await verifyRuntimeBuildLayout(root);
-  const verifiedInputs = await verifyRuntimeSources(root);
+  const inputs = await collectRuntimeInputs(root);
   const bundles = await assembleSourceBundles(root);
-  for (const bundle of bundles.values())
-    for (const input of bundle.sourceInputs)
-      if (verifiedInputs.get(input.path)?.sha256 !== input.sha256)
-        throw new Error(`Unverified source bundle input: ${input.path}`);
-  const input = JSON.parse(await readFile(resolve(root, 'config/runtime-source.json'), 'utf8'));
   const product = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
   const output = resolve(root, 'packages/editor-runtime/dist/page');
   const destinations = new Set();
   const resources = [];
   const preferences = [];
-  for (const entry of input.resources) {
+  for (const entry of inputs) {
     for (const path of [entry.runtimePath, ...(entry.additionalRuntimePaths ?? [])].filter(
       Boolean,
     )) {
@@ -73,7 +70,7 @@ export async function buildRuntimePage({ root = repository } = {}) {
   // All inputs and destinations are checked before replacing generated output.
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
-  for (const entry of input.resources) {
+  for (const entry of inputs) {
     for (const path of [entry.runtimePath, ...(entry.additionalRuntimePaths ?? [])].filter(
       Boolean,
     )) {
@@ -91,10 +88,7 @@ export async function buildRuntimePage({ root = repository } = {}) {
       }
       const record = {
         path: path.replace(/^preferences\//, ''),
-        sourcePath: entry.path,
-        originalSha256: entry.sha256,
         runtimeSha256: digest(await readFile(target)),
-        ...(bundle ? { sourceInputs: bundle.sourceInputs } : {}),
       };
       if (path.startsWith('preferences/')) preferences.push(record);
       else resources.push(record);
@@ -155,7 +149,7 @@ export async function buildRuntimePage({ root = repository } = {}) {
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
   console.log(
-    `Built ${resources.length} editor and ${preferences.length} preferences inputs from workspace sources.`,
+    `Built ${resources.length} editor and ${preferences.length} preferences resources from workspace sources.`,
   );
   return manifest;
 }

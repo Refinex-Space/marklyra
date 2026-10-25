@@ -14,18 +14,14 @@ import {
 } from 'node:fs/promises';
 import { basename, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { inspectBytes, inspectPath } from './lib/package-files.mjs';
 import { verifyProjectNotices } from './lib/project-notices.mjs';
-import {
-  inspectBytes,
-  inspectPath,
-  loadPolicy,
-  verifyRuntimeInputMapping,
-} from './lib/provenance.mjs';
+import { verifyRuntimeBuild } from './lib/runtime-resources.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const destination = join(root, 'artifacts/npm');
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
-const forbidden = /(?:^|\/)(?:private|runtime-assets|recovered|node_modules|target|\.git)(?:\/|$)/;
+const forbidden = /(?:^|\/)(?:private|node_modules|target|\.git)(?:\/|$)/;
 
 function safePath(path) {
   inspectPath(path);
@@ -58,7 +54,9 @@ function manifestGate(manifest) {
     throw new Error(`${manifest.name}: explicit package files allowlist is required`);
   for (const file of manifest.files) safePath(file);
   if (manifest.bundledDependencies?.length || manifest.bundleDependencies?.length)
-    throw new Error(`${manifest.name}: bundled dependencies need separate provenance review`);
+    throw new Error(
+      `${manifest.name}: SDK archives must use declared dependencies rather than embedded node_modules`,
+    );
 }
 function verifyArchiveLicense(entries, license, name) {
   const candidates = entries.filter(
@@ -96,15 +94,15 @@ if (process.argv.includes('--self-test')) {
     '../secret',
     '/private/a',
     'dist/private/main.js',
-    'dist/runtime-assets/index.html',
+    'dist/artifacts/index.html',
     'dist\\x.js',
     'dist/../x.js',
   ]) {
     assert.throws(() => safePath(path));
   }
   assert.equal(safePath('dist/runtime/frame-host.js'), 'dist/runtime/frame-host.js');
+  assert.equal(safePath('dist/runtime-assets/index.html'), 'dist/runtime-assets/index.html');
   const original = Buffer.from('synthetic original resource fixture');
-  const hashes = new Set([digest(original)]);
   inspectBytes('dist/engine.js', original);
   inspectBytes(
     'dist/engine.js.map',
@@ -114,7 +112,6 @@ if (process.argv.includes('--self-test')) {
     inspectBytes(
       'dist/engine.js.map',
       Buffer.from(JSON.stringify({ sources: ['../../../private/main.js'] })),
-      hashes,
     ),
   );
   assert.throws(() =>
@@ -123,7 +120,6 @@ if (process.argv.includes('--self-test')) {
   inspectBytes(
     'README.md',
     Buffer.from('Editor engine sources are owned by their workspace package.'),
-    hashes,
   );
   assert.throws(() =>
     manifestGate({ name: '@other/editor', private: true, license: 'Apache-2.0', files: ['dist'] }),
@@ -147,27 +143,13 @@ if (process.argv.includes('--self-test')) {
       ),
     /license must match/,
   );
-  console.log('Package provenance preflight regression checks passed.');
+  console.log('Package archive regression checks passed.');
   process.exit(0);
 }
 
-await loadPolicy(root);
 const runtimeDirectory = join(root, 'packages/editor-runtime/dist/page');
 const projectNotices = await verifyProjectNotices(root, runtimeDirectory);
-const generated = JSON.parse(
-  await readFile(join(runtimeDirectory, 'runtime-manifest.json'), 'utf8'),
-);
-const runtimeInputIntegrity = await verifyRuntimeInputMapping(root, generated);
-for (const [prefix, manifest] of [
-  ['', generated],
-  ['preferences/', generated.preferences],
-]) {
-  for (const resource of manifest?.resources ?? []) {
-    const path = safePath(prefix + resource.path);
-    if (digest(await readFile(join(runtimeDirectory, path))) !== resource.runtimeSha256)
-      throw new Error(`Runtime output identity mismatch: ${path}`);
-  }
-}
+const runtimeBuild = await verifyRuntimeBuild(root);
 const generatedManifestChecked = true;
 await mkdir(destination, { recursive: true });
 const staging = await mkdtemp(join(destination, '.preflight-'));
@@ -264,14 +246,14 @@ try {
       files: entries,
     });
     console.log(
-      `Verified ${packedManifest.name}@${packedManifest.version}: ${entries.length} archive files; package-owned runtime inputs are included according to the manifest allowlist.`,
+      `Verified ${packedManifest.name}@${packedManifest.version}: ${entries.length} archive files; package files and export targets are valid.`,
     );
   }
   for (const result of report)
     await rename(join(staging, result.archive), join(destination, result.archive));
   await writeFile(
     join(destination, 'pack-report.json'),
-    `${JSON.stringify({ generatedAt: new Date().toISOString(), generatedManifestChecked, projectNotices, runtimeInputIntegrity, limitation: 'Checks archive paths, root license inheritance and runtime output identities, manifest identities and export targets.', packages: report }, null, 2)}\n`,
+    `${JSON.stringify({ generatedAt: new Date().toISOString(), generatedManifestChecked, projectNotices, runtimeBuild, limitation: 'Checks archive paths, root license inheritance and runtime output identities, manifest identities and export targets.', packages: report }, null, 2)}\n`,
   );
 } finally {
   await rm(staging, { recursive: true, force: true });

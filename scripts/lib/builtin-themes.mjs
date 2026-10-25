@@ -20,7 +20,7 @@ export async function prepareBuiltinThemes(root, output) {
     const css = `${base}\n${palette}\n${common}`;
     const path = `style/themes/${id}.css`;
     await writeFile(resolve(output, path), css);
-    resources.push({ path, originalSha256: hash(base), runtimeSha256: hash(css) });
+    resources.push({ path, runtimeSha256: hash(css) });
   }
   return resources;
 }

@@ -107,8 +107,8 @@ test('same-origin dev font/CSS delivery preserves bytes, subsets, MIME, HEAD and
     assert.equal(response.headers['access-control-allow-origin'], undefined);
     assert.equal(response.headers['x-content-type-options'], 'nosniff');
     assert.match(response.headers['cache-control'], /must-revalidate/);
-    assert.equal(hash(response.bytes), font.sha256);
-    assert.equal(response.bytes.length, font.bytes);
+    assert.deepEqual(response.bytes, await readFile(fontSource(font)));
+    assert.equal(response.headers.etag, `"sha256-${hash(response.bytes)}"`);
     const head = await rawRequest(origin, SHELL_FONT_PREFIX + font.path, 'HEAD');
     assert.equal(head.bytes.length, 0);
     assert.equal(Number(head.headers['content-length']), response.bytes.length);
@@ -162,26 +162,33 @@ test('unknown paths, traversal, methods and generic Vite private-file access are
   }
 });
 
-test('missing or modified private font inputs fail before serving or emitting desktop output', async (t) => {
+test('missing font files fail, while edited font assets are served and built without registration', async (t) => {
   const empty = await fixture(t);
   await assert.rejects(() => server(t, empty.root, empty.fonts), /font input unavailable/);
   const changed = await fixture(t, true);
-  await writeFile(join(changed.fonts, SHELL_FONT_MANIFEST[0].path), 'not the runtime font');
-  await assert.rejects(
-    () =>
-      build({
-        root: changed.root,
-        configFile: false,
-        logLevel: 'silent',
-        plugins: [
-          runtimeShellFonts({
-            sourceDirectory: changed.fonts,
-            themeDirectory: join(changed.fonts, 'themes'),
-          }),
-        ],
+  const replacement = await readFile(fontSource(SHELL_FONT_MANIFEST[1]));
+  const relative = SHELL_FONT_MANIFEST[0].path;
+  await writeFile(join(changed.fonts, relative), replacement);
+  const origin = await server(t, changed.root, changed.fonts);
+  const response = await rawRequest(origin, SHELL_FONT_PREFIX + relative);
+  assert.deepEqual(response.bytes, replacement);
+  assert.equal(response.headers.etag, `"sha256-${hash(replacement)}"`);
+  const result = await build({
+    root: changed.root,
+    configFile: false,
+    logLevel: 'silent',
+    plugins: [
+      runtimeShellFonts({
+        sourceDirectory: changed.fonts,
+        themeDirectory: join(changed.fonts, 'themes'),
       }),
-    /SHA-256 mismatch/,
+    ],
+    build: { write: false },
+  });
+  const asset = result.output.find(
+    (asset) => asset.fileName === SHELL_FONT_PREFIX.slice(1) + relative,
   );
+  assert.deepEqual(Buffer.from(asset.source), replacement);
 });
 
 test('a symlink input is refused even when its target contains the expected font bytes', async (t) => {
@@ -231,7 +238,7 @@ test('build emits only the current theme font assets and generated CSS', async (
   for (const font of SHELL_FONT_MANIFEST) {
     const asset = fonts.find((asset) => asset.fileName === SHELL_FONT_PREFIX.slice(1) + font.path);
     assert.equal(asset?.type, 'asset');
-    assert.equal(hash(asset.source), font.sha256);
+    assert.deepEqual(Buffer.from(asset.source), await readFile(fontSource(font)));
   }
   assert.ok(output.every((asset) => !asset.fileName.includes('/licenses/')));
   const html = output.find((asset) => asset.fileName === 'index.html');

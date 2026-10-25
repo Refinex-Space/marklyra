@@ -1,17 +1,10 @@
 name: Desktop development bundles (manual only)
 on:
   workflow_dispatch:
-    inputs:
-      source_reviewed:
-        description: Confirm the tracked source and licenses were reviewed for this private runner
-        required: true
-        type: boolean
-        default: false
 permissions:
   contents: read
 jobs:
   build:
-    if: inputs.source_reviewed
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +37,6 @@ jobs:
       - run: pnpm exec playwright install chromium webkit
       - run: pnpm test:browser
       - run: pnpm test:desktop-shell
-      - run: node scripts/check-provenance.mjs --tracked
       - run: node scripts/build-desktop.mjs --target ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         with:

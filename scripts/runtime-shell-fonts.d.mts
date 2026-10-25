@@ -4,8 +4,6 @@ export interface ShellFontMetadata {
   readonly family: string;
   readonly weight: number;
   readonly style: string;
-  readonly bytes: number;
-  readonly sha256: string;
   readonly mime: 'font/woff' | 'font/woff2';
   readonly unicodeRange?: string;
 }

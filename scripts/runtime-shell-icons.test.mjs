@@ -110,11 +110,11 @@ test('three tracked icon fonts and precise family aliases are served unchanged',
     assert.equal(result.headers['access-control-allow-origin'], undefined);
     assert.equal(result.headers['x-content-type-options'], 'nosniff');
     assert.match(result.headers['cache-control'], /must-revalidate/);
-    assert.equal(result.bytes.length, font.bytes);
-    assert.equal(digest(result.bytes), font.sha256);
+    assert.deepEqual(result.bytes, await readFile(join(source, font.path)));
+    assert.equal(result.headers.etag, `"sha256-${digest(result.bytes)}"`);
     const head = await request(origin, SHELL_ICON_PREFIX + font.path, 'HEAD');
     assert.equal(head.bytes.length, 0);
-    assert.equal(Number(head.headers['content-length']), font.bytes);
+    assert.equal(Number(head.headers['content-length']), result.bytes.length);
     assert.equal(
       (
         await request(origin, SHELL_ICON_PREFIX + font.path, 'GET', {
@@ -124,16 +124,6 @@ test('three tracked icon fonts and precise family aliases are served unchanged',
       304,
     );
   }
-  const provenance = JSON.parse(
-    (await request(origin, `${SHELL_ICON_PREFIX}provenance.json`)).bytes,
-  );
-  assert.ok(provenance.fonts.every((font) => !Object.hasOwn(font, 'license')));
-  assert.ok(!Object.hasOwn(provenance, 'notices'));
-  assert.equal(
-    provenance.fonts.filter((font) => font.sourcePath?.startsWith('packages/editor-runtime/'))
-      .length,
-    1,
-  );
   assert.equal(SHELL_FONT_MANIFEST.length, 6);
   assert.ok(
     SHELL_ICON_MANIFEST.every((font) => !SHELL_FONT_MANIFEST.some((f) => f.path === font.path)),
@@ -149,10 +139,9 @@ test('search sprite preserves exactly the three original find-panel symbols', as
   const html = await readFile(join(pageSource, 'index.html'), 'utf8');
   const symbols = [...response.bytes.toString().matchAll(/<symbol\b[^>]*>[\s\S]*?<\/symbol>/g)];
   assert.equal(symbols.length, 3);
-  for (const [index, { name, sha256 }] of SEARCH_ICON_MANIFEST.entries()) {
+  for (const [index, { name }] of SEARCH_ICON_MANIFEST.entries()) {
     assert.match(symbols[index][0], new RegExp(`id="find-and-replace-icon-${name}"`));
     assert.ok(html.includes(symbols[index][0]));
-    assert.equal(digest(symbols[index][0]), sha256);
   }
   assert.equal((await request(origin, `${SHELL_ICON_PREFIX}index.html`)).status, 404);
 });
@@ -183,12 +172,11 @@ test('unknown, encoded and traversal requests cannot expose other private resour
   );
 });
 
-for (const mutation of ['missing', 'corrupt', 'symlink', 'search-symbol'])
+for (const mutation of ['missing', 'symlink', 'search-symbol'])
   test(`private icon ${mutation} input fails before serving or emitting`, async (t) => {
     const { root, fonts } = await fixture(t, true);
     const target = join(fonts, SHELL_ICON_MANIFEST[0].path);
     if (mutation === 'missing') await rm(target);
-    if (mutation === 'corrupt') await writeFile(target, 'changed private font');
     if (mutation === 'symlink') {
       const outside = join(root, 'outside.woff');
       await copyFile(target, outside);
@@ -197,7 +185,13 @@ for (const mutation of ['missing', 'corrupt', 'symlink', 'search-symbol'])
     }
     if (mutation === 'search-symbol') {
       const page = join(root, 'index.html');
-      await writeFile(page, (await readFile(page, 'utf8')).replace('M10.919,13', 'M10.918,13'));
+      await writeFile(
+        page,
+        (await readFile(page, 'utf8')).replace(
+          'id="find-and-replace-icon-case"',
+          'id="missing-case"',
+        ),
+      );
     }
     const plugin = runtimeShellIcons({ sourceDirectory: fonts, pageDirectory: root });
     plugin.configResolved({ command: 'build' });
@@ -208,12 +202,12 @@ for (const mutation of ['missing', 'corrupt', 'symlink', 'search-symbol'])
           emitted++;
         },
       }),
-      /Runtime shell icon/,
+      /Runtime shell icon|Expected one runtime search icon/,
     );
     assert.equal(emitted, 0);
   });
 
-test('build hooks emit exactly six identity-verified icon assets while serve never emits', async () => {
+test('build hooks emit five current icon assets while serve never emits', async () => {
   const serving = runtimeShellIcons();
   serving.configResolved({ command: 'serve' });
   await serving.buildStart.call({
@@ -229,11 +223,31 @@ test('build hooks emit exactly six identity-verified icon assets while serve nev
       output.set(asset.fileName, asset.source);
     },
   });
-  assert.equal(output.size, 6);
+  assert.equal(output.size, 5);
   for (const font of SHELL_ICON_MANIFEST)
-    assert.equal(digest(output.get(`${SHELL_ICON_PREFIX.slice(1)}${font.path}`)), font.sha256);
+    assert.deepEqual(
+      Buffer.from(output.get(`${SHELL_ICON_PREFIX.slice(1)}${font.path}`)),
+      await readFile(join(source, font.path)),
+    );
   assert.ok([...output.keys()].every((path) => !path.includes('/licenses/')));
-  assert.ok(output.has('__runtime-icons/provenance.json'));
   assert.ok(output.has('__runtime-icons/icons.css'));
   assert.ok(output.has('__runtime-icons/search-options.svg'));
+});
+
+test('edited icon fonts and search geometry are used without fixed digests', async (t) => {
+  const { root, fonts } = await fixture(t, true);
+  const relative = SHELL_ICON_MANIFEST[0].path;
+  const replacement = await readFile(join(source, SHELL_ICON_MANIFEST[1].path));
+  await writeFile(join(fonts, relative), replacement);
+  const page = join(root, 'index.html');
+  const original = await readFile(page, 'utf8');
+  const edited = original.replace('M10.919,13', 'M10.918,13');
+  assert.notEqual(edited, original);
+  await writeFile(page, edited);
+  const origin = await server(t, root, fonts);
+  const font = await request(origin, SHELL_ICON_PREFIX + relative);
+  assert.deepEqual(font.bytes, replacement);
+  assert.equal(font.headers.etag, `"sha256-${digest(replacement)}"`);
+  const sprite = await request(origin, SHELL_ICON_PREFIX + 'search-options.svg');
+  assert.ok(sprite.bytes.toString().includes('M10.918,13'));
 });

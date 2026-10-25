@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { lstat, readFile } from 'node:fs/promises';
 import { posix, resolve } from 'node:path';
 
@@ -6,8 +5,6 @@ export const bundleManifests = [
   'packages/editor-runtime/src/engine/bundles.json',
   'apps/desktop/src/features/settings/runtime-preferences/page/static/js/bundles.json',
 ];
-
-const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 function relativePath(path) {
   if (
@@ -113,7 +110,6 @@ export async function assembleSourceBundle(root, plan) {
   const { parse } = await import('acorn');
   const sources = new Map();
   for (const path of sourceBundleInputs(plan)) sources.set(path, await readSource(root, path));
-  const sourceInputs = [...sources].map(([path, bytes]) => ({ path, sha256: digest(bytes) }));
   const entry = sources.get(plan.entry).toString('utf8');
   const ast = parse(entry, { ecmaVersion: 'latest', sourceType: 'script' });
   const replacements = [];
@@ -151,7 +147,7 @@ export async function assembleSourceBundle(root, plan) {
     if (node.type === 'Identifier' && plan.slots.some((slot) => slot.name === node.name))
       throw new Error(`Unresolved source bundle slot: ${node.name}`);
   });
-  return { code, sourceInputs, runtimeSha256: digest(code) };
+  return { code };
 }
 
 export async function assembleSourceBundles(root) {

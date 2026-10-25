@@ -96,7 +96,7 @@ pnpm release:check
 ```sh
 pnpm install --frozen-lockfile
 pnpm release:check v0.1.1
-pnpm check:resources
+pnpm check:native-sources
 pnpm typecheck
 pnpm check:boundaries
 pnpm test

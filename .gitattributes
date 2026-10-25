@@ -15,7 +15,7 @@
 # Keep the project license byte-exact on all hosts.
 LICENSE -text -whitespace
 
-# Editor sources contain pinned bytes; do not apply Windows CRLF conversion.
+# Preserve runtime text and asset bytes across Windows and macOS checkouts.
 packages/editor-runtime/src/engine/** -text -whitespace
 packages/editor-runtime/src/page/** -text -whitespace
 packages/editor-runtime/assets/** -text -whitespace
@@ -27,6 +27,6 @@ apps/desktop/src-tauri/icons/titlebar/** -text -whitespace
 apps/desktop/public/icons/** -text -whitespace
 **/test-fixtures/** -text -whitespace
 
-# Dependency inventory hashes must match on Windows and macOS.
+# Keep dependency lockfiles consistent across Windows and macOS.
 pnpm-lock.yaml text eol=lf
 Cargo.lock text eol=lf

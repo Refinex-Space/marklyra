@@ -38,9 +38,8 @@ jobs:
         shell: bash
         env:
           RELEASE_TAG: ${{ github.ref_name }}
-      - run: pnpm check:resources
+      - run: pnpm check:native-sources
       - run: pnpm prepare:runtime
-      - run: node scripts/check-provenance.mjs --tracked
       - run: pnpm typecheck
       - run: pnpm check:boundaries
       - run: pnpm test

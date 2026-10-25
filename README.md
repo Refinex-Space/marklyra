@@ -16,15 +16,15 @@ Node.js 22+、pnpm 10.33.0 和 Rust stable 为开发依赖。Windows 还需安�
 
 开发运行与 debug 构建使用独立的 `marklyra-dev` 原生数据/配置目录，release 构建继续使用 `marklyra`，避免开发实例与安装版竞争草稿存储锁。开发目录从默认配置开始，不迁移或清理安装版的设置和草稿；图谱索引也随构建环境隔离。
 
-编辑器引擎、页面、样式、语言包及随附库由 `packages/editor-runtime` 直接管理，主题位于 `packages/editor-themes`，设置页和原生标题栏图像位于 `apps/desktop`。这些源码随 Git 克隆，无需手动复制本机目录或安装其他编辑器。`pnpm prepare:runtime` 校验内部源码、构建适配层并生成 `packages/editor-runtime/dist/page`；开发和打包命令会自动执行。身份清单中的输入按原始字节检出，不受 Windows `core.autocrlf` 影响。
+编辑器引擎、页面、样式、语言包及随附库由 `packages/editor-runtime` 直接管理，主题位于 `packages/editor-themes`，设置页和原生标题栏图像位于 `apps/desktop`。这些源码随 Git 克隆，无需手动复制本机目录或安装其他编辑器。`pnpm prepare:runtime` 从当前源码目录收集资源、构建适配层并生成 `packages/editor-runtime/dist/page`；开发和打包命令会自动执行。资源增删与修改会在下一次构建中自动生效，无需维护文件指纹清单；模块执行顺序仍由 `bundles.json` 管理。
+
+`pnpm pack:editor` 会先构建当前源码再生成 SDK 归档。运行目录中的元数据随构建重新生成，用于版本定位、产物核对和性能测试复现；字体与图标的 HTTP 缓存摘要也从当前内容计算。
 
 ## 验证
 
 ```sh
 pnpm typecheck
 pnpm check:boundaries
-pnpm check:resources
-node scripts/check-provenance.mjs --worktree
 pnpm test
 pnpm test:runtime-transform
 pnpm test:runtime
@@ -43,7 +43,6 @@ cargo test --workspace --lib --bins --locked
 - `packages/editor-react`、`editor-extensions`、`editor-themes`：React 生命周期、扩展及样式。
 - `apps/desktop`：桌面窗口、设置和受限原生服务。
 - `crates`：文档、目录、图片、导出、最近文件及崩溃草稿存储。
-- `config`：构建输入身份与应用配置。
 
 所有文件保存以源文本为准，保留编码、BOM 和换行；崩溃草稿、撤销重做和自动保存是产品能力。配置、编译、打包、运行和签名分别验证。
 
