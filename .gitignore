@@ -4,6 +4,8 @@ target/
 # Scratch cargo target directories used for isolated builds and tests
 target-*/
 .DS_Store
+# Machine-local Claude settings
+/.claude/settings.local.json
 private/
 artifacts/
 test-results/
