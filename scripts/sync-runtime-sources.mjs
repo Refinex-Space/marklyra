@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { lstat, readdir, readFile, writeFile } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
+import { loadSourceBundlePlans, sourceBundleInputs } from './lib/source-bundles.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const inputs = [
@@ -38,6 +39,10 @@ await regularPath('package.json', 'file');
 await regularPath('config', 'directory');
 await regularPath('config/runtime-source.json', 'file', true);
 
+const bundles = await loadSourceBundlePlans(root);
+const bundleInputs = new Set(bundles.flatMap(sourceBundleInputs));
+const bundleOutputs = new Map(bundles.map((bundle) => [bundle.entry, bundle.output]));
+
 async function visit(source, destination) {
   const path = resolve(root, source);
   const info = await lstat(path);
@@ -55,6 +60,7 @@ async function visit(source, destination) {
       size: bytes.length,
       sha256: createHash('sha256').update(bytes).digest('hex'),
     };
+    if (bundleInputs.has(source)) destination = bundleOutputs.get(source) ?? null;
     if (destination !== null) record.runtimePath = destination;
     if (destination?.startsWith('locales/'))
       record.additionalRuntimePaths = [`preferences/${destination}`];

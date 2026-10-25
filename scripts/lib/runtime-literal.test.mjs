@@ -19,7 +19,9 @@ test('the native parser exposes its two literal-rule boundaries and one capabili
 for (const [index, name] of ['remapped-rule', 'ordinary-rule'].entries()) {
   test(`the ${name} expression passes its exact native line and default pattern once`, () => {
     const expression = expressionOf(patterns[index]);
-    const identifier = index === 0 ? 'te' : 'e';
+    const argument = patterns[index].consequent.arguments[0];
+    assert.equal(argument.type, 'Identifier');
+    const identifier = argument.name;
     const line = '\uFEFF  * * *  ';
     assert.equal(runInNewContext(expression, { [identifier]: line }), line.trim());
     let calls = 0;

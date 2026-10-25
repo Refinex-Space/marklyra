@@ -7,7 +7,7 @@ export async function engineWithoutCapability(
   name: '__MARKLYRA_NATIVE_SERIALIZATION__' | '__MARKLYRA_NATIVE_LITERAL__',
 ): Promise<string> {
   const source = await readFile(
-    new URL('../../packages/editor-runtime/src/engine/main.js', import.meta.url),
+    new URL('../../packages/editor-runtime/dist/page/appsrc/main.js', import.meta.url),
     'utf8',
   );
   const matches: { start: number; end: number }[] = [];

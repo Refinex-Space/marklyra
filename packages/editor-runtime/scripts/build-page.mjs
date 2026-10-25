@@ -5,6 +5,7 @@ import { build } from 'vite';
 import { prepareBuiltinThemes } from '../../../scripts/lib/builtin-themes.mjs';
 import { copyProjectNotices } from '../../../scripts/lib/project-notices.mjs';
 import { verifyRuntimeSources } from '../../../scripts/lib/runtime-resources.mjs';
+import { assembleSourceBundles } from '../../../scripts/lib/source-bundles.mjs';
 
 const repository = resolve(import.meta.dirname, '../../..');
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -40,7 +41,12 @@ export async function verifyRuntimeBuildLayout(root) {
 /** Build the isolated editor page from the source owned by workspace packages. */
 export async function buildRuntimePage({ root = repository } = {}) {
   await verifyRuntimeBuildLayout(root);
-  await verifyRuntimeSources(root);
+  const verifiedInputs = await verifyRuntimeSources(root);
+  const bundles = await assembleSourceBundles(root);
+  for (const bundle of bundles.values())
+    for (const input of bundle.sourceInputs)
+      if (verifiedInputs.get(input.path)?.sha256 !== input.sha256)
+        throw new Error(`Unverified source bundle input: ${input.path}`);
   const input = JSON.parse(await readFile(resolve(root, 'config/runtime-source.json'), 'utf8'));
   const product = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
   const output = resolve(root, 'packages/editor-runtime/dist/page');
@@ -58,9 +64,13 @@ export async function buildRuntimePage({ root = repository } = {}) {
         destinations.has(path)
       )
         throw new Error(`Invalid or duplicate runtime destination: ${path}`);
+      if (bundles.has(path) && bundles.get(path).entry !== entry.path)
+        throw new Error(`Unexpected bundle entry for ${path}`);
       destinations.add(path);
     }
   }
+  for (const path of bundles.keys())
+    if (!destinations.has(path)) throw new Error(`Missing declared source bundle output: ${path}`);
   // All inputs and destinations are checked before replacing generated output.
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
@@ -70,7 +80,10 @@ export async function buildRuntimePage({ root = repository } = {}) {
     )) {
       const target = resolve(output, path);
       await mkdir(dirname(target), { recursive: true });
-      await copyFile(resolve(root, entry.path), target);
+      const bundle = bundles.get(path);
+      if (bundle) {
+        await writeFile(target, bundle.code);
+      } else await copyFile(resolve(root, entry.path), target);
       if (path === 'preferences/setting.html') {
         const page = await readFile(target, 'utf8');
         const marker = '__MARKLYRA_BUILD_VERSION__';
@@ -82,6 +95,7 @@ export async function buildRuntimePage({ root = repository } = {}) {
         sourcePath: entry.path,
         originalSha256: entry.sha256,
         runtimeSha256: digest(await readFile(target)),
+        ...(bundle ? { sourceInputs: bundle.sourceInputs } : {}),
       };
       if (path.startsWith('preferences/')) preferences.push(record);
       else resources.push(record);

@@ -9,13 +9,18 @@ const handler = unique(
     (node) =>
       node.type === 'FunctionExpression' &&
       node.params.length === 2 &&
-      node.params[0]?.name === 't' &&
-      node.params[1]?.name === 'n' &&
       hasHook(node, '__MARKLYRA_REPLAY_SOURCE_CONTEXT__'),
   ),
   'source context handler',
 );
 const handlerSource = expressionOf(handler);
+const sourceState = unique(
+  nodes(
+    handler,
+    (node) => node.type === 'MemberExpression' && node.property.name === 'inSourceMode',
+  ),
+  'source mode state',
+).object.name;
 
 function fixture({ hook, failure, sourceMode = true } = {}) {
   const events = [],
@@ -63,7 +68,7 @@ function fixture({ hook, failure, sourceMode = true } = {}) {
   const context = createContext({
     window,
     Reflect,
-    e: { inSourceMode: sourceMode },
+    [sourceState]: { inSourceMode: sourceMode },
     File: { isNodeHtml: false },
     setTimeout(callback, delay) {
       events.push('schedule');

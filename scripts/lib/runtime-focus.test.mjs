@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createContext, Script } from 'node:vm';
-import { engineModule, expressionOf, hasHook, nodes, sourceOf } from './runtime-test-source.mjs';
+import { engineModule, expressionOf, hasHook, nodes, unique } from './runtime-test-source.mjs';
 
 const wrappers = nodes(
   engineModule('2b'),
@@ -11,13 +11,27 @@ const wrappers = nodes(
     node.callee.params[0]?.name === '__marklyraBrushEditor' &&
     hasHook(node.callee, '__MARKLYRA_RESTORE_BRUSH_CURSOR__'),
 );
-const roles = new Map([
-  ['this.editor', 'brushNode'],
-  ['e.editor', 'brushQueue'],
-  ['r', 'inline'],
-]);
 const focusSites = wrappers.map((node) => ({
-  role: roles.get(sourceOf(node.arguments[0])),
+  role:
+    node.arguments[0].type === 'Identifier'
+      ? 'inline'
+      : node.arguments[0].object.type === 'ThisExpression'
+        ? 'brushNode'
+        : 'brushQueue',
+  editorBinding:
+    node.arguments[0].type === 'Identifier'
+      ? node.arguments[0].name
+      : node.arguments[0].object.name,
+  bookmarkBinding: unique(
+    nodes(
+      node,
+      (child) =>
+        child.type === 'CallExpression' &&
+        child.callee.type === 'FunctionExpression' &&
+        child.callee.params[1]?.name === '__marklyraBrushBookmark',
+    ),
+    'captured brush bookmark',
+  ).arguments[1].name,
   text: expressionOf(node),
 }));
 test('the checked-in engine exposes exactly the three cursor ownership boundaries', () => {
@@ -57,20 +71,20 @@ function invocation(edit, hook, options = {}) {
   });
   const context = createContext({ window: {}, Reflect });
   const editorObject = edit.role === 'inline' ? context : {};
-  Object.defineProperty(editorObject, edit.role === 'inline' ? 'r' : 'editor', {
+  Object.defineProperty(editorObject, edit.role === 'inline' ? edit.editorBinding : 'editor', {
     get() {
       calls.push('editor');
       return editor;
     },
   });
-  if (edit.role === 'brushQueue') context.e = editorObject;
+  if (edit.role === 'brushQueue') context[edit.editorBinding] = editorObject;
   else if (edit.role === 'brushNode')
     Object.defineProperty(
       context,
       'editor',
       Object.getOwnPropertyDescriptor(editorObject, 'editor'),
     );
-  const argument = edit.role === 'brushNode' ? 't' : edit.role === 'brushQueue' ? 'o' : 'e';
+  const argument = edit.bookmarkBinding;
   Object.defineProperty(context, argument, {
     get() {
       calls.push('bookmark');

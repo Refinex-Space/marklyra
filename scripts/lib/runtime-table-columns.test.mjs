@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
-import { engineModule, expressionOf, member, nodes, unique } from './runtime-test-source.mjs';
+import {
+  engineImportBinding,
+  engineModule,
+  expressionOf,
+  member,
+  nodes,
+  unique,
+} from './runtime-test-source.mjs';
 
 const method = unique(
   nodes(
@@ -79,8 +86,8 @@ for (const before of [true, false])
       tableEdit: { showTableEdit: () => effects.shown++ },
     };
     const addCol = runInNewContext(expressionOf(method), {
-      i: () => ({ hide() {} }),
-      a: Node,
+      [engineImportBinding('58', 'e')]: () => ({ hide() {} }),
+      [engineImportBinding('58', '13', 'Node')]: Node,
       window: { getSelection: () => ({ anchorNode: {} }) },
     });
     addCol(editor, before);

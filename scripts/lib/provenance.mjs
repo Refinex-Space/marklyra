@@ -262,6 +262,8 @@ async function checkWorktree(root, resources, hashes) {
 /** Bind copied runtime files to the current native input manifest, not an older build. */
 export async function verifyRuntimeInputMapping(root, runtime) {
   const { resources } = await loadPolicy(root);
+  const { assembleSourceBundles } = await import('./source-bundles.mjs');
+  const bundles = await assembleSourceBundles(root);
   const product = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
   const version = `MarkLyra ${product.version}`;
   if (typeof product.version !== 'string' || runtime.sourceVersion !== version)
@@ -290,6 +292,16 @@ export async function verifyRuntimeInputMapping(root, runtime) {
           : record.sourcePath !== undefined
       )
         throw new Error(`Runtime source-to-output mapping: stale or unknown input for ${path}`);
+      const bundle = bundles.get(path);
+      if (bundle) {
+        if (
+          record.runtimeSha256 !== bundle.runtimeSha256 ||
+          JSON.stringify(record.sourceInputs) !== JSON.stringify(bundle.sourceInputs) ||
+          bundle.sourceInputs.some((source) => resources.get(source.path)?.sha256 !== source.sha256)
+        )
+          throw new Error(`Runtime source-to-output mapping: stale source bundle for ${path}`);
+      } else if (record.sourceInputs !== undefined)
+        throw new Error(`Runtime source-to-output mapping: unexpected source bundle for ${path}`);
       observed.add(path);
     }
   }

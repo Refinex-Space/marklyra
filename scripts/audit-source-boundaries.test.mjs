@@ -18,6 +18,7 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
     'scripts/lib/provenance.mjs',
     'scripts/lib/project-notices.mjs',
     'scripts/lib/runtime-resources.mjs',
+    'scripts/lib/source-bundles.mjs',
     'scripts/native-titlebar-manifest.json',
     'config/runtime-source.json',
     ...[
@@ -40,6 +41,10 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
     await mkdir(dirname(join(root, path)), { recursive: true });
     await copyFile(join(source, path), join(root, path));
   }
+  await cp(join(source, 'node_modules/acorn'), join(root, 'node_modules/acorn'), {
+    recursive: true,
+    dereference: true,
+  });
   await cp(
     join(source, 'packages/editor-runtime/dist/page'),
     join(root, 'packages/editor-runtime/dist/page'),
@@ -80,6 +85,13 @@ test('source audit rejects missing runtime, unknown package and mismatched notic
   const staleInput = run();
   assert.notEqual(staleInput.status, 0);
   assert.match(staleInput.stderr, /Runtime source-to-output mapping/);
+  await writeFile(runtimePath, runtimeBytes);
+  const staleBundle = JSON.parse(runtimeBytes.toString('utf8'));
+  staleBundle.resources.find((entry) => entry.sourceInputs).sourceInputs.pop();
+  await writeFile(runtimePath, JSON.stringify(staleBundle));
+  const missingBundleInput = run();
+  assert.notEqual(missingBundleInput.status, 0);
+  assert.match(missingBundleInput.stderr, /stale source bundle/);
   await writeFile(runtimePath, runtimeBytes);
   const resource = 'packages/editor-runtime/dist/page/appsrc/editor/EmojiSearchMap.js';
   await rm(join(root, resource));

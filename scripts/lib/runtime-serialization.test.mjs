@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createContext, Script } from 'node:vm';
-import { capability, engineModule, engineSource, expressionOf } from './runtime-test-source.mjs';
+import {
+  capability,
+  engineModule,
+  engineSource,
+  expressionOf,
+  identifierRoot,
+  nodes,
+  unique,
+} from './runtime-test-source.mjs';
 
 test('the complete internal engine is valid JavaScript with one native serialization capability', () => {
   assert.doesNotThrow(() => new Script(engineSource));
@@ -20,7 +28,19 @@ test('the native serialization capability exposes the actual bindings as an immu
     }
   }
   const lines = () => 'lines';
-  const context = createContext({ r: Node, o: NodeMap, u: lines });
+  const declaration = capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('12'));
+  const binding = (key) =>
+    identifierRoot(
+      unique(
+        nodes(declaration, (node) => node.type === 'Property' && node.key.name === key),
+        `serialization ${key}`,
+      ).value,
+    );
+  const context = createContext({
+    [binding('nodePrototype')]: Node,
+    [binding('mapPrototype')]: NodeMap,
+    [binding('lines')]: lines,
+  });
   new Script(
     expressionOf(capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('12'))),
   ).runInContext(context);

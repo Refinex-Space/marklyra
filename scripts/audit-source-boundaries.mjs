@@ -164,6 +164,7 @@ for (const path of await walk(resolve(root, 'packages/editor-runtime/dist/page')
   if (record && sha256 !== record.runtimeSha256) throw new Error(`Runtime drift: ${path}`);
   const sourcePath = inputByOutput.get(path);
   let classification = sourcePath ? 'WORKSPACE_INPUT' : 'GENERATED_OUTPUT';
+  if (record?.sourceInputs) classification = 'GENERATED_SOURCE_BUNDLE';
   if (path === 'LICENSE' || path === 'THIRD-PARTY-NOTICES.txt') classification = 'PROJECT_NOTICE';
   if (
     ['frame-host.js', 'preferences/child-host.js', 'empty.css', 'preferences/empty.css'].includes(
@@ -171,7 +172,13 @@ for (const path of await walk(resolve(root, 'packages/editor-runtime/dist/page')
     )
   )
     classification = 'GENERATED_NEW_INTEGRATION_ADAPTER';
-  resources.push({ path, sha256, classification, ...(sourcePath ? { sourcePath } : {}) });
+  resources.push({
+    path,
+    sha256,
+    classification,
+    ...(sourcePath ? { sourcePath } : {}),
+    ...(record?.sourceInputs ? { sourceInputs: record.sourceInputs } : {}),
+  });
 }
 for (const path of resourceMap.keys())
   if (!resources.some((resource) => resource.path === path))

@@ -1,9 +1,27 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runInNewContext, Script } from 'node:vm';
-import { engineModule, nodes, sourceOf, unique } from './runtime-test-source.mjs';
+import {
+  engineImportBinding,
+  engineModule,
+  member,
+  nodes,
+  sourceOf,
+  unique,
+} from './runtime-test-source.mjs';
 
 const module = engineModule('2b');
+const queueMethod = unique(
+  nodes(module, (node) => node.type === 'Property' && node.key?.name === 'brushQueue'),
+  'brushQueue method',
+).value;
+const runnerBinding = unique(
+  nodes(
+    queueMethod,
+    (node) => node.type === 'AwaitExpression' && member(node.argument?.callee, 'call'),
+  ),
+  'awaited brush runner',
+).argument.callee.object.name;
 const corrected = Object.fromEntries(
   ['brushQueue', 'addToQueue', 'restart'].map((name) => {
     const method = unique(
@@ -24,8 +42,10 @@ function fixture(work = async () => false, sources = corrected) {
   const context = {
     File: { isLocked: false },
     console: { debug() {} },
-    i: { isNullOrEmpty: (value) => value === null || value === undefined || value === '' },
-    g: function (cid, ...args) {
+    [engineImportBinding('2b', '11')]: {
+      isNullOrEmpty: (value) => value === null || value === undefined || value === '',
+    },
+    [runnerBinding]: function (cid, ...args) {
       effects.cids.push(cid);
       return Reflect.apply(work, this, [cid, ...args]);
     },

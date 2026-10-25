@@ -31,8 +31,15 @@ test('the shipped fourth guard distinguishes same-block id from cross-block endI
   );
   assert.equal(guards.length, 1);
   const guard = guards[0];
+  assert.equal(guard.left.object.type, 'Identifier');
+  assert.equal(guard.right.object.type, 'Identifier');
   const evaluate = (bookmark) =>
-    new Script(sourceOf(guard)).runInContext(createContext({ r: { cid: 'fixture' }, o: bookmark }));
+    new Script(sourceOf(guard)).runInContext(
+      createContext({
+        [guard.left.object.name]: { cid: 'fixture' },
+        [guard.right.object.name]: bookmark,
+      }),
+    );
   // Evaluating this exact predicate does not establish that the complete expand
   // path accepts any fabricated bookmark. Browser tests record actual readers.
   assert.equal(evaluate({ type: 'cursor', id: 'fixture', start: 1, end: 3 }), true);

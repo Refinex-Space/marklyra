@@ -4,13 +4,14 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { runInNewContext, Script } from 'node:vm';
 import { parse } from 'acorn';
+import { assembleSourceBundle, loadSourceBundlePlans } from './source-bundles.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
 const directory = resolve(root, 'apps/desktop/src/features/settings/runtime-preferences/page');
-const source = await readFile(
-  resolve(directory, 'static/js/Preferences.962926a4.d7f6a912.chunk.js'),
-  'utf8',
+const plan = (await loadSourceBundlePlans(root)).find(
+  (bundle) => bundle.output === 'preferences/static/js/Preferences.962926a4.d7f6a912.chunk.js',
 );
+const source = (await assembleSourceBundle(root, plan)).code;
 const ast = parse(source, { ecmaVersion: 'latest' });
 function nodes(node, predicate, found = []) {
   if (predicate(node)) found.push(node);
@@ -30,6 +31,11 @@ function one(predicate) {
 test('native settings source uses only its isolated bridge and the supported controls', () => {
   assert.doesNotThrow(() => new Script(source));
   assert.ok(!source.includes('window.webkit'));
+  const controlKeys = new Set(
+    nodes(ast, (node) => node.type === 'Property' && node.key?.name === 'keyName').map(
+      (node) => node.value.value,
+    ),
+  );
   for (const name of [
     'can_collapse_outline_panel',
     'autoUpdateToDev',
@@ -37,7 +43,7 @@ test('native settings source uses only its isolated bridge and the supported con
     'useMirrorInCN',
     'framelessWindow',
   ])
-    assert.ok(!source.includes(`keyName:"${name}"`));
+    assert.ok(!controlKeys.has(name), `Retired control: ${name}`);
   for (const name of [
     'debugMode',
     'defaultCodeLang',
@@ -45,7 +51,7 @@ test('native settings source uses only its isolated bridge and the supported con
     'enable_diagram',
     'save_file_on_switch',
   ])
-    assert.ok(source.includes(`keyName:"${name}"`));
+    assert.ok(controlKeys.has(name), `Missing control: ${name}`);
   assert.ok(!source.includes('/assets/icon'));
 });
 
@@ -69,6 +75,24 @@ test('offline dictionaries load on all native and development origins', async ()
       member(node.left, 'loadDict') &&
       node.left.object?.name === 'window',
   ).right;
+  const batches = nodes(
+    loader,
+    (node) =>
+      node.type === 'CallExpression' &&
+      member(node.callee, 'all') &&
+      node.callee.object.name === 'Promise',
+  );
+  assert.equal(batches.length, 1);
+  const requests = batches[0].arguments[0];
+  assert.equal(requests.type, 'ArrayExpression');
+  assert.equal(requests.elements.length, 4);
+  for (const request of requests.elements) {
+    assert.equal(request.type, 'CallExpression');
+    assert.equal(request.callee.type, 'Identifier');
+  }
+  const requestBindings = new Set(requests.elements.map((request) => request.callee.name));
+  assert.equal(requestBindings.size, 1);
+  const [requestBinding] = requestBindings;
   for (const href of [
     'marklyra://localhost/preferences/setting.html?os=mac',
     'http://marklyra.localhost/preferences/setting.html?os=win',
@@ -79,7 +103,7 @@ test('offline dictionaries load on all native and development origins', async ()
       const requested = [];
       const context = {
         window: { location: { href }, _options: { locale } },
-        v: async (url) => {
+        [requestBinding]: async (url) => {
           requested.push(url);
           return { requested: url };
         },
@@ -118,14 +142,29 @@ test('the actual General panel preserves handlers and the project/update control
       node.arguments[2]?.arguments[0]?.value === 'General',
   );
   const change = () => {};
+  const reactBinding = panel.callee.object.object.name;
+  const controlsBinding = panel.arguments[0].object.name;
+  const updateControl = one(
+    (node) =>
+      node.type === 'ObjectExpression' &&
+      node.properties.some(
+        (property) =>
+          property.key?.name === 'keyName' && property.value?.value === 'enableAutoUpdate',
+      ),
+  );
+  const disabledBinding = updateControl.properties.find(
+    (property) => property.key?.name === 'disabled',
+  ).value.name;
   const result = runInNewContext(`(function(){return ${code(panel)}}).call(component)`, {
-    p: {
+    [reactBinding]: {
       a: {
         Fragment: 'fragment',
         createElement: (type, props, ...children) => ({ type, props, children }),
       },
     },
-    b: Object.fromEntries(['o', 'k', 'q', 'c', 'r', 'b', 'v', 'd', 'h'].map((key) => [key, key])),
+    [controlsBinding]: Object.fromEntries(
+      ['o', 'k', 'q', 'c', 'r', 'b', 'v', 'd', 'h'].map((key) => [key, key]),
+    ),
     window: {
       isMac: true,
       isWin: false,
@@ -138,7 +177,7 @@ test('the actual General panel preserves handlers and the project/update control
       onChange: change,
       panelHeader: () => null,
     },
-    n: false,
+    [disabledBinding]: false,
   });
   const rendered = [];
   function visit(node) {

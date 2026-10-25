@@ -20,6 +20,7 @@ async function fixture(t) {
   const root = resolve(base, 'workspace');
   for (const dir of [
     'scripts',
+    'scripts/lib',
     'config',
     'packages/editor-runtime/src/engine',
     'packages/editor-runtime/src/page',
@@ -34,6 +35,10 @@ async function fixture(t) {
   await copyFile(
     new URL('../sync-runtime-sources.mjs', import.meta.url),
     resolve(root, 'scripts/sync-runtime-sources.mjs'),
+  );
+  await copyFile(
+    new URL('./source-bundles.mjs', import.meta.url),
+    resolve(root, 'scripts/lib/source-bundles.mjs'),
   );
   await writeFile(resolve(root, 'package.json'), '{"type":"module","version":"0.1.8"}');
   await writeFile(resolve(root, 'packages/editor-themes/base.css'), 'body{}');

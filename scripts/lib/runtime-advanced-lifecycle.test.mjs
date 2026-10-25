@@ -32,7 +32,13 @@ const message = unique(
 
 test('the real HTML Enter callback retains its fallback and allows the host to suppress it', () => {
   const calls = [];
-  const context = { c: { UserOp: { insertParagraph: (...args) => calls.push(args) } } };
+  const editorBinding = unique(
+    nodes(enter.alternate, (node) => member(node, 'UserOp')),
+    'HTML callback editor',
+  ).object.name;
+  const context = {
+    [editorBinding]: { UserOp: { insertParagraph: (...args) => calls.push(args) } },
+  };
   runInNewContext(expressionOf(enter), context)();
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0], []);
@@ -46,12 +52,20 @@ test('the real HTML Enter callback retains its fallback and allows the host to s
 
 test('the real HTML message guard rejects an unowned event before continuing', () => {
   const expression = `(function(){${sourceOf(message)}return 'accepted';})`;
+  const eventArgument = unique(
+    nodes(
+      message.test,
+      (node) => node.type === 'CallExpression' && member(node.callee, '__MARKLYRA_HTML_MESSAGE__'),
+    ),
+    'HTML message ownership callback',
+  ).arguments[0];
+  assert.equal(eventArgument.type, 'Identifier');
   const event = { marker: 'same event' };
-  assert.equal(runInNewContext(expression, { t: event })(), 'accepted');
+  assert.equal(runInNewContext(expression, { [eventArgument.name]: event })(), 'accepted');
   for (const accepted of [true, false]) {
     let calls = 0;
     const callback = runInNewContext(expression, {
-      t: event,
+      [eventArgument.name]: event,
       __MARKLYRA_HTML_MESSAGE__: (value) => {
         assert.equal(value, event);
         calls++;
@@ -63,10 +77,10 @@ test('the real HTML message guard rejects an unowned event before continuing', (
   }
 });
 
-for (const [id, methodName, identifiers] of [
-  ['1c', 'updateDiagram', ['a', 'o']],
-  ['1c', 'startEditing', ['i', 'n']],
-  ['15', 'updateDiagram', ['n', 'm']],
+for (const [id, methodName] of [
+  ['1c', 'updateDiagram'],
+  ['1c', 'startEditing'],
+  ['15', 'updateDiagram'],
 ]) {
   const method = unique(
     nodes(
@@ -91,6 +105,10 @@ for (const [id, methodName, identifiers] of [
       node.test.right.type === 'UnaryExpression' &&
       member(node.test.right.argument?.callee, 'current'),
   );
+  const identifiers = ticket.init.consequent.arguments.map((argument) => {
+    assert.equal(argument.type, 'Identifier');
+    return argument.name;
+  });
   test(`${id}.${methodName} captures one exact render owner and checks success and failure continuations`, () => {
     assert.equal(guards.length, 2);
     assert.ok(guards.every((guard) => guard.start > ticket.end));
