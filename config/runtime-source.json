@@ -273,8 +273,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/locales/Base.lproj/Front.json",
-      "size": 9115,
-      "sha256": "e76a6208a37ca5867c1383482b6115afa622ca57c36ebb0ee1f93aae3bdaa870",
+      "size": 9721,
+      "sha256": "404dc3e89fef2040e34d4c57942bf109466bb54c450feed4d2e64f0296b52117",
       "runtimePath": "locales/Base.lproj/Front.json",
       "additionalRuntimePaths": [
         "preferences/locales/Base.lproj/Front.json"
@@ -282,8 +282,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/locales/Base.lproj/Menu.json",
-      "size": 9817,
-      "sha256": "15113b4e0d8c8a4643ae3ce72e13159f4ec0a9328b0db9a0c012669ccc095f51",
+      "size": 10999,
+      "sha256": "e3eb22e33165a8f8b8295dc7ffa97cc6522179c98975c32b44faca0b5db650f7",
       "runtimePath": "locales/Base.lproj/Menu.json",
       "additionalRuntimePaths": [
         "preferences/locales/Base.lproj/Menu.json"
@@ -291,8 +291,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/locales/Base.lproj/Panel.json",
-      "size": 31759,
-      "sha256": "453d6b5fa59490c35d73997fe248f1b96b202d29a7eb7154035468b4e996f023",
+      "size": 33677,
+      "sha256": "1d7cd703879f87ef9a58d07d6cbeafb6c21e439164a5e4aebabd681babe984bc",
       "runtimePath": "locales/Base.lproj/Panel.json",
       "additionalRuntimePaths": [
         "preferences/locales/Base.lproj/Panel.json"
@@ -300,8 +300,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/locales/Base.lproj/Welcome.json",
-      "size": 4476,
-      "sha256": "619f6b3a2e83fae0841058032a6859482b100d7eecb85e7fe308de7088a629a8",
+      "size": 4722,
+      "sha256": "f6ccc27470ef0e4674d5dd37e7bda0e5c0ff9c3b8f767a2d382a5a35860e573f",
       "runtimePath": "locales/Base.lproj/Welcome.json",
       "additionalRuntimePaths": [
         "preferences/locales/Base.lproj/Welcome.json"
@@ -309,8 +309,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/locales/zh-Hans.lproj/Front.json",
-      "size": 8690,
-      "sha256": "344c00c16e6f62c58afb47d466ffa9459b6e3929a73fc843029b8132849d5627",
+      "size": 9292,
+      "sha256": "d98dfd1afe55ede39a6dea0fa0719003eaef9ee42c125b88c4374acb60f0094f",
       "runtimePath": "locales/zh-Hans.lproj/Front.json",
       "additionalRuntimePaths": [
         "preferences/locales/zh-Hans.lproj/Front.json"
@@ -318,8 +318,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/locales/zh-Hans.lproj/Menu.json",
-      "size": 10062,
-      "sha256": "ce158dfc213bf5e2a3026c44303c84e071d625aeeaabb6dbfd01160bc9c604b7",
+      "size": 11260,
+      "sha256": "12e22fd6a41fa93a4bb50ce100f4d4c40ef854e8e6197364dcb9d093c51678c8",
       "runtimePath": "locales/zh-Hans.lproj/Menu.json",
       "additionalRuntimePaths": [
         "preferences/locales/zh-Hans.lproj/Menu.json"
@@ -327,8 +327,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/locales/zh-Hans.lproj/Panel.json",
-      "size": 31656,
-      "sha256": "1115104ccf430a9a9d31954b04c320612a8426123bb04aed18e177563c2d1796",
+      "size": 33590,
+      "sha256": "6d4d484a7ab22e49b6e2d1182cfb44926f700d583c0a2de4c29a2e4a6dd37179",
       "runtimePath": "locales/zh-Hans.lproj/Panel.json",
       "additionalRuntimePaths": [
         "preferences/locales/zh-Hans.lproj/Panel.json"
@@ -336,8 +336,8 @@
     },
     {
       "path": "packages/editor-runtime/assets/locales/zh-Hans.lproj/Welcome.json",
-      "size": 4792,
-      "sha256": "9b51cbc986d776673baa39ed53ce8c85c9ffc88796c02fc6fa81d42844e60c6c",
+      "size": 5050,
+      "sha256": "ac00afecd27c92df8d3828733565dbd8bf4584172a9a88765e241cc4ca831f10",
       "runtimePath": "locales/zh-Hans.lproj/Welcome.json",
       "additionalRuntimePaths": [
         "preferences/locales/zh-Hans.lproj/Welcome.json"
@@ -345,20 +345,20 @@
     },
     {
       "path": "packages/editor-runtime/assets/styles/base-control.css",
-      "size": 78303,
-      "sha256": "6f1be96934d97bb18ab7a62f7e6e77d690caa8ef59d4adf51c8715b8bcd0579b",
+      "size": 93687,
+      "sha256": "551a5c2f812807347d69f39fd6fb590e58881124a135825978cb3061ec62fabf",
       "runtimePath": "style/base-control.css"
     },
     {
       "path": "packages/editor-runtime/assets/styles/base.css",
-      "size": 13596,
-      "sha256": "f4edfadaf7988f6bbe552fa9c77567359fac404eded9c64976bdb82a059ba814",
+      "size": 17120,
+      "sha256": "b7b895aea4208ad73f4945f997982bf7a8f16d2d532814fb8876516ab6e0a906",
       "runtimePath": "style/base.css"
     },
     {
       "path": "packages/editor-runtime/assets/styles/codemirror.css",
-      "size": 4453,
-      "sha256": "9e5d04376ba01339e359e9d57bd53dab7cfdd7cc0391fde27c7608aaf8981718",
+      "size": 6189,
+      "sha256": "60bc55c6bcad709ec00889efef335e790f0f5541884ce3803e55c0fa0cd4939c",
       "runtimePath": "style/codemirror.css"
     },
     {
@@ -950,8 +950,8 @@
     },
     {
       "path": "packages/editor-runtime/src/page/index.html",
-      "size": 80078,
-      "sha256": "362fe7c165a1e6d26108ff0fa220b9b59c172d52310adc3c7dd82cec9df40aa1",
+      "size": 80382,
+      "sha256": "9671abdaa783c598045988667f6f8e9ab40bf65d9e77dc330a309f81be2a2a1c",
       "runtimePath": "index.html"
     },
     {

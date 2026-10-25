@@ -32,6 +32,14 @@ Emoji 关键词数据维护在 `src/engine/editor/emoji-search-map.json`，建�
 
 第三方 `libraries/`、CodeMirror 附加代码、jquery-localize、快捷键库、设置页共享库及编译辅助模块不参与局部命名整理。自有模块中嵌入的 Promise polyfill、Unicode 显示宽度实现、Babel 数组展开辅助函数，以及 Markdown 解析器的正则组合／属性合并辅助函数，也按保留片段处理；不能仅按目录判断归属。必要版权与许可通知继续由根通知文件管理，独立 `vendor/` 发行文件也保持原样。
 
+## 样式、启动上报与语言数据
+
+`assets/styles/base.css` 和 `base-control.css` 按文档排版、控件、代码、表格、图片、侧栏等职责原地分区。分区注释只提供导航，选择器、声明、重复回退值、媒体查询和关键帧的顺序保持。维护时保留相对 URL 的解析位置及 `!important` 优先级。自定义属性冒号后的既有空白也保留，避免改变 JavaScript 读取到的属性文本。
+
+`codemirror.css` 是上游规则与本地适配的混合文件。随附核心 JavaScript 自报 `5.26.0`，样式中同时存在与 [CodeMirror 3.16.0 核心样式](https://github.com/codemirror/codemirror5/blob/3.16.0/lib/codemirror.css) 相符的旧版布局规则，以及本地的自动高度、滚动、`cm-s-inner` 主题和背景适配，不能据核心版本推定整份 CSS 的来源。确认的库规则与归属不确定的历史规则保留原字节；本地声明留在原规则中的原位置展开。`base.css` 中的代码块内边距规则、`base-control.css` 中的光标规则及 [lint](https://github.com/codemirror/codemirror5/blob/5.26.0/addon/lint/lint.css)／[show-hint](https://github.com/codemirror/codemirror5/blob/5.26.0/addon/hint/show-hint.css) 片段采用相同边界。带保留注释的紧凑片段是有意保留的第三方或历史实现，不能由通用格式化覆盖。
+
+`src/page/index.html` 的首个内联脚本负责捕获启动和资源错误，必须先于 `frame-host.js` 注册捕获阶段监听。语言数据位于 `assets/locales/{Base,zh-Hans}.lproj/`；四类字典以缩进 JSON 维护，保留键顺序、字符串、转义和占位符，同一份输入同时复制到编辑器与设置页。
+
 ## 完整性
 
 `config/runtime-source.json` 记录输入路径、大小、SHA-256 和输出映射。修改被登记的输入后同步更新对应身份记录。资源及原始通知的 Git 属性关闭自动换行转换，保证不同宿主的检出字节一致。

@@ -2,7 +2,27 @@
 <html lang="en">
 
 <head>
-<script>(function(){var errors=[];window.addEventListener('error',function(e){var t=e.target;errors.push(e.message||(t&&t.src?'Resource failed: '+t.src:'Runtime resource failed'));parent.postMessage({protocol:'marklyra/editor/v1',channel:new URL(location.href).searchParams.get('channel'),kind:'runtime-error',payload:errors.slice(0,5).join(' | ')},'*')},true)})();</script><script src="./frame-host.js"></script>
+<script>
+		// Install before frame-host.js so its startup and resource errors reach the host.
+		(function () {
+			var startupErrors = [];
+			window.addEventListener('error', function (errorEvent) {
+				var failedResource = errorEvent.target;
+				startupErrors.push(
+					errorEvent.message ||
+					(failedResource && failedResource.src
+						? 'Resource failed: ' + failedResource.src
+						: 'Runtime resource failed')
+				);
+				parent.postMessage({
+					protocol: 'marklyra/editor/v1',
+					channel: new URL(location.href).searchParams.get('channel'),
+					kind: 'runtime-error',
+					payload: startupErrors.slice(0, 5).join(' | ')
+				}, '*');
+			}, true);
+		})();
+</script><script src="./frame-host.js"></script>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 	<title>MarkLyra</title>
