@@ -241,8 +241,10 @@ fn verify_titlebar(window: &WebviewWindow) -> Result<(), String> {
                     for child in view.subviews() {
                         if let Ok(button) = child.downcast::<NSButton>() {
                             let expected = if button.action() == Some(sel!(toggleOutline:)) {
-                                Some(106.0)
+                                Some(138.0)
                             } else if button.action() == Some(sel!(toggleSidebar:)) {
+                                Some(106.0)
+                            } else if button.action() == Some(sel!(toggleGraph:)) {
                                 Some(74.0)
                             } else if button.action() == Some(sel!(toggleAi:)) {
                                 Some(42.0)
@@ -278,7 +280,7 @@ fn verify_titlebar(window: &WebviewWindow) -> Result<(), String> {
                 if !found {
                     return Err("native AI control missing".into());
                 }
-                assert_eq!(aligned, 3, "all three native columns align with the AI toolbar");
+                assert_eq!(aligned, 4, "all four native columns align to the toolbar grid");
                 Ok(())
             })();
             let _ = tx.send(result);

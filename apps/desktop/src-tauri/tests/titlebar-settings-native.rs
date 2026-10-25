@@ -87,6 +87,8 @@ struct DocumentChrome {
     dark: bool,
     outline_panel_open: bool,
     ai_panel_open: bool,
+    graph_open: bool,
+    graph_available: bool,
     source_mode: Option<bool>,
     can_close_document: bool,
     image_preview_open: bool,

@@ -136,6 +136,10 @@ pub struct ChromeUpdate {
     #[serde(default)]
     ai_panel_open: bool,
     #[serde(default)]
+    graph_open: bool,
+    #[serde(default)]
+    graph_available: bool,
+    #[serde(default)]
     source_mode: Option<bool>,
     /// A document is open, so the titlebar offers a way back to the home view.
     #[serde(default)]
@@ -195,6 +199,8 @@ pub(super) struct DocumentChrome {
     dark: bool,
     outline_panel_open: bool,
     ai_panel_open: bool,
+    graph_open: bool,
+    graph_available: bool,
     source_mode: Option<bool>,
     can_close_document: bool,
     image_preview_open: bool,
@@ -279,7 +285,13 @@ fn document_chrome(
         dark: update.dark,
         outline_panel_open: update.outline_panel_open,
         ai_panel_open: update.ai_panel_open,
-        source_mode: update.source_mode,
+        graph_open: update.graph_open,
+        graph_available: update.graph_available,
+        source_mode: if update.graph_open {
+            Some(false)
+        } else {
+            update.source_mode
+        },
         can_close_document: update.can_close_document,
         image_preview_open: update.image_preview_open,
         untitled_name: update.untitled_name,
@@ -447,6 +459,8 @@ pub async fn update_editor_chrome(
             update.dark,
             update.outline_panel_open,
             update.ai_panel_open,
+            update.graph_open,
+            update.graph_available,
             update.source_mode,
             update.can_close_document,
         );
@@ -768,6 +782,8 @@ mod tests {
             dark: false,
             outline_panel_open: false,
             ai_panel_open: false,
+            graph_open: false,
+            graph_available: false,
             source_mode: None,
             can_close_document: false,
             image_preview_open: false,
@@ -832,6 +848,8 @@ mod tests {
                     dark: false,
                     outline_panel_open: false,
                     ai_panel_open: false,
+                    graph_open: false,
+                    graph_available: false,
                     source_mode: None,
                     can_close_document: false,
                     image_preview_open: false,
@@ -849,6 +867,8 @@ mod tests {
             dark: false,
             outline_panel_open: false,
             ai_panel_open: false,
+            graph_open: false,
+            graph_available: false,
             source_mode: None,
             can_close_document: false,
             image_preview_open: false,
@@ -919,6 +939,8 @@ mod tests {
             dark: false,
             outline_panel_open: false,
             ai_panel_open: false,
+            graph_open: false,
+            graph_available: false,
             source_mode: Some(false),
             can_close_document: false,
             image_preview_open: false,

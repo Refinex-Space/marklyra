@@ -8,6 +8,8 @@ import type {
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
   type CSSProperties,
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -59,6 +61,8 @@ import { GitFileDecorations, GitOverlays } from '../features/git/GitOverlays.js'
 import { type GitContextValue, GitProvider } from '../features/git/GitProvider.js';
 import { GitWorkbench } from '../features/git/GitWorkbench.js';
 import { HomeScreen } from '../features/home/HomeScreen.js';
+import { GraphBoundary } from '../features/knowledge-graph/GraphBoundary.js';
+import { relativeGraphPath } from '../features/knowledge-graph/model.js';
 import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
 import { hostTextInputFocused, useNativeMenus } from '../features/menus/useNativeMenus.js';
 import { NoticeHost } from '../features/notices/NoticeHost.js';
@@ -114,6 +118,8 @@ import { windowStartup } from '../services/window-startup.js';
 import { editorWindowIdentity, editorWindows } from '../services/windows.js';
 import { type WorkspaceFolder, workspaces } from '../services/workspaces.js';
 import { NativeEditorCommands, nativeEditorCommand } from './native-editor-commands.js';
+
+const KnowledgeGraph = lazy(() => import('../features/knowledge-graph/KnowledgeGraph.js'));
 
 function filename(path: string) {
   return path.split(/[\\/]/).at(-1) ?? '未命名';
@@ -178,6 +184,7 @@ export function App() {
   const [quickNotes, setQuickNotes] = useState<QuickNotes | null>(null);
   /** The Git view covers the document like the home view; the editor is inert under it. */
   const [gitViewOpen, setGitViewOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
   const [gitRepository, setGitRepository] = useState(false);
   const gitApi = useRef<GitContextValue | null>(null);
   /** Application menu handler; the search window runs its actions through the same guards. */
@@ -252,6 +259,14 @@ export function App() {
     },
     setRecentDocumentId,
   );
+  const graphDocumentOwner = doc.getOwner();
+  const previousGraphOwner = useRef(graphDocumentOwner);
+  useEffect(() => {
+    if (previousGraphOwner.current !== graphDocumentOwner) {
+      previousGraphOwner.current = graphDocumentOwner;
+      setGraphOpen(false);
+    }
+  }, [graphDocumentOwner]);
   // A day's unsaved draft is already named after the file it becomes.
   const documentName = doc.file
     ? filename(doc.file.path)
@@ -367,7 +382,10 @@ export function App() {
   const [aiPending, setAiPending] = useState(0);
   const [aiRevealRequest, setAiRevealRequest] = useState(0);
   const [detailsMode, setDetailsMode] = useState<'outline' | 'ai'>('outline');
-  const detailsLayout = useDocumentDetailsLayout(outlinePanelOpen || aiPanelOpen, detailsMode);
+  const detailsLayout = useDocumentDetailsLayout(
+    (outlinePanelOpen && !graphOpen) || aiPanelOpen,
+    detailsMode,
+  );
   const [chooseRequest, setChooseRequest] = useState(0);
   const exporter = useDocumentExport(editor, {
     title: documentName,
@@ -402,13 +420,14 @@ export function App() {
     strict = false,
     expectedSource?: string,
   ): Promise<void> => {
-    if (editor.current?.isImagePreviewOpen) return Promise.resolve();
+    if (editor.current?.isImagePreviewOpen || graphOpen) return Promise.resolve();
     setStatisticsOpen(false);
     setRecoveryOpen(false);
     setRecentOpen(false);
     const active = editor.current;
     const owner = doc.getOwner();
     const work = editorCommandWork.current.then(async () => {
+      if (actions.current.graphOpen) return;
       if (!active || editor.current !== active || actions.current.doc.getOwner() !== owner)
         throw new Error('编辑文档已更换，请重试编辑操作');
       if (expectedSource !== undefined && active.getMarkdown() !== expectedSource)
@@ -601,6 +620,33 @@ export function App() {
       }
     }
   };
+  const toggleGraph = () => {
+    if (graphOpen) {
+      flushSync(() => setGraphOpen(false));
+      return;
+    }
+    if (!ready || doc.working || doc.pending || editor.current?.isComposing) {
+      doc.setMessage('请先完成当前输入或文档操作');
+      return;
+    }
+    if (!workspaceIdentity.current) {
+      doc.setMessage('请先打开文件夹，再查看知识图谱');
+      return;
+    }
+    if (!graphOpen) {
+      gitApi.current?.closeView();
+      documentAreaElement.current
+        ?.querySelector('.runtime-editor-mount')
+        ?.setAttribute('inert', '');
+    }
+    flushSync(() => setGraphOpen((value) => !value));
+  };
+  useEffect(() => {
+    if (gitViewOpen) setGraphOpen(false);
+  }, [gitViewOpen]);
+  useEffect(() => {
+    if (!sessionWorkspace) setGraphOpen(false);
+  }, [sessionWorkspace]);
   const toggleAiPanel = () => {
     setDetailsMode('ai');
     setAiPanelOpen((open) => !open);
@@ -703,11 +749,11 @@ export function App() {
   useEffect(() => {
     documentAreaElement.current
       ?.querySelector('.runtime-editor-mount')
-      ?.toggleAttribute('inert', homeVisible || gitViewOpen);
-    if (wasHome.current && !homeVisible && !gitViewOpen)
+      ?.toggleAttribute('inert', homeVisible || gitViewOpen || graphOpen);
+    if (wasHome.current && !homeVisible && !gitViewOpen && !graphOpen)
       void editor.current?.focus().catch(() => {});
-    wasHome.current = homeVisible || gitViewOpen;
-  }, [homeVisible, gitViewOpen]);
+    wasHome.current = homeVisible || gitViewOpen || graphOpen;
+  }, [homeVisible, gitViewOpen, graphOpen]);
   const rename = useDocumentRename({
     file:
       doc.file && doc.file.locationState !== 'trashed'
@@ -838,6 +884,8 @@ export function App() {
     openQuickOpen,
     action,
     toggleAiPanel,
+    toggleGraph,
+    graphOpen,
     command,
     doc,
     exporter,
@@ -862,7 +910,8 @@ export function App() {
       recentOpen ||
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
-    editorObscured: imagePreviewOpen || homeVisible || quickOpen !== null || gitViewOpen,
+    editorObscured:
+      imagePreviewOpen || homeVisible || quickOpen !== null || gitViewOpen || graphOpen,
     blockedEditorCommand:
       imagePreviewOpen ||
       !ready ||
@@ -885,6 +934,8 @@ export function App() {
     openQuickOpen,
     action,
     toggleAiPanel,
+    toggleGraph,
+    graphOpen,
     command,
     doc,
     exporter,
@@ -909,7 +960,8 @@ export function App() {
       recentOpen ||
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
-    editorObscured: imagePreviewOpen || homeVisible || quickOpen !== null || gitViewOpen,
+    editorObscured:
+      imagePreviewOpen || homeVisible || quickOpen !== null || gitViewOpen || graphOpen,
     blockedEditorCommand:
       imagePreviewOpen ||
       !ready ||
@@ -1177,7 +1229,7 @@ export function App() {
           blocked:
             active?.isImagePreviewOpen === true ||
             actions.current.blockedEditorCommand ||
-            actions.current.editorObscured ||
+            (actions.current.editorObscured && !(actions.current.graphOpen && action === 'find')) ||
             !actions.current.doc.acceptsEditorCommands() ||
             composing ||
             (hostTextInputFocused(active) && action !== 'find' && action !== 'replace'),
@@ -1190,6 +1242,10 @@ export function App() {
           actions.current.doc.getOwner() !== owner
         )
           throw new Error('编辑命令所属文档窗口已更换');
+        if (actions.current.graphOpen && value.type === 'find' && !value.replace) {
+          document.querySelector<HTMLInputElement>('[aria-label="搜索图谱"]')?.focus();
+          return;
+        }
         if (!nativeMenuCommandAllowed(expectedEditor.menuState, value)) return;
         if (hostTextInputFocused(expectedEditor) && value.type !== 'find') return;
         await actions.current.command(value, true);
@@ -1234,6 +1290,8 @@ export function App() {
       canRename: rename.canRename,
       home: homeVisible,
       gitView: gitViewOpen,
+      graphView: graphOpen,
+      graphAvailable: !!sessionWorkspace,
       gitRepository,
       dailyAvailable: !!daily.location,
       dailyOpen: !!daily.activeKey,
@@ -1379,6 +1437,18 @@ export function App() {
       }
       if (value === 'view:sidebar') {
         setSidebar((visible) => !visible);
+        return;
+      }
+      if (value === 'view:graph') {
+        actions.current.toggleGraph();
+        return;
+      }
+      if (actions.current.graphOpen && (value === 'close' || value === 'close-document')) {
+        setGraphOpen(false);
+        return;
+      }
+      if (actions.current.graphOpen && value === 'find') {
+        document.querySelector<HTMLInputElement>('[aria-label="搜索图谱"]')?.focus();
         return;
       }
       if (value === 'view:ai') {
@@ -1771,6 +1841,8 @@ export function App() {
         !homeVisible,
         doc.file ? undefined : documentName,
         imagePreviewOpen,
+        graphOpen,
+        !!sessionWorkspace,
       )
       .catch((error: unknown) => {
         if (
@@ -1798,6 +1870,8 @@ export function App() {
     viewMode,
     aiPanelOpen,
     homeVisible,
+    graphOpen,
+    sessionWorkspace,
   ]);
   useEffect(() => {
     if (!ready || !editor.current) return;
@@ -2030,6 +2104,9 @@ export function App() {
           sidebarOpen={sidebar}
           outlineOpen={outlinePanelOpen}
           aiOpen={aiPanelOpen}
+          graphOpen={graphOpen}
+          graphAvailable={!!sessionWorkspace}
+          onGraph={toggleGraph}
           onSidebar={() => setSidebar((visible) => !visible)}
           onOutline={() => {
             setDetailsMode('outline');
@@ -2037,7 +2114,7 @@ export function App() {
             setOutlinePanelOpen((open) => !open);
           }}
           onAi={toggleAiPanel}
-          sourceMode={viewMode === 'source'}
+          sourceMode={viewMode === 'source' && !graphOpen}
           onExitSource={() => void command({ type: 'toggleSource' })}
           settingsOpen={preferencesOpen && preferencesEmbedded}
           fullscreen={fullscreen}
@@ -2157,6 +2234,17 @@ export function App() {
             onClick={() => void exporter.run('print-preview')}
           >
             <Icon name="print" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            title="知识图谱"
+            aria-label="知识图谱"
+            aria-pressed={graphOpen}
+            disabled={!sessionWorkspace || !ready || doc.working}
+            onClick={toggleGraph}
+          >
+            <Icon name="graph" />
           </button>
           <button
             type="button"
@@ -2421,6 +2509,7 @@ export function App() {
               savedPreview={doc.savedPreview}
               filePlatform={runtime?.platform ?? 'browser'}
               onOpenDocument={(workspaceId, relativePath, match) => {
+                setGraphOpen(false);
                 void doc.request({ kind: 'workspace', workspaceId, relativePath, match });
               }}
               renderCalendar={
@@ -2749,7 +2838,7 @@ export function App() {
               />
             )}
           {!startupSettled && !startupFailed && <DocumentSkeleton />}
-          {homeVisible && (
+          {homeVisible && !graphOpen && (
             <HomeScreen
               mac={runtime?.platform === 'macos'}
               onNew={startWriting}
@@ -2784,9 +2873,54 @@ export function App() {
             }}
             openSettings={() => gitMenu('git:settings')}
           />
+          {graphOpen && workspaceIdentity.current && (
+            <GraphBoundary close={() => setGraphOpen(false)}>
+              <Suspense
+                fallback={
+                  <div
+                    role="status"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      zIndex: 15,
+                      display: 'grid',
+                      placeItems: 'center',
+                      background: 'var(--surface)',
+                    }}
+                  >
+                    正在打开知识图谱…
+                  </div>
+                }
+              >
+                <KnowledgeGraph
+                  key={workspaceIdentity.current.id}
+                  workspace={workspaceIdentity.current}
+                  currentPath={relativeGraphPath(
+                    doc.file?.path ?? null,
+                    workspaceIdentity.current.path,
+                  )}
+                  dirty={doc.dirty}
+                  dark={themeSystem.dark}
+                  themeKey={theme}
+                  onClose={() => setGraphOpen(false)}
+                  onOpen={(workspaceId, path, match) => {
+                    if (workspaceIdentity.current?.id !== workspaceId || !actions.current.graphOpen)
+                      return;
+                    setGraphOpen(false);
+                    void actions.current.doc.request({
+                      kind: 'workspace',
+                      workspaceId,
+                      relativePath: path,
+                      ...(match ? { match } : {}),
+                    });
+                  }}
+                />
+              </Suspense>
+            </GraphBoundary>
+          )}
         </main>
         <DocumentDetailsPanel
-          open={outlinePanelOpen || aiPanelOpen}
+          open={(outlinePanelOpen && !graphOpen) || aiPanelOpen}
           mode={detailsMode}
           elementRef={detailsElement}
           width={detailsLayout.width}

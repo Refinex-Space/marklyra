@@ -1,8 +1,8 @@
 {
   "scope": "Received top-level license/notice texts only; missing texts, license choices and output-specific obligations remain unresolved.",
   "locks": {
-    "pnpm": "9c91afdfc69fbc394405276afa78793f3e5c1feea87bb918e8bcc22c43a167ce",
-    "cargo": "3b16ae0ebaf0582861f19c6907c344d9a3b6fb2b11417f8054214572a15f1775"
+    "pnpm": "6ad2b6526a6ec12c44efc4efa9292309b1ec1b5c25d66964a0c813708faf1f67",
+    "cargo": "ec001d67f34fc3a511420497f04cd31d562b3c77ca8bee44797001a549d8b133"
   },
   "packages": [
     {
@@ -1051,6 +1051,21 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "cfb",
+      "version": "0.7.3",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "ebaac853b53fec0ed475796f533ce676912a4df9ad9d8a621fa76d5060591e10",
+          "bytes": 1074,
+          "bundledText": "ebaac853b53fec0ed475796f533ce676912a4df9ad9d8a621fa76d5060591e10.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "cfg_aliases",
       "version": "0.1.1",
       "declaredLicense": "MIT",
@@ -1815,6 +1830,27 @@
     {
       "ecosystem": "cargo",
       "name": "dirs",
+      "version": "6.0.0",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "d3174ad63e721d4c9dccb8ad4320848992d314369bc46319720b5802c9153fe9",
+          "bytes": 9694,
+          "bundledText": "d3174ad63e721d4c9dccb8ad4320848992d314369bc46319720b5802c9153fe9.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "6a2e0ade09a7d5f816f11566fee2b151b32235a7fad52b41d49cce96f833c1a9",
+          "bytes": 1069,
+          "bundledText": "6a2e0ade09a7d5f816f11566fee2b151b32235a7fad52b41d49cce96f833c1a9.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "dirs",
       "version": "7.0.0",
       "declaredLicense": "MIT OR Apache-2.0",
       "files": [
@@ -2216,6 +2252,48 @@
           "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
           "bytes": 1023,
           "bundledText": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "fallible-iterator",
+      "version": "0.3.0",
+      "declaredLicense": "MIT/Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+          "bytes": 11358,
+          "bundledText": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "0816e154b159ba255c563f7c8c7df5bbb8cc5fc96f5ab8cf9f4743b4f41fe7eb",
+          "bytes": 1078,
+          "bundledText": "0816e154b159ba255c563f7c8c7df5bbb8cc5fc96f5ab8cf9f4743b4f41fe7eb.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "fallible-streaming-iterator",
+      "version": "0.1.9",
+      "declaredLicense": "MIT/Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+          "bytes": 11358,
+          "bundledText": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "8dcec5569a9be5b0e086c80faed6f1aefa670af0ec29cecc2f714303096887e0",
+          "bytes": 1086,
+          "bundledText": "8dcec5569a9be5b0e086c80faed6f1aefa670af0ec29cecc2f714303096887e0.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -3159,6 +3237,27 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "hashlink",
+      "version": "0.12.2",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "c144680885b29e4719e2a51f0aab5439a1e02d980692b5aaf086cae12727f28b",
+          "bytes": 10849,
+          "bundledText": "c144680885b29e4719e2a51f0aab5439a1e02d980692b5aaf086cae12727f28b.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "e915669a595b11a200873df8286561881b0e04932f6412a585db6297ba0bc97c",
+          "bytes": 1133,
+          "bundledText": "e915669a595b11a200873df8286561881b0e04932f6412a585db6297ba0bc97c.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "heck",
       "version": "0.4.1",
       "declaredLicense": "MIT OR Apache-2.0",
@@ -3739,6 +3838,21 @@
     {
       "ecosystem": "cargo",
       "name": "infer",
+      "version": "0.19.0",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "270b0d81891aa44c7e8726cf9432dade9556a01c848bacd2f3ef839c9c1a1859",
+          "bytes": 1062,
+          "bundledText": "270b0d81891aa44c7e8726cf9432dade9556a01c848bacd2f3ef839c9c1a1859.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "infer",
       "version": "0.22.0",
       "declaredLicense": "MIT",
       "files": [
@@ -4092,6 +4206,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "jni-macros",
+      "version": "0.22.4",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [],
+      "status": "missing-text-review-required"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "jni-sys-macros",
       "version": "0.4.1",
       "declaredLicense": "MIT OR Apache-2.0",
@@ -4160,6 +4282,14 @@
         }
       ],
       "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "jni",
+      "version": "0.22.4",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [],
+      "status": "missing-text-review-required"
     },
     {
       "ecosystem": "cargo",
@@ -4420,6 +4550,21 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "libsqlite3-sys",
+      "version": "0.39.0",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "c10c1f27337546471e5f7e4e97fdd398b35b9d4e126115dcd22de8d8e65abf6f",
+          "bytes": 1067,
+          "bundledText": "c10c1f27337546471e5f7e4e97fdd398b35b9d4e126115dcd22de8d8e65abf6f.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "linux-raw-sys",
       "version": "0.12.1",
       "declaredLicense": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
@@ -4624,6 +4769,21 @@
           "sha256": "df9cfd06d8a44d9a671eadd39ffd97f166481da015a30f45dfd27886209c5922",
           "bytes": 1058,
           "bundledText": "df9cfd06d8a44d9a671eadd39ffd97f166481da015a30f45dfd27886209c5922.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "minisign-verify",
+      "version": "0.2.5",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "42c8695fbc468866d9756be99af0ba4e37d733f8daa3c8827c8d80b8bec1b2f9",
+          "bytes": 2312,
+          "bundledText": "42c8695fbc468866d9756be99af0ba4e37d733f8daa3c8827c8d80b8bec1b2f9.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -5182,6 +5342,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "objc2-osa-kit",
+      "version": "0.3.2",
+      "declaredLicense": "Zlib OR Apache-2.0 OR MIT",
+      "files": [],
+      "status": "missing-text-review-required"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "objc2-quartz-core",
       "version": "0.3.2",
       "declaredLicense": "Zlib OR Apache-2.0 OR MIT",
@@ -5258,6 +5426,27 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "openssl-probe",
+      "version": "0.2.1",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "bytes": 10847,
+          "bundledText": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+          "bytes": 1057,
+          "bundledText": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "option-ext",
       "version": "0.2.0",
       "declaredLicense": "MPL-2.0",
@@ -5288,6 +5477,27 @@
           "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
           "bytes": 1023,
           "bundledText": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "osakit",
+      "version": "0.3.1",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+          "bytes": 9723,
+          "bundledText": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "5fb3573f6e7198ff6c203dbbd58d1da4bec9e8c5a828edefd9e98587d0443471",
+          "bytes": 1055,
+          "bundledText": "5fb3573f6e7198ff6c203dbbd58d1da4bec9e8c5a828edefd9e98587d0443471.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -5885,6 +6095,21 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "pulldown-cmark",
+      "version": "0.13.5",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "c4f10f55904bdb9f27d3fbf94c354926d6cfe8b982276e556238c258941b243b",
+          "bytes": 1089,
+          "bundledText": "c4f10f55904bdb9f27d3fbf94c354926d6cfe8b982276e556238c258941b243b.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "pxfm",
       "version": "0.1.30",
       "declaredLicense": "BSD-3-Clause OR Apache-2.0",
@@ -6414,6 +6639,21 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "rusqlite",
+      "version": "0.41.0",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "c10c1f27337546471e5f7e4e97fdd398b35b9d4e126115dcd22de8d8e65abf6f",
+          "bytes": 1067,
+          "bundledText": "c10c1f27337546471e5f7e4e97fdd398b35b9d4e126115dcd22de8d8e65abf6f.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "rustc_version",
       "version": "0.4.1",
       "declaredLicense": "MIT OR Apache-2.0",
@@ -6510,6 +6750,39 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "rustls-native-certs",
+      "version": "0.8.5",
+      "declaredLicense": "Apache-2.0 OR ISC OR MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "d75967ce788187f83c3bd3328210974acfc443d4dc44909f1d7e34f21623a0c6",
+          "bytes": 286,
+          "bundledText": "d75967ce788187f83c3bd3328210974acfc443d4dc44909f1d7e34f21623a0c6.txt"
+        },
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "bytes": 10847,
+          "bundledText": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2.txt"
+        },
+        {
+          "file": "LICENSE-ISC",
+          "sha256": "7cfafc877eccc46c0e346ccbaa5c51bb6b894d2b818e617d970211e232785ad4",
+          "bytes": 775,
+          "bundledText": "7cfafc877eccc46c0e346ccbaa5c51bb6b894d2b818e617d970211e232785ad4.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "709e3175b4212f7b13aa93971c9f62ff8c69ec45ad8c6532a7e0c41d7a7d6f8c",
+          "bytes": 1082,
+          "bundledText": "709e3175b4212f7b13aa93971c9f62ff8c69ec45ad8c6532a7e0c41d7a7d6f8c.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "rustls-pki-types",
       "version": "1.15.1",
       "declaredLicense": "MIT OR Apache-2.0",
@@ -6525,6 +6798,35 @@
           "sha256": "9117d922e667125508dde62b02c1f57ed22f5ad21eb536aa2e2d99e1c796e639",
           "bytes": 1080,
           "bundledText": "9117d922e667125508dde62b02c1f57ed22f5ad21eb536aa2e2d99e1c796e639.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "rustls-platform-verifier-android",
+      "version": "0.2.0",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [],
+      "status": "missing-text-review-required"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "rustls-platform-verifier",
+      "version": "0.7.1",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+          "bytes": 11357,
+          "bundledText": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "1c7cf76689c837a68ed8d704994e52a0f2940c087958f860d17f3186afbdcc0c",
+          "bytes": 1066,
+          "bundledText": "1c7cf76689c837a68ed8d704994e52a0f2940c087958f860d17f3186afbdcc0c.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -6630,6 +6932,21 @@
           "sha256": "cb3c929a05e6cbc9de9ab06a4c57eeb60ca8c724bef6c138c87d3a577e27aa14",
           "bytes": 1081,
           "bundledText": "cb3c929a05e6cbc9de9ab06a4c57eeb60ca8c724bef6c138c87d3a577e27aa14.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "schannel",
+      "version": "0.1.30",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "aa72991ac35b4de0034da0afe943e62b48c4092fc2ba13ae47806d8e9a4ad551",
+          "bytes": 1053,
+          "bundledText": "aa72991ac35b4de0034da0afe943e62b48c4092fc2ba13ae47806d8e9a4ad551.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -7040,6 +7357,21 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "serde_yaml_ng",
+      "version": "0.10.0",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "4cb6f99bc6158a9feba329a21ac24020c3b2cc6b6597645023adb8ae1371bd74",
+          "bytes": 1142,
+          "bundledText": "4cb6f99bc6158a9feba329a21ac24020c3b2cc6b6597645023adb8ae1371bd74.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "serde-untagged",
       "version": "0.1.9",
       "declaredLicense": "MIT OR Apache-2.0",
@@ -7292,6 +7624,27 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "simd_cesu8",
+      "version": "1.2.0",
+      "declaredLicense": "Apache-2.0 OR MIT",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "bytes": 10847,
+          "bundledText": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "bytes": 1023,
+          "bundledText": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "simd-adler32",
       "version": "0.3.10",
       "declaredLicense": "MIT",
@@ -7301,6 +7654,27 @@
           "sha256": "42a35170233e83e18856792e748de4c1ce4a63b2afce9a370c89ef3fe23f9f2d",
           "bytes": 1078,
           "bundledText": "42a35170233e83e18856792e748de4c1ce4a63b2afce9a370c89ef3fe23f9f2d.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "simdutf8",
+      "version": "0.1.5",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-Apache",
+          "sha256": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9",
+          "bytes": 10173,
+          "bundledText": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "1847e0e0698142ed4347c1441a9fa81c8fbddd44b1d8bbcd5e3647f991759d7f",
+          "bytes": 1035,
+          "bundledText": "1847e0e0698142ed4347c1441a9fa81c8fbddd44b1d8bbcd5e3647f991759d7f.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -7909,6 +8283,33 @@
       "ecosystem": "cargo",
       "name": "tauri-plugin-fs",
       "version": "2.7.0",
+      "declaredLicense": "Apache-2.0 OR MIT",
+      "files": [
+        {
+          "file": "LICENSE_APACHE-2.0",
+          "sha256": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9",
+          "bytes": 10173,
+          "bundledText": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9.txt"
+        },
+        {
+          "file": "LICENSE_MIT",
+          "sha256": "89ff9689dcf9dd53968785d05a26f7898bb169dbfcada8d032b3e68cf0d55607",
+          "bytes": 1089,
+          "bundledText": "89ff9689dcf9dd53968785d05a26f7898bb169dbfcada8d032b3e68cf0d55607.txt"
+        },
+        {
+          "file": "LICENSE.spdx",
+          "sha256": "eb8a6c84630461b352badcab1dbe5d0168c56d377358b2b8c86b51003272d5ef",
+          "bytes": 888,
+          "bundledText": "eb8a6c84630461b352badcab1dbe5d0168c56d377358b2b8c86b51003272d5ef.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "tauri-plugin-updater",
+      "version": "2.10.1",
       "declaredLicense": "Apache-2.0 OR MIT",
       "files": [
         {
@@ -8737,6 +9138,27 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "unicase",
+      "version": "2.10.0",
+      "declaredLicense": "MIT OR Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "bytes": 10847,
+          "bundledText": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "4f6bd11a0f17fe5b085ace1daaedb7b002a08316850dd9577c246c6a68a68e8c",
+          "bytes": 1063,
+          "bundledText": "4f6bd11a0f17fe5b085ace1daaedb7b002a08316850dd9577c246c6a68a68e8c.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "unicode-ident",
       "version": "1.0.27",
       "declaredLicense": "(MIT OR Apache-2.0) AND Unicode-3.0",
@@ -8764,6 +9186,33 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "unicode-normalization",
+      "version": "0.1.26",
+      "declaredLicense": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+          "bytes": 10847,
+          "bundledText": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0",
+          "bytes": 1071,
+          "bundledText": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0.txt"
+        },
+        {
+          "file": "LICENSE-UNICODE",
+          "sha256": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1",
+          "bytes": 1995,
+          "bundledText": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "unicode-segmentation",
       "version": "1.13.3",
       "declaredLicense": "MIT OR Apache-2.0",
@@ -8779,6 +9228,21 @@
           "sha256": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0",
           "bytes": 1071,
           "bundledText": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "unsafe-libyaml",
+      "version": "0.2.11",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+          "bytes": 1023,
+          "bundledText": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -8872,6 +9336,27 @@
           "sha256": "436bc5a105d8e57dcd8778730f3754f7bf39c14d2f530e4cde4bd2d17a83ec3d",
           "bytes": 1157,
           "bundledText": "436bc5a105d8e57dcd8778730f3754f7bf39c14d2f530e4cde4bd2d17a83ec3d.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "vcpkg",
+      "version": "0.2.15",
+      "declaredLicense": "MIT/Apache-2.0",
+      "files": [
+        {
+          "file": "LICENSE-APACHE",
+          "sha256": "60c93a31f490375aadf64098b75f10715010379541021e00261045d7800611d3",
+          "bytes": 11050,
+          "bundledText": "60c93a31f490375aadf64098b75f10715010379541021e00261045d7800611d3.txt"
+        },
+        {
+          "file": "LICENSE-MIT",
+          "sha256": "016d20f335060a70e79d9fcf8dfaa6201114d65d592211f4bdfb8ae9ca2bc1dc",
+          "bytes": 1082,
+          "bundledText": "016d20f335060a70e79d9fcf8dfaa6201114d65d592211f4bdfb8ae9ca2bc1dc.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -9247,6 +9732,21 @@
           "sha256": "3f39c032be4639be635da96d77c4d0f4393c3595a164450ffd86f3d17701ec10",
           "bytes": 1201,
           "bundledText": "3f39c032be4639be635da96d77c4d0f4393c3595a164450ffd86f3d17701ec10.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "webpki-root-certs",
+      "version": "1.0.10",
+      "declaredLicense": "CDLA-Permissive-2.0",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "e271993808fec50ab29350b39539cdec611a9103f827e0aa26d61da70e2d33f8",
+          "bytes": 2371,
+          "bundledText": "e271993808fec50ab29350b39539cdec611a9103f827e0aa26d61da70e2d33f8.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"
@@ -10793,6 +11293,21 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "zip",
+      "version": "4.6.1",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "04dc52136d82400b11df5f474949863a70a5d05d2278dec45b99c479494450a6",
+          "bytes": 1217,
+          "bundledText": "04dc52136d82400b11df5f474949863a70a5d05d2278dec45b99c479494450a6.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "zlib-rs",
       "version": "0.6.8",
       "declaredLicense": "Zlib",
@@ -11076,6 +11591,21 @@
       "ecosystem": "npm",
       "name": "@types/chai",
       "version": "5.2.3",
+      "declaredLicense": "MIT",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+          "bytes": 1141,
+          "bundledText": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-force",
+      "version": "3.0.10",
       "declaredLicense": "MIT",
       "files": [
         {
@@ -11383,6 +11913,66 @@
           "sha256": "11d55bd4541c75ee7879547ac49089c489163dae49551389713c3d026cab383e",
           "bytes": 1062,
           "bundledText": "11d55bd4541c75ee7879547ac49089c489163dae49551389713c3d026cab383e.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-dispatch",
+      "version": "3.0.1",
+      "declaredLicense": "ISC",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731,
+          "bundledText": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-force",
+      "version": "3.0.0",
+      "declaredLicense": "ISC",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731,
+          "bundledText": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-quadtree",
+      "version": "3.0.1",
+      "declaredLicense": "ISC",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731,
+          "bundledText": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee.txt"
+        }
+      ],
+      "status": "received-texts-copied-not-approval"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-timer",
+      "version": "3.0.1",
+      "declaredLicense": "ISC",
+      "files": [
+        {
+          "file": "LICENSE",
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee",
+          "bytes": 731,
+          "bundledText": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee.txt"
         }
       ],
       "status": "received-texts-copied-not-approval"

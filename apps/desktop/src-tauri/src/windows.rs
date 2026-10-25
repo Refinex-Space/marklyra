@@ -209,6 +209,9 @@ pub fn register<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Strin
     Ok(())
 }
 fn release<R: Runtime>(app: &AppHandle<R>, label: &str) {
+    if let Some(knowledge) = app.try_state::<crate::knowledge::KnowledgeHost>() {
+        knowledge.release(label);
+    }
     crate::os_open::release_owner(app, label);
     app.state::<crate::startup::StartupHost>().release(label);
     app.state::<crate::themes::ThemeHost>()

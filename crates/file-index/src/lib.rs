@@ -13,6 +13,7 @@ pub use entry_action::InspectedEntryAction;
 mod entry_move;
 mod entry_rename;
 mod fs_mutation;
+mod knowledge;
 mod move_relocation;
 mod relocation;
 #[cfg(test)]
@@ -39,6 +40,7 @@ pub use entry_rename::{
     EntryRenamePlan, EntryRenamePreparation, EntryRenameReceipt, EntryRenameResolution,
     InspectedWorkspaceEntry,
 };
+pub use knowledge::{KnowledgeFile, KnowledgeScan};
 pub use move_relocation::WorkspaceMoveRelocationPlan;
 pub use relocation::WorkspaceRelocationPlan;
 pub use search::{SearchMatch, SearchOptions, SearchReport, SearchSkipped, SearchTruncation};

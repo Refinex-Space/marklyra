@@ -1,0 +1,26 @@
+[package]
+name = "knowledge-index"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+file-index = { path = "../file-index" }
+document-service = { path = "../document-service" }
+serde.workspace = true
+serde_json = "1.0.154"
+thiserror.workspace = true
+uuid.workspace = true
+sha2 = "0.10"
+notify = "8.2.0"
+pulldown-cmark = { version = "=0.13.5", default-features = false }
+rusqlite = { version = "=0.41.0", default-features = false, features = ["bundled", "cache"] }
+percent-encoding = "2.3"
+unicode-normalization = "0.1"
+serde_yaml_ng = "=0.10.0"
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,9 +1,10 @@
-//! Private, hash-checked AppKit raster inputs; excluded from all editor SDK packages.
+//! Hash-checked AppKit raster inputs and the application-owned graph SVG; excluded from editor SDK packages.
 use objc2::{rc::Retained, AnyThread};
 use objc2_app_kit::NSImage;
 use objc2_foundation::{NSData, NSSize};
 
 pub(super) struct TitlebarImages {
+    pub graph: Retained<NSImage>,
     pub outline: Retained<NSImage>,
     pub outline_dark: Retained<NSImage>,
     pub sidebar: Retained<NSImage>,
@@ -20,7 +21,14 @@ fn image(bytes: &[u8], width: f64, height: f64) -> Result<Retained<NSImage>, Str
 
 impl TitlebarImages {
     pub fn load() -> Result<Self, String> {
+        let graph = image(
+            include_bytes!("../../../../public/icons/knowledge-graph.svg"),
+            16.0,
+            16.0,
+        )?;
+        graph.setTemplate(true);
         Ok(Self {
+            graph,
             outline: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),

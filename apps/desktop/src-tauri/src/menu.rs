@@ -128,6 +128,7 @@ const VIEW: &[MenuEntry] = &[
     Action("view:articles", "文档列表", Some("CmdOrCtrl+Ctrl+2")),
     Action("view:files", "文件树", Some("CmdOrCtrl+Ctrl+3")),
     Action("view:workspace-search", "搜索", Some("CmdOrCtrl+Shift+F")),
+    Action("view:graph", "知识图谱", Some("CmdOrCtrl+Alt+G")),
     Separator,
     Action("view:statistics", "字数统计", None),
     Separator,
@@ -709,7 +710,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            91 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            92 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {
@@ -734,5 +735,7 @@ mod tests {
         assert!(shortcuts.contains(&"CmdOrCtrl+Shift+D"));
         assert!(shortcuts.contains(&"CmdOrCtrl+Shift+G"));
         assert!(shortcuts.contains(&"CmdOrCtrl+Shift+K"));
+        assert!(ids.contains(&"view:graph"));
+        assert!(shortcuts.contains(&"CmdOrCtrl+Alt+G"));
     }
 }

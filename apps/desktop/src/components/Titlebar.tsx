@@ -31,6 +31,9 @@ export interface TitlebarProps {
   sidebarOpen: boolean;
   outlineOpen: boolean;
   aiOpen: boolean;
+  graphOpen?: boolean;
+  graphAvailable?: boolean;
+  onGraph?: () => void;
   onSidebar: () => void;
   onOutline: () => void;
   onAi: () => void;
@@ -293,6 +296,17 @@ export function Titlebar(props: TitlebarProps) {
                   onClick={props.onSidebar}
                 >
                   <span className="titlebar-glyph titlebar-glyph-sidebar" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="titlebar-action"
+                  title="知识图谱"
+                  aria-label="知识图谱"
+                  aria-pressed={props.graphOpen}
+                  disabled={props.disabled || !props.graphAvailable}
+                  onClick={props.onGraph}
+                >
+                  <Icon name="graph" />
                 </button>
                 <button
                   type="button"

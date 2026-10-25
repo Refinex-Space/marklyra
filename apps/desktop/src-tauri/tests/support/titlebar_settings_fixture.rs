@@ -28,6 +28,8 @@ pub(crate) fn verify_preferences_layout(window: &WebviewWindow) {
                     dark: false,
                     outline_panel_open: true,
                     ai_panel_open: false,
+                    graph_open: false,
+                    graph_available: false,
                     source_mode: Some(source_mode),
                     can_close_document: can_close,
                     image_preview_open: false,

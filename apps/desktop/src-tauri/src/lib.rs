@@ -12,6 +12,7 @@ mod exports;
 mod external_links;
 mod file_preferences;
 mod git;
+mod knowledge;
 mod markdown_preferences;
 mod menu;
 mod move_metadata;
@@ -85,7 +86,19 @@ pub fn run() {
         .manage(app_update::UpdateHost::default())
         .manage(agents::AgentHostState::default())
         .manage(git::GitHost::default())
+        .manage(knowledge::KnowledgeHost::default())
         .invoke_handler(tauri::generate_handler![
+            knowledge::knowledge_open,
+            knowledge::knowledge_status,
+            knowledge::knowledge_snapshot,
+            knowledge::knowledge_references,
+            knowledge::knowledge_active,
+            knowledge::knowledge_rebuild,
+            knowledge::knowledge_view,
+            knowledge::knowledge_save_view,
+            knowledge::knowledge_anchor,
+            knowledge::knowledge_import_view,
+            knowledge::knowledge_export_view,
             app_update::app_update_status,
             app_update::app_update_automatic,
             app_update::app_update_check,

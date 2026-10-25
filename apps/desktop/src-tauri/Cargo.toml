@@ -31,6 +31,7 @@ portable-pty = "0.9.0"
 image-assets = { path = "../../../crates/image-assets" }
 base64 = "0.22.1"
 file-index = { path = "../../../crates/file-index" }
+knowledge-index = { path = "../../../crates/knowledge-index" }
 document-service = { path = "../../../crates/document-service" }
 export-service = { path = "../../../crates/export-service" }
 recovery-store = { path = "../../../crates/recovery-store" }
@@ -41,6 +42,7 @@ tauri-plugin-updater = "=2.10.1"
 # The updater uses reqwest 0.13, separately from the application HTTP client.
 reqwest-updater = { package = "reqwest", version = "0.13", default-features = false, features = ["system-proxy", "socks"] }
 open = { version = "=5.4.4", default-features = false }
+tempfile.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "=0.6.5"
@@ -96,4 +98,9 @@ harness = false
 [[test]]
 name = "about-native"
 path = "tests/about-native.rs"
+harness = false
+
+[[test]]
+name = "knowledge-native"
+path = "tests/knowledge-native.rs"
 harness = false

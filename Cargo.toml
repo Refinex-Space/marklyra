@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/document-service", "crates/file-index", "crates/image-assets", "crates/export-service", "crates/recovery-store", "crates/recent-files", "apps/desktop/src-tauri"]
+members = ["crates/document-service", "crates/file-index", "crates/knowledge-index", "crates/image-assets", "crates/export-service", "crates/recovery-store", "crates/recent-files", "apps/desktop/src-tauri"]
 resolver = "2"
 
 [workspace.package]

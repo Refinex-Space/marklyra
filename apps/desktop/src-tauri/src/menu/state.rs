@@ -71,6 +71,10 @@ pub struct Snapshot {
     /// The Git view covers the document; like the home view, document commands do nothing.
     #[serde(default)]
     git_view: bool,
+    #[serde(default)]
+    graph_view: bool,
+    #[serde(default)]
+    graph_available: bool,
     /// The open folder is a usable Git repository.
     #[serde(default)]
     git_repository: bool,
@@ -184,7 +188,13 @@ impl Snapshot {
             // Git acts on the folder, not the document; settings work without a repository.
             return git == "settings" || self.git_repository;
         }
-        if (self.home || self.git_view) && !home_action(action) {
+        if action == "view:graph" {
+            return self.graph_available;
+        }
+        if self.graph_view && action == "find" {
+            return true;
+        }
+        if (self.home || self.git_view || self.graph_view) && !home_action(action) {
             return false;
         }
         if self.text_input_focused
@@ -273,6 +283,7 @@ impl Snapshot {
             "view:calendar" => self.calendar,
             "view:fullscreen" => self.fullscreen,
             "git:panel" => self.git_view,
+            "view:graph" => self.graph_view,
             _ => {
                 if let Some(style) = action.strip_prefix("format:") {
                     return editor.inline_styles.iter().any(|item| item == style);

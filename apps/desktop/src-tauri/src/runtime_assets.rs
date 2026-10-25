@@ -71,6 +71,19 @@ pub struct RuntimeAssets {
     root: OnceLock<Option<Dir>>,
 }
 
+#[cfg(test)]
+impl RuntimeAssets {
+    /// Native integration fixtures serve the same checked runtime without an installed bundle.
+    #[allow(dead_code)] // Used by the standalone native test harness, not the library test binary.
+    pub(crate) fn fixture(root: &Path) -> Result<Self, String> {
+        let directory =
+            select_root(Some(root), None).ok_or("Fixture runtime is missing or invalid")?;
+        Ok(Self {
+            root: OnceLock::from(Some(directory)),
+        })
+    }
+}
+
 #[tauri::command]
 pub fn editor_runtime_url() -> &'static str {
     if cfg!(target_os = "windows") {

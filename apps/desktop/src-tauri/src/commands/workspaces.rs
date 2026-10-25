@@ -666,7 +666,11 @@ pub fn close_workspace(
     window: WebviewWindow,
     services: State<'_, WindowServices>,
 ) -> Result<(), String> {
-    services.close_workspace(window.label(), &workspace_id)
+    services.close_workspace(window.label(), &workspace_id)?;
+    if let Some(host) = window.try_state::<crate::knowledge::KnowledgeHost>() {
+        host.release_workspace(window.label(), &workspace_id);
+    }
+    Ok(())
 }
 
 #[cfg(test)]

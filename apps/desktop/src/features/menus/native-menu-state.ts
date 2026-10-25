@@ -26,6 +26,8 @@ export interface NativeMenuPresentation {
   calendar?: boolean;
   /** The Git view covers the document. */
   gitView?: boolean;
+  graphView?: boolean;
+  graphAvailable?: boolean;
   /** The open folder is a usable Git repository. */
   gitRepository?: boolean;
 }
@@ -92,6 +94,8 @@ export class NativeMenuPublisher {
       dailyOpen: value.dailyOpen === true,
       calendar: value.calendar === true,
       gitView: value.gitView === true,
+      graphView: value.graphView === true,
+      graphAvailable: value.graphAvailable === true,
       gitRepository: value.gitRepository === true,
       editor: value.editor
         ? {

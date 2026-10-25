@@ -72,6 +72,9 @@ define_class!(
         #[unsafe(method(toggleAi:))]
         fn toggle_ai(&self, _sender: &AnyObject) { self.emit("view:ai"); }
 
+        #[unsafe(method(toggleGraph:))]
+        fn toggle_graph(&self, _sender: &AnyObject) { self.emit("view:graph"); }
+
         #[unsafe(method(toggleSource:))]
         fn toggle_source(&self, _sender: &AnyObject) { self.emit("view:source"); }
 
@@ -223,6 +226,7 @@ struct EditorChrome {
     statistics: Retained<NSButton>,
     outline: Retained<NSButton>,
     ai: Retained<NSButton>,
+    graph: Retained<NSButton>,
     images: TitlebarImages,
     fullscreen_constraints: Option<Retained<NSArray<NSLayoutConstraint>>>,
     dark: Option<bool>,
@@ -268,7 +272,7 @@ impl EditorChrome {
     }
 
     fn layout_controls(&self) {
-        // AppKit measures the current label; the three action columns stay fixed
+        // AppKit measures the current label; the four action columns stay fixed
         // relative to the right edge as word counts grow.
         // The titlebar no longer carries a word count, so the icons start at the left edge.
         let width: f64 = 0.0;
@@ -281,7 +285,7 @@ impl EditorChrome {
         // Match ai.css: 28px buttons, 4px gaps, 8px padding and a 20px
         // scrollbar gutter put the centers 106 / 74 / 42px from the edge.
         // Source mode keeps its existing label placement; these icons are hidden there.
-        let trailing = if source_mode { 70.0 } else { 110.0 };
+        let trailing = if source_mode { 70.0 } else { 142.0 };
         // The Home button takes a column to the left of the word count while it is offered.
         let home = home_slot(self.view.home_offered());
         self.view
@@ -297,8 +301,12 @@ impl EditorChrome {
         }
         if let Some(actions) = self.view.ivars().actions.get() {
             native_hover::set_frame(
+                &actions[3],
+                titlebar_icon_rect(leading + home + width + 60.0, 16.0),
+            );
+            native_hover::set_frame(
                 &actions[2],
-                titlebar_icon_rect(leading + home + width + 60.0, 13.0),
+                titlebar_icon_rect(leading + home + width + 92.0, 13.0),
             );
             native_hover::set_frame(
                 &actions[0],
@@ -459,6 +467,18 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             ai.setTitle(&NSString::from_str(""));
         }
         ai.setButtonType(NSButtonType::Toggle);
+        let graph = button(
+            &view,
+            "知识图谱",
+            sel!(toggleGraph:),
+            titlebar_icon_rect(0.0, 16.0),
+            true,
+        );
+        graph.setImage(Some(&images.graph));
+        graph.setTitle(&NSString::from_str(""));
+        graph.setButtonType(NSButtonType::Toggle);
+        graph.setEnabled(false);
+        graph.setToolTip(Some(&NSString::from_str("知识图谱（先打开文件夹）")));
         let source = button(
             &view,
             "Source Mode ×",
@@ -476,7 +496,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         let _ = view
             .ivars()
             .actions
-            .set(vec![outline.clone(), sidebar, ai.clone()]);
+            .set(vec![outline.clone(), sidebar, ai.clone(), graph.clone()]);
         view.update_visibility();
         let controller = NSTitlebarAccessoryViewController::new(mtm);
         controller.setView(&view);
@@ -490,6 +510,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             statistics,
             outline,
             ai,
+            graph,
             images,
             fullscreen_constraints: None,
             dark: None,
@@ -551,10 +572,19 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
         chrome.window.setTitle(&NSString::from_str(&title));
         chrome.window.setDocumentEdited(update.dirty);
         if let Some(button) = chrome.view.ivars().title_button.get() {
-            button.setEnabled(update.file_proxy && update.path.is_some());
+            button.setEnabled(!update.graph_open && update.file_proxy && update.path.is_some());
         }
         chrome.view.ivars().can_close.set(update.can_close_document);
         chrome.ai.setState(if update.ai_panel_open { 1 } else { 0 });
+        chrome.graph.setState(if update.graph_open { 1 } else { 0 });
+        chrome.graph.setEnabled(update.graph_available);
+        chrome
+            .graph
+            .setToolTip(Some(&NSString::from_str(if update.graph_available {
+                "知识图谱"
+            } else {
+                "知识图谱（先打开文件夹）"
+            })));
         chrome
             .outline
             .setState(if update.outline_panel_open { 1 } else { 0 });
