@@ -1,6 +1,6 @@
 # 知识图谱：实现、数据规则与验证
 
-本功能在现有文档面板中展示当前文件夹的文档关系。正文是关系的唯一来源；图谱不改写文稿，不给文稿插入 ID，也不推断不存在的语义关系。编辑器 iframe、源码镜像、历史和输入法链路继续由原有编辑器管理。此次实现没有复用 Markune 的图谱代码。
+本功能在现有文档面板中展示当前文件夹的文档关系。正文是关系的唯一来源；图谱不改写文稿，不给文稿插入 ID，也不推断不存在的语义关系。编辑器 iframe、源码镜像、历史和输入法链路继续由原有编辑器管理。
 
 ## 使用方式
 
@@ -20,14 +20,16 @@
 | 问题 | 采用的实现 | 依据与取舍 |
 | --- | --- | --- |
 | 关系保存在哪里 | Markdown 保存关系事实；宿主本地数据目录保存可重建 SQLite 索引 | 不污染用户文件夹，不把可推导数据库放进 Git/同步盘，不要求目录可写。跨设备携带正文即可重建关系。 |
-| 索引数据库 | Rust + `rusqlite 0.41.0` bundled SQLite + WAL | 单写者、短事务、并行读取；不增加数据库服务。运行时实测 SQLite 3.54.0。WAL 的共享内存要求也支持把索引留在设备本地，而不是网络共享目录。参见 [SQLite WAL](https://sqlite.org/wal.html)。 |
+| 索引数据库 | Rust + `rusqlite 0.41.0` bundled SQLite + WAL | 单写者、短事务、并行读取；不增加数据库服务。WAL 的共享内存要求也支持把索引留在设备本地，而不是网络共享目录。参见 [SQLite WAL](https://sqlite.org/wal.html)。 |
 | Markdown 提取 | `pulldown-cmark 0.13.5` 的语法事件和源码偏移 | 不用正则全局扫链接；代码、图片、数学和元数据边界来自语法解析。源码偏移接口依据[官方项目说明](https://github.com/pulldown-cmark/pulldown-cmark)，具体版本以本仓库锁文件和已执行回归为准。 |
 | 布局 | 独立 Worker 内 `d3-force 3.0.0`，手动分批 tick、收敛即停 | 主线程只处理交互与绘制。D3 官方明确支持停止自动计时后手动 tick，并建议大型静态布局使用 Worker：[Force simulations](https://d3js.org/d3-force/simulation)。 |
-| 绘制 | 自有单层不透明 Canvas 2D、缓存 Path2D、局部移动几何 | 在真实 WKWebView 中试验过 Sigma 3、Sigma 4；本轮工作负载的 WebContent 内存明显超出目标，因此没有引入这些依赖。Canvas 的选择只对当前最多 5,000 可见节点的场景负责。 |
+| 绘制 | 自有单层不透明 Canvas 2D、缓存 Path2D、局部移动几何 | 控制绘制与内存成本，面向当前最多 5,000 可见节点的场景，不引入额外图形库。 |
 | 数据跨线程 | 有界消息、批量坐标、可转移 Float32Array、epoch/serial 校验 | 旧布局结果不能覆盖新图；React 不参与逐帧更新。参考 [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)。 |
 | 交互范围 | 文档、真实引用、局部/全局、缺失/歧义及来源定位 | 参考 [Obsidian Graph view](https://obsidian.md/help/plugins/graph) 的使用问题，不复制其外观、数据格式或全部扩展语义。没有加入 AI 推断边、标签节点、粒子背景、3D 或永不停歇的物理模拟。 |
 
 图谱 UI 和 Worker 按需加载。普通启动只注册空宿主状态；没有打开图谱就不会启动文件扫描、SQLite 连接、布局 Worker 或图谱帧循环。
+
+关系面板复用 `DocumentDetailsResize` 的 pointer capture、rAF 和 CSS 变量更新方式。拖动期间不逐帧提交 React 宽度状态，不重新设置图谱数据，也不重建画布或编辑器。键盘焦点保留在具体控件上；文档列表获得焦点时，Enter 只展开或收起列表，不误打开选中的图谱文档。
 
 ```mermaid
 flowchart LR
@@ -104,57 +106,13 @@ cargo clippy -p knowledge-index -p file-index -p marklyra-desktop --all-targets 
 pnpm exec playwright test -c playwright.desktop.config.ts tests/desktop-e2e/knowledge-graph.spec.ts tests/desktop-e2e/app.spec.ts tests/desktop-e2e/document-details.spec.ts --workers=2
 node tools/performance/knowledge-native.mjs --release
 pnpm build:desktop --no-bundle
-node scripts/audit-dependencies.mjs --notices
+pnpm update:notices
 ```
 
 原生工具只创建自有临时笔记目录和无持久配置的 WKWebView 窗口，不打开用户文稿、不复用已运行应用的数据。它采用产品相同的 IPC 隔离与编辑器协议：合成 10,000 篇文档/50,000 条关系，验证冷索引、真实文件事件增量、跨窗口拒绝、原生 SVG 按钮与点击路由、500/5,000 节点绘制、拖动、静止、20 次创建销毁，并与真实隔离编辑器共存。报告附代码 SHA-256、构建模式、操作系统、进程内存和逐次采样。
 
 冷索引指全新 SQLite 数据库；合成文件刚刚写入，未清空操作系统文件缓存。编辑耗时记录插入命令及完整源码 `flush`，另记录随后两个绘制帧；不把它等同于物理键盘到屏幕的输入延迟。CPU 按占满一个逻辑核心为 100% 计算，静止阶段采用三个连续约 3 秒的窗口，保留每段原值并按完整约 9 秒计算均值；RSS 是明确采样点的进程驻留内存，不是所有时刻的严格峰值。原生夹具加载实际渲染器、Worker、索引命令和隔离编辑器；完整 Shell 的交互与命令路由另由浏览器回归验证。
 
-早期单个 3 秒窗口曾因静止 CPU 比基线多约 2.66 个百分点而失败，记录保存在 `native-release/idle-short-window-failed.json`。随后 8 秒原生调用栈采样观察到 WebKit 的 `FullGCActivityCallback` 和 JSC 堆收集，图谱重绘计数保持为零。诊断采用连续窗口保留短时活动，没有挑选最低窗口，也没有放宽“完整窗口 CPU 增量不超过单核心 2 个百分点”的门槛。诊断报告和 `idle-sample.txt` 独立保存；最终验收使用同一 release 二进制与静态资源，移除采样器后再运行，二进制和源码身份见 `native-release/final-run.json`、`source.json`。
+性能基准同时检查源码、历史、权限和资源生命周期。当前原生夹具的目标包括绘制 P95 ≤ 6 ms、WebContent RSS 采样增量 ≤ 200 MiB、完整静止窗口 CPU 相对基线增量 ≤ 单核心 2 个百分点、单次增量后台工作 ≤ 100 ms、两跳查询 P95 ≤ 25 ms；交互帧间隔还需与空宿主基线比较。结果应记录设备、工作负载和输入身份，不将历史数字视为当前通过状态。
 
-### 2026-10-25 最终原生结果
-
-环境：Apple M1 Max、32 GiB、macOS 26.5.2、aarch64 release，WKWebView 视口 1440 × 872、DPR 2。该轮运行没有并行构建或采样器。全部门槛通过，错误数组为空；完成该轮测量时，源码 SHA-256 与测量清单逐项一致。后续界面调整的验证单独记录，不将此表宣称为调整后界面的重新测量。完整记录：[原生报告](../artifacts/knowledge-graph/native-release/report.json)、[验证摘要](../artifacts/knowledge-graph/native-release/verified-summary.json)。
-
-| 项目 | 实测 |
-| --- | --- |
-| 10,000 篇 / 50,000 条关系，新建索引 | 13.789 s；宿主平均约占单核心 45.47%，完成且没有跳过或读取失败。 |
-| 两跳查询，30 次 | P95 2.29 ms。 |
-| 真实文件事件增量 | 解析 1 篇、重算 26 次引用；后台工作 3 ms，包含监听/合并的端到端观察 100 ms。 |
-| 500 节点 / 2,431 条边 | 交互帧间隔 P95 19 ms，绘制 P95 2 ms；WebContent RSS 采样增量 38.2 MiB。 |
-| 5,000 节点 / 20,000 条边 | 交互帧间隔 P95 19 ms，绘制 P95 3 ms；WebContent RSS 采样增量 140.5 MiB，宿主增量 13.2 MiB。 |
-| 静止与平移 | 两种规模均为静止 0 重绘、平移 0 次路径重建。 |
-| 静止 CPU，完整 9 秒窗口 | 宿主与 WebContent 合计：编辑器基线 1.32%，500 节点 1.77%，5,000 节点 0.66%（均以单核心为分母）。逐窗口值保留，CPU 受回收时机影响。 |
-| 编辑器共存，83,917 字节原文 | 插入及源码 flush 中位数：基线 43 ms、首次索引期间 46 ms、关闭图谱后 42 ms；通过既定 5% 加 2 ms 计时容限。原文、BOM、混合换行、撤销/重做、iframe 实例及文档代次全部校验一致。 |
-| 20 次创建/销毁 | Renderer 与布局 Worker 计数归零；第 5 至第 20 次的 WebContent RSS 样本仅增加 48 KiB。释放计数与操作系统是否立即归还全部 RSS 分开判断。 |
-
-验收门槛包括：绘制 P95 ≤ 6 ms、交互帧间隔受空宿主基线与 20–22 ms 上限约束、WebContent RSS 采样增量 ≤ 200 MiB、完整静止窗口 CPU 相对基线增量 ≤ 单核心 2 个百分点、单次增量后台工作 ≤ 100 ms、两跳查询 P95 ≤ 25 ms；同时必须通过源码、历史、权限和资源生命周期校验。所有数字只对应上述工作负载和设备。
-
-### 回归与构建
-
-| 检查 | 实际结果 |
-| --- | --- |
-| `pnpm check` | 类型与依赖边界通过；146 个文件、1,839 项单元测试通过。 |
-| Rust 全 workspace 库测试，串行 | 909 项通过、5 项既定忽略。初次并行执行曾让既有进程级文件句柄计数测试受其他测试干扰；串行执行通过，没有修改该测试或放宽门槛。 |
-| `cargo test -p knowledge-index` | 最后修改后 24 项通过，含真实监听、暂停恢复、目录删除、大小写身份、文件 URL、缺失/歧义、来源位置、原子快照、长行 20,000 链接、YAML 展开预算和 SQLite 查询工作量回归。 |
-| 窗口/视图专项 | 3 项通过：旧请求撤销、多窗口共享、视图读取/保存/导出预算及非法相机值。 |
-| 浏览器组合回归 | Chromium/WebKit 共 66 项通过；最后图谱专项 12 项再次通过，包括原生序列化查找通道、隐藏编辑器命令拦截、IME、旧查询返回、导航、拖拽、固定、导入导出、明暗及窄面板。分组存在重复，不合并为独立用例总数。 |
-| Rust fmt / Clippy | fmt 检查与三个相关 crate 的 all-targets Clippy `-D warnings` 通过。 |
-| 改动前端静态检查 | 相关源码、测试和工具的 Biome 检查通过；最后采样工具修改后另执行了类型检查。 |
-| 运行资源 | 355 个受版本控制的源资源身份校验通过，270 个运行资源生成；现有编辑器包和第三方资源没有源文件改动。 |
-| 桌面构建 | macOS ARM64 release `--no-bundle` 通过，产物位于 `target/aarch64-apple-darwin/release/marklyra-desktop`。未执行签名安装包或发布。Vite 保留主包超过 500 kB 的构建提示，图谱 UI 与 Worker 为独立按需资源。 |
-| 依赖许可清单 | 本地 inventory/notices 生成完成，锁文件身份一致；图谱新增依赖保留许可文本。完整清单记录 50 项包根层未发现许可文本，保留工具原始状态，未把清单当成完整法务审计。 |
-| Codacy | 未执行：本会话未提供对应 skill，没有初始化或上传源码/扫描结果。 |
-
-浏览器回归使用模拟 IPC，不能替代真实文件监听/宿主测试；原生夹具也不能替代 Windows WebView2 真机验收。合成 composition 事件验证应用的输入保护，不等同于系统输入法候选窗口验收。GPU 共享进程没有可靠的独占归属，因此内存和 CPU 只报告被明确识别的宿主与 WebContent 进程，不称作整个系统的 GPU 总成本。
-
-### 界面细节调整（2026-10-25）
-
-图谱标题行与文件夹栏同为 40 px 高、12 px 字号。搜索与视图操作共用一行，筛选条件按固定列与显示开关分组；较窄宽度时操作保留图标、条件按列换行。移除内容区的重复横纵分隔线，关系详情通过留白和轻微背景差区分标题、操作与引用卡片。长标题、路径和外链均保留完整提示，正文预览限制行数。
-
-关系面板复用 `DocumentDetailsResize` 的 pointer capture、rAF 和 CSS 变量更新方式，新增可配置容器及变量名。拖动期间不逐帧提交 React 宽度状态，不重新设置图谱数据，也不重建画布或编辑器。面板支持宽度边界、收起和同窗口再次打开时恢复宽度。
-
-搜索输入、下拉框、画布和文档列表不再叠加整块蓝色焦点边框；键盘焦点保留在具体按钮或列表标题附近。文档列表获得焦点时，Enter 只展开/收起列表，不误打开选中的图谱文档。
-
-本轮图谱及既有分栏的 Chromium/WebKit 组合回归 44 项通过；相关单元测试 6 项、类型检查、Biome 和桌面前端构建通过。截图位于 `artifacts/knowledge-graph/ui-polish/`，包含明暗主题、展开筛选、长链接、宽度拖拽和窄窗口。没有改动解析器、增量索引或 Canvas 渲染器，也没有重新执行前述原生性能基准。
+浏览器回归使用模拟 IPC，不能替代真实文件监听及宿主测试；原生夹具也不能替代 Windows WebView2 真机和系统输入法验收。GPU 共享进程没有可靠的独占归属，内存与 CPU 只报告被明确识别的宿主与 WebContent 进程。

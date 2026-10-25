@@ -34,7 +34,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --lib --bins --locked
 ```
 
-浏览器套件使用 Chromium/WebKit；真实 WKWebView、WebView2、系统输入法、打印和文件关联需在对应宿主验证。`cargo test --test` 的原生 GUI harness 使用隔离夹具单独运行。
+浏览器套件使用 Chromium/WebKit；真实 WKWebView、WebView2、系统输入法、打印和文件关联需在对应宿主验证。`cargo test --test` 的原生 GUI harness 使用隔离夹具单独运行。性能测量的输入冻结、计时边界和复现步骤见 [性能工具说明](tools/performance/README.md)。
 
 ## 模块
 

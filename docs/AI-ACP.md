@@ -113,4 +113,4 @@ MARKLYRA_ACP_INSTALL_PROBE_IDS=codex-acp,opencode \
   cargo test -p marklyra-desktop --lib agents::catalog::network_tests::install_selected_catalog_agents -- --ignored --nocapture
 ```
 
-详细实测结果见 `AI-ACP-VERIFICATION.md`。真实服务账号、其他平台和浏览器替身的验证必须分别记录。
+真实服务账号、其他平台和浏览器替身的验证必须分别记录，不从历史结果推定当前版本通过。

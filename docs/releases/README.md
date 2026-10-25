@@ -1,6 +1,6 @@
 # MarkLyra 发布与更新手册
 
-适用仓库：[`Refinex-Space/marklyra`](https://github.com/Refinex-Space/marklyra)。维护日期：2026-10-21。
+适用仓库：[`Refinex-Space/marklyra`](https://github.com/Refinex-Space/marklyra)。维护日期：2026-10-25。
 
 本项目采用 GitHub Release 分发免费开源桌面版本。macOS 使用 ad-hoc 本地签名，不购买 Apple 开发者证书、不做公证；Windows 不要求 Authenticode 证书。应用内更新使用另一套免费的 Tauri/minisign 密钥校验来源，不能省略。
 
@@ -220,4 +220,16 @@ Windows 的目录能力句柄会阻止所持目录被移动或删除，这是文
 - 正式版本有缺陷：优先发布递增版本的修复版。必要时可由维护者将上一稳定版恢复为 Latest 以阻止继续推广坏版本；已经升级的客户端不会自动降级，需要新修复版本或手动安装。
 - 安装失败：显示错误并退出已关闭文稿的应用，重新启动后检查或手动安装。恢复数据仍按现有应用机制保存，不把安装成功等同于系统级事务回滚。
 
-设计依据与实现边界见 [发布与更新设计](design.md)。
+## 更新器实现边界
+
+隔离设置页仅通过既有带 channel、instance 和有序请求的协议保存自动检查开关、请求打开检查面板。原生 IPC、下载 URL、公钥、签名及待安装字节由可信 Shell／Rust 宿主持有，编辑器 iframe 不获得 updater 插件权限。实现入口为 `apps/desktop/src-tauri/src/app_update.rs`。
+
+`UpdateHost` 保存全应用更新状态，并用原子操作锁串行化检查和下载。自动检查开关写入应用数据目录下的 `updates/preferences.json`。下载包只保存在进程内，退出后丢弃；已验证的下载不会被后台定时检查丢弃。
+
+只有签名校验完成的下载才能进入可安装状态。选择安装后先执行 `windows::request_quit` 的文稿保存、输入法及恢复关闭协议；关闭被取消或请求无法完成时撤销安装意图并保留下载。所有编辑窗口完成关闭协议后才拦截退出并安装，安装期间阻止重复退出。不得直接用下载后安装或重启绕过文稿关闭确认。
+
+检查请求超时 20 秒、连接超时 10 秒，下载总超时 20 分钟。网络错误可按前述代理策略尝试一次直连，签名错误不作为网络故障重试。更新 URL 限于官方仓库的对应 Release 附件，仍需通过签名确认字节来源；平台 ad-hoc 签名与更新签名承担不同职责。
+
+构建、聚合和发布保持分离。`scripts/release.mjs` 校验版本、公钥、三平台文件集合、源提交、URL、签名及 SHA-256；`scripts/publish-release.mjs` 重新下载草稿附件执行相同校验。构建与发布工作流使用同版本并发组，发布前核对相同标签和提交的成功构建，不覆盖已有 Release。
+
+上述自动检查不能替代 macOS ARM、Intel、Windows 的安装、输入法、文稿关闭及升级重启验收。交叉编译和浏览器 WebKit 也不能替代对应硬件与 WKWebView。

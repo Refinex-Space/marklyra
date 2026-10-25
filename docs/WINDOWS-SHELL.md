@@ -50,5 +50,5 @@ Windows 标题栏右上角的文档操作（统计、目录、侧栏、AI）与�
 ## 验证说明
 
 - 浏览器 e2e 使用 `installLayout(page, undefined, 'web')` 模拟 Windows 宿主（`tests/desktop-e2e/windows-titlebar.spec.ts`），宿主 IPC 为测试替身。
-- 真机验证在 Windows 11 上通过 WebView2 远程调试端口加 Win32 鼠标注入完成：标题栏、菜单弹出、窗口拖动 / 缩放 / 最大化、加速键、全屏、设置页与滚动条。
-- Windows 上 `cargo test --lib` 的测试二进制需要 comctl32 v6 清单才能启动；基线已存在约 80 项与本次无关的 Windows 失败（路径与权限相关）。
+- Windows 真机需独立验证标题栏、原生菜单、窗口拖动／缩放／最大化、加速键、全屏、设置页和滚动条；浏览器中的平台模拟不能替代 WebView2 宿主验收。
+- Windows 上 `cargo test --lib` 的测试二进制需要 comctl32 v6 清单；准备步骤见[发布手册](releases/README.md#2-本地验证)。测试结果以本次执行为准，不沿用历史失败数量。

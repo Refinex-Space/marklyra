@@ -65,9 +65,8 @@ Media Wiki / reStructuredText / Textile / OPML，外加用户自定义的 Pandoc
 | `open_print_preview` | 打印预览（macOS 的 PDF 入口，Windows 的系统打印） |
 | `reveal_export_file` / `open_export_file` | 显示 / 打开刚导出的文件 |
 
-## 验证
+## 验证范围
 
-- Rust：设置模型与校验、参数白名单、PDF 版面解析与页眉页脚转义、落点与“显示”权限、输出校验、真实 Pandoc 转换。
-- Windows 渲染：真实 WebView2 产出 PDF / 图像并核对页数、书签、页眉页脚与像素尺寸。
-- 浏览器：设置页的全部交互与导出流程（宿主 IPC 使用测试替身）。
-- 未覆盖：macOS 实机（本仓库在 Windows 上开发，macOS 路径沿用既有实现并随编译检查）。
+- Rust 回归覆盖设置模型与校验、参数白名单、PDF 版面解析与页眉页脚转义、落点与“显示”权限、输出校验和 Pandoc 转换；真实转换需具备可用的 Pandoc。
+- 浏览器回归检查设置与导出交互，宿主 IPC 使用替身。
+- 在 Windows WebView2 与 macOS WKWebView 分别验证实际 PDF、图像、系统打印面板及保存流程，核对页数、书签、页眉页脚和像素尺寸。编译或浏览器替身通过不代表原生导出通过。
