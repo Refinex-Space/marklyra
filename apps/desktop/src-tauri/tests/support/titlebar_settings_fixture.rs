@@ -1,6 +1,61 @@
 // Native regression: exercise production transitions and actual AppKit hit rectangles.
 use super::*;
 
+pub(crate) fn verify_sidebar_icons(window: &WebviewWindow) {
+    initialise(window).unwrap();
+    let label = window.label();
+    for dark in [false, true] {
+        for sidebar_open in [true, false, true, false] {
+            update(
+                label,
+                DocumentChrome {
+                    path: None,
+                    file_proxy: false,
+                    dirty: false,
+                    statistics_label: "0 词".into(),
+                    statistics: StatisticsSnapshot::default(),
+                    always_show_word_count: true,
+                    dark,
+                    outline_panel_open: false,
+                    sidebar_open,
+                    ai_panel_open: false,
+                    graph_open: false,
+                    graph_available: false,
+                    source_mode: Some(false),
+                    can_close_document: false,
+                    image_preview_open: false,
+                    untitled_name: None,
+                },
+            )
+            .unwrap();
+            CHROME.with(|registry| {
+                let registry = registry.borrow();
+                let chrome = &registry[label];
+                let sidebar = &chrome.view.ivars().actions.get().unwrap()[1];
+                let expected = if sidebar_open {
+                    &chrome.images.sidebar
+                } else {
+                    &chrome.images.sidebar_collapsed
+                };
+                let image = sidebar.image().expect("sidebar icon");
+                assert_eq!(Retained::as_ptr(&image), Retained::as_ptr(expected));
+                let outline = chrome.outline.image().expect("table of contents icon");
+                assert_eq!(
+                    Retained::as_ptr(&outline),
+                    Retained::as_ptr(&chrome.images.outline)
+                );
+                assert_ne!(Retained::as_ptr(&outline), Retained::as_ptr(&image));
+                for image in [&image, &outline] {
+                    assert!(image.isValid());
+                    assert!(image.isTemplate());
+                    assert_eq!(image.size(), NSSize::new(14.0, 14.0));
+                }
+            });
+        }
+    }
+    release(label);
+}
+
 pub(crate) fn verify_preferences_layout(window: &WebviewWindow) {
     initialise(window).unwrap();
     let label = window.label();
@@ -27,6 +82,7 @@ pub(crate) fn verify_preferences_layout(window: &WebviewWindow) {
                     always_show_word_count: true,
                     dark: false,
                     outline_panel_open: true,
+                    sidebar_open: true,
                     ai_panel_open: false,
                     graph_open: false,
                     graph_available: false,

@@ -1845,6 +1845,7 @@ export function App() {
         imagePreviewOpen,
         graphOpen,
         !!sessionWorkspace,
+        sidebar,
       )
       .catch((error: unknown) => {
         if (
@@ -1874,6 +1875,7 @@ export function App() {
     homeVisible,
     graphOpen,
     sessionWorkspace,
+    sidebar,
   ]);
   useEffect(() => {
     if (!ready || !editor.current) return;

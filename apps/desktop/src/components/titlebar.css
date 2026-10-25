@@ -234,10 +234,13 @@
   mask: var(--glyph) center / contain no-repeat;
 }
 .titlebar-glyph-outline {
-  --glyph: url("../../src-tauri/icons/titlebar/panel-right.svg");
+  --glyph: url("../../src-tauri/icons/titlebar/table-of-contents.svg");
 }
 .titlebar-glyph-sidebar {
   --glyph: url("../../src-tauri/icons/titlebar/panel-left.svg");
+}
+.titlebar-action[aria-expanded="false"] .titlebar-glyph-sidebar {
+  --glyph: url("../../src-tauri/icons/titlebar/panel-right.svg");
 }
 .titlebar .titlebar-source {
   height: 20px;

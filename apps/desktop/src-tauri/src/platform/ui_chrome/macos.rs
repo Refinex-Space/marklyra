@@ -227,6 +227,7 @@ struct EditorChrome {
     outline: Retained<NSButton>,
     ai: Retained<NSButton>,
     graph: Retained<NSButton>,
+    images: TitlebarImages,
     fullscreen_constraints: Option<Retained<NSArray<NSLayoutConstraint>>>,
     dark: Option<bool>,
 }
@@ -510,6 +511,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             outline,
             ai,
             graph,
+            images,
             fullscreen_constraints: None,
             dark: None,
         };
@@ -535,6 +537,13 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
             });
             chrome.window.setAppearance(appearance.as_deref());
             chrome.dark = Some(update.dark);
+        }
+        if let Some(actions) = chrome.view.ivars().actions.get() {
+            actions[1].setImage(Some(if update.sidebar_open {
+                &chrome.images.sidebar
+            } else {
+                &chrome.images.sidebar_collapsed
+            }));
         }
         chrome
             .view

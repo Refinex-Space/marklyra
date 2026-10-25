@@ -8,11 +8,11 @@ import { nativeTitlebarManifest, verifyNativeIcons } from './prepare-native-icon
 
 const input = fileURLToPath(new URL('../apps/desktop/src-tauri/icons/titlebar', import.meta.url));
 
-test('both shared Lucide SVG inputs retain their recorded identity and dimensions', async () => {
-  assert.equal(await verifyNativeIcons(), 2);
+test('all three shared Lucide SVG inputs retain their recorded identity and dimensions', async () => {
+  assert.equal(await verifyNativeIcons(), 3);
   assert.deepEqual(
     nativeTitlebarManifest.assets.map((entry) => entry.file),
-    ['panel-left.svg', 'panel-right.svg'],
+    ['panel-left.svg', 'panel-right.svg', 'table-of-contents.svg'],
   );
 });
 

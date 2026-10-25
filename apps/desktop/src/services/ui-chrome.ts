@@ -104,6 +104,7 @@ export const editorChrome = {
     imagePreviewOpen = false,
     graphOpen = false,
     graphAvailable = false,
+    sidebarOpen = true,
   ) {
     const values = statistics ?? { words: 0, characters: 0, lines: 0, readingMinutes: 0 };
     const labels = { words: '词', characters: '字符', lines: '行', readingMinutes: '分钟' };
@@ -113,6 +114,7 @@ export const editorChrome = {
       alwaysShowWordCount,
       dark,
       outlinePanelOpen,
+      sidebarOpen,
       aiPanelOpen,
       graphOpen,
       graphAvailable,

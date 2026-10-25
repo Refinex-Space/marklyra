@@ -32,6 +32,7 @@ test('tracked project inputs verify without a private directory or installed edi
   assert.ok(resources.has('packages/editor-runtime/src/page/index.html'));
   assert.ok(resources.has('apps/desktop/src-tauri/icons/titlebar/panel-left.svg'));
   assert.ok(resources.has('apps/desktop/src-tauri/icons/titlebar/panel-right.svg'));
+  assert.ok(resources.has('apps/desktop/src-tauri/icons/titlebar/table-of-contents.svg'));
   for (const path of resources.keys()) assert.ok(isRuntimeSourcePath(path));
 });
 

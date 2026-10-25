@@ -134,6 +134,8 @@ pub struct ChromeUpdate {
     #[serde(default)]
     outline_panel_open: bool,
     #[serde(default)]
+    sidebar_open: bool,
+    #[serde(default)]
     ai_panel_open: bool,
     #[serde(default)]
     graph_open: bool,
@@ -198,6 +200,7 @@ pub(super) struct DocumentChrome {
     always_show_word_count: bool,
     dark: bool,
     outline_panel_open: bool,
+    sidebar_open: bool,
     ai_panel_open: bool,
     graph_open: bool,
     graph_available: bool,
@@ -284,6 +287,7 @@ fn document_chrome(
         always_show_word_count: update.always_show_word_count,
         dark: update.dark,
         outline_panel_open: update.outline_panel_open,
+        sidebar_open: update.sidebar_open,
         ai_panel_open: update.ai_panel_open,
         graph_open: update.graph_open,
         graph_available: update.graph_available,
@@ -781,6 +785,7 @@ mod tests {
             always_show_word_count: true,
             dark: false,
             outline_panel_open: false,
+            sidebar_open: true,
             ai_panel_open: false,
             graph_open: false,
             graph_available: false,
@@ -794,6 +799,7 @@ mod tests {
         assert_eq!(value.title(), "中文 note.md");
         assert_eq!(value.path, Some(path.canonicalize().unwrap()));
         assert!(value.dirty);
+        assert!(value.sidebar_open);
         assert!(document_chrome(&services, "editor-other", payload()).is_err());
         assert!(document_chrome(&services, "preferences", payload()).is_err());
         documents.lock().unwrap().close(&document.id);
@@ -806,6 +812,15 @@ mod tests {
             "documentId": null, "dirty": false, "statisticsLabel": "0 词", "alwaysShowWordCount": true,
             "statistics": { "words": 0, "characters": 0, "lines": 0, "readingMinutes": 0, "unit": "words" }
         });
+        for open in [false, true, false] {
+            payload["sidebarOpen"] = open.into();
+            assert_eq!(
+                serde_json::from_value::<ChromeUpdate>(payload.clone())
+                    .unwrap()
+                    .sidebar_open,
+                open
+            );
+        }
         assert!(
             !serde_json::from_value::<ChromeUpdate>(payload.clone())
                 .unwrap()
@@ -847,6 +862,7 @@ mod tests {
                     always_show_word_count: true,
                     dark: false,
                     outline_panel_open: false,
+                    sidebar_open: false,
                     ai_panel_open: false,
                     graph_open: false,
                     graph_available: false,
@@ -866,6 +882,7 @@ mod tests {
             always_show_word_count: true,
             dark: false,
             outline_panel_open: false,
+            sidebar_open: false,
             ai_panel_open: false,
             graph_open: false,
             graph_available: false,
@@ -938,6 +955,7 @@ mod tests {
             always_show_word_count: true,
             dark: false,
             outline_panel_open: false,
+            sidebar_open: false,
             ai_panel_open: false,
             graph_open: false,
             graph_available: false,

@@ -13,6 +13,11 @@
       "sha256": "327d197328f9feb1f88c36c9db04e9b00fe717d877459f92fcd892f5e4c349fa"
     },
     {
+      "path": "apps/desktop/src-tauri/icons/titlebar/table-of-contents.svg",
+      "size": 356,
+      "sha256": "b7a02d4ae47df5be478eb583936ba817686d0a43d25f66ac82ac8cebd0681875"
+    },
+    {
       "path": "apps/desktop/src/features/settings/runtime-preferences/page/cocoa.css",
       "size": 3455,
       "sha256": "64ff592cc9484d1a064b536ade4c14e9d0844bad715fc7acdf2b5dd0026470ee",

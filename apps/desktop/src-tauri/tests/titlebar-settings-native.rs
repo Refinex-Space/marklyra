@@ -86,6 +86,7 @@ struct DocumentChrome {
     always_show_word_count: bool,
     dark: bool,
     outline_panel_open: bool,
+    sidebar_open: bool,
     ai_panel_open: bool,
     graph_open: bool,
     graph_available: bool,
@@ -118,11 +119,20 @@ fn main() {
             .incognito(true)
             .inner_size(1280.0, 800.0)
             .build()?;
+            let sidebar_icons = std::env::args().any(|arg| arg == "--sidebar-icons");
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                macos::regression::verify_preferences_layout(&window);
+                if sidebar_icons {
+                    macos::regression::verify_sidebar_icons(&window);
+                } else {
+                    macos::regression::verify_preferences_layout(&window);
+                }
             }));
             if result.is_ok() {
-                println!("Native settings transitions passed: visibility, non-overlapping frames and separate hit targets");
+                if sidebar_icons {
+                    println!("Native sidebar icons passed: repeated open/close, light/dark appearance and independent table of contents");
+                } else {
+                    println!("Native settings transitions passed: visibility, non-overlapping frames and separate hit targets");
+                }
             }
             app.handle().exit(if result.is_ok() { 0 } else { 1 });
             Ok(())

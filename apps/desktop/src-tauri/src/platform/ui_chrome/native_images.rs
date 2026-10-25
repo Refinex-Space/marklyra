@@ -7,6 +7,7 @@ pub(super) struct TitlebarImages {
     pub graph: Retained<NSImage>,
     pub outline: Retained<NSImage>,
     pub sidebar: Retained<NSImage>,
+    pub sidebar_collapsed: Retained<NSImage>,
 }
 
 fn image(bytes: &[u8], width: f64, height: f64) -> Result<Retained<NSImage>, String> {
@@ -28,7 +29,7 @@ impl TitlebarImages {
             outline: image(
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/icons/titlebar/panel-right.svg"
+                    "/icons/titlebar/table-of-contents.svg"
                 )),
                 14.0,
                 14.0,
@@ -37,6 +38,14 @@ impl TitlebarImages {
                 include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/icons/titlebar/panel-left.svg"
+                )),
+                14.0,
+                14.0,
+            )?,
+            sidebar_collapsed: image(
+                include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/icons/titlebar/panel-right.svg"
                 )),
                 14.0,
                 14.0,

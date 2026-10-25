@@ -429,7 +429,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ISC
 ~~~
 
-Lucide panel-left and panel-right icons
+Lucide panel-left, panel-right and table-of-contents icons
 Copyright (c) 2026 Lucide Icons and Contributors
 Source: https://github.com/lucide-icons/lucide
 
