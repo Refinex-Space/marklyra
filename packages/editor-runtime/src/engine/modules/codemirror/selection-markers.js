@@ -1,83 +1,152 @@
 // codemirror/selection-markers.
-// SystemJS module 1f. Dependencies: 20.
-$__System.registerDynamic('1f', ['20'], !0, function (e, t, n) {
+export default function initializeCodemirrorSelectionMarkers(
+  requireModule,
+  moduleExports,
+  moduleRecord,
+) {
   'use strict';
-  this || self;
-  !(function (e) {
-    function t(e) {
-      e.state.markedSelection &&
-        e.operation(function () {
-          !(function (e) {
+  if (!this) {
+    self;
+  }
+  !(function (CodeMirror) {
+    Object.defineProperty(updateMarkedSelection, 'name', { value: 't', configurable: true });
+    Object.defineProperty(clearChangedSelection, 'name', { value: 'n', configurable: true });
+    Object.defineProperty(markSelectionRange, 'name', { value: 'a', configurable: true });
+    Object.defineProperty(clearSelectionMarkers, 'name', { value: 's', configurable: true });
+    Object.defineProperty(rebuildSelectionMarkers, 'name', { value: 'l', configurable: true });
+
+    function updateMarkedSelection(editor) {
+      if (editor.state.markedSelection) {
+        editor.operation(function () {
+          !(function (editor) {
             try {
-              if (!e.somethingSelected()) return s(e);
-              if (e.listSelections().length > 1) return l(e);
-              var t = e.getCursor('start'),
-                n = e.getCursor('end'),
-                r = e.state.markedSelection;
-              if (!r.length) return a(e, t, n);
-              var c = r[0].find(),
-                d = r[r.length - 1].find();
-              if (!c || !d || n.line - t.line < i || o(t, d.to) >= 0 || o(n, c.from) <= 0)
-                return l(e);
-              for (; o(t, c.from) > 0; ) r.shift().clear(), (c = r[0].find());
+              if (!editor.somethingSelected()) {
+                return clearSelectionMarkers(editor);
+              }
+              if (editor.listSelections().length > 1) {
+                return rebuildSelectionMarkers(editor);
+              }
+              var selectionStart = editor.getCursor('start'),
+                selectionEnd = editor.getCursor('end'),
+                markers = editor.state.markedSelection;
+              if (!markers.length) {
+                return markSelectionRange(editor, selectionStart, selectionEnd);
+              }
+              var firstMarkedRange = markers[0].find(),
+                lastMarkedRange = markers[markers.length - 1].find();
+              if (
+                !firstMarkedRange ||
+                !lastMarkedRange ||
+                selectionEnd.line - selectionStart.line < markerLineSpan ||
+                comparePositions(selectionStart, lastMarkedRange.to) >= 0 ||
+                comparePositions(selectionEnd, firstMarkedRange.from) <= 0
+              ) {
+                return rebuildSelectionMarkers(editor);
+              }
+              for (; comparePositions(selectionStart, firstMarkedRange.from) > 0; ) {
+                markers.shift().clear();
+                firstMarkedRange = markers[0].find();
+              }
               for (
-                o(t, c.from) < 0 &&
-                (c.to.line - t.line < i
-                  ? (r.shift().clear(), a(e, t, c.to, 0))
-                  : a(e, t, c.from, 0));
-                o(n, d.to) < 0;
-              )
-                r.pop().clear(), (d = r[r.length - 1].find());
-              o(n, d.to) > 0 &&
-                (n.line - d.from.line < i ? (r.pop().clear(), a(e, d.from, n)) : a(e, d.to, n));
-            } catch (e) {}
-          })(e);
+                comparePositions(selectionStart, firstMarkedRange.from) < 0 &&
+                (firstMarkedRange.to.line - selectionStart.line < markerLineSpan
+                  ? (markers.shift().clear(),
+                    markSelectionRange(editor, selectionStart, firstMarkedRange.to, 0))
+                  : markSelectionRange(editor, selectionStart, firstMarkedRange.from, 0));
+                comparePositions(selectionEnd, lastMarkedRange.to) < 0;
+              ) {
+                markers.pop().clear();
+                lastMarkedRange = markers[markers.length - 1].find();
+              }
+              if (comparePositions(selectionEnd, lastMarkedRange.to) > 0) {
+                if (selectionEnd.line - lastMarkedRange.from.line < markerLineSpan) {
+                  markers.pop().clear();
+                  markSelectionRange(editor, lastMarkedRange.from, selectionEnd);
+                } else {
+                  markSelectionRange(editor, lastMarkedRange.to, selectionEnd);
+                }
+              }
+            } catch (error) {}
+          })(editor);
         });
+      }
     }
-    function n(e) {
-      e.state.markedSelection &&
-        e.state.markedSelection.length &&
-        e.operation(function () {
-          s(e);
+    function clearChangedSelection(editor) {
+      if (editor.state.markedSelection && editor.state.markedSelection.length) {
+        editor.operation(function () {
+          clearSelectionMarkers(editor);
         });
+      }
     }
-    e.defineOption('styleSelectedText', !1, function (i, r, o) {
-      var a = o && o != e.Init;
-      r && !a
-        ? ((i.state.markedSelection = []),
-          (i.state.markedSelectionStyle = 'string' == typeof r ? r : 'CodeMirror-selectedtext'),
-          l(i),
-          i.on('cursorActivity', t),
-          i.on('change', n))
-        : !r &&
-          a &&
-          (i.off('cursorActivity', t),
-          i.off('change', n),
-          s(i),
-          (i.state.markedSelection = i.state.markedSelectionStyle = null));
-    });
-    var i = 8,
-      r = e.Pos,
-      o = e.cmpPos;
-    function a(e, t, n, a) {
-      if (0 != o(t, n))
-        for (var s = e.state.markedSelection, l = e.state.markedSelectionStyle, c = t.line; ; ) {
-          var d = c == t.line ? t : r(c, 0),
-            u = c + i,
-            h = u >= n.line,
-            p = h ? n : r(u, 0),
-            f = e.markText(d, p, { className: l });
-          if ((null == a ? s.push(f) : s.splice(a++, 0, f), h)) break;
-          c = u;
+    CodeMirror.defineOption('styleSelectedText', false, function (editor, style, previousValue) {
+      var wasEnabled = previousValue && previousValue != CodeMirror.Init;
+      if (style && !wasEnabled) {
+        editor.state.markedSelection = [];
+        editor.state.markedSelectionStyle =
+          'string' == typeof style ? style : 'CodeMirror-selectedtext';
+        rebuildSelectionMarkers(editor);
+        editor.on('cursorActivity', updateMarkedSelection);
+        editor.on('change', clearChangedSelection);
+      } else {
+        if (!style && wasEnabled) {
+          editor.off('cursorActivity', updateMarkedSelection);
+          editor.off('change', clearChangedSelection);
+          clearSelectionMarkers(editor);
+          editor.state.markedSelection = editor.state.markedSelectionStyle = null;
         }
+      }
+    });
+    var markerLineSpan = 8,
+      position = CodeMirror.Pos,
+      comparePositions = CodeMirror.cmpPos;
+    function markSelectionRange(editor, from, to, insertAt) {
+      if (0 != comparePositions(from, to)) {
+        for (
+          var markers = editor.state.markedSelection,
+            className = editor.state.markedSelectionStyle,
+            line = from.line;
+          ;
+        ) {
+          var rangeStart = line == from.line ? from : position(line, 0),
+            nextLine = line + markerLineSpan,
+            lastRange = nextLine >= to.line,
+            rangeEnd = lastRange ? to : position(nextLine, 0),
+            marker = editor.markText(rangeStart, rangeEnd, { className: className });
+          if (null == insertAt) {
+            markers.push(marker);
+          } else {
+            markers.splice(insertAt++, 0, marker);
+          }
+          if (lastRange) {
+            break;
+          }
+          line = nextLine;
+        }
+      }
     }
-    function s(e) {
-      for (var t = e.state.markedSelection, n = 0; n < t.length; ++n) t[n].clear();
-      t.length = 0;
+    function clearSelectionMarkers(editor) {
+      for (
+        var markers = editor.state.markedSelection, markerIndex = 0;
+        markerIndex < markers.length;
+        ++markerIndex
+      ) {
+        markers[markerIndex].clear();
+      }
+      markers.length = 0;
     }
-    function l(e) {
-      s(e);
-      for (var t = e.listSelections(), n = 0; n < t.length; n++) a(e, t[n].from(), t[n].to());
+    function rebuildSelectionMarkers(editor) {
+      clearSelectionMarkers(editor);
+      for (
+        var selections = editor.listSelections(), selectionIndex = 0;
+        selectionIndex < selections.length;
+        selectionIndex++
+      ) {
+        markSelectionRange(
+          editor,
+          selections[selectionIndex].from(),
+          selections[selectionIndex].to(),
+        );
+      }
     }
-  })(e('20'));
-});
+  })(requireModule('libraries/codemirror'));
+}

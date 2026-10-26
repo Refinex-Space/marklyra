@@ -1,13 +1,28 @@
 // editing/keyboard-shortcuts.
-// SystemJS module 27. Dependencies: none.
-$__System.registerDynamic('27', [], !0, function (e, t, n) {
+export default function initializeEditingKeyboardShortcuts(
+  requireModule,
+  moduleExports,
+  moduleRecord,
+) {
   'use strict';
-  this || self;
-  var i,
-    r = {},
-    o = { 16: !1, 18: !1, 17: !1, 91: !1 },
-    a = 'all',
-    s = {
+  Object.defineProperty(findLastIndex, 'name', { value: 'u', configurable: true });
+  Object.defineProperty(sameModifiers, 'name', { value: 'h', configurable: true });
+  Object.defineProperty(updateModifierStates, 'name', { value: 'f', configurable: true });
+  Object.defineProperty(dispatchKeyboardEvent, 'name', { value: 'm', configurable: true });
+  Object.defineProperty(registerShortcut, 'name', { value: 'g', configurable: true });
+  Object.defineProperty(getCurrentScope, 'name', { value: 'v', configurable: true });
+  Object.defineProperty(splitShortcuts, 'name', { value: 'y', configurable: true });
+  Object.defineProperty(parseModifierCodes, 'name', { value: 'b', configurable: true });
+  Object.defineProperty(listenForEvent, 'name', { value: 'w', configurable: true });
+
+  if (!this) {
+    self;
+  }
+  var keyIndex,
+    shortcutHandlers = {},
+    modifierStates = { 16: false, 18: false, 17: false, 91: false },
+    currentScope = 'all',
+    modifierKeyCodes = {
       '⇧': 16,
       shift: 16,
       '⌥': 18,
@@ -19,7 +34,7 @@ $__System.registerDynamic('27', [], !0, function (e, t, n) {
       '⌘': 91,
       command: 91,
     },
-    l = {
+    namedKeyCodes = {
       backspace: 8,
       tab: 9,
       clear: 12,
@@ -50,135 +65,291 @@ $__System.registerDynamic('27', [], !0, function (e, t, n) {
       ']': 221,
       '\\': 220,
     },
-    c = function (e) {
-      return l[e] || e.toUpperCase().charCodeAt(0);
-    },
-    d = [];
-  for (i = 1; i < 20; i++) l['f' + i] = 111 + i;
-  function u(e, t) {
-    for (var n = e.length; n--; ) if (e[n] === t) return n;
+    resolveKeyCode = Object.defineProperty(
+      function (keyName) {
+        return namedKeyCodes[keyName] || keyName.toUpperCase().charCodeAt(0);
+      },
+      'name',
+      { value: 'c', configurable: true },
+    ),
+    pressedKeyCodes = [];
+  for (keyIndex = 1; keyIndex < 20; keyIndex++) {
+    namedKeyCodes['f' + keyIndex] = 111 + keyIndex;
+  }
+  function findLastIndex(values, searchValue) {
+    for (var valueIndex = values.length; valueIndex--; ) {
+      if (values[valueIndex] === searchValue) {
+        return valueIndex;
+      }
+    }
     return -1;
   }
-  function h(e, t) {
-    if (e.length != t.length) return !1;
-    for (var n = 0; n < e.length; n++) if (e[n] !== t[n]) return !1;
-    return !0;
+  function sameModifiers(leftModifiers, rightModifiers) {
+    if (leftModifiers.length != rightModifiers.length) {
+      return false;
+    }
+    for (var modifierIndex = 0; modifierIndex < leftModifiers.length; modifierIndex++) {
+      if (leftModifiers[modifierIndex] !== rightModifiers[modifierIndex]) {
+        return false;
+      }
+    }
+    return true;
   }
-  var p = { 16: 'shiftKey', 18: 'altKey', 17: 'ctrlKey', 91: 'metaKey' };
-  function f(e) {
-    for (i in o) o[i] = e[p[i]];
+  var modifierEventProperties = { 16: 'shiftKey', 18: 'altKey', 17: 'ctrlKey', 91: 'metaKey' };
+  function updateModifierStates(keyboardEvent) {
+    for (keyIndex in modifierStates) {
+      modifierStates[keyIndex] = keyboardEvent[modifierEventProperties[keyIndex]];
+    }
   }
-  function m(e) {
-    var t, n, i, a, l, c;
-    let h = e.key;
-    if (((t = e.keyCode), -1 == u(d, t) && d.push(t), (93 != t && 224 != t) || (t = 91), t in o)) {
-      for (i in ((o[t] = !0), s)) s[i] == t && (g[i] = !0);
+  function dispatchKeyboardEvent(keyboardEvent) {
+    var keyCode, shortcut, modifierCode, handlerIndex, modifiersMatch, activeScope;
+    let keyName = keyboardEvent.key;
+    keyCode = keyboardEvent.keyCode;
+    if (-1 == findLastIndex(pressedKeyCodes, keyCode)) {
+      pressedKeyCodes.push(keyCode);
+    }
+    if (!(93 != keyCode && 224 != keyCode)) {
+      keyCode = 91;
+    }
+    if (keyCode in modifierStates) {
+      for (modifierCode in ((modifierStates[keyCode] = true), modifierKeyCodes)) {
+        if (modifierKeyCodes[modifierCode] == keyCode) {
+          registerShortcut[modifierCode] = true;
+        }
+      }
       return;
     }
-    if ((f(e), !g.filter.call(this, e))) return;
-    let p = r['/' === h ? h : t];
-    if (p)
-      for (c = v(), a = 0; a < p.length; a++)
-        if ((n = p[a]).scope == c || 'all' == n.scope) {
-          for (i in ((l = n.mods.length > 0), o))
-            ((!o[i] && u(n.mods, +i) > -1) || (o[i] && -1 == u(n.mods, +i))) && (l = !1);
-          ((0 != n.mods.length || o[16] || o[18] || o[17] || o[91]) && !l) ||
-            (!1 === n.method(e, n) &&
-              (e.preventDefault ? e.preventDefault() : (e.returnValue = !1),
-              e.stopPropagation && e.stopPropagation(),
-              e.cancelBubble && (e.cancelBubble = !0)));
+    updateModifierStates(keyboardEvent);
+    if (!registerShortcut.filter.call(this, keyboardEvent)) {
+      return;
+    }
+    let handlers = shortcutHandlers['/' === keyName ? keyName : keyCode];
+    if (handlers) {
+      for (
+        activeScope = getCurrentScope(), handlerIndex = 0;
+        handlerIndex < handlers.length;
+        handlerIndex++
+      ) {
+        if ((shortcut = handlers[handlerIndex]).scope == activeScope || 'all' == shortcut.scope) {
+          for (modifierCode in ((modifiersMatch = shortcut.mods.length > 0), modifierStates)) {
+            if (
+              (!modifierStates[modifierCode] && findLastIndex(shortcut.mods, +modifierCode) > -1) ||
+              (modifierStates[modifierCode] && -1 == findLastIndex(shortcut.mods, +modifierCode))
+            ) {
+              modifiersMatch = false;
+            }
+          }
+          if (
+            !(
+              (0 != shortcut.mods.length ||
+                modifierStates[16] ||
+                modifierStates[18] ||
+                modifierStates[17] ||
+                modifierStates[91]) &&
+              !modifiersMatch
+            )
+          ) {
+            if (false === shortcut.method(keyboardEvent, shortcut)) {
+              if (keyboardEvent.preventDefault) {
+                keyboardEvent.preventDefault();
+              } else {
+                keyboardEvent.returnValue = false;
+              }
+              if (keyboardEvent.stopPropagation) {
+                keyboardEvent.stopPropagation();
+              }
+              if (keyboardEvent.cancelBubble) {
+                keyboardEvent.cancelBubble = true;
+              }
+            }
+          }
         }
-  }
-  function g(e, t, n) {
-    var i, o;
-    (i = y((e = e.toLowerCase()))), void 0 === n && ((n = t), (t = 'all'));
-    for (var a = 0; a < i.length; a++) {
-      (o = []), (e = i[a].split('+')).length > 1 && ((o = b(e)), (e = [e[e.length - 1]]));
-      let s = (e = e[0]);
-      '' !== s &&
-        ((e = c(e)) in r || (r[e] = []),
-        s in r || (r[s] = []),
-        r[e].push({ shortcut: i[a], scope: t, method: n, key: i[a], mods: o }),
-        r[s].push({ shortcut: i[a], scope: t, method: n, key: i[a], mods: o }));
-    }
-  }
-  for (i in s) g[i] = !1;
-  function v() {
-    return a || 'all';
-  }
-  function y(e) {
-    var t;
-    return (
-      '' == (t = (e = e.replace(/\s/g, '')).split(','))[t.length - 1] && (t[t.length - 2] += ','), t
-    );
-  }
-  function b(e) {
-    for (var t = e.slice(0, e.length - 1), n = 0; n < t.length; n++) {
-      let e = t[n];
-      e === 'CmdOrCtrl'.toLowerCase() && (e = window.File.isMacOrMacNode ? 'command' : 'ctrl'),
-        (t[n] = s[e]);
-    }
-    return t;
-  }
-  function w(e, t, n) {
-    e.addEventListener
-      ? e.addEventListener(t, n, !1)
-      : e.attachEvent &&
-        e.attachEvent('on' + t, function () {
-          n(window.event);
-        });
-  }
-  w(document, 'keydown', function (e) {
-    m(e);
-  }),
-    w(document, 'keyup', function (e) {
-      var t,
-        n = e.keyCode,
-        i = u(d, n);
-      if ((i >= 0 && d.splice(i, 1), (93 != n && 224 != n) || (n = 91), n in o))
-        for (t in ((o[n] = !1), s)) s[t] == n && (g[t] = !1);
-    }),
-    w(window, 'focus', function () {
-      for (i in o) o[i] = !1;
-      for (i in s) g[i] = !1;
-    });
-  var x = g;
-  (n.exports = x),
-    (x.setScope = function (e) {
-      a = e || 'all';
-    }),
-    (x.getScope = v),
-    (x.deleteScope = function (e) {
-      var t, n, i;
-      for (t in r) for (n = r[t], i = 0; i < n.length; ) n[i].scope === e ? n.splice(i, 1) : i++;
-    }),
-    (x.filter = function (e) {
-      return !('SELECT' == (e.target || e.srcElement).tagName);
-    }),
-    (x.isPressed = function (e) {
-      return 'string' == typeof e && (e = c(e)), -1 != u(d, e);
-    }),
-    (x.getPressedKeyCodes = function () {
-      return d.slice(0);
-    }),
-    (x.unbind = function (e, t) {
-      var n,
-        i,
-        o,
-        a,
-        s,
-        l = [];
-      for (n = y(e), a = 0; a < n.length; a++) {
-        (i = n[a].split('+')).length > 1 && ((l = b(i)), (e = i[i.length - 1]));
-        let d = e;
-        if (((e = c(e)), void 0 === t && (t = v()), !r[e])) return;
-        for (o in r[e])
-          (s = r[e][o]).scope === t && h(s.mods, l) && ((r[e][o] = {}), (r[d][o] = {}));
       }
-    }),
-    (x.dispatchEvent = m),
-    void 0 !== n && (n.exports = x);
-  (x.map = {
+    }
+  }
+  function registerShortcut(shortcutText, scope, handler) {
+    var shortcutList, modifiers;
+    shortcutList = splitShortcuts((shortcutText = shortcutText.toLowerCase()));
+    if (void 0 === handler) {
+      handler = scope;
+      scope = 'all';
+    }
+    for (var shortcutIndex = 0; shortcutIndex < shortcutList.length; shortcutIndex++) {
+      modifiers = [];
+      if ((shortcutText = shortcutList[shortcutIndex].split('+')).length > 1) {
+        modifiers = parseModifierCodes(shortcutText);
+        shortcutText = [shortcutText[shortcutText.length - 1]];
+      }
+      let keyName = (shortcutText = shortcutText[0]);
+      if ('' !== keyName) {
+        if (!((shortcutText = resolveKeyCode(shortcutText)) in shortcutHandlers)) {
+          shortcutHandlers[shortcutText] = [];
+        }
+        if (!(keyName in shortcutHandlers)) {
+          shortcutHandlers[keyName] = [];
+        }
+        shortcutHandlers[shortcutText].push({
+          shortcut: shortcutList[shortcutIndex],
+          scope: scope,
+          method: handler,
+          key: shortcutList[shortcutIndex],
+          mods: modifiers,
+        });
+        shortcutHandlers[keyName].push({
+          shortcut: shortcutList[shortcutIndex],
+          scope: scope,
+          method: handler,
+          key: shortcutList[shortcutIndex],
+          mods: modifiers,
+        });
+      }
+    }
+  }
+  for (keyIndex in modifierKeyCodes) {
+    registerShortcut[keyIndex] = false;
+  }
+  function getCurrentScope() {
+    return currentScope || 'all';
+  }
+  function splitShortcuts(shortcutText) {
+    var shortcutList;
+    if (
+      '' ==
+      (shortcutList = (shortcutText = shortcutText.replace(/\s/g, '')).split(','))[
+        shortcutList.length - 1
+      ]
+    ) {
+      shortcutList[shortcutList.length - 2] += ',';
+    }
+    return shortcutList;
+  }
+  function parseModifierCodes(keyParts) {
+    for (
+      var modifiers = keyParts.slice(0, keyParts.length - 1), modifierIndex = 0;
+      modifierIndex < modifiers.length;
+      modifierIndex++
+    ) {
+      let modifierName = modifiers[modifierIndex];
+      if (modifierName === 'CmdOrCtrl'.toLowerCase()) {
+        modifierName = window.File.isMacOrMacNode ? 'command' : 'ctrl';
+      }
+      modifiers[modifierIndex] = modifierKeyCodes[modifierName];
+    }
+    return modifiers;
+  }
+  function listenForEvent(target, eventType, handler) {
+    if (target.addEventListener) {
+      target.addEventListener(eventType, handler, false);
+    } else {
+      if (target.attachEvent) {
+        target.attachEvent('on' + eventType, function () {
+          handler(window.event);
+        });
+      }
+    }
+  }
+  listenForEvent(document, 'keydown', function (keyboardEvent) {
+    dispatchKeyboardEvent(keyboardEvent);
+  });
+  listenForEvent(document, 'keyup', function (keyboardEvent) {
+    var modifierName,
+      keyCode = keyboardEvent.keyCode,
+      pressedKeyIndex = findLastIndex(pressedKeyCodes, keyCode);
+    if (pressedKeyIndex >= 0) {
+      pressedKeyCodes.splice(pressedKeyIndex, 1);
+    }
+    if (!(93 != keyCode && 224 != keyCode)) {
+      keyCode = 91;
+    }
+    if (keyCode in modifierStates) {
+      for (modifierName in ((modifierStates[keyCode] = false), modifierKeyCodes)) {
+        if (modifierKeyCodes[modifierName] == keyCode) {
+          registerShortcut[modifierName] = false;
+        }
+      }
+    }
+  });
+  listenForEvent(window, 'focus', function () {
+    for (keyIndex in modifierStates) {
+      modifierStates[keyIndex] = false;
+    }
+    for (keyIndex in modifierKeyCodes) {
+      registerShortcut[keyIndex] = false;
+    }
+  });
+  var keyboardShortcuts = registerShortcut;
+  moduleRecord.exports = keyboardShortcuts;
+  keyboardShortcuts.setScope = function (scope) {
+    currentScope = scope || 'all';
+  };
+  keyboardShortcuts.getScope = getCurrentScope;
+  keyboardShortcuts.deleteScope = function (scope) {
+    var keyCode, handlers, handlerIndex;
+    for (keyCode in shortcutHandlers) {
+      for (
+        handlers = shortcutHandlers[keyCode], handlerIndex = 0;
+        handlerIndex < handlers.length;
+      ) {
+        if (handlers[handlerIndex].scope === scope) {
+          handlers.splice(handlerIndex, 1);
+        } else {
+          handlerIndex++;
+        }
+      }
+    }
+  };
+  keyboardShortcuts.filter = function (keyboardEvent) {
+    return !('SELECT' == (keyboardEvent.target || keyboardEvent.srcElement).tagName);
+  };
+  keyboardShortcuts.isPressed = function (keyNameOrCode) {
+    if ('string' == typeof keyNameOrCode) {
+      keyNameOrCode = resolveKeyCode(keyNameOrCode);
+    }
+    return -1 != findLastIndex(pressedKeyCodes, keyNameOrCode);
+  };
+  keyboardShortcuts.getPressedKeyCodes = function () {
+    return pressedKeyCodes.slice(0);
+  };
+  keyboardShortcuts.unbind = function (shortcutText, scope) {
+    var shortcutList,
+      keyParts,
+      handlerIndex,
+      shortcutIndex,
+      shortcut,
+      modifiers = [];
+    for (
+      shortcutList = splitShortcuts(shortcutText), shortcutIndex = 0;
+      shortcutIndex < shortcutList.length;
+      shortcutIndex++
+    ) {
+      if ((keyParts = shortcutList[shortcutIndex].split('+')).length > 1) {
+        modifiers = parseModifierCodes(keyParts);
+        shortcutText = keyParts[keyParts.length - 1];
+      }
+      let keyName = shortcutText;
+      shortcutText = resolveKeyCode(shortcutText);
+      if (void 0 === scope) {
+        scope = getCurrentScope();
+      }
+      if (!shortcutHandlers[shortcutText]) {
+        return;
+      }
+      for (handlerIndex in shortcutHandlers[shortcutText]) {
+        if (
+          (shortcut = shortcutHandlers[shortcutText][handlerIndex]).scope === scope &&
+          sameModifiers(shortcut.mods, modifiers)
+        ) {
+          shortcutHandlers[shortcutText][handlerIndex] = {};
+          shortcutHandlers[keyName][handlerIndex] = {};
+        }
+      }
+    }
+  };
+  keyboardShortcuts.dispatchEvent = dispatchKeyboardEvent;
+  if (void 0 !== moduleRecord) {
+    moduleRecord.exports = keyboardShortcuts;
+  }
+  keyboardShortcuts.map = {
     3: 'Enter',
     8: 'Backspace',
     9: 'Tab',
@@ -227,49 +398,61 @@ $__System.registerDynamic('27', [], !0, function (e, t, n) {
     63276: 'PageUp',
     63277: 'PageDown',
     63302: 'Insert',
-  }),
-    (x.functionKey = [
-      'Command',
-      'Ctrl',
-      'Shift',
-      'Alt',
-      'Home',
-      'End',
-      'PageUp',
-      'PageDown',
-      'CapsLock',
-      'Esc',
-      'PrintScrn',
-      'Insert',
-      'Pause',
-    ]),
-    (x.isCommand = function (e) {
-      return String.fromCharCode(e.which).length > 0 && (e.ctrlKey || e.metaKey);
-    }),
-    (x.getKeySeq = function (e) {
-      var t = [];
-      e.shiftKey && t.push('shift'),
-        e.altKey && t.push('alt'),
-        e.ctrlKey && t.push('ctrl'),
-        e.metaKey && t.push('command');
-      var n = e.key;
-      return (
-        -1 == ['Shift', 'Alt', 'Control', 'Meta'].indexOf(n) && t.push(n.toLowerCase()), t.join('+')
-      );
-    }),
-    (x.isKeySeq = function (e, t) {
-      return (
-        x
-          .getKeySeq(e)
-          .split('+')
-          .sort()
-          .map((e) => e.replace('arrow', ''))
-          .join('+') ===
-        t
-          .split('+')
-          .sort()
-          .map((e) => e.trim().toLowerCase().replace('arrow', ''))
-          .join('+')
-      );
-    });
-});
+  };
+  keyboardShortcuts.functionKey = [
+    'Command',
+    'Ctrl',
+    'Shift',
+    'Alt',
+    'Home',
+    'End',
+    'PageUp',
+    'PageDown',
+    'CapsLock',
+    'Esc',
+    'PrintScrn',
+    'Insert',
+    'Pause',
+  ];
+  keyboardShortcuts.isCommand = function (keyboardEvent) {
+    return (
+      String.fromCharCode(keyboardEvent.which).length > 0 &&
+      (keyboardEvent.ctrlKey || keyboardEvent.metaKey)
+    );
+  };
+  keyboardShortcuts.getKeySeq = function (keyboardEvent) {
+    var keyParts = [];
+    if (keyboardEvent.shiftKey) {
+      keyParts.push('shift');
+    }
+    if (keyboardEvent.altKey) {
+      keyParts.push('alt');
+    }
+    if (keyboardEvent.ctrlKey) {
+      keyParts.push('ctrl');
+    }
+    if (keyboardEvent.metaKey) {
+      keyParts.push('command');
+    }
+    var keyName = keyboardEvent.key;
+    if (-1 == ['Shift', 'Alt', 'Control', 'Meta'].indexOf(keyName)) {
+      keyParts.push(keyName.toLowerCase());
+    }
+    return keyParts.join('+');
+  };
+  keyboardShortcuts.isKeySeq = function (keyboardEvent, shortcutText) {
+    return (
+      keyboardShortcuts
+        .getKeySeq(keyboardEvent)
+        .split('+')
+        .sort()
+        .map((keyPart) => keyPart.replace('arrow', ''))
+        .join('+') ===
+      shortcutText
+        .split('+')
+        .sort()
+        .map((keyPart) => keyPart.trim().toLowerCase().replace('arrow', ''))
+        .join('+')
+    );
+  };
+}

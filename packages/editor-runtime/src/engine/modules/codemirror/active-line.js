@@ -1,48 +1,86 @@
 // codemirror/active-line.
-// SystemJS module 47. Dependencies: 20.
-$__System.registerDynamic('47', ['20'], !0, function (e, t, n) {
-  this || self;
-  var i = e('20'),
-    r = 'CodeMirror-activeline',
-    o = 'CodeMirror-activeline-background',
-    a = 'CodeMirror-activeline-gutter';
-  function s(e) {
-    for (var t = 0; t < e.state.activeLines.length; t++)
-      e.removeLineClass(e.state.activeLines[t], 'wrap', r),
-        e.removeLineClass(e.state.activeLines[t], 'background', o),
-        e.removeLineClass(e.state.activeLines[t], 'gutter', a);
+export default function initializeCodemirrorActiveLine(requireModule, moduleExports, moduleRecord) {
+  Object.defineProperty(clearActiveLines, 'name', { value: 's', configurable: true });
+  Object.defineProperty(updateActiveLines, 'name', { value: 'l', configurable: true });
+  Object.defineProperty(handleSelectionChange, 'name', { value: 'c', configurable: true });
+
+  if (!this) {
+    self;
   }
-  function l(e, t) {
-    for (var n = [], i = 0; i < t.length; i++) {
-      var l = t[i],
-        c = e.getOption('styleActiveLine');
-      if ('object' == typeof c && c.nonEmpty ? l.anchor.line == l.head.line : l.empty()) {
-        var d = e.getLineHandleVisualStart(l.head.line);
-        n[n.length - 1] != d && n.push(d);
+  var CodeMirror = requireModule('libraries/codemirror'),
+    activeLineClass = 'CodeMirror-activeline',
+    activeBackgroundClass = 'CodeMirror-activeline-background',
+    activeGutterClass = 'CodeMirror-activeline-gutter';
+  function clearActiveLines(editor) {
+    for (var lineIndex = 0; lineIndex < editor.state.activeLines.length; lineIndex++) {
+      editor.removeLineClass(editor.state.activeLines[lineIndex], 'wrap', activeLineClass);
+      editor.removeLineClass(
+        editor.state.activeLines[lineIndex],
+        'background',
+        activeBackgroundClass,
+      );
+      editor.removeLineClass(editor.state.activeLines[lineIndex], 'gutter', activeGutterClass);
+    }
+  }
+  function updateActiveLines(editor, selections) {
+    for (
+      var activeLines = [], selectionIndex = 0;
+      selectionIndex < selections.length;
+      selectionIndex++
+    ) {
+      var selection = selections[selectionIndex],
+        styleOptions = editor.getOption('styleActiveLine');
+      if (
+        'object' == typeof styleOptions && styleOptions.nonEmpty
+          ? selection.anchor.line == selection.head.line
+          : selection.empty()
+      ) {
+        var lineHandle = editor.getLineHandleVisualStart(selection.head.line);
+        if (activeLines[activeLines.length - 1] != lineHandle) {
+          activeLines.push(lineHandle);
+        }
       }
     }
-    (function (e, t) {
-      if (e.length != t.length) return !1;
-      for (var n = 0; n < e.length; n++) if (e[n] != t[n]) return !1;
-      return !0;
-    })(e.state.activeLines, n) ||
-      e.operation(function () {
-        s(e);
-        for (var t = 0; t < n.length; t++)
-          e.addLineClass(n[t], 'wrap', r),
-            e.addLineClass(n[t], 'background', o),
-            e.addLineClass(n[t], 'gutter', a);
-        e.state.activeLines = n;
+    if (
+      !(function (previousLines, nextLines) {
+        if (previousLines.length != nextLines.length) {
+          return false;
+        }
+        for (var lineIndex = 0; lineIndex < previousLines.length; lineIndex++) {
+          if (previousLines[lineIndex] != nextLines[lineIndex]) {
+            return false;
+          }
+        }
+        return true;
+      })(editor.state.activeLines, activeLines)
+    ) {
+      editor.operation(function () {
+        clearActiveLines(editor);
+        for (var lineIndex = 0; lineIndex < activeLines.length; lineIndex++) {
+          editor.addLineClass(activeLines[lineIndex], 'wrap', activeLineClass);
+          editor.addLineClass(activeLines[lineIndex], 'background', activeBackgroundClass);
+          editor.addLineClass(activeLines[lineIndex], 'gutter', activeGutterClass);
+        }
+        editor.state.activeLines = activeLines;
       });
+    }
   }
-  function c(e, t) {
-    l(e, t.ranges);
+  function handleSelectionChange(editor, selectionChange) {
+    updateActiveLines(editor, selectionChange.ranges);
   }
-  i.defineOption('styleActiveLine', !1, function (e, t, n) {
-    var r = n != i.Init && n;
-    t != r &&
-      (r && (e.off('beforeSelectionChange', c), s(e), delete e.state.activeLines),
-      t &&
-        ((e.state.activeLines = []), l(e, e.listSelections()), e.on('beforeSelectionChange', c)));
+  CodeMirror.defineOption('styleActiveLine', false, function (editor, enabled, previousValue) {
+    var wasEnabled = previousValue != CodeMirror.Init && previousValue;
+    if (enabled != wasEnabled) {
+      if (wasEnabled) {
+        editor.off('beforeSelectionChange', handleSelectionChange);
+        clearActiveLines(editor);
+        delete editor.state.activeLines;
+      }
+      if (enabled) {
+        editor.state.activeLines = [];
+        updateActiveLines(editor, editor.listSelections());
+        editor.on('beforeSelectionChange', handleSelectionChange);
+      }
+    }
   });
-});
+}

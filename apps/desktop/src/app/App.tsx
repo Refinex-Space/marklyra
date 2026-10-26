@@ -558,6 +558,11 @@ export function App() {
       const revision = active.revision;
       await doc.checkpoint();
       await trackSession();
+      if (editor.current !== active || actions.current.doc.getOwner() !== owner)
+        throw new Error('文稿或窗口状态已更改，请重试');
+      // A native tracking receipt does not order iframe input notifications.
+      // Read the live renderer again while retaining the pre-checkpoint revision.
+      await active.flush();
       if (active.isComposing) throw new Error('请先完成输入法候选');
       if (
         editor.current !== active ||

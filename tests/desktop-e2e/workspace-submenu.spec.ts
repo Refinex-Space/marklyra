@@ -194,9 +194,33 @@ test('scrolling the parent past its submenu anchor closes the child and keeps ke
   await page.keyboard.press('ArrowRight');
   await expect(submenu(page)).toBeVisible();
   await page.setViewportSize({ width: 650, height: 240 });
-  await rootMenu(page).evaluate((element) => {
+  // Viewport resizing can finish before the menu's resize handler updates max-height.
+  // Prove the real scroll range can move the anchor out before issuing the scroll.
+  await expect
+    .poll(() =>
+      rootMenu(page).evaluate((element) => {
+        const anchor = element.querySelector('.workspace-submenu-trigger');
+        if (!anchor) throw Error('Missing submenu anchor');
+        const bounds = element.getBoundingClientRect();
+        const row = anchor.getBoundingClientRect();
+        const remainingScroll = element.scrollHeight - element.clientHeight - element.scrollTop;
+        return {
+          withinViewport: bounds.top >= 8 && bounds.bottom <= innerHeight - 8,
+          canScrollPastAnchor: remainingScroll > row.bottom - bounds.top,
+        };
+      }),
+    )
+    .toEqual({ withinViewport: true, canScrollPastAnchor: true });
+  const scrolled = await rootMenu(page).evaluate((element) => {
     element.scrollTop = element.scrollHeight;
+    const anchor = element.querySelector('.workspace-submenu-trigger');
+    if (!anchor) throw Error('Missing submenu anchor');
+    return {
+      moved: element.scrollTop > 0,
+      anchorOutside: anchor.getBoundingClientRect().bottom <= element.getBoundingClientRect().top,
+    };
   });
+  expect(scrolled).toEqual({ moved: true, anchorOutside: true });
   await expect(submenu(page)).toHaveCount(0);
   expect(
     await rootMenu(page).evaluate((element) => {

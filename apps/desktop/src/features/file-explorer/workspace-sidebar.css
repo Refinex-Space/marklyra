@@ -1386,12 +1386,12 @@
   line-height: 1;
   pointer-events: none;
 }
-/* Search is centered 20px from the sidebar edge; rows end 4px inside it.
+/* Search is centered 24px from the sidebar edge; rows end 4px inside it.
    Center every count on that axis, including single digits and the 9999+ cap. */
 .workspace-sidebar-compact .workspace-tree-row .workspace-tree-count {
   position: absolute;
   top: 50%;
-  right: 16px;
+  right: 20px;
   transform: translate(50%, -50%);
   margin: 2px 0 0;
   padding: 0;

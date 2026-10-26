@@ -281,7 +281,9 @@ function customExports(value: unknown): CustomExportPreference[] {
   return value.map((item) => {
     if (
       !record(item) ||
-      Object.keys(item).some((key) => !['id', 'name', 'writer', 'extension', 'options'].includes(key))
+      Object.keys(item).some(
+        (key) => !['id', 'name', 'writer', 'extension', 'options'].includes(key),
+      )
     )
       fail(message);
     const { id, name, writer, extension } = item;
@@ -353,15 +355,26 @@ export function exportPreferencesSnapshot(value: unknown): ExportPreferencesSnap
   return {
     schemaVersion: 1,
     revision: value.revision,
-    general: exportPreferenceChange('export.general', value.general === undefined ? {} : value.general)
-      .value as GeneralExportPreferences,
-    html: exportPreferenceChange('export.html', value.html === undefined ? {} : value.html).value as HtmlExportPreferences,
-    pdf: exportPreferenceChange('export.pdf', value.pdf === undefined ? {} : value.pdf).value as PdfExportPreferences,
-    image: exportPreferenceChange('export.image', value.image === undefined ? {} : value.image).value as ImageExportPreferences,
-    formats: exportPreferenceChange('export.formats', value.formats === undefined ? {} : value.formats).value as PandocFormatMap,
+    general: exportPreferenceChange(
+      'export.general',
+      value.general === undefined ? {} : value.general,
+    ).value as GeneralExportPreferences,
+    html: exportPreferenceChange('export.html', value.html === undefined ? {} : value.html)
+      .value as HtmlExportPreferences,
+    pdf: exportPreferenceChange('export.pdf', value.pdf === undefined ? {} : value.pdf)
+      .value as PdfExportPreferences,
+    image: exportPreferenceChange('export.image', value.image === undefined ? {} : value.image)
+      .value as ImageExportPreferences,
+    formats: exportPreferenceChange(
+      'export.formats',
+      value.formats === undefined ? {} : value.formats,
+    ).value as PandocFormatMap,
     custom: exportPreferenceChange('export.custom', value.custom === undefined ? [] : value.custom)
       .value as CustomExportPreference[],
-    pandocPath: exportPreferenceChange('pandocPath', value.pandocPath === undefined ? '' : value.pandocPath).value as string,
+    pandocPath: exportPreferenceChange(
+      'pandocPath',
+      value.pandocPath === undefined ? '' : value.pandocPath,
+    ).value as string,
   };
 }
 
@@ -413,10 +426,12 @@ export function customExportProblems(value: {
   if (!value.writer) problems.writer = '请选择或输入 Pandoc 输出格式';
   else if (value.writer.length > 60 || !/^[a-z0-9_]+(?:[+-][a-z0-9_]+)*$/.test(value.writer))
     problems.writer = '输出格式只能是 Pandoc 的写出器名称';
-  else if (blockedWriters.has(base)) problems.writer = '此输出格式需要外部引擎，暂不支持导出为单个文件';
+  else if (blockedWriters.has(base))
+    problems.writer = '此输出格式需要外部引擎，暂不支持导出为单个文件';
   if (!value.extension) problems.extension = '请输入扩展名';
   else if (!/^[a-z0-9]{1,10}$/.test(value.extension))
     problems.extension = '扩展名只能是 1–10 位小写字母或数字';
-  else if (blockedExtensions.has(value.extension)) problems.extension = '不能使用可执行文件或脚本的扩展名';
+  else if (blockedExtensions.has(value.extension))
+    problems.extension = '不能使用可执行文件或脚本的扩展名';
   return problems as Record<string, never>;
 }

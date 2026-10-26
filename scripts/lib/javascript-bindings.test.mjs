@@ -76,3 +76,15 @@ test('with scopes and parenthesized direct eval keep their visible bindings', ()
     /Observable/,
   );
 });
+
+test('source module factories keep exports and dependency names during local renames', () => {
+  const before =
+    "export default function initialize(requireModule, exports, module) { var n = requireModule('model/document-model'); exports.node = n; }";
+  const after =
+    "export default function initialize(requireModule, exports, module) { var documentModel = requireModule('model/document-model'); exports.node = documentModel; }";
+  assert.equal(verify(before, after), 1);
+  assert.throws(
+    () => verify(before, after.replace('model/document-model', 'model/html-parser')),
+    /structure/,
+  );
+});

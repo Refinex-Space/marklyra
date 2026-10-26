@@ -1,29 +1,40 @@
-// shared/global-helpers.
-// Shared initialization expression; its position in bundles.json is significant.
-!(function (e) {
-  function t(e, t) {
-    for (var n = e.split('.'); n.length; ) t = t[n.shift()];
-    return t;
-  }
-  function n(n) {
-    if ('string' == typeof n) return t(n, e);
-    if (!(n instanceof Array)) throw new Error('Global exports must be a string or array.');
-    for (var i = {}, r = 0; r < n.length; r++) i[n[r].split('.').pop()] = t(n[r], e);
-    return i;
-  }
-  function i(t) {
-    if (-1 === a.indexOf(t)) {
-      try {
-        var n = e[t];
-      } catch (e) {
-        a.push(t);
+// Install this compatibility library in the supplied engine environment.
+export default function installSharedGlobalHelpers(engineModules, vendorScope) {
+  // Capture global-only vendor exports while restoring temporary UMD globals.
+  // Registration order is intentional: vendor adapters share this snapshot helper.
+  !(function (hostGlobal) {
+    function readGlobalPath(path, target) {
+      var segments = path.split('.');
+      while (segments.length) {
+        target = target[segments.shift()];
       }
-      this(t, n);
+      return target;
     }
-  }
-  var r,
-    o = $__System,
-    a = [
+    function readGlobalExports(paths) {
+      if (typeof paths === 'string') {
+        return readGlobalPath(paths, hostGlobal);
+      }
+      if (!(paths instanceof Array)) {
+        throw new Error('Global exports must be a string or array.');
+      }
+      var exports = {};
+      for (var index = 0; index < paths.length; index++) {
+        exports[paths[index].split('.').pop()] = readGlobalPath(paths[index], hostGlobal);
+      }
+      return exports;
+    }
+    function visitReadableGlobal(name) {
+      if (ignoredGlobals.indexOf(name) === -1) {
+        try {
+          var value = hostGlobal[name];
+        } catch (error) {
+          ignoredGlobals.push(name);
+        }
+        this(name, value);
+      }
+    }
+    var previousGlobals;
+    var ignoredGlobals = [
       '_g',
       'sessionStorage',
       'localStorage',
@@ -37,38 +48,55 @@
       'mozInnerScreenY',
       'mozInnerScreenX',
     ];
-  o.registry.set(
-    '@@global-helpers',
-    o.newModule({
-      prepareGlobal: function (t, o, a) {
-        var s,
-          l = e.define;
-        if (((e.define = void 0), a)) for (var c in ((s = {}), a)) (s[c] = e[c]), (e[c] = a[c]);
-        return (
-          o ||
-            ((r = {}),
-            Object.keys(e).forEach(i, function (e, t) {
-              r[e] = t;
-            })),
-          function () {
-            var t,
-              a = o ? n(o) : {},
-              c = !!o;
-            if (
-              (o ||
-                Object.keys(e).forEach(i, function (e, n) {
-                  r[e] !== n &&
-                    void 0 !== n &&
-                    (o || ((a[e] = n), void 0 !== t ? c || t === n || (c = !0) : (t = n)));
-                }),
-              (a = c ? a : t),
-              s)
-            )
-              for (var d in s) e[d] = s[d];
-            return (e.define = l), a;
+    engineModules.registry.set(
+      'runtime/global-helpers',
+      engineModules.namespace({
+        prepareGlobal: function (moduleName, exportPaths, injectedGlobals) {
+          var savedGlobals;
+          var savedDefine = hostGlobal.define;
+          hostGlobal.define = undefined;
+          if (injectedGlobals) {
+            savedGlobals = {};
+            for (var name in injectedGlobals) {
+              savedGlobals[name] = hostGlobal[name];
+              hostGlobal[name] = injectedGlobals[name];
+            }
           }
-        );
-      },
-    }),
-  );
-})('undefined' != typeof self ? self : 'undefined' != typeof global ? global : this);
+          if (!exportPaths) {
+            previousGlobals = {};
+            Object.keys(hostGlobal).forEach(visitReadableGlobal, function (name, value) {
+              previousGlobals[name] = value;
+            });
+          }
+          return function () {
+            var singleExport;
+            var exports = exportPaths ? readGlobalExports(exportPaths) : {};
+            var multipleExports = !!exportPaths;
+            if (!exportPaths) {
+              Object.keys(hostGlobal).forEach(visitReadableGlobal, function (name, value) {
+                if (previousGlobals[name] !== value && value !== undefined && !exportPaths) {
+                  exports[name] = value;
+                  if (singleExport !== undefined) {
+                    if (!multipleExports && singleExport !== value) {
+                      multipleExports = true;
+                    }
+                  } else {
+                    singleExport = value;
+                  }
+                }
+              });
+            }
+            exports = multipleExports ? exports : singleExport;
+            if (savedGlobals) {
+              for (var name in savedGlobals) {
+                hostGlobal[name] = savedGlobals[name];
+              }
+            }
+            hostGlobal.define = savedDefine;
+            return exports;
+          };
+        },
+      }),
+    );
+  })(typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : this);
+}

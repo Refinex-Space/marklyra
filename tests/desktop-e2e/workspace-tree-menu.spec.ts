@@ -4,6 +4,7 @@ import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 import { installRenameMock } from './rename-test-util.js';
 import { installTrashMock } from './trash-test-util.js';
+import { openWorkspaceRootMenu } from './workspace-context.helpers.js';
 
 const runtimeUrl = process.env.CREATION_RUNTIME_URL ?? 'http://127.0.0.1:4174/index.html';
 
@@ -76,7 +77,7 @@ for (const host of ['windows', 'macos'] as const) {
     const folder = await menuLabels(page);
     expect(folder).toEqual(expect.arrayContaining(['新建文件', '新建文件夹']));
     await page.keyboard.press('Escape');
-    await page.locator('.workspace-root-row').click({ button: 'right' });
+    await openWorkspaceRootMenu(page);
     const root = await menuLabels(page);
     expect(root).toEqual(expect.arrayContaining(['新建文件', '新建文件夹']));
   });

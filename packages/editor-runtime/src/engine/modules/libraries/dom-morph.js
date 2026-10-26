@@ -1,265 +1,457 @@
-// libraries/dom-morph.
-// SystemJS module 4f. Dependencies: none.
-$__System.registerDynamic('4f', [], !0, function (e, t, n) {
-  this || self;
-  var i,
-    r = 'http://www.w3.org/1999/xhtml',
-    o = 'undefined' == typeof document ? void 0 : document,
-    a = o ? o.body || o.createElement('div') : {},
-    s = a.hasAttributeNS
-      ? function (e, t, n) {
-          return e.hasAttributeNS(t, n);
-        }
-      : a.hasAttribute
-        ? function (e, t, n) {
-            return e.hasAttribute(n);
-          }
-        : function (e, t, n) {
-            return null != e.getAttributeNode(t, n);
-          };
-  function l(e, t) {
-    var n = e.nodeName,
-      i = t.nodeName;
-    return (
-      n === i ||
-      (!!(t.actualize && n.charCodeAt(0) < 91 && i.charCodeAt(0) > 90) && n === i.toUpperCase())
-    );
-  }
-  function c(e, t, n) {
-    e[n] !== t[n] && ((e[n] = t[n]), e[n] ? e.setAttribute(n, '') : e.removeAttribute(n, ''));
-  }
-  var d = {
-      OPTION: function (e, t) {
-        c(e, t, 'selected');
-      },
-      INPUT: function (e, t) {
-        c(e, t, 'checked'),
-          c(e, t, 'disabled'),
-          e.value !== t.value && (e.value = t.value),
-          s(t, null, 'value') || e.removeAttribute('value');
-      },
-      TEXTAREA: function (e, t) {
-        var n = t.value;
-        e.value !== n && (e.value = n);
-        var i = e.firstChild;
-        if (i) {
-          var r = i.nodeValue;
-          if (r == n || (!n && r == e.placeholder)) return;
-          i.nodeValue = n;
-        }
-      },
-      SELECT: function (e, t) {
-        if (!s(t, null, 'multiple')) {
-          for (var n = 0, i = t.firstChild; i; ) {
-            var r = i.nodeName;
-            if (r && 'OPTION' === r.toUpperCase()) {
-              if (s(i, null, 'selected')) {
-                n;
-                break;
-              }
-              n++;
+// Install this compatibility library in the supplied engine environment.
+export default function installLibrariesDomMorph(engineModules, vendorScope) {
+  // libraries/dom-morph.
+  // Vendor adapter; version and local behavior are preserved.
+  engineModules.define(
+    'libraries/dom-morph',
+    [],
+    true,
+    function (requireModule, moduleExports, moduleRecord) {
+      Object.defineProperty(sameNodeName, 'name', { value: 'l', configurable: true });
+      Object.defineProperty(syncBooleanAttribute, 'name', { value: 'c', configurable: true });
+      Object.defineProperty(noop, 'name', { value: 'f', configurable: true });
+      Object.defineProperty(defaultNodeKey, 'name', { value: 'm', configurable: true });
+
+      if (!this) {
+        self;
+      }
+      var fragmentRange,
+        HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml',
+        ownerDocument = 'undefined' == typeof document ? void 0 : document,
+        probeElement = ownerDocument
+          ? ownerDocument.body || ownerDocument.createElement('div')
+          : {},
+        hasAttribute = probeElement.hasAttributeNS
+          ? function (element, namespace, attributeName) {
+              return element.hasAttributeNS(namespace, attributeName);
             }
-            i = i.nextSibling;
+          : probeElement.hasAttribute
+            ? function (element, namespace, attributeName) {
+                return element.hasAttribute(attributeName);
+              }
+            : function (element, namespace, attributeName) {
+                return null != element.getAttributeNode(namespace, attributeName);
+              };
+      function sameNodeName(fromNode, toNode) {
+        var fromName = fromNode.nodeName,
+          toName = toNode.nodeName;
+        return (
+          fromName === toName ||
+          (!!(toNode.actualize && fromName.charCodeAt(0) < 91 && toName.charCodeAt(0) > 90) &&
+            fromName === toName.toUpperCase())
+        );
+      }
+      function syncBooleanAttribute(fromElement, toElement, attributeName) {
+        if (fromElement[attributeName] !== toElement[attributeName]) {
+          fromElement[attributeName] = toElement[attributeName];
+          if (fromElement[attributeName]) {
+            fromElement.setAttribute(attributeName, '');
+          } else {
+            fromElement.removeAttribute(attributeName, '');
           }
-          e.selectedIndex = n;
         }
-      },
+      }
+      var specialElementHandlers = {
+          OPTION: function (fromElement, toElement) {
+            syncBooleanAttribute(fromElement, toElement, 'selected');
+          },
+          INPUT: function (fromElement, toElement) {
+            syncBooleanAttribute(fromElement, toElement, 'checked');
+            syncBooleanAttribute(fromElement, toElement, 'disabled');
+            if (fromElement.value !== toElement.value) {
+              fromElement.value = toElement.value;
+            }
+            if (!hasAttribute(toElement, null, 'value')) {
+              fromElement.removeAttribute('value');
+            }
+          },
+          TEXTAREA: function (fromElement, toElement) {
+            var value = toElement.value;
+            if (fromElement.value !== value) {
+              fromElement.value = value;
+            }
+            var textNode = fromElement.firstChild;
+            if (textNode) {
+              var oldValue = textNode.nodeValue;
+              if (oldValue == value || (!value && oldValue == fromElement.placeholder)) {
+                return;
+              }
+              textNode.nodeValue = value;
+            }
+          },
+          SELECT: function (fromElement, toElement) {
+            if (!hasAttribute(toElement, null, 'multiple')) {
+              for (var selectedIndex = 0, child = toElement.firstChild; child; ) {
+                var nodeName = child.nodeName;
+                if (nodeName && 'OPTION' === nodeName.toUpperCase()) {
+                  if (hasAttribute(child, null, 'selected')) {
+                    selectedIndex;
+                    break;
+                  }
+                  selectedIndex++;
+                }
+                child = child.nextSibling;
+              }
+              fromElement.selectedIndex = selectedIndex;
+            }
+          },
+        },
+        ELEMENT_NODE = 1,
+        TEXT_NODE = 3,
+        COMMENT_NODE = 8;
+      function noop() {}
+      function defaultNodeKey(node) {
+        return node.id;
+      }
+      var morphDom = (function (morphAttributes) {
+        return function (fromNode, toNode, options) {
+          Object.defineProperty(queueKeyedRemoval, 'name', { value: '_', configurable: true });
+          Object.defineProperty(removeNode, 'name', { value: 'A', configurable: true });
+          Object.defineProperty(handleAddedNode, 'name', { value: 'M', configurable: true });
+          Object.defineProperty(morphElement, 'name', { value: 'L', configurable: true });
+
+          if (!options) {
+            options = {};
+          }
+          if ('string' == typeof toNode) {
+            if ('#document' === fromNode.nodeName || 'HTML' === fromNode.nodeName) {
+              var html = toNode;
+              (toNode = ownerDocument.createElement('html')).innerHTML = html;
+            } else {
+              htmlFragment = toNode;
+              if (!fragmentRange && ownerDocument.createRange) {
+                (fragmentRange = ownerDocument.createRange()).selectNode(ownerDocument.body);
+              }
+              if (fragmentRange && fragmentRange.createContextualFragment) {
+                fragment = fragmentRange.createContextualFragment(htmlFragment);
+              } else {
+                (fragment = ownerDocument.createElement('body')).innerHTML = htmlFragment;
+              }
+              toNode = fragment.childNodes[0];
+            }
+          }
+          var htmlFragment,
+            fragment,
+            keyedRemovals,
+            getNodeKey = options.getNodeKey || defaultNodeKey,
+            onBeforeNodeAdded = options.onBeforeNodeAdded || noop,
+            onNodeAdded = options.onNodeAdded || noop,
+            onBeforeElementUpdated = options.onBeforeElUpdated || noop,
+            onElementUpdated = options.onElUpdated || noop,
+            onBeforeNodeDiscarded = options.onBeforeNodeDiscarded || noop,
+            onNodeDiscarded = options.onNodeDiscarded || noop,
+            onBeforeChildrenUpdated = options.onBeforeElChildrenUpdated || noop,
+            childrenOnly = true === options.childrenOnly,
+            keyedNodes = {};
+          function queueKeyedRemoval(nodeKey) {
+            if (keyedRemovals) {
+              keyedRemovals.push(nodeKey);
+            } else {
+              keyedRemovals = [nodeKey];
+            }
+          }
+          function removeNode(node, parent, skipKeyedNodes) {
+            if (false !== onBeforeNodeDiscarded(node)) {
+              if (parent) {
+                parent.removeChild(node);
+              }
+              onNodeDiscarded(node);
+              Object.defineProperty(
+                function discardDescendants(node, skipKeyedNodes) {
+                  if (node.nodeType === ELEMENT_NODE) {
+                    for (var child = node.firstChild; child; ) {
+                      var nodeKey = void 0;
+                      if (skipKeyedNodes && (nodeKey = getNodeKey(child))) {
+                        queueKeyedRemoval(nodeKey);
+                      } else {
+                        onNodeDiscarded(child);
+                        if (child.firstChild) {
+                          discardDescendants(child, skipKeyedNodes);
+                        }
+                      }
+                      child = child.nextSibling;
+                    }
+                  }
+                },
+                'name',
+                { value: 'e', configurable: true },
+              )(node, skipKeyedNodes);
+            }
+          }
+          function handleAddedNode(node) {
+            onNodeAdded(node);
+            for (var child = node.firstChild; child; ) {
+              var nextSibling = child.nextSibling,
+                nodeKey = getNodeKey(child);
+              if (nodeKey) {
+                var matchedNode = keyedNodes[nodeKey];
+                if (matchedNode && sameNodeName(child, matchedNode)) {
+                  child.parentNode.replaceChild(matchedNode, child);
+                  morphElement(matchedNode, child);
+                }
+              }
+              handleAddedNode(child);
+              child = nextSibling;
+            }
+          }
+          function morphElement(fromElement, toElement, childrenOnly) {
+            var fromKey,
+              toKey = getNodeKey(toElement);
+            if (toKey) {
+              delete keyedNodes[toKey];
+            }
+            if (!toNode.isSameNode || !toNode.isSameNode(fromNode)) {
+              if (!childrenOnly) {
+                if (false === onBeforeElementUpdated(fromElement, toElement)) {
+                  return;
+                }
+                morphAttributes(fromElement, toElement);
+                onElementUpdated(fromElement);
+                if (false === onBeforeChildrenUpdated(fromElement, toElement)) {
+                  return;
+                }
+              }
+              if ('TEXTAREA' !== fromElement.nodeName) {
+                var toChildKey,
+                  fromNextSibling,
+                  toNextSibling,
+                  matchedNode,
+                  toChild = toElement.firstChild,
+                  fromChild = fromElement.firstChild;
+                e: for (; toChild; ) {
+                  for (
+                    toNextSibling = toChild.nextSibling, toChildKey = getNodeKey(toChild);
+                    fromChild;
+                  ) {
+                    fromNextSibling = fromChild.nextSibling;
+                    if (toChild.isSameNode && toChild.isSameNode(fromChild)) {
+                      toChild = toNextSibling;
+                      fromChild = fromNextSibling;
+                      continue e;
+                    }
+                    fromKey = getNodeKey(fromChild);
+                    var fromNodeType = fromChild.nodeType,
+                      compatible = void 0;
+                    if (fromNodeType === toChild.nodeType) {
+                      if (fromNodeType === ELEMENT_NODE) {
+                        if (toChildKey) {
+                          if (toChildKey !== fromKey) {
+                            if ((matchedNode = keyedNodes[toChildKey])) {
+                              if (fromChild.nextSibling === matchedNode) {
+                                compatible = false;
+                              } else {
+                                fromElement.insertBefore(matchedNode, fromChild);
+                                fromNextSibling = fromChild.nextSibling;
+                                if (fromKey) {
+                                  queueKeyedRemoval(fromKey);
+                                } else {
+                                  removeNode(fromChild, fromElement, true);
+                                }
+                                fromChild = matchedNode;
+                              }
+                            } else {
+                              compatible = false;
+                            }
+                          }
+                        } else {
+                          if (fromKey) {
+                            compatible = false;
+                          }
+                        }
+                        if (
+                          (compatible = false !== compatible && sameNodeName(fromChild, toChild))
+                        ) {
+                          if ('svg' == fromChild.tagName && 'svg' == toChild.tagName) {
+                            compatible = fromChild.innerHTML == toChild.innerHTML;
+                          } else {
+                            morphElement(fromChild, toChild);
+                          }
+                        }
+                      } else {
+                        if (!(fromNodeType !== TEXT_NODE && fromNodeType != COMMENT_NODE)) {
+                          compatible = true;
+                          if (fromChild.nodeValue !== toChild.nodeValue) {
+                            fromChild.nodeValue = toChild.nodeValue;
+                          }
+                        }
+                      }
+                    }
+                    if (compatible) {
+                      toChild = toNextSibling;
+                      fromChild = fromNextSibling;
+                      continue e;
+                    }
+                    if (fromKey) {
+                      queueKeyedRemoval(fromKey);
+                    } else {
+                      removeNode(fromChild, fromElement, true);
+                    }
+                    fromChild = fromNextSibling;
+                  }
+                  if (
+                    toChildKey &&
+                    (matchedNode = keyedNodes[toChildKey]) &&
+                    sameNodeName(matchedNode, toChild)
+                  ) {
+                    fromElement.appendChild(matchedNode);
+                    morphElement(matchedNode, toChild);
+                  } else {
+                    var addedNode = onBeforeNodeAdded(toChild);
+                    if (false !== addedNode) {
+                      if (addedNode) {
+                        toChild = addedNode;
+                      }
+                      if (toChild.actualize) {
+                        toChild = toChild.actualize(fromElement.ownerDocument || ownerDocument);
+                      }
+                      fromElement.appendChild(toChild);
+                      handleAddedNode(toChild);
+                    }
+                  }
+                  toChild = toNextSibling;
+                  fromChild = fromNextSibling;
+                }
+                for (; fromChild; ) {
+                  fromNextSibling = fromChild.nextSibling;
+                  if ((fromKey = getNodeKey(fromChild))) {
+                    queueKeyedRemoval(fromKey);
+                  } else {
+                    removeNode(fromChild, fromElement, true);
+                  }
+                  fromChild = fromNextSibling;
+                }
+              }
+              var specialHandler = specialElementHandlers[fromElement.nodeName];
+              if (specialHandler) {
+                specialHandler(fromElement, toElement);
+              }
+            }
+          }
+          !Object.defineProperty(
+            function indexKeyedNodes(node) {
+              if (node.nodeType === ELEMENT_NODE) {
+                for (var child = node.firstChild; child; ) {
+                  var nodeKey = getNodeKey(child);
+                  if (nodeKey) {
+                    keyedNodes[nodeKey] = child;
+                  }
+                  indexKeyedNodes(child);
+                  child = child.nextSibling;
+                }
+              }
+            },
+            'name',
+            { value: 'e', configurable: true },
+          )(fromNode);
+          var replacementTagName,
+            replacementNamespace,
+            morphedNode = fromNode,
+            fromNodeType = morphedNode.nodeType,
+            toNodeType = toNode.nodeType;
+          if (!childrenOnly) {
+            if (fromNodeType === ELEMENT_NODE) {
+              if (toNodeType === ELEMENT_NODE) {
+                if (!sameNodeName(fromNode, toNode)) {
+                  onNodeDiscarded(fromNode);
+                  morphedNode = (function (sourceNode, targetNode) {
+                    for (var child = sourceNode.firstChild; child; ) {
+                      var nextSibling = child.nextSibling;
+                      targetNode.appendChild(child);
+                      child = nextSibling;
+                    }
+                    return targetNode;
+                  })(
+                    fromNode,
+                    ((replacementTagName = toNode.nodeName),
+                    (replacementNamespace = toNode.namespaceURI) &&
+                    replacementNamespace !== HTML_NAMESPACE
+                      ? ownerDocument.createElementNS(replacementNamespace, replacementTagName)
+                      : ownerDocument.createElement(replacementTagName)),
+                  );
+                }
+              } else {
+                morphedNode = toNode;
+              }
+            } else {
+              if (fromNodeType === TEXT_NODE || fromNodeType === COMMENT_NODE) {
+                if (toNodeType === fromNodeType) {
+                  if (morphedNode.nodeValue !== toNode.nodeValue) {
+                    morphedNode.nodeValue = toNode.nodeValue;
+                  }
+                  return morphedNode;
+                }
+                morphedNode = toNode;
+              }
+            }
+          }
+          if (morphedNode === toNode) {
+            onNodeDiscarded(fromNode);
+          } else {
+            morphElement(morphedNode, toNode, childrenOnly);
+            if (keyedRemovals) {
+              for (
+                var removalIndex = 0, removalCount = keyedRemovals.length;
+                removalIndex < removalCount;
+                removalIndex++
+              ) {
+                var discardedNode = keyedNodes[keyedRemovals[removalIndex]];
+                if (discardedNode) {
+                  removeNode(discardedNode, discardedNode.parentNode, false);
+                }
+              }
+            }
+          }
+          if (!childrenOnly && morphedNode !== fromNode && fromNode.parentNode) {
+            if (morphedNode.actualize) {
+              morphedNode = morphedNode.actualize(fromNode.ownerDocument || ownerDocument);
+            }
+            fromNode.parentNode.replaceChild(morphedNode, fromNode);
+          }
+          return morphedNode;
+        };
+      })(function (fromElement, toElement) {
+        var attributeIndex,
+          attribute,
+          attributeName,
+          namespace,
+          attributeValue,
+          attributes = toElement.attributes;
+        for (attributeIndex = attributes.length - 1; attributeIndex >= 0; --attributeIndex) {
+          attributeName = (attribute = attributes[attributeIndex]).name;
+          namespace = attribute.namespaceURI;
+          attributeValue = attribute.value;
+          if (namespace) {
+            attributeName = attribute.localName || attributeName;
+            if (fromElement.getAttributeNS(namespace, attributeName) !== attributeValue) {
+              fromElement.setAttributeNS(namespace, attributeName, attributeValue);
+            }
+          } else {
+            if (fromElement.getAttribute(attributeName) !== attributeValue) {
+              fromElement.setAttribute(attributeName, attributeValue);
+            }
+          }
+        }
+        for (
+          attributeIndex = (attributes = fromElement.attributes).length - 1;
+          attributeIndex >= 0;
+          --attributeIndex
+        ) {
+          if (false !== (attribute = attributes[attributeIndex]).specified) {
+            attributeName = attribute.name;
+            if ((namespace = attribute.namespaceURI)) {
+              attributeName = attribute.localName || attributeName;
+              if (!hasAttribute(toElement, namespace, attributeName)) {
+                fromElement.removeAttributeNS(namespace, attributeName);
+              }
+            } else {
+              if (!hasAttribute(toElement, null, attributeName)) {
+                fromElement.removeAttribute(attributeName);
+              }
+            }
+          }
+        }
+      });
+      moduleRecord.exports = morphDom;
     },
-    u = 1,
-    h = 3,
-    p = 8;
-  function f() {}
-  function m(e) {
-    return e.id;
-  }
-  var g = (function (e) {
-    return function (t, n, a) {
-      if ((a || (a = {}), 'string' == typeof n))
-        if ('#document' === t.nodeName || 'HTML' === t.nodeName) {
-          var s = n;
-          (n = o.createElement('html')).innerHTML = s;
-        } else
-          (c = n),
-            !i && o.createRange && (i = o.createRange()).selectNode(o.body),
-            i && i.createContextualFragment
-              ? (g = i.createContextualFragment(c))
-              : ((g = o.createElement('body')).innerHTML = c),
-            (n = g.childNodes[0]);
-      var c,
-        g,
-        v,
-        y = a.getNodeKey || m,
-        b = a.onBeforeNodeAdded || f,
-        w = a.onNodeAdded || f,
-        x = a.onBeforeElUpdated || f,
-        C = a.onElUpdated || f,
-        F = a.onBeforeNodeDiscarded || f,
-        S = a.onNodeDiscarded || f,
-        k = a.onBeforeElChildrenUpdated || f,
-        E = !0 === a.childrenOnly,
-        T = {};
-      function _(e) {
-        v ? v.push(e) : (v = [e]);
-      }
-      function A(e, t, n) {
-        !1 !== F(e) &&
-          (t && t.removeChild(e),
-          S(e),
-          (function e(t, n) {
-            if (t.nodeType === u)
-              for (var i = t.firstChild; i; ) {
-                var r = void 0;
-                n && (r = y(i)) ? _(r) : (S(i), i.firstChild && e(i, n)), (i = i.nextSibling);
-              }
-          })(e, n));
-      }
-      function M(e) {
-        w(e);
-        for (var t = e.firstChild; t; ) {
-          var n = t.nextSibling,
-            i = y(t);
-          if (i) {
-            var r = T[i];
-            r && l(t, r) && (t.parentNode.replaceChild(r, t), L(r, t));
-          }
-          M(t), (t = n);
-        }
-      }
-      function L(i, r, a) {
-        var s,
-          c = y(r);
-        if ((c && delete T[c], !n.isSameNode || !n.isSameNode(t))) {
-          if (!a) {
-            if (!1 === x(i, r)) return;
-            if ((e(i, r), C(i), !1 === k(i, r))) return;
-          }
-          if ('TEXTAREA' !== i.nodeName) {
-            var f,
-              m,
-              g,
-              v,
-              w = r.firstChild,
-              F = i.firstChild;
-            e: for (; w; ) {
-              for (g = w.nextSibling, f = y(w); F; ) {
-                if (((m = F.nextSibling), w.isSameNode && w.isSameNode(F))) {
-                  (w = g), (F = m);
-                  continue e;
-                }
-                s = y(F);
-                var S = F.nodeType,
-                  E = void 0;
-                if (
-                  (S === w.nodeType &&
-                    (S === u
-                      ? (f
-                          ? f !== s &&
-                            ((v = T[f])
-                              ? F.nextSibling === v
-                                ? (E = !1)
-                                : (i.insertBefore(v, F),
-                                  (m = F.nextSibling),
-                                  s ? _(s) : A(F, i, !0),
-                                  (F = v))
-                              : (E = !1))
-                          : s && (E = !1),
-                        (E = !1 !== E && l(F, w)) &&
-                          ('svg' == F.tagName && 'svg' == w.tagName
-                            ? (E = F.innerHTML == w.innerHTML)
-                            : L(F, w)))
-                      : (S !== h && S != p) ||
-                        ((E = !0), F.nodeValue !== w.nodeValue && (F.nodeValue = w.nodeValue))),
-                  E)
-                ) {
-                  (w = g), (F = m);
-                  continue e;
-                }
-                s ? _(s) : A(F, i, !0), (F = m);
-              }
-              if (f && (v = T[f]) && l(v, w)) i.appendChild(v), L(v, w);
-              else {
-                var N = b(w);
-                !1 !== N &&
-                  (N && (w = N),
-                  w.actualize && (w = w.actualize(i.ownerDocument || o)),
-                  i.appendChild(w),
-                  M(w));
-              }
-              (w = g), (F = m);
-            }
-            for (; F; ) (m = F.nextSibling), (s = y(F)) ? _(s) : A(F, i, !0), (F = m);
-          }
-          var D = d[i.nodeName];
-          D && D(i, r);
-        }
-      }
-      !(function e(t) {
-        if (t.nodeType === u)
-          for (var n = t.firstChild; n; ) {
-            var i = y(n);
-            i && (T[i] = n), e(n), (n = n.nextSibling);
-          }
-      })(t);
-      var N,
-        D,
-        R = t,
-        B = R.nodeType,
-        P = n.nodeType;
-      if (!E)
-        if (B === u)
-          P === u
-            ? l(t, n) ||
-              (S(t),
-              (R = (function (e, t) {
-                for (var n = e.firstChild; n; ) {
-                  var i = n.nextSibling;
-                  t.appendChild(n), (n = i);
-                }
-                return t;
-              })(
-                t,
-                ((N = n.nodeName),
-                (D = n.namespaceURI) && D !== r ? o.createElementNS(D, N) : o.createElement(N)),
-              )))
-            : (R = n);
-        else if (B === h || B === p) {
-          if (P === B) return R.nodeValue !== n.nodeValue && (R.nodeValue = n.nodeValue), R;
-          R = n;
-        }
-      if (R === n) S(t);
-      else if ((L(R, n, E), v))
-        for (var I = 0, O = v.length; I < O; I++) {
-          var $ = T[v[I]];
-          $ && A($, $.parentNode, !1);
-        }
-      return (
-        !E &&
-          R !== t &&
-          t.parentNode &&
-          (R.actualize && (R = R.actualize(t.ownerDocument || o)), t.parentNode.replaceChild(R, t)),
-        R
-      );
-    };
-  })(function (e, t) {
-    var n,
-      i,
-      r,
-      o,
-      a,
-      l = t.attributes;
-    for (n = l.length - 1; n >= 0; --n)
-      (r = (i = l[n]).name),
-        (o = i.namespaceURI),
-        (a = i.value),
-        o
-          ? ((r = i.localName || r), e.getAttributeNS(o, r) !== a && e.setAttributeNS(o, r, a))
-          : e.getAttribute(r) !== a && e.setAttribute(r, a);
-    for (n = (l = e.attributes).length - 1; n >= 0; --n)
-      !1 !== (i = l[n]).specified &&
-        ((r = i.name),
-        (o = i.namespaceURI)
-          ? ((r = i.localName || r), s(t, o, r) || e.removeAttributeNS(o, r))
-          : s(t, null, r) || e.removeAttribute(r));
-  });
-  n.exports = g;
-});
+  );
+}

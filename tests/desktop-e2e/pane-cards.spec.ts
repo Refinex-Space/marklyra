@@ -62,12 +62,16 @@ test('the whole gap between panes is the drag handle and shows a short centred g
       document.elementFromPoint(x, y)?.classList.contains('pane-resize-handle') ?? false;
     const side = document.querySelector('aside.sidebar')?.getBoundingClientRect();
     const main = document.querySelector('main.document-area')?.getBoundingClientRect();
-    if (!side || !main) throw Error('Missing panes');
+    const details = document.querySelector('.document-details-panel')?.getBoundingClientRect();
+    if (!side || !main || !details) throw Error('Missing panes');
+    const sampleGap = (left: number, right: number) =>
+      [0.25, 0.5, 0.75].map((part) => at(left + (right - left) * part, 300));
+    const leftCenter = (side.right + main.left) / 2;
     return {
-      left: [1, 4, 7].map((offset) => at(side.right + offset, 300)),
-      right: [1, 4, 7].map((offset) => at(main.right + offset, 300)),
-      leftTop: at(side.right + 4, side.top + 2),
-      leftBottom: at(side.right + 4, side.bottom - 2),
+      left: sampleGap(side.right, main.left),
+      right: sampleGap(main.right, details.left),
+      leftTop: at(leftCenter, side.top + 2),
+      leftBottom: at(leftCenter, side.bottom - 2),
     };
   });
   expect(gaps).toEqual({
@@ -80,7 +84,25 @@ test('the whole gap between panes is the drag handle and shows a short centred g
     const handle = page.getByRole('separator', { name });
     const box = await handle.boundingBox();
     if (!box) throw Error('Missing handle');
-    expect(box.width).toBe(8);
+    const hitArea = await handle.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const previous = element.previousElementSibling?.getBoundingClientRect();
+      const next = element.nextElementSibling?.getBoundingClientRect();
+      const reach = getComputedStyle(element, '::after');
+      const left = rect.left + Number.parseFloat(reach.left);
+      const right = rect.right - Number.parseFloat(reach.right);
+      const hit = (x: number) =>
+        document.elementFromPoint(x, rect.top + rect.height / 2) === element;
+      return {
+        spansGap: !!previous && !!next && rect.left === previous.right && rect.right === next.left,
+        width: right - left,
+        allPixelsHit: Array.from({ length: Math.round(right - left) }, (_, index) =>
+          hit(left + index + 0.5),
+        ).every(Boolean),
+      };
+    });
+    // The current seam is narrow, but the supported pointer target remains 14px wide.
+    expect(hitArea).toEqual({ spansGap: true, width: 14, allPixelsHit: true });
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await expect
       .poll(() => handle.evaluate((element) => getComputedStyle(element, '::before').opacity))

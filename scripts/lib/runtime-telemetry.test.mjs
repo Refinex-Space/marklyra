@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
-import { parse } from 'acorn';
-import { engineSource as source } from './runtime-test-source.mjs';
+import { engineModuleRegistrations, expressionOf } from './runtime-test-source.mjs';
 
-const ast = parse(source, { ecmaVersion: 'latest' });
 function visit(node, callback) {
   if (!node || typeof node !== 'object') return;
   if (typeof node.type === 'string') callback(node);
@@ -15,10 +13,9 @@ function visit(node, callback) {
   }
 }
 const modules = [];
-visit(ast, (node) => {
-  if (node.type !== 'CallExpression' || node.callee?.property?.name !== 'registerDynamic') return;
+for (const node of engineModuleRegistrations()) {
   const factory = node.arguments[3];
-  if (factory?.type !== 'FunctionExpression') return;
+  assert.equal(factory?.type, 'FunctionExpression', 'Expected an executable source factory');
   const exportsName = factory.params[1]?.name;
   const names = new Set();
   visit(factory.body, (child) => {
@@ -30,7 +27,7 @@ visit(ast, (node) => {
       names.add(child.left.property.name);
   });
   if (names.has('Reporter') && names.has('Analytics')) modules.push(node);
-});
+}
 assert.equal(modules.length, 1, 'Expected one local diagnostics compatibility module');
 const module = modules[0];
 
@@ -82,10 +79,7 @@ function instantiate() {
   };
   context.window = context;
   context.self = context;
-  const factory = runInNewContext(
-    `(${source.slice(module.arguments[3].start, module.arguments[3].end)})`,
-    context,
-  );
+  const factory = runInNewContext(expressionOf(module.arguments[3]), context);
   const exports = {};
   factory.call(
     context,

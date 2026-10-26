@@ -386,6 +386,8 @@ test('metadata checks stay serial and disclose truncation and unreadable roots',
   const before = await page.evaluate(
     () => (window as ExplorerWindow).__explorerProbe.snapshotCalls,
   );
+  // A visibility wake-up must not overlap the host snapshot that is already in flight.
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.waitForTimeout(2200);
   expect(await page.evaluate(() => (window as ExplorerWindow).__explorerProbe.snapshotCalls)).toBe(
     before,
@@ -394,10 +396,14 @@ test('metadata checks stay serial and disclose truncation and unreadable roots',
   await expect(page.getByText(/目录变化检查已达到条目数、目录深度上限/)).toBeVisible();
   await page.evaluate(() => {
     (window as ExplorerWindow).__explorerProbe.unreadable = 1;
+    // The intentionally slow host call increases adaptive backoff. Use the existing
+    // visible-window wake-up instead of assuming the next delay is still two seconds.
+    document.dispatchEvent(new Event('visibilitychange'));
   });
   await expect(page.getByText(/目录变化检查有 1 项无法检查/)).toBeVisible({ timeout: 6000 });
   await page.evaluate(() => {
     (window as ExplorerWindow).__explorerProbe.snapshotError = true;
+    document.dispatchEvent(new Event('visibilitychange'));
   });
   await expect(page.getByText(/目录变化检查失败：Error: Permission denied/)).toBeVisible({
     timeout: 6000,
@@ -411,7 +417,11 @@ test('external save metadata refreshes article dates and the existing modified-t
   await expect(row(page, 'Second.md')).toBeVisible();
   await page.locator('.sidebar').hover();
   await page.getByRole('button', { name: '目录菜单', exact: true }).click();
-  await page.getByRole('menuitemradio', { name: '修改时间', exact: true }).click();
+  await page.getByRole('menuitem', { name: /视图与排序/ }).click();
+  await page
+    .getByRole('menu', { name: '视图与排序', exact: true })
+    .getByRole('menuitemradio', { name: '修改时间', exact: true })
+    .click();
   await page.keyboard.press('Escape');
   const rootOrder = () =>
     page

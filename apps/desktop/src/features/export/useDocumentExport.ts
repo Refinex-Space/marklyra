@@ -208,7 +208,9 @@ export function useDocumentExport(
         const target = conversionTarget(action);
         const saved = await documentExports.saveFormat(target, bundle.markdown, title, sourceId);
         const extra = bundle.missing.length
-          ? [`${bundle.missing.length} 张图片未能内嵌，已保留原引用：${bundle.missing.slice(0, 3).join('、')}`]
+          ? [
+              `${bundle.missing.length} 张图片未能内嵌，已保留原引用：${bundle.missing.slice(0, 3).join('、')}`,
+            ]
           : [];
         report(
           { ...saved, warnings: [...extra, ...saved.warnings] },

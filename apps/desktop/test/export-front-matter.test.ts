@@ -3,7 +3,9 @@ import { frontMatterFields, titleFromName } from '../src/features/export/front-m
 
 describe('front matter fields for export', () => {
   it('reads top-level title and author scalars', () => {
-    expect(frontMatterFields('---\ntitle: 测试文档\nauthor: liyao\ntags: [a, b]\n---\n\n# 正文')).toEqual({
+    expect(
+      frontMatterFields('---\ntitle: 测试文档\nauthor: liyao\ntags: [a, b]\n---\n\n# 正文'),
+    ).toEqual({
       title: '测试文档',
       author: 'liyao',
     });
@@ -19,7 +21,9 @@ describe('front matter fields for export', () => {
   it('ignores what is not a plain top-level scalar', () => {
     expect(frontMatterFields('---\ntitle: |\n  block\nauthor: [a, b]\n---\n')).toEqual({});
     expect(frontMatterFields('---\n  title: nested\n---\n')).toEqual({});
-    expect(frontMatterFields('---\ntitle: first\ntitle: second\n---\n')).toEqual({ title: 'first' });
+    expect(frontMatterFields('---\ntitle: first\ntitle: second\n---\n')).toEqual({
+      title: 'first',
+    });
   });
   it('is not front matter unless the block opens the document and closes', () => {
     expect(frontMatterFields('# 标题\n\n---\ntitle: x\n---\n')).toEqual({});

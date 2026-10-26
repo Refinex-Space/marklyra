@@ -4,6 +4,11 @@ import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 import { installRenameMock } from './rename-test-util.js';
 import { installTrashMock, type TrashWindow } from './trash-test-util.js';
+import {
+  expectWorkspaceUnmounted,
+  openWorkspaceRootMenu,
+  requestWorkspaceRootMenu,
+} from './workspace-context.helpers.js';
 
 const runtimeUrl = process.env.CREATION_RUNTIME_URL ?? 'http://127.0.0.1:4174/index.html';
 const raw = '\uFEFFAlpha\r\n\r\nTail  \n';
@@ -125,11 +130,7 @@ async function trash(page: Page, path = 'Existing.md') {
   await menu(page, path);
   await page.getByRole('menuitem', { name: '删除…', exact: true }).click();
 }
-// Root rows are divs; keep the original root context trigger separate from file buttons.
-async function rootMenu(page: Page) {
-  await page.locator('.workspace-root-row').click({ button: 'right' });
-  await expect(page.getByRole('menu', { name: '文件操作', exact: true })).toBeVisible();
-}
+const rootMenu = openWorkspaceRootMenu;
 
 test('Native cancel preserves the current row, source/history and editor instance', async ({
   page,
@@ -287,7 +288,7 @@ test('a late Undo catalog cannot reopen the file menu after the user moves to se
     mock.seedUndo();
     mock.deferCatalog = true;
   });
-  await page.locator('.workspace-root-row').click({ button: 'right' });
+  await requestWorkspaceRootMenu(page);
   await expect
     .poll(() => page.evaluate(() => (window as TrashWindow).__trashMock.pendingCatalog))
     .toBe(1);
@@ -310,13 +311,17 @@ test('confirmed removed-root notice clears only that mount and preserves the ope
       'other-workspace',
     ]),
   );
-  await expect(page.locator('.workspace-root-row')).toBeVisible();
+  await expect(page.locator('.workspace-root-row')).toHaveText('Creation');
+  await expect(page.locator('.workspace-sidebar')).not.toHaveAttribute('data-empty', 'true');
   await page.evaluate(() =>
     (window as TestWindow).__desktopMock.emitTarget('main', 'workspace-roots-removed', [
       'creation-workspace',
     ]),
   );
-  await expect(page.locator('.workspace-root-row')).toHaveCount(0);
+  await expectWorkspaceUnmounted(page);
+  expect((await calls(page, 'close_workspace')).at(-1)?.args).toEqual({
+    workspaceId: 'creation-workspace',
+  });
   await expect(page.getByRole('alert')).toContainText('文件夹已移入废纸篓');
   expect(await state(page)).toEqual(before);
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
@@ -395,7 +400,9 @@ test('cross-parent alias metadata preserves separate real editors and histories 
       );
     }
     await publish(page, 'original-a', '/mock/Creation/Existing.md', 'trashed', 3);
-    const trashed = page.locator('.notice-host .notice-warning').filter({ hasText: '文件已移入回收站' });
+    const trashed = page
+      .locator('.notice-host .notice-warning')
+      .filter({ hasText: '文件已移入回收站' });
     await expect(trashed).toBeVisible();
     await trashed.getByRole('button', { name: '关闭提示' }).click();
     await expect(trashed).toHaveCount(0);

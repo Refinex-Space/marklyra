@@ -1,18 +1,16 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
-import { parse } from 'acorn';
 import {
   assembleSourceBundle,
   loadSourceBundlePlans,
   sourceBundleInputs,
 } from './source-bundles.mjs';
 
-const root = resolve(import.meta.dirname, '../..');
-const base = 'packages/editor-runtime/src/engine';
+const base = 'apps/desktop/src/features/settings/runtime-preferences/page/static/js';
 
 async function fixture(t, kind = 'sequence', parts = ['modules/first.js', 'modules/second.js']) {
   const root = await mkdtemp(resolve(tmpdir(), 'marklyra-source-bundles-'));
@@ -27,7 +25,7 @@ async function fixture(t, kind = 'sequence', parts = ['modules/first.js', 'modul
     bundles: [
       {
         entry: 'main.js',
-        output: 'appsrc/main.js',
+        output: 'preferences/static/js/main.js',
         slots: [{ name: '__MARKLYRA_TEST__', kind, parts }],
       },
     ],
@@ -128,44 +126,4 @@ test('statements cannot escape a source expression slot', async (t) => {
   const { write, build } = await fixture(t);
   await write('modules/first.js', '1; globalThis.unexpected = true;');
   await assert.rejects(build(), /Expected one expression/);
-});
-
-test('actual SystemJS module IDs, dependency closure and entry order stay intact', async () => {
-  const plan = (await loadSourceBundlePlans(root)).find((item) => item.output === 'appsrc/main.js');
-  const { code } = await assembleSourceBundle(root, plan);
-  const registrations = [];
-  function visit(node) {
-    if (
-      node.type === 'CallExpression' &&
-      node.callee.object?.name === '$__System' &&
-      node.callee.property?.name === 'registerDynamic'
-    )
-      registrations.push({
-        id: node.arguments[0].value,
-        dependencies: node.arguments[1].elements.map((value) => value.value),
-      });
-    for (const value of Object.values(node))
-      for (const child of Array.isArray(value) ? value : [value]) if (child?.type) visit(child);
-  }
-  visit(parse(code, { ecmaVersion: 'latest' }));
-  const originalOrder =
-    'b c d f 10 12 14 1a 1f 21 22 23 24 25 18 28 2b 26 2e 2f 36 39 3a 3b 3c 38 3d 3e 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 51 32 52 53 54 2d 55 56 57 59 30 5b 2c 37 58 35 34 31 5a 1d 1e 19 16 20 1c 15 1b 17 3f 2a 13 5c 11 29 33 27 5d e 5e 5f a';
-  assert.deepEqual(
-    registrations.map((item) => item.id),
-    originalOrder.split(' '),
-  );
-  const ids = new Set(registrations.map((item) => item.id));
-  for (const module of registrations)
-    for (const dependency of module.dependencies) assert.ok(ids.has(dependency), dependency);
-});
-
-test('the real Emoji global contains exactly the maintained data', async () => {
-  const plans = await loadSourceBundlePlans(root);
-  const plan = plans.find((item) => item.output === 'appsrc/editor/EmojiSearchMap.js');
-  const { code } = await assembleSourceBundle(root, plan);
-  const data = JSON.parse(await readFile(resolve(root, base, 'editor/emoji-search-map.json')));
-  const context = { window: {} };
-  runInNewContext(code, context);
-  assert.equal(JSON.stringify(context.window.EmojiSearchMap), JSON.stringify(data));
-  assert.equal(Object.keys(data).length, 1076);
 });

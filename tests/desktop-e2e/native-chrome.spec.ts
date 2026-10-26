@@ -56,9 +56,9 @@ test.beforeEach(async ({ page }, testInfo) => {
       mock.nextDocument = { ...mock.nextDocument, id: 'outline-ui', text };
     }, outlineRaw);
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('open'));
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toContainText(
-    'Alpha',
-  );
+  await expect(
+    page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write'),
+  ).toContainText('Alpha');
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
 });
 
@@ -71,24 +71,29 @@ test('native chrome uses one sidebar header and full viewport theme geometry wit
   await expect(page.locator('.marklyra-sidebar-header')).toBeHidden();
   await expect(page.locator('.workspace-navigation-header')).toBeVisible();
   await expect(page.locator('.sidebar-search-target')).toBeHidden();
-  const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
+  const iframe = await page.locator('.runtime-area .marklyra-editor-frame').elementHandle();
   await expect
     .poll(async () => {
-      const frame = page.frames().find((f) => f.url().startsWith('http://127.0.0.1:4174/'));
-      return frame?.evaluate(() => {
-        const content = document.querySelector('content'),
-          write = document.querySelector('#write');
-        if (!content || !write) throw new Error('Missing original editor layout');
-        return {
-          width: innerWidth,
-          inset: getComputedStyle(content).left,
-          padding: getComputedStyle(write).paddingTop,
-          max: getComputedStyle(write).maxWidth,
-        };
-      });
+      const paneLeft = await page
+        .locator('main.document-area')
+        .evaluate((element) => element.getBoundingClientRect().left + element.clientLeft);
+      return page
+        .frameLocator('.runtime-area .marklyra-editor-frame')
+        .locator('html')
+        .evaluate((_element, paneLeft) => {
+          const content = document.querySelector('content'),
+            write = document.querySelector('#write');
+          if (!content || !write) throw new Error('Missing original editor layout');
+          return {
+            width: innerWidth,
+            insetMatchesPane: Number.parseFloat(getComputedStyle(content).left) === paneLeft,
+            padding: getComputedStyle(write).paddingTop,
+            max: getComputedStyle(write).maxWidth,
+          };
+        }, paneLeft);
     })
-    // 8px window gap + 270px sidebar card + 8px gap + 1px document pane border.
-    .toEqual({ width: 1640, inset: '287px', padding: '30px', max: '1024px' });
+    // The full-width runtime ends its scrollport at the current document pane's inner edge.
+    .toEqual({ width: 1640, insetMatchesPane: true, padding: '30px', max: '1024px' });
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:sidebar'));
   await expect(page.locator('aside.sidebar')).toBeHidden();
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:outline'));
@@ -110,8 +115,8 @@ test('native chrome uses one sidebar header and full viewport theme geometry wit
 test('native titlebar follows accepted view mode when statistics fail and preserves editing history', async ({
   page,
 }) => {
-  const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
-  const frame = page.frameLocator('.marklyra-editor-frame');
+  const iframe = await page.locator('.runtime-area .marklyra-editor-frame').elementHandle();
+  const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
   const paragraph = frame.locator('#write > p').last();
   await paragraph.click();
   await page.keyboard.press('End');
@@ -140,7 +145,7 @@ test('native titlebar follows accepted view mode when statistics fail and preser
   await expect.poll(mode).toMatchObject({ sourceMode: false });
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
   await expect(
-    page.frameLocator('.marklyra-editor-frame').locator('#marklyra-source'),
+    page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#marklyra-source'),
   ).toBeVisible();
   await expect.poll(mode).toMatchObject({ sourceMode: true });
   await expect
@@ -155,7 +160,7 @@ test('native titlebar follows accepted view mode when statistics fail and preser
   await expect.poll(mode).toMatchObject({ sourceMode: true });
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
   await expect(
-    page.frameLocator('.marklyra-editor-frame').locator('#marklyra-source'),
+    page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#marklyra-source'),
   ).toBeHidden();
   await expect.poll(mode).toMatchObject({ sourceMode: false });
   for (let index = 0; index < 3; index++) {
@@ -273,9 +278,9 @@ test('native outline action toggles an independent right panel without the legac
   page,
 }) => {
   const raw = outlineRaw;
-  const frame = page.frameLocator('.marklyra-editor-frame');
+  const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
   await expect(frame.locator('#write > h1')).toHaveText('One');
-  const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
+  const iframe = await page.locator('.runtime-area .marklyra-editor-frame').elementHandle();
   const history = () =>
     frame.locator('body').evaluate(() => {
       const undo = (
@@ -399,7 +404,10 @@ test('inline preferences synchronize typed changes and restore editor commands o
 test('native preferences close restores the existing editor selection and saves retain the last known count', async ({
   page,
 }) => {
-  const paragraph = page.frameLocator('.marklyra-editor-frame').locator('#write > p').last();
+  const paragraph = page
+    .frameLocator('.runtime-area .marklyra-editor-frame')
+    .locator('#write > p')
+    .last();
   await paragraph.click();
   await page.keyboard.press('End');
   await expect

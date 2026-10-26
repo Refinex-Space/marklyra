@@ -4,6 +4,7 @@ import { installCreationMock } from './creation-test-util.js';
 import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 import { installRenameMock, type RenameWindow } from './rename-test-util.js';
+import { openWorkspaceRootMenu } from './workspace-context.helpers.js';
 
 type ActionWindow = RenameWindow & {
   __actions: {
@@ -226,7 +227,7 @@ test('root Copy Path uses current workspace identity without a renderer-supplied
   page,
 }) => {
   await boot(page);
-  await page.locator('.workspace-root-row').click({ button: 'right' });
+  await openWorkspaceRootMenu(page);
   await page.getByRole('menuitem', { name: '复制文件路径', exact: true }).click();
   await expect
     .poll(async () => (await calls(page, 'perform_workspace_entry_action')).length)

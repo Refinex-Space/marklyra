@@ -1,8 +1,9 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { posix, resolve } from 'node:path';
 
+// The settings page still uses its own legacy source layout. The editor engine
+// is built independently from its standard JavaScript entry points.
 export const bundleManifests = [
-  'packages/editor-runtime/src/engine/bundles.json',
   'apps/desktop/src/features/settings/runtime-preferences/page/static/js/bundles.json',
 ];
 

@@ -43,7 +43,7 @@ for (const theme of layoutThemes) {
       const prefix = `${theme}-${size.width}x${size.height}`;
       await captureLayout(page, testInfo, `${prefix}-empty`);
       await openLayoutDocument(page);
-      const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
+      const iframe = await page.locator('.runtime-area .marklyra-editor-frame').elementHandle();
       await layoutCaret(page);
       const selection = await layoutSelection(page),
         history = await layoutHistory(page);
@@ -52,7 +52,7 @@ for (const theme of layoutThemes) {
       expect(await layoutHistory(page)).toBe(history);
       await page.keyboard.type('X');
       await expect(
-        page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+        page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > p').last(),
       ).toHaveText('TailX');
       await captureLayout(page, testInfo, `${prefix}-dirty`);
       await saveLayoutSource(
@@ -63,12 +63,12 @@ for (const theme of layoutThemes) {
       );
       await emitLayoutMenu(page, 'undo');
       await expect(
-        page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+        page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > p').last(),
       ).toHaveText('Tail');
       await saveLayoutSource(page, testInfo, `${prefix}-undo`, layoutSource);
       await emitLayoutMenu(page, 'redo');
       await expect(
-        page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+        page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > p').last(),
       ).toHaveText('TailX');
       await saveLayoutSource(
         page,
@@ -78,7 +78,7 @@ for (const theme of layoutThemes) {
       );
       await emitLayoutMenu(page, 'undo');
       await expect(
-        page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+        page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > p').last(),
       ).toHaveText('Tail');
       await saveLayoutSource(page, testInfo, `${prefix}-restored`, layoutSource);
       expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
@@ -97,7 +97,7 @@ for (const theme of layoutThemes) {
     await page.setViewportSize(size ?? layoutSizes[1]);
     await readyLayout(page, theme);
     await openLayoutDocument(page);
-    const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
+    const iframe = await page.locator('.runtime-area .marklyra-editor-frame').elementHandle();
     await layoutCaret(page);
     await page.keyboard.type('X');
     const editedHistory = await layoutHistory(page);
@@ -145,7 +145,7 @@ for (const theme of layoutThemes) {
     await expect.poll(() => layoutSelection(page)).toEqual(caret);
     await page.keyboard.type('Y');
     await expect(
-      page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+      page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > p').last(),
     ).toHaveText('TailYX');
     await saveLayoutSource(
       page,
@@ -155,7 +155,7 @@ for (const theme of layoutThemes) {
     );
     await emitLayoutMenu(page, 'undo');
     await expect(
-      page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+      page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > p').last(),
     ).toHaveText('TailX');
     await saveLayoutSource(
       page,
@@ -165,7 +165,7 @@ for (const theme of layoutThemes) {
     );
     await emitLayoutMenu(page, 'redo');
     await expect(
-      page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+      page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > p').last(),
     ).toHaveText('TailYX');
     await saveLayoutSource(
       page,
@@ -186,7 +186,7 @@ test('content inset, fullscreen, theme breakpoints and long-document scrolling p
   await readyLayout(page, 'marklyra-light');
   await openLayoutDocument(page);
   await layoutCaret(page);
-  const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
+  const iframe = await page.locator('.runtime-area .marklyra-editor-frame').elementHandle();
   const selection = await layoutSelection(page),
     history = await layoutHistory(page);
   for (const [width, max] of [
@@ -198,7 +198,9 @@ test('content inset, fullscreen, theme breakpoints and long-document scrolling p
     await page.setViewportSize({ width, height: 900 });
     const snapshot = await captureLayout(page, testInfo, `github-breakpoint-${width}`);
     expect(snapshot.editor.write?.maxWidth).toBe(max);
-    expect(snapshot.editor.content?.y).toBe(28);
+    // The document card supplies the 28px titlebar offset and its 4px top gap.
+    expect((snapshot.shell.documentPane?.y ?? 0) - 4).toBe(28);
+    expect(snapshot.editor.content?.y).toBe(0);
     expect(await layoutSelection(page)).toEqual(selection);
     expect(await layoutHistory(page)).toBe(history);
   }
@@ -212,7 +214,9 @@ test('content inset, fullscreen, theme breakpoints and long-document scrolling p
     }, fullscreen);
     await expect(page.locator('.shell')).toHaveAttribute('data-fullscreen', String(fullscreen));
     const snapshot = await captureLayout(page, testInfo, `github-fullscreen-${fullscreen}`);
-    expect(snapshot.editor.content?.y).toBe(fullscreen ? 0 : 28);
+    const cardGap = fullscreen ? 8 : 4;
+    expect((snapshot.shell.documentPane?.y ?? 0) - cardGap).toBe(fullscreen ? 0 : 28);
+    expect(snapshot.editor.content?.y).toBe(0);
     expect(await layoutSelection(page)).toEqual(selection);
     expect(await layoutHistory(page)).toBe(history);
   }
@@ -228,7 +232,10 @@ test('content inset, fullscreen, theme breakpoints and long-document scrolling p
   await layoutCaret(page);
   const longSelection = await layoutSelection(page),
     longHistory = await layoutHistory(page);
-  const tail = page.frameLocator('.marklyra-editor-frame').locator('#write > p').last();
+  const tail = page
+    .frameLocator('.runtime-area .marklyra-editor-frame')
+    .locator('#write > p')
+    .last();
   await expect(tail).toHaveText('Last marker');
   await tail.scrollIntoViewIfNeeded();
   await expect(tail).toBeInViewport();

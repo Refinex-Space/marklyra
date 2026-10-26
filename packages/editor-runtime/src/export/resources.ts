@@ -93,7 +93,9 @@ export function portableCss(css: string): string {
  */
 export function portableLink(value: string): boolean {
   const href = value.trim();
-  if ([...href].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127))
+  if (
+    [...href].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)
+  )
     return false;
   return href.startsWith('#') || /^(?:https?:\/\/|mailto:)/i.test(href);
 }

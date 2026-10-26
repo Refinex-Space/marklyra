@@ -1,9 +1,38 @@
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { inspectEngineSources } from '../../packages/editor-runtime/scripts/build-engine.mjs';
 import { digest, inspectPath } from './package-files.mjs';
 import { loadSourceBundlePlans, sourceBundleInputs } from './source-bundles.mjs';
 
 export const repositoryRoot = resolve(import.meta.dirname, '../..');
+
+export const runtimeEngineEntries = [
+  {
+    entry: 'main.js',
+    source: 'packages/editor-runtime/src/engine/main.js',
+    output: 'appsrc/main.js',
+  },
+  {
+    entry: 'editor/EmojiSearchMap.js',
+    source: 'packages/editor-runtime/src/engine/editor/EmojiSearchMap.js',
+    output: 'appsrc/editor/EmojiSearchMap.js',
+  },
+];
+
+export async function inspectRuntimeEngineSources(root = repositoryRoot) {
+  const graphs = [];
+  for (const entry of runtimeEngineEntries) {
+    try {
+      await regularInput(root, entry.source);
+    } catch (error) {
+      // Small resource boundary fixtures need not include executable entries.
+      if (error.code === 'ENOENT') continue;
+      throw error;
+    }
+    graphs.push({ ...(await inspectEngineSources({ root, entry: entry.entry })), ...entry });
+  }
+  return graphs;
+}
 
 // Directory layout is the build contract. Files are discovered on each invocation;
 // adding or editing an asset needs no registration or digest update.
@@ -30,8 +59,11 @@ async function regularInput(root, path) {
 
 export async function collectRuntimeInputs(root = repositoryRoot) {
   const plans = await loadSourceBundlePlans(root);
+  const engineGraphs = await inspectRuntimeEngineSources(root);
   const bundleInputs = new Set(plans.flatMap(sourceBundleInputs));
   const bundleOutputs = new Map(plans.map((plan) => [plan.entry, plan.output]));
+  const engineInputs = new Set(engineGraphs.flatMap((graph) => graph.inputs));
+  const engineOutputs = new Map(runtimeEngineEntries.map((entry) => [entry.source, entry.output]));
   const inputs = [];
   const outputs = new Set();
 
@@ -49,6 +81,7 @@ export async function collectRuntimeInputs(root = repositoryRoot) {
     if (!info.isFile()) throw new Error(`Runtime input must be a regular file: ${path}`);
     const record = { path };
     if (bundleInputs.has(path)) destination = bundleOutputs.get(path) ?? null;
+    if (engineInputs.has(path)) destination = engineOutputs.get(path) ?? null;
     if (destination !== null) record.runtimePath = destination;
     if (destination?.startsWith('locales/'))
       record.additionalRuntimePaths = [`preferences/${destination}`];

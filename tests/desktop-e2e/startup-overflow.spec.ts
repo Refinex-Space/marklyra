@@ -26,6 +26,8 @@ for (const titlebar of ['web', 'appkit'] as const) {
       .poll(() => page.locator('.marklyra-editor-frame').evaluate((e) => e.style.marginLeft))
       .not.toBe('');
     await page.waitForTimeout(1500);
-    expect(await page.evaluate(() => (window as unknown as { __overflowing: string[] }).__overflowing)).toEqual([]);
+    expect(
+      await page.evaluate(() => (window as unknown as { __overflowing: string[] }).__overflowing),
+    ).toEqual([]);
   });
 }

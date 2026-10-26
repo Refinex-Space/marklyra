@@ -4,8 +4,12 @@ import { dirname, resolve } from 'node:path';
 import { build } from 'vite';
 import { prepareBuiltinThemes } from '../../../scripts/lib/builtin-themes.mjs';
 import { copyProjectNotices } from '../../../scripts/lib/project-notices.mjs';
-import { collectRuntimeInputs } from '../../../scripts/lib/runtime-resources.mjs';
+import {
+  collectRuntimeInputs,
+  runtimeEngineEntries,
+} from '../../../scripts/lib/runtime-resources.mjs';
 import { assembleSourceBundles, bundleManifests } from '../../../scripts/lib/source-bundles.mjs';
+import { buildEngine } from './build-engine.mjs';
 
 const repository = resolve(import.meta.dirname, '../../..');
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -36,6 +40,7 @@ export async function verifyRuntimeBuildLayout(root) {
   await regular('packages/editor-runtime/src/page/index.html', 'file');
   await regular('apps/desktop/src/features/settings/runtime-preferences/page/setting.html', 'file');
   for (const manifest of bundleManifests) await regular(manifest, 'file');
+  for (const entry of runtimeEngineEntries) await regular(entry.source, 'file');
   await regular('packages/editor-runtime/dist/frame-host.js', 'file');
 }
 
@@ -43,7 +48,12 @@ export async function verifyRuntimeBuildLayout(root) {
 export async function buildRuntimePage({ root = repository } = {}) {
   await verifyRuntimeBuildLayout(root);
   const inputs = await collectRuntimeInputs(root);
-  const bundles = await assembleSourceBundles(root);
+  const compiledScripts = await assembleSourceBundles(root);
+  for (const entry of runtimeEngineEntries)
+    compiledScripts.set(entry.output, {
+      ...(await buildEngine({ root, entry: entry.entry })),
+      entry: entry.source,
+    });
   const product = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
   const output = resolve(root, 'packages/editor-runtime/dist/page');
   const destinations = new Set();
@@ -60,13 +70,13 @@ export async function buildRuntimePage({ root = repository } = {}) {
         destinations.has(path)
       )
         throw new Error(`Invalid or duplicate runtime destination: ${path}`);
-      if (bundles.has(path) && bundles.get(path).entry !== entry.path)
-        throw new Error(`Unexpected bundle entry for ${path}`);
+      if (compiledScripts.has(path) && compiledScripts.get(path).entry !== entry.path)
+        throw new Error(`Unexpected script entry for ${path}`);
       destinations.add(path);
     }
   }
-  for (const path of bundles.keys())
-    if (!destinations.has(path)) throw new Error(`Missing declared source bundle output: ${path}`);
+  for (const path of compiledScripts.keys())
+    if (!destinations.has(path)) throw new Error(`Missing compiled script output: ${path}`);
   // All inputs and destinations are checked before replacing generated output.
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
@@ -76,9 +86,9 @@ export async function buildRuntimePage({ root = repository } = {}) {
     )) {
       const target = resolve(output, path);
       await mkdir(dirname(target), { recursive: true });
-      const bundle = bundles.get(path);
-      if (bundle) {
-        await writeFile(target, bundle.code);
+      const compiled = compiledScripts.get(path);
+      if (compiled) {
+        await writeFile(target, compiled.code);
       } else await copyFile(resolve(root, entry.path), target);
       if (path === 'preferences/setting.html') {
         const page = await readFile(target, 'utf8');

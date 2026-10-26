@@ -1,7 +1,17 @@
-// libraries/dom-purify-export.
-// SystemJS module 16. Dependencies: none.
-'object' == typeof exports && void 0 !== module
-  ? (module.exports = factory())
-  : $__System.registerDynamic('16', [], !1, function (e, t, n) {
-      return factory.call(this);
-    });
+// Install this compatibility library in the supplied engine environment.
+export default function installLibrariesDomPurifyExport(engineModules, vendorScope) {
+  // libraries/dom-purify-export.
+  // Vendor adapter; version and local behavior are preserved.
+  if ('object' == typeof vendorScope.commonJsExports && void 0 !== vendorScope.commonJsModule) {
+    vendorScope.commonJsModule.exports = (0, vendorScope.sanitizerFactory)();
+  } else {
+    engineModules.define(
+      'libraries/dom-purify-export',
+      [],
+      false,
+      function (requireModule, moduleExports, moduleRecord) {
+        return vendorScope.sanitizerFactory.call(this);
+      },
+    );
+  }
+}

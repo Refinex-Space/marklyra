@@ -12,7 +12,9 @@ function scalar(raw: string): string | undefined {
     return undefined;
   const quote = value[0];
   if ((quote === '"' || quote === "'") && value.endsWith(quote) && value.length >= 2)
-    value = value.slice(1, -1).replace(quote === '"' ? /\\(["\\])/g : /''/g, quote === '"' ? '$1' : "'");
+    value = value
+      .slice(1, -1)
+      .replace(quote === '"' ? /\\(["\\])/g : /''/g, quote === '"' ? '$1' : "'");
   else value = value.replace(/\s+#.*$/, '').trim();
   // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what is refused.
   return value && !/[\u0000-\u001f\u007f]/.test(value) ? value.slice(0, 200) : undefined;

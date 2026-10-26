@@ -34,18 +34,18 @@ function executeModule() {
     },
   });
   let factory;
-  context.$__System = {
-    registerDynamic(_id, _dependencies, _esm, callback) {
+  context.engineModules = {
+    define(_id, _dependencies, _esm, callback) {
       factory = callback;
     },
   };
   new Script(moduleSource).runInContext(context);
   const require = (id) =>
-    id === '13'
+    id === 'model/document-model'
       ? { Node: {}, TYPE: {} }
-      : id === '1b'
+      : id === 'editing/undo-manager'
         ? { SnapFlag: { REPLACE: 2 } }
-        : id === '1e'
+        : id === 'editing/smart-quotes'
           ? {
               userQuote: (index) => (index === 0 ? '"' : "'"),
               shouldTriggerReplaceQuote: () => false,

@@ -1,123 +1,148 @@
 // host/spellchecker.
-// SystemJS module 4d. Dependencies: none.
-$__System.registerDynamic('4d', [], !0, function (requireModule, moduleExports, moduleRecord) {
-  this || self;
+export default function initializeHostSpellchecker(requireModule, moduleExports, moduleRecord) {
+  if (!this) {
+    self;
+  }
   var pathUtilities = reqnode('path'),
     spellcheckerCache = {},
-    o = function (userWordsByLanguage) {
-      spellcheckerCache = userWordsByLanguage;
-    },
-    a = function () {
-      (this.cache = new Map()),
-        (this.dictPath = this.getDictionaryPath()),
-        (this.userDictPath = null),
-        (this.userListProvider = null);
-    };
-  (a.prototype.clearCache = function () {
+    setUserWordsByLanguage = Object.defineProperty(
+      function (userWordsByLanguage) {
+        spellcheckerCache = userWordsByLanguage;
+      },
+      'name',
+      { value: 'o', configurable: true },
+    ),
+    Spellchecker = Object.defineProperty(
+      function () {
+        this.cache = new Map();
+        this.dictPath = this.getDictionaryPath();
+        this.userDictPath = null;
+        this.userListProvider = null;
+      },
+      'name',
+      { value: 'a', configurable: true },
+    );
+  Spellchecker.prototype.clearCache = function () {
     var items = [];
     this.cache.forEach(function (item, itemIndex) {
-      item || items.push(itemIndex);
-    }),
-      items.forEach(function (item) {
-        this.cache.delete(item);
-      }, this);
-  }),
-    (a.prototype.setUserDictProvider = function (userListProvider) {
-      this.userListProvider && this.userListProvider.off('update', o),
-        (this.userListProvider = userListProvider),
-        null != userListProvider &&
-          (userListProvider.on('update', o), (spellcheckerCache = userListProvider.loadUserDict()));
-    }),
-    (a.prototype.wrapSpellChecker = function (nativeSpellchecker, lang) {
-      nativeSpellchecker.lang = lang;
-      var receiver = this;
-      (spellcheckerCache[lang] = spellcheckerCache[lang] || []),
-        nativeSpellchecker.__proto__.add.call(nativeSpellchecker, 'MarkLyra'),
-        (nativeSpellchecker.add = function (normalizedPath) {
-          (normalizedPath = normalizedPath.normalize()),
-            receiver.userListProvider && receiver.userListProvider.add(lang, normalizedPath);
-        }),
-        (nativeSpellchecker.remove = function (normalizedPath) {
-          (normalizedPath = normalizedPath.normalize()),
-            receiver.userListProvider && receiver.userListProvider.remove(lang, normalizedPath);
-        }),
-        (nativeSpellchecker.isLearned = function (searchValue) {
-          return (
-            (searchValue = searchValue.normalize()),
-            (spellcheckerCache[lang] || []).indexOf(searchValue) > -1
-          );
-        }),
-        (nativeSpellchecker.isMisspelled = function (normalizedPath) {
-          return (
-            (normalizedPath = normalizedPath.normalize()),
-            nativeSpellchecker.__proto__.isMisspelled.call(nativeSpellchecker, normalizedPath) &&
-              !nativeSpellchecker.isLearned(normalizedPath)
-          );
-        });
-    }),
-    (a.prototype.getSpellChecker = function (language, retryFailed) {
-      var spellchecker = this.cache.get(language);
-      if (null != spellchecker || (!retryFailed && this.cache.has(language))) return spellchecker;
-      var nativeModule = null;
-      try {
-        nativeModule = reqnode(
-          window.debugMode
-            ? '../../launch/app/main.node'
-            : `${window.dirname}/node_modules/main.node`,
-        );
-      } catch (error) {
-        if (window.debugMode) throw error;
-        return null;
+      if (!item) {
+        items.push(itemIndex);
       }
-      var Spellchecker = nativeModule.Spellchecker,
-        dictionaryLoaded = (spellchecker = new Spellchecker()).setDictionary(
-          language,
-          this.userDictPath || this.dictPath,
-        );
+    });
+    items.forEach(function (item) {
+      this.cache.delete(item);
+    }, this);
+  };
+  Spellchecker.prototype.setUserDictProvider = function (userListProvider) {
+    if (this.userListProvider) {
+      this.userListProvider.off('update', setUserWordsByLanguage);
+    }
+    this.userListProvider = userListProvider;
+    if (null != userListProvider) {
+      userListProvider.on('update', setUserWordsByLanguage);
+      spellcheckerCache = userListProvider.loadUserDict();
+    }
+  };
+  Spellchecker.prototype.wrapSpellChecker = function (nativeSpellchecker, lang) {
+    nativeSpellchecker.lang = lang;
+    var receiver = this;
+    spellcheckerCache[lang] = spellcheckerCache[lang] || [];
+    nativeSpellchecker.__proto__.add.call(nativeSpellchecker, 'MarkLyra');
+    nativeSpellchecker.add = function (normalizedPath) {
+      normalizedPath = normalizedPath.normalize();
+      if (receiver.userListProvider) {
+        receiver.userListProvider.add(lang, normalizedPath);
+      }
+    };
+    nativeSpellchecker.remove = function (normalizedPath) {
+      normalizedPath = normalizedPath.normalize();
+      if (receiver.userListProvider) {
+        receiver.userListProvider.remove(lang, normalizedPath);
+      }
+    };
+    nativeSpellchecker.isLearned = function (searchValue) {
+      searchValue = searchValue.normalize();
+      return (spellcheckerCache[lang] || []).indexOf(searchValue) > -1;
+    };
+    nativeSpellchecker.isMisspelled = function (normalizedPath) {
+      normalizedPath = normalizedPath.normalize();
       return (
-        dictionaryLoaded ||
-          spellchecker.isHunspell() ||
-          ((spellchecker = new Spellchecker(!0)),
-          (dictionaryLoaded =
-            this.userDictPath && spellchecker.setDictionary(language, this.userDictPath))),
-        dictionaryLoaded ||
-          'en-US' != language ||
-          (dictionaryLoaded = spellchecker.setDictionary(language, this.dictPath)),
-        (spellchecker = dictionaryLoaded ? spellchecker : null),
-        this.cache.set(language, spellchecker),
-        spellchecker && this.wrapSpellChecker(spellchecker, language),
-        spellchecker
+        nativeSpellchecker.__proto__.isMisspelled.call(nativeSpellchecker, normalizedPath) &&
+        !nativeSpellchecker.isLearned(normalizedPath)
       );
-    }),
-    (a.prototype.getUserDictionaryPath = function () {
-      return this.userDictPath;
-    }),
-    (a.prototype.setUserDictionaryPath = function (dictionaryPath) {
-      return (this.userDictPath = dictionaryPath);
-    }),
-    (a.prototype.getDictionaryPath = function () {
-      return pathUtilities.join(
-        window.dirname,
-        'node_modules/spellchecker',
-        'vendor',
-        'hunspell_dictionaries',
+    };
+  };
+  Spellchecker.prototype.getSpellChecker = function (language, retryFailed) {
+    var spellchecker = this.cache.get(language);
+    if (null != spellchecker || (!retryFailed && this.cache.has(language))) {
+      return spellchecker;
+    }
+    var nativeModule = null;
+    try {
+      nativeModule = reqnode(
+        window.debugMode
+          ? '../../launch/app/main.node'
+          : `${window.dirname}/node_modules/main.node`,
       );
-    }),
-    (a.prototype.detectLanguageForText = function (sourceText, detectOptions) {
-      return new Promise(function (resolvePromise) {
-        var languageDetector = reqnode('cld');
-        try {
-          languageDetector.detect(sourceText, detectOptions, function (detectError, detection) {
-            return detection
-              ? !detection.reliable || detection.languages[0].percent < 85
-                ? resolvePromise(null, 'No reliable result for lang check')
-                : void resolvePromise(detection.languages[0].code, null)
-              : resolvePromise(null, detectError);
-          });
-        } catch (error) {
-          resolvePromise(null, error);
-        }
-      });
-    }),
-    (moduleRecord.exports = new a());
-});
+    } catch (error) {
+      if (window.debugMode) {
+        throw error;
+      }
+      return null;
+    }
+    var Spellchecker = nativeModule.Spellchecker,
+      dictionaryLoaded = (spellchecker = new Spellchecker()).setDictionary(
+        language,
+        this.userDictPath || this.dictPath,
+      );
+    if (!(dictionaryLoaded || spellchecker.isHunspell())) {
+      spellchecker = new Spellchecker(true);
+      dictionaryLoaded =
+        this.userDictPath && spellchecker.setDictionary(language, this.userDictPath);
+    }
+    if (!(dictionaryLoaded || 'en-US' != language)) {
+      dictionaryLoaded = spellchecker.setDictionary(language, this.dictPath);
+    }
+    spellchecker = dictionaryLoaded ? spellchecker : null;
+    this.cache.set(language, spellchecker);
+    if (spellchecker) {
+      this.wrapSpellChecker(spellchecker, language);
+    }
+    return spellchecker;
+  };
+  Spellchecker.prototype.getUserDictionaryPath = function () {
+    return this.userDictPath;
+  };
+  Spellchecker.prototype.setUserDictionaryPath = function (dictionaryPath) {
+    return (this.userDictPath = dictionaryPath);
+  };
+  Spellchecker.prototype.getDictionaryPath = function () {
+    return pathUtilities.join(
+      window.dirname,
+      'node_modules/spellchecker',
+      'vendor',
+      'hunspell_dictionaries',
+    );
+  };
+  Spellchecker.prototype.detectLanguageForText = function (sourceText, detectOptions) {
+    return new Promise(function (resolvePromise) {
+      var languageDetector = reqnode('cld');
+      try {
+        languageDetector.detect(sourceText, detectOptions, function (detectError, detection) {
+          if (detection) {
+            if (!detection.reliable || detection.languages[0].percent < 85) {
+              return resolvePromise(null, 'No reliable result for lang check');
+            } else {
+              return void resolvePromise(detection.languages[0].code, null);
+            }
+          } else {
+            return resolvePromise(null, detectError);
+          }
+        });
+      } catch (error) {
+        resolvePromise(null, error);
+      }
+    });
+  };
+  moduleRecord.exports = new Spellchecker();
+}

@@ -3,7 +3,7 @@ import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 
 type StartupWindow = TestWindow & {
-  startupControl: { release(): void };
+  startupControl: { release(): void; readonly released: boolean };
   __TAURI_INTERNALS__: {
     invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;
   };
@@ -31,10 +31,19 @@ function startupMock(options: {
   if (!saved) throw Error('Missing startup document fixture');
   host.__desktopMock.nextDocument = saved;
   let release: (() => void) | undefined;
+  let released = false;
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
-  host.startupControl = { release: () => release?.() };
+  host.startupControl = {
+    get released() {
+      return released;
+    },
+    release() {
+      released = true;
+      release?.();
+    },
+  };
   host.__TAURI_INTERNALS__.invoke = async (command, args = {}) => {
     if (command === 'get_window_startup') {
       const result = await previous(command, args);
@@ -176,21 +185,55 @@ test('new document and new window preserve distinct native intents after current
   page,
 }) => {
   await start(page);
-  await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('new'));
+  const documentIntent = await page.evaluate(() => {
+    const mock = (window as TestWindow).__desktopMock;
+    const start = mock.calls.length;
+    mock.emitMenu('new');
+    return start;
+  });
   await expect
     .poll(async () => (await calls(page, 'create_editor_window')).at(-1)?.args)
     .toEqual({ kind: 'document' });
-  await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('new-window'));
+  const windowIntent = await page.evaluate(() => {
+    const mock = (window as TestWindow).__desktopMock;
+    const start = mock.calls.length;
+    mock.emitMenu('new-window');
+    return start;
+  });
   await expect
     .poll(async () => (await calls(page, 'create_editor_window')).at(-1)?.args)
     .toEqual({ kind: 'window' });
   const all = await page.evaluate(() => (window as TestWindow).__desktopMock.calls);
-  for (let index = 0; index < all.length; index++)
-    if (all[index]?.command === 'create_editor_window')
-      expect(all[index - 1]).toMatchObject({
-        command: 'track_window_session',
-        args: { documentId: 'startup-document', workspaceId: 'startup-workspace' },
-      });
+  expect(all.filter((call) => call.command === 'create_editor_window')).toHaveLength(2);
+  // The post-tracking renderer flush may publish chrome/menu/layout snapshots.
+  // Those display-only IPCs do not replace this intent's required tracking receipt.
+  const presentationCommands = new Set([
+    'update_editor_chrome',
+    'sync_editor_menu_state',
+    'update_editor_title_layout',
+  ]);
+  for (const [start, kind] of [
+    [documentIntent, 'document'],
+    [windowIntent, 'window'],
+  ] as const) {
+    const sinceIntent = all.slice(start);
+    const createIndex = sinceIntent.findIndex((call) => call.command === 'create_editor_window');
+    expect(createIndex).toBeGreaterThanOrEqual(0);
+    const operation = sinceIntent.slice(0, createIndex + 1);
+    const tracking = operation.flatMap((call, index) =>
+      call.command === 'track_window_session' ? [{ call, index }] : [],
+    );
+    expect(tracking).toHaveLength(1);
+    const receipt = tracking[0];
+    if (!receipt) throw Error("Missing this window intent's session tracking");
+    expect(receipt.call).toEqual({
+      command: 'track_window_session',
+      args: { documentId: 'startup-document', workspaceId: 'startup-workspace' },
+    });
+    expect(operation.at(-1)).toEqual({ command: 'create_editor_window', args: { kind } });
+    for (const call of operation.slice(receipt.index + 1, -1))
+      expect(presentationCommands.has(call.command), call.command).toBe(true);
+  }
   await expect(write(page)).toContainText('Alpha');
 });
 
@@ -202,6 +245,24 @@ test('empty source after an Undo still owns its history when startup arrives lat
   await write(page).click();
   await page.keyboard.type('Z');
   await expect(write(page)).toHaveText('Z');
+  // This deliberately injects an owned host event while startup is pending;
+  // it is not acceptance of a clickable native menu or an OS shortcut.
+  // Wait for actual editor history facts without opening the native ready gate.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const host = window as StartupWindow;
+        const snapshot = host.__desktopMock.calls
+          .filter((call) => call.command === 'sync_editor_menu_state')
+          .at(-1)?.args.snapshot as { ready: boolean; editor?: { canUndo: boolean } } | undefined;
+        return {
+          nativeReady: snapshot?.ready,
+          canUndo: snapshot?.editor?.canUndo,
+          startupReleased: host.startupControl.released,
+        };
+      }),
+    )
+    .toEqual({ nativeReady: false, canUndo: true, startupReleased: false });
   await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('undo'));
   await expect(write(page)).toHaveText('');
   const history = () =>
@@ -215,6 +276,9 @@ test('empty source after an Undo still owns its history when startup arrives lat
       };
     });
   const before = await history();
+  expect(before.index).toBe(-1);
+  expect(JSON.parse(before.stack).length).toBeGreaterThan(0);
+  expect(await page.evaluate(() => (window as StartupWindow).startupControl.released)).toBe(false);
   await page.evaluate(() => (window as StartupWindow).startupControl.release());
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
   await expect(write(page)).toHaveText('');

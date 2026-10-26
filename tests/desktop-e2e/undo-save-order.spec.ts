@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { installMock, type TestWindow } from './desktop.helpers.js';
+import { waitForNativeRedo, waitForNativeUndo } from './native-menu.helpers.js';
 import type { RecoveryMockWindow } from './recovery.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
+
+const editorFrame = '.runtime-area .marklyra-editor-frame';
 
 for (const mode of ['wysiwyg', 'source'] as const) {
   test(`${mode}: adjacent native Undo/Save and Redo/Save persist the resulting history state`, async ({
@@ -13,9 +16,10 @@ for (const mode of ['wysiwyg', 'source'] as const) {
     await page.addInitScript(installRecoveryMock);
     await page.goto('/');
     await page.getByRole('button', { name: '打开', exact: true }).click();
-    const frame = page.frameLocator('.marklyra-editor-frame');
+    const frame = page.frameLocator(editorFrame);
     await expect(frame.locator('#write')).toHaveText('Alpha');
-    await page.locator('.marklyra-editor-frame').focus();
+    await expect(page.locator(editorFrame)).toHaveCount(1);
+    await page.locator(editorFrame).focus();
     if (mode === 'source') {
       await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
       await frame.locator('#marklyra-source .CodeMirror textarea').focus();
@@ -48,6 +52,7 @@ for (const mode of ['wysiwyg', 'source'] as const) {
             )
         : frame.locator('#write').textContent();
     await expect.poll(source).toBe('AlphaX');
+    await waitForNativeUndo(page);
     // Both native events arrive in one host task. No wait for Undo's SDK reply.
     await page.evaluate(() => {
       const mock = (window as TestWindow).__desktopMock;
@@ -63,6 +68,7 @@ for (const mode of ['wysiwyg', 'source'] as const) {
     await expect.poll(source).toBe('Alpha');
     await expect.poll(saves).toEqual(['Alpha']);
     await expect(page.locator('.document-title')).toHaveText('A.md');
+    await waitForNativeRedo(page);
     await page.evaluate(() => {
       const mock = (window as TestWindow).__desktopMock;
       mock.emitMenu('redo');
@@ -95,9 +101,10 @@ for (const nativeChrome of [false, true])
           .toBe(true);
         await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
         await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('open'));
-        const frame = page.frameLocator('.marklyra-editor-frame');
+        const frame = page.frameLocator(editorFrame);
         await expect(frame.locator('#write')).toHaveText('Alpha');
-        await page.locator('.marklyra-editor-frame').focus();
+        await expect(page.locator(editorFrame)).toHaveCount(1);
+        await page.locator(editorFrame).focus();
         if (mode === 'source') {
           await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('view:source'));
           await frame.locator('#marklyra-source .CodeMirror textarea').focus();
@@ -130,9 +137,11 @@ for (const nativeChrome of [false, true])
             : frame.locator('#write').textContent();
         await page.keyboard.type('X');
         await expect.poll(source).toBe('AlphaX');
+        await waitForNativeUndo(page);
         if (history === 'redo') {
           await page.evaluate(() => (window as TestWindow).__desktopMock.emitMenu('undo'));
           await expect.poll(source).toBe('Alpha');
+          await waitForNativeRedo(page);
         }
         await page.evaluate(() => {
           const mock = (window as TestWindow).__desktopMock;
@@ -174,7 +183,8 @@ test('repeated Save and Save As during an unchanged save do not write or open a 
   await page.addInitScript(installRecoveryMock);
   await page.goto('/');
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  await expect(page.frameLocator('.marklyra-editor-frame').locator('#write')).toHaveText('Alpha');
+  await expect(page.frameLocator(editorFrame).locator('#write')).toHaveText('Alpha');
+  await expect(page.locator(editorFrame)).toHaveCount(1);
   await page.evaluate(() => {
     const mock = (window as TestWindow).__desktopMock;
     mock.deferSave = true;
@@ -205,9 +215,10 @@ test('a Save rejected during an in-flight Open is not replayed into the newly op
   await page.addInitScript(installRecoveryMock);
   await page.goto('/');
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  const frame = page.frameLocator('.marklyra-editor-frame');
+  const frame = page.frameLocator(editorFrame);
   await expect(frame.locator('#write')).toHaveText('Alpha');
-  await page.locator('.marklyra-editor-frame').focus();
+  await expect(page.locator(editorFrame)).toHaveCount(1);
+  await page.locator(editorFrame).focus();
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
   await page.evaluate(() => {
     const mock = (window as TestWindow).__desktopMock;
@@ -241,9 +252,10 @@ test('a failed save does not automatically retry a queued Save or discard newer 
   await page.addInitScript(installRecoveryMock);
   await page.goto('/');
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  const frame = page.frameLocator('.marklyra-editor-frame');
+  const frame = page.frameLocator(editorFrame);
   await expect(frame.locator('#write')).toHaveText('Alpha');
-  await page.locator('.marklyra-editor-frame').focus();
+  await expect(page.locator(editorFrame)).toHaveCount(1);
+  await page.locator(editorFrame).focus();
   await frame.locator('#write > p').evaluate((element) => {
     (element as HTMLElement).focus();
     const range = element.ownerDocument.createRange();
@@ -304,9 +316,10 @@ test('manual Save during a slow autosave persists the new input without waiting 
   await page.addInitScript(() => localStorage.setItem('marklyra-autosave', 'true'));
   await page.goto('/');
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  const frame = page.frameLocator('.marklyra-editor-frame');
+  const frame = page.frameLocator(editorFrame);
   await expect(frame.locator('#write')).toHaveText('Alpha');
-  await page.locator('.marklyra-editor-frame').focus();
+  await expect(page.locator(editorFrame)).toHaveCount(1);
+  await page.locator(editorFrame).focus();
   await frame.locator('#write > p').evaluate((element) => {
     const range = element.ownerDocument.createRange();
     range.selectNodeContents(element);
@@ -358,9 +371,10 @@ test('autosave suppresses the exact failed coalesced source until another edit',
   await page.addInitScript(() => localStorage.setItem('marklyra-autosave', 'true'));
   await page.goto('/');
   await page.getByRole('button', { name: '打开', exact: true }).click();
-  const frame = page.frameLocator('.marklyra-editor-frame');
+  const frame = page.frameLocator(editorFrame);
   await expect(frame.locator('#write')).toHaveText('Alpha');
-  await page.locator('.marklyra-editor-frame').focus();
+  await expect(page.locator(editorFrame)).toHaveCount(1);
+  await page.locator(editorFrame).focus();
   await frame.locator('#write > p').evaluate((element) => {
     const range = element.ownerDocument.createRange();
     range.selectNodeContents(element);
@@ -421,7 +435,7 @@ test('autosave suppresses the exact failed coalesced source until another edit',
   ).toEqual(['AlphaX', 'AlphaXY']);
   await expect(frame.locator('#write')).toHaveText('AlphaXY');
   await expect(page.locator('.document-title')).toContainText('•');
-  await page.locator('.marklyra-editor-frame').focus();
+  await page.locator(editorFrame).focus();
   await page.keyboard.type('Z');
   await expect(frame.locator('#write')).toHaveText('AlphaXYZ');
   await expect

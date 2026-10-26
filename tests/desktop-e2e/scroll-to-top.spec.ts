@@ -24,14 +24,18 @@ async function expectButtonInsideDocument(page: Page) {
     .poll(() =>
       page.evaluate(() => {
         const button = document.querySelector('.document-scroll-top')?.getBoundingClientRect();
-        const area = document.querySelector('main.document-area')?.getBoundingClientRect();
+        const pane = document.querySelector<HTMLElement>('main.document-area');
+        const area = pane?.getBoundingClientRect();
         const panel = document
           .querySelector('.document-details-panel[data-open]')
           ?.getBoundingClientRect();
-        if (!button || !area) return false;
+        if (!button || !area || !pane) return false;
+        // Absolute offsets use the pane's padding box, inside its one-pixel border.
+        const right = area.left + pane.clientLeft + pane.clientWidth;
+        const bottom = area.top + pane.clientTop + pane.clientHeight;
         return (
-          Math.abs(area.right - button.right - 24) < 1 &&
-          Math.abs(area.bottom - button.bottom - 36) < 1 &&
+          Math.abs(right - button.right - 24) < 1 &&
+          Math.abs(bottom - button.bottom - 36) < 1 &&
           (!panel || button.right < panel.left)
         );
       }),

@@ -1,85 +1,132 @@
-// libraries/fastdom.
-// SystemJS module b. Dependencies: none.
-(function (e) {
-  'use strict';
-  var t = function () {},
-    n =
-      e.requestAnimationFrame ||
-      e.webkitRequestAnimationFrame ||
-      e.mozRequestAnimationFrame ||
-      e.msRequestAnimationFrame ||
-      function (e) {
-        return setTimeout(e, 16);
-      };
-  function i() {
-    (this.reads = []), (this.writes = []), (this.raf = n.bind(e)), t('initialized', this);
-  }
-  function r(e) {
-    e.scheduled ||
-      ((e.scheduled = !0),
-      e.raf(
-        function (e) {
-          t('flush');
-          var n,
-            i = e.writes,
-            a = e.reads;
-          try {
-            t('flushing reads', a.length), o(a), t('flushing writes', i.length), o(i);
-          } catch (e) {
-            n = e;
+// Install this compatibility library in the supplied engine environment.
+export default function installLibrariesFastdom(engineModules, vendorScope) {
+  // libraries/fastdom.
+  // Vendor adapter; version and local behavior are preserved.
+  (function (windowGlobal) {
+    'use strict';
+    Object.defineProperty(FastDom, 'name', { value: 'i', configurable: true });
+    Object.defineProperty(scheduleFlush, 'name', { value: 'r', configurable: true });
+    Object.defineProperty(runTasks, 'name', { value: 'o', configurable: true });
+    Object.defineProperty(removeTask, 'name', { value: 'a', configurable: true });
+
+    var debugLog = Object.defineProperty(function () {}, 'name', {
+        value: 't',
+        configurable: true,
+      }),
+      requestFrame =
+        windowGlobal.requestAnimationFrame ||
+        windowGlobal.webkitRequestAnimationFrame ||
+        windowGlobal.mozRequestAnimationFrame ||
+        windowGlobal.msRequestAnimationFrame ||
+        function (callback) {
+          return setTimeout(callback, 16);
+        };
+    function FastDom() {
+      this.reads = [];
+      this.writes = [];
+      this.raf = requestFrame.bind(windowGlobal);
+      debugLog('initialized', this);
+    }
+    function scheduleFlush(scheduler) {
+      if (!scheduler.scheduled) {
+        scheduler.scheduled = true;
+        scheduler.raf(
+          function (scheduler) {
+            debugLog('flush');
+            var flushError,
+              writes = scheduler.writes,
+              reads = scheduler.reads;
+            try {
+              debugLog('flushing reads', reads.length);
+              runTasks(reads);
+              debugLog('flushing writes', writes.length);
+              runTasks(writes);
+            } catch (error) {
+              flushError = error;
+            }
+            scheduler.scheduled = false;
+            if (reads.length || writes.length) {
+              scheduleFlush(scheduler);
+            }
+            if (flushError) {
+              debugLog('task errored', flushError.message);
+              if (!scheduler.catch) {
+                throw flushError;
+              }
+              scheduler.catch(flushError);
+            }
+          }.bind(null, scheduler),
+        );
+        debugLog('flush scheduled');
+      }
+    }
+    function runTasks(tasks) {
+      var task;
+      for (debugLog('run tasks'); (task = tasks.shift()); ) {
+        task();
+      }
+    }
+    function removeTask(tasks, task) {
+      var taskIndex = tasks.indexOf(task);
+      return !!~taskIndex && !!tasks.splice(taskIndex, 1);
+    }
+    FastDom.prototype = {
+      constructor: FastDom,
+      measure: function (callback, context) {
+        debugLog('measure');
+        var task = context ? callback.bind(context) : callback;
+        this.reads.push(task);
+        scheduleFlush(this);
+        return task;
+      },
+      mutate: function (callback, context) {
+        debugLog('mutate');
+        var task = context ? callback.bind(context) : callback;
+        this.writes.push(task);
+        scheduleFlush(this);
+        return task;
+      },
+      clear: function (task) {
+        debugLog('clear', task);
+        return removeTask(this.reads, task) || removeTask(this.writes, task);
+      },
+      extend: function (extension) {
+        debugLog('extend', extension);
+        if ('object' != typeof extension) {
+          throw new Error('expected object');
+        }
+        var extendedScheduler = Object.create(this);
+        (function (target, source) {
+          for (var propertyName in source) {
+            if (source.hasOwnProperty(propertyName)) {
+              target[propertyName] = source[propertyName];
+            }
           }
-          (e.scheduled = !1), (a.length || i.length) && r(e);
-          if (n) {
-            if ((t('task errored', n.message), !e.catch)) throw n;
-            e.catch(n);
-          }
-        }.bind(null, e),
-      ),
-      t('flush scheduled'));
-  }
-  function o(e) {
-    var n;
-    for (t('run tasks'); (n = e.shift()); ) n();
-  }
-  function a(e, t) {
-    var n = e.indexOf(t);
-    return !!~n && !!e.splice(n, 1);
-  }
-  i.prototype = {
-    constructor: i,
-    measure: function (e, n) {
-      t('measure');
-      var i = n ? e.bind(n) : e;
-      return this.reads.push(i), r(this), i;
-    },
-    mutate: function (e, n) {
-      t('mutate');
-      var i = n ? e.bind(n) : e;
-      return this.writes.push(i), r(this), i;
-    },
-    clear: function (e) {
-      return t('clear', e), a(this.reads, e) || a(this.writes, e);
-    },
-    extend: function (e) {
-      if ((t('extend', e), 'object' != typeof e)) throw new Error('expected object');
-      var n = Object.create(this);
-      return (
-        (function (e, t) {
-          for (var n in t) t.hasOwnProperty(n) && (e[n] = t[n]);
-        })(n, e),
-        (n.fastdom = this),
-        n.initialize && n.initialize(),
-        n
+        })(extendedScheduler, extension);
+        extendedScheduler.fastdom = this;
+        if (extendedScheduler.initialize) {
+          extendedScheduler.initialize();
+        }
+        return extendedScheduler;
+      },
+      catch: null,
+    };
+    var fastdom = (windowGlobal.fastdom = windowGlobal.fastdom || new FastDom());
+    if ('f' == 'function'[0]) {
+      engineModules.define(
+        'libraries/fastdom',
+        [],
+        false,
+        function (requireModule, moduleExports, moduleRecord) {
+          return function () {
+            return fastdom;
+          }.call(this);
+        },
       );
-    },
-    catch: null,
-  };
-  var s = (e.fastdom = e.fastdom || new i());
-  'f' == 'function'[0]
-    ? $__System.registerDynamic('b', [], !1, function (e, t, n) {
-        return function () {
-          return s;
-        }.call(this);
-      })
-    : 'o' == (typeof module)[0] && (module.exports = s);
-})(window || this);
+    } else {
+      if ('o' == (typeof vendorScope.commonJsModule)[0]) {
+        vendorScope.commonJsModule.exports = fastdom;
+      }
+    }
+  })(window || this);
+}

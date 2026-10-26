@@ -146,6 +146,7 @@ export function Segmented<T extends string>({
             name={name}
             value={option.value}
             checked={value === option.value}
+            tabIndex={value === option.value ? 0 : -1}
             disabled={disabled}
             onChange={() => onChange(option.value)}
           />

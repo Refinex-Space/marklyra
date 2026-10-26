@@ -30,27 +30,18 @@ async function fixture(t) {
     'packages/editor-runtime/src/page/index.html',
     '<html><script src="./appsrc/main.js"></script></html>',
   );
-  await write(engine + '/main.js', 'globalThis.order = __MARKLYRA_TEST__;');
-  await write(engine + '/modules/first.js', '("first");');
-  await write(engine + '/modules/second.js', '("second");');
   await write(
-    engine + '/bundles.json',
-    JSON.stringify({
-      schema: 1,
-      bundles: [
-        {
-          entry: 'main.js',
-          output: 'appsrc/main.js',
-          slots: [
-            {
-              name: '__MARKLYRA_TEST__',
-              kind: 'array',
-              parts: ['modules/second.js', null, 'modules/first.js'],
-            },
-          ],
-        },
-      ],
-    }),
+    engine + '/main.js',
+    `import second from './modules/second.js';
+import first from './modules/first.js';
+(function installEngineModules() { globalThis.order = [second, , first]; })();`,
+  );
+  await write(engine + '/modules/first.js', 'export default "first";');
+  await write(engine + '/modules/second.js', 'export default "second";');
+  await write(engine + '/editor/emoji-search-map.json', '{"face":["smile","grin"]}');
+  await write(
+    engine + '/editor/EmojiSearchMap.js',
+    "import data from './emoji-search-map.json'; globalThis.EmojiSearchMap = data;",
   );
   await write(preferences + '/page/setting.html', '<p>__MARKLYRA_BUILD_VERSION__</p>');
   await write(
@@ -83,7 +74,7 @@ async function fixture(t) {
   };
 }
 
-test('build uses current bytes, auto-discovers new assets, removes stale files and keeps bundle order', async (t) => {
+test('build uses current source imports, discovers assets and preserves execution order', async (t) => {
   const { root, write, engine, output } = await fixture(t);
   const css = 'packages/editor-runtime/assets/styles/custom.css';
   const locale = 'packages/editor-runtime/assets/locales/Base.lproj/Front.json';
@@ -102,7 +93,7 @@ test('build uses current bytes, auto-discovers new assets, removes stale files a
   );
   await verifyRuntimeBuild(root);
   await write(css, 'body{color:blue}\n');
-  await write(engine + '/modules/first.js', '("edited");');
+  await write(engine + '/modules/first.js', 'export default "edited";');
   await write('packages/editor-runtime/src/engine/new-worker.js', 'globalThis.worker = true;');
   await write('package.json', '{"type":"module","version":"1.2.4"}');
   await buildRuntimePage({ root });
@@ -117,17 +108,19 @@ test('build uses current bytes, auto-discovers new assets, removes stale files a
   await assert.rejects(readFile(resolve(root, 'config')), { code: 'ENOENT' });
 });
 
-for (const failure of ['missing-part', 'duplicate-output', 'traversal'])
-  test(`invalid bundle ${failure} fails before deleting the previous build`, async (t) => {
-    const { root, write, engine, output } = await fixture(t);
+for (const failure of ['missing-import', 'duplicate-output', 'traversal'])
+  test(`invalid source ${failure} fails before deleting the previous build`, async (t) => {
+    const { root, write, engine, preferences, output } = await fixture(t);
     await write('packages/editor-runtime/dist/page/sentinel', 'previous build');
-    const manifest = JSON.parse(await readFile(resolve(root, engine, 'bundles.json'), 'utf8'));
-    if (failure === 'missing-part') await rm(resolve(root, engine, 'modules/first.js'));
-    else if (failure === 'duplicate-output')
-      manifest.bundles.push({ ...manifest.bundles[0], entry: 'other.js' });
-    else manifest.bundles[0].output = '../outside.js';
-    await write(engine + '/bundles.json', JSON.stringify(manifest));
-    await assert.rejects(buildRuntimePage({ root }), /ENOENT|Duplicate|Invalid source bundle path/);
+    if (failure === 'missing-import') await rm(resolve(root, engine, 'modules/first.js'));
+    else if (failure === 'duplicate-output') {
+      const path = preferences + '/page/static/js/bundles.json';
+      const manifest = JSON.parse(await readFile(resolve(root, path), 'utf8'));
+      manifest.bundles[0].output = 'appsrc/main.js';
+      await write(path, JSON.stringify(manifest));
+    } else
+      await write(engine + '/modules/first.js', "import '../../outside.js'; export default 1;");
+    await assert.rejects(buildRuntimePage({ root }), /ENOENT|Duplicate|Engine import must stay/);
     assert.equal(await readFile(resolve(output, 'sentinel'), 'utf8'), 'previous build');
   });
 

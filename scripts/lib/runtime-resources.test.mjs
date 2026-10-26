@@ -42,25 +42,15 @@ test('new, edited and removed files take effect without registration', async (t)
   await assert.rejects(readFile(resolve(root, 'config')), { code: 'ENOENT' });
 });
 
-test('languages share one source and bundle parts are not separately copied', async (t) => {
+test('languages share one source and imported engine modules are not separately copied', async (t) => {
   const root = await fixture(t);
   const directory = 'packages/editor-runtime/src/engine';
   await mkdir(resolve(root, directory, 'modules'));
-  await writeFile(resolve(root, directory, 'main.js'), 'var result = __MARKLYRA_TEST__;');
-  await writeFile(resolve(root, directory, 'modules/one.js'), '1;');
   await writeFile(
-    resolve(root, directory, 'bundles.json'),
-    JSON.stringify({
-      schema: 1,
-      bundles: [
-        {
-          entry: 'main.js',
-          output: 'appsrc/main.js',
-          slots: [{ name: '__MARKLYRA_TEST__', kind: 'array', parts: ['modules/one.js'] }],
-        },
-      ],
-    }),
+    resolve(root, directory, 'main.js'),
+    "import value from './modules/one.js'; (function installEngineModules() { globalThis.result = value; })();",
   );
+  await writeFile(resolve(root, directory, 'modules/one.js'), 'export default 1;');
   const path = 'packages/editor-runtime/assets/locales/Base.lproj/Front.json';
   await mkdir(dirname(resolve(root, path)), { recursive: true });
   await writeFile(resolve(root, path), '{"new":"新"}');

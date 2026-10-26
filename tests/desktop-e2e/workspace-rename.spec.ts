@@ -3,6 +3,7 @@ import { installCreationMock } from './creation-test-util.js';
 import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 import { installRenameMock, type RenameWindow } from './rename-test-util.js';
+import { expectWorkspaceUnmounted } from './workspace-context.helpers.js';
 
 const runtimeUrl = process.env.CREATION_RUNTIME_URL ?? 'http://127.0.0.1:4174/index.html';
 const write = (page: Page) => page.frameLocator('.marklyra-editor-frame').locator('#write');
@@ -282,7 +283,10 @@ test('an uncertain Native handoff revokes only the mounted workspace and keeps t
       'creation-workspace',
     ]),
   );
-  await expect(page.locator('.workspace-root-row')).toHaveCount(0);
+  await expectWorkspaceUnmounted(page);
+  expect((await calls(page, 'close_workspace')).at(-1)?.args).toEqual({
+    workspaceId: 'creation-workspace',
+  });
   await expect(input).toHaveCount(0);
   await expect(page.getByRole('alert')).toContainText('目录文件操作状态尚未确认');
   await expect(write(page)).toContainText('Alpha');

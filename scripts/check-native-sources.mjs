@@ -2,19 +2,25 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { parse as parseJavaScript } from 'acorn';
-import { collectRuntimeInputs } from './lib/runtime-resources.mjs';
+import { collectRuntimeInputs, inspectRuntimeEngineSources } from './lib/runtime-resources.mjs';
 
 // Discover current assets and validate their executable/data syntax.
 const require = createRequire(import.meta.resolve('vite'));
 const { parse: parseCSS } = require('postcss');
 const root = resolve(import.meta.dirname, '..');
 const inputs = await collectRuntimeInputs(root);
+const moduleSources = new Set(
+  (await inspectRuntimeEngineSources(root)).flatMap((graph) => graph.inputs),
+);
 const counts = { javascript: 0, css: 0, json: 0, htmlScripts: 0 };
 for (const { path } of inputs) {
   if (!/\.(js|css|json|html)$/.test(path)) continue;
   const source = await readFile(resolve(root, path), 'utf8');
   if (path.endsWith('.js')) {
-    parseJavaScript(source, { ecmaVersion: 'latest', sourceType: 'script' });
+    parseJavaScript(source, {
+      ecmaVersion: 'latest',
+      sourceType: moduleSources.has(path) ? 'module' : 'script',
+    });
     counts.javascript++;
   } else if (path.endsWith('.css')) {
     parseCSS(source, { from: path });

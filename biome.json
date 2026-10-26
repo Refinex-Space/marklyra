@@ -9,7 +9,6 @@
       "!**/dist",
       "!**/src-tauri",
       "!**/artifacts",
-      "!packages/editor-runtime/src/engine",
       "!packages/editor-runtime/src/page",
       "!packages/editor-runtime/assets",
       "!packages/editor-runtime/vendor",
@@ -47,5 +46,25 @@
     "formatter": {
       "quoteStyle": "single"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/editor-runtime/src/engine/**"],
+      "linter": {
+        "rules": {
+          "recommended": false,
+          "correctness": {
+            "noUnreachable": "error"
+          },
+          "suspicious": {
+            "noDebugger": "error",
+            "noDuplicateCase": "error",
+            "noDuplicateClassMembers": "error",
+            "noDuplicateParameters": "error"
+          }
+        }
+      },
+      "assist": { "enabled": false }
+    }
+  ]
 }

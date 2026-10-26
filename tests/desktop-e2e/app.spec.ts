@@ -22,10 +22,10 @@ async function calls(page: Page, command: string) {
   );
 }
 function child(page: Page): FrameLocator {
-  return page.frameLocator('.marklyra-editor-frame');
+  return page.frameLocator('.runtime-area .marklyra-editor-frame');
 }
 async function focusAtDocumentEnd(page: Page): Promise<void> {
-  await page.locator('.marklyra-editor-frame').focus();
+  await page.locator('.runtime-area .marklyra-editor-frame').focus();
   await child(page)
     .locator('#write > p')
     .last()
@@ -64,9 +64,12 @@ async function finishComposition(page: Page): Promise<void> {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(installMock);
+  // These scenarios assert explicit Save/Discard decisions and unsaved exports.
+  // Auto-save has its own preference/controller cases and remains enabled by default.
+  await page.addInitScript(installMock, { autoSave: false });
   await page.addInitScript(installRecoveryMock);
   await page.goto('/');
+  await expect(page.locator('.runtime-area .marklyra-editor-frame')).toHaveCount(1);
   await expect(child(page).locator('#write')).toBeVisible();
   await expect(page.getByRole('button', { name: '打开', exact: true })).toBeEnabled();
   await openA(page);

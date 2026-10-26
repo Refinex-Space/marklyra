@@ -54,13 +54,19 @@ describe('Markdown export image embedding', () => {
 
 describe('portable hyperlinks', () => {
   it('keeps fragments and web or mail addresses and unlinks everything else', () => {
-    for (const keep of ['#section', ' #中文 ', 'https://example.test/a', 'HTTP://x.test', 'mailto:a@b.test'])
+    for (const keep of [
+      '#section',
+      ' #中文 ',
+      'https://example.test/a',
+      'HTTP://x.test',
+      'mailto:a@b.test',
+    ])
       expect(portableLink(keep), keep).toBe(true);
     for (const drop of [
       '02-密级能力-现状分析.md',
       './other.md',
       '../up/doc.md#part',
-      'C:\docs\a.md',
+      'C:docsa.md',
       'file:///C:/a.md',
       'ftp://host/a',
       'tel:123',

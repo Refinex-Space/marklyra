@@ -26,7 +26,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const input = page.getByRole('searchbox', { name: '搜索文件', exact: true });
     await expect(input).toBeFocused();
     await emitLayoutMenu(page, 'find');
-    const frame = page.frameLocator('.marklyra-editor-frame');
+    const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
     for (const [label, name] of [
       ['区分大小写', 'case'],
       ['查找整个单词', 'word'],
@@ -80,7 +80,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await readyLayout(page, theme);
     await openLayoutDocument(page, source);
     await emitLayoutMenu(page, 'find');
-    const frame = page.frameLocator('.marklyra-editor-frame');
+    const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
     const panel = frame.locator('#md-searchpanel');
     const close = panel.locator('.close-btn');
     const expectCentered = async () => {
@@ -144,7 +144,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
 
 async function presentation(page: Page) {
   return page
-    .frameLocator('.marklyra-editor-frame')
+    .frameLocator('.runtime-area .marklyra-editor-frame')
     .locator('#md-searchpanel')
     .evaluate((panel) => {
       const input = panel.querySelector('#search-panel-input');
@@ -177,7 +177,9 @@ async function presentation(page: Page) {
 const FIND_TOP = 33;
 
 async function expectWindowWideFind(page: Page) {
-  const panel = page.frameLocator('.marklyra-editor-frame').locator('#md-searchpanel');
+  const panel = page
+    .frameLocator('.runtime-area .marklyra-editor-frame')
+    .locator('#md-searchpanel');
   await expect(panel).toBeVisible();
   await expect
     .poll(async () => {
@@ -215,12 +217,12 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await waitForNativeUndo(page);
     await emitLayoutMenu(page, 'undo');
     await expect(
-      page.frameLocator('.marklyra-editor-frame').locator('#write > p').last(),
+      page.frameLocator('.runtime-area .marklyra-editor-frame').locator('#write > p').last(),
     ).toHaveText('Tail text.');
     const history = await layoutHistory(page);
-    const iframe = await page.locator('.marklyra-editor-frame').elementHandle();
+    const iframe = await page.locator('.runtime-area .marklyra-editor-frame').elementHandle();
     await emitLayoutMenu(page, 'open-folder');
-    const frame = page.frameLocator('.marklyra-editor-frame');
+    const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
     const panel = frame.locator('#md-searchpanel');
     const input = frame.locator('#search-panel-input');
     const captures = [];

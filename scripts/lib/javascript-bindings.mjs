@@ -13,7 +13,19 @@ const compilerOptions = {
 
 /** Build lexical symbols without loading dependencies or executing the input. */
 export function analyze(file, text = fs.readFileSync(file, 'utf8')) {
-  parse(text, { ecmaVersion: 'latest', sourceType: 'script' });
+  let sourceType = 'script';
+  try {
+    parse(text, { ecmaVersion: 'latest', sourceType });
+  } catch (scriptError) {
+    // Maintained engine factories are ES module source; classic vendor adapters
+    // retain script parsing (including their original strict/sloppy boundary).
+    try {
+      parse(text, { ecmaVersion: 'latest', sourceType: 'module' });
+      sourceType = 'module';
+    } catch {
+      throw scriptError;
+    }
+  }
   const filename = path.resolve(file);
   const source = ts.createSourceFile(
     filename,
@@ -150,6 +162,7 @@ export function analyze(file, text = fs.readFileSync(file, 'utf8')) {
   return {
     file,
     text,
+    sourceType,
     source,
     checker,
     bindings,
@@ -215,7 +228,9 @@ export function bindingStructure(analysis) {
         ]),
     );
   }
-  return normalize(parse(analysis.text, { ecmaVersion: 'latest', sourceType: 'script' }));
+  return normalize(
+    parse(analysis.text, { ecmaVersion: 'latest', sourceType: analysis.sourceType }),
+  );
 }
 
 /** Fail closed on capture, changed globals/keys/operations or observable names. */

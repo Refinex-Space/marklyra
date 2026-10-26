@@ -1,3 +1,4 @@
+import { type ExportImageSet, MAX_EXPORT_IMAGES } from '../export/markdown.js';
 import {
   type ExportHTMLOptions,
   exportOptions,
@@ -5,7 +6,6 @@ import {
   MAX_EXPORT_RESOURCE_BYTES,
   sameRuntimeOrigin,
 } from '../export/options.js';
-import { type ExportImageSet, MAX_EXPORT_IMAGES } from '../export/markdown.js';
 import { printArtifactStyles } from '../export/print-styles.js';
 import { imageData, portableCss, portableLink, resourceBytes } from '../export/resources.js';
 import { cssUrlTokens, stripLocalFontSources } from '../styles/css-resources.js';

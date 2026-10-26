@@ -9,6 +9,7 @@ import { installCreationMock } from './creation-test-util.js';
 import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 import { installRenameMock, type RenameWindow } from './rename-test-util.js';
+import { openWorkspaceRootMenu } from './workspace-context.helpers.js';
 
 type MoveBehavior = 'normal' | 'cancel' | 'lost' | 'unknown';
 type MoveWindow = RenameWindow & {
@@ -266,7 +267,7 @@ test('Tree drag file to folder coordinates metadata and File Undo without consum
     'operationId',
     'workspaceId',
   ]);
-  await page.locator('.workspace-root-row').click({ button: 'right' });
+  await openWorkspaceRootMenu(page);
   await page.getByRole('menuitem', { name: '撤销 移动 Existing.md', exact: true }).click();
   await expect.poll(async () => (await calls(page, 'perform_workspace_file_undo')).length).toBe(1);
   await expect(row(page, 'Existing.md')).toBeVisible();

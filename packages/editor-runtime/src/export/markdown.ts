@@ -37,7 +37,10 @@ export function embedImages(source: string, images: Readonly<Record<string, stri
       const escaped = escapePattern(destination);
       next = next
         .replace(
-          new RegExp(`(!\\[[^\\]\\r\\n]*\\]\\(\\s*<?)${escaped}(>?(?:\\s+(?:"[^"\\r\\n]*"|'[^'\\r\\n]*'))?\\s*\\))`, 'g'),
+          new RegExp(
+            `(!\\[[^\\]\\r\\n]*\\]\\(\\s*<?)${escaped}(>?(?:\\s+(?:"[^"\\r\\n]*"|'[^'\\r\\n]*'))?\\s*\\))`,
+            'g',
+          ),
           (_all, before: string, after: string) => `${before}${data}${after}`,
         )
         .replace(

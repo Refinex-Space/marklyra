@@ -11,7 +11,7 @@ export const layoutSizes = [
 export const layoutSource =
   '\uFEFF# Layout Reference\r\n\r\nAlpha **Bravo** 中文 😀\n\n## Second\r\n\r\nTail  \r\n';
 
-/** Only filesystem/menu IPC is doubled. The Shell, iframe, original private
+/** Only filesystem/menu IPC is doubled. The Shell, iframe, internal
  * runtime and SDK use their actual browser code; this is not Native evidence. */
 function installLayoutMock() {
   if (window !== window.top) return;
@@ -136,6 +136,7 @@ export async function readyLayout(page: Page, theme: string) {
     timeout: 15_000,
   });
   await expect(page.locator('.shell')).toHaveAttribute('data-native-chrome', 'true');
+  await expect(page.locator('.runtime-area .marklyra-editor-frame')).toHaveCount(1);
   await emitLayoutMenu(page, `theme:${theme}`);
   await expect(page.locator('.shell')).toHaveAttribute('data-theme-name', theme);
   await expect(page.locator('[data-theme-loading]')).toHaveCount(0);
@@ -363,6 +364,10 @@ export async function captureLayout(page: Page, testInfo: TestInfo, label: strin
         y: rectangle.y,
         width: rectangle.width,
         height: rectangle.height,
+        clientLeft: element.clientLeft,
+        clientTop: element.clientTop,
+        clientWidth: element.clientWidth,
+        clientHeight: element.clientHeight,
         display: style.display,
         visibility: style.visibility,
         opacity: style.opacity,
@@ -391,7 +396,13 @@ export async function captureLayout(page: Page, testInfo: TestInfo, label: strin
       active: document.activeElement?.outerHTML.slice(0, 300),
       shell: sample('.shell'),
       sidebar: sample('aside.sidebar'),
-      header: sample('.marklyra-sidebar-header'),
+      header: sample(
+        '.marklyra-sidebar-header:not([hidden]), .workspace-navigation-header:not([hidden])',
+      ),
+      visibleHeaders: document.querySelectorAll(
+        '.marklyra-sidebar-header:not([hidden]), .workspace-navigation-header:not([hidden])',
+      ).length,
+      documentPane: sample('main.document-area'),
       search: sample('.sidebar-search-controls'),
       footer: sample('.workspace-footer'),
       editor: sample('.runtime-area .marklyra-editor-frame'),
@@ -471,6 +482,18 @@ export async function captureLayout(page: Page, testInfo: TestInfo, label: strin
   expect(shell.documentWidth).toBeLessThanOrEqual(shell.viewport.width);
   expect(shell.editor?.width).toBe(shell.viewport.width);
   expect(editor.viewport.width).toBe(shell.viewport.width);
+  expect(shell.visibleHeaders).toBe(1);
+  if (!shell.documentPane || !shell.editor || !editor.content)
+    throw Error('Missing document pane geometry');
+  // The Shell owns the titlebar offset and borders; the runtime scrollport occupies its inner box.
+  expect(shell.editor.y + editor.content.y).toBe(
+    shell.documentPane.y + shell.documentPane.clientTop,
+  );
+  expect(shell.editor.x + editor.content.x).toBe(
+    shell.documentPane.x + shell.documentPane.clientLeft,
+  );
+  expect(editor.content.width).toBe(shell.documentPane.clientWidth);
+  expect(editor.content.height).toBe(shell.documentPane.clientHeight);
   const borderedHeader = ['newsprint', 'pixyll', 'whitey'].includes(shell.theme ?? '');
   expect(shell.header?.height).toBe(shell.sidebarMode === 'search' || !borderedHeader ? 40 : 41);
   if (!label.includes('long-document')) expect(editor.write?.height).toBe(editor.content?.height);

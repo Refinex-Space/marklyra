@@ -1,15 +1,18 @@
 import { expect, type Page, test } from '@playwright/test';
 import { installMock, type TestWindow } from './desktop.helpers.js';
+import { waitForNativeUndo } from './native-menu.helpers.js';
 import { draftSource, installRecoveryMock } from './recovery-test-util.js';
 
 const secondary = 'editor-00000000-0000-4000-8000-000000000001';
+const editorFrame = '.runtime-area .marklyra-editor-frame';
 async function setup(page: Page, label: string) {
   await page.addInitScript(installMock, label);
   await page.addInitScript(installRecoveryMock);
   await page.goto('/');
   await expect(page.getByRole('button', { name: '打开', exact: true })).toBeEnabled();
+  await expect(page.locator(editorFrame)).toHaveCount(1);
 }
-const write = (page: Page) => page.frameLocator('.marklyra-editor-frame').locator('#write');
+const write = (page: Page) => page.frameLocator(editorFrame).locator('#write');
 const menu = (page: Page, action: string) =>
   page.evaluate((value) => (window as TestWindow).__desktopMock.emitMenu(value), action);
 const calls = (page: Page, command: string) =>
@@ -32,6 +35,7 @@ async function restoreLegacy(page: Page, text: string, automatic = true) {
     .filter({ hasText: `${new TextEncoder().encode(text).length} 字节` })
     .getByRole('button', { name: '恢复为新文档', exact: true })
     .click();
+  await expect(page.locator(editorFrame)).toHaveCount(1);
   await expect(write(page)).toHaveText(text);
 }
 
@@ -297,9 +301,7 @@ for (const sourceMode of [false, true]) {
       await page.reload();
       await restoreLegacy(page, 'Alpha');
       await expect(page.locator('.document-title')).toHaveText('未命名 •');
-      const mirror = page
-        .frameLocator('.marklyra-editor-frame')
-        .locator('#marklyra-source .CodeMirror');
+      const mirror = page.frameLocator(editorFrame).locator('#marklyra-source .CodeMirror');
       if (sourceMode) {
         await menu(page, 'view:source');
         await expect(mirror).toBeVisible();
@@ -338,6 +340,7 @@ for (const sourceMode of [false, true]) {
             )
           : write(page).innerText();
       await expect.poll(value).toBe('AlphaZ');
+      await waitForNativeUndo(page);
       await menu(page, 'undo');
       await expect.poll(value).toBe('Alpha');
       expect(await calls(page, 'close_editor_window')).toHaveLength(0);
@@ -410,7 +413,7 @@ test('unsaved confirmation constrains a late iframe focus without changing the d
   await expect(dialog).toBeVisible();
   // A deterministic external focus request models the missing focus boundary;
   // it does not claim to identify the cause of the earlier intermittent failure.
-  await page.locator('.marklyra-editor-frame').focus();
+  await page.locator(editorFrame).focus();
   const focus = await dialog.evaluate((element) => ({
     inside: element.contains(document.activeElement),
     active: document.activeElement?.outerHTML.slice(0, 300),

@@ -20,7 +20,7 @@ for (const titlebar of ['appkit', 'web'] as const) {
       await installLayout(page, undefined, titlebar);
       await readyLayout(page, theme);
       await openLayoutDocument(page, source);
-      const frame = page.frameLocator('.marklyra-editor-frame');
+      const frame = page.frameLocator('.runtime-area .marklyra-editor-frame');
       for (const width of [960, 1484, 2000]) {
         await page.setViewportSize({ width, height: 900 });
         const write = frame.locator('#write');
@@ -45,7 +45,7 @@ for (const titlebar of ['appkit', 'web'] as const) {
         await expect
           .poll(async () => {
             const box = await frame.locator('#marklyra-source .CodeMirror-code').boundingBox();
-            const iframe = await page.locator('.marklyra-editor-frame').boundingBox();
+            const iframe = await page.locator('.runtime-area .marklyra-editor-frame').boundingBox();
             if (!box || !iframe) return Infinity;
             return Math.max(
               Math.abs(box.x - iframe.x - before.left),

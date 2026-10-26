@@ -1,3 +1,4 @@
+import type { MarkLyraEditor } from '@marklyra/editor-runtime';
 import { expect, type Page, test } from '@playwright/test';
 import { installMock, type TestWindow } from './desktop.helpers.js';
 import type { RecoveryMockWindow } from './recovery.helpers.js';
@@ -7,6 +8,7 @@ const raw = '\uFEFF# Tabs\r\n\r\nAlpha **bold** 中文\n\nTail\r\n';
 const actions = ['next', 'previous', 'detach', 'merge', 'toggle'] as const;
 type TabWindow = RecoveryMockWindow & {
   __tabControl: {
+    renderer?: MarkLyraEditor;
     defer: boolean;
     deferTrack: boolean;
     fail: boolean;
@@ -415,6 +417,159 @@ for (const race of ['composition', 'input'] as const)
     expect(await calls(page, 'save_document')).toHaveLength(0);
   });
 
+test('input awaiting host notifications cancels the native tab action after its tracking receipt', async ({
+  page,
+}, info) => {
+  await setup(page);
+  await edit(page);
+  await expect
+    .poll(async () =>
+      (await calls(page, 'track_window_session')).some(
+        (call) => call.args.documentId === 'tabs-document',
+      ),
+    )
+    .toBe(true);
+  expect(
+    await page.evaluate(() => {
+      const configured = (window as TestWindow).__desktopMock.applicationPreferences.values
+        .enableAutoSave;
+      return typeof configured === 'boolean'
+        ? configured
+        : localStorage.getItem('marklyra-autosave') !== 'false';
+    }),
+  ).toBe(true);
+  const beforeTracks = (await calls(page, 'track_window_session')).length;
+  await page.evaluate(async () => {
+    // Capture the actual already-loaded SDK instance, without adding a Promise
+    // turn to flush or changing the renderer's input delivery.
+    const sdkUrl = performance
+      .getEntriesByType('resource')
+      .find((entry) =>
+        new URL(entry.name).pathname.endsWith('/packages/editor-runtime/dist/index.js'),
+      )?.name;
+    if (!sdkUrl) throw new Error('Missing loaded editor SDK module');
+    const { MarkLyraEditor } = (await import(sdkUrl)) as typeof import('@marklyra/editor-runtime');
+    const original = MarkLyraEditor.prototype.flush;
+    MarkLyraEditor.prototype.flush = function () {
+      (window as TabWindow).__tabControl.renderer = this;
+      MarkLyraEditor.prototype.flush = original;
+      return original.call(this);
+    };
+    (window as TabWindow).__tabControl.deferTrack = true;
+  });
+  await menu(page, 'tab:next');
+  await expect
+    .poll(() => page.evaluate(() => (window as TabWindow).__tabControl.pendingTracks))
+    .toBe(1);
+  const tracked = await calls(page, 'track_window_session');
+  expect(tracked).toHaveLength(beforeTracks + 1);
+  expect(tracked.at(-1)?.args).toEqual({ documentId: 'tabs-document', workspaceId: null });
+  const preflight = await page.evaluate(() => {
+    const host = window as TabWindow;
+    const renderer = host.__tabControl.renderer;
+    if (!renderer) throw new Error('Missing current window operation renderer');
+    return {
+      source: renderer.getMarkdown(),
+      revision: renderer.revision,
+      pending: renderer.hasPendingChanges,
+      checkpoint: Object.values(host.__recoveryMock.records)
+        .filter((draft) => draft.active)
+        .map((draft) => draft.text),
+    };
+  });
+  expect(preflight.source).toBe(raw.replace('Alpha', 'AlphaX'));
+  expect(preflight.pending).toBe(false);
+  expect(preflight.checkpoint).toContain(raw.replace('Alpha', 'AlphaX'));
+  await page.evaluate(() => {
+    const mock = (window as TestWindow).__desktopMock;
+    mock.holdDirty = true;
+    mock.holdChanged = true;
+  });
+  try {
+    await page.keyboard.type('Z');
+    const input = await write(page).evaluate((element) => {
+      const undo = (
+        Reflect.get(window, 'editor') as { undo: { commandStack: unknown; index: number } }
+      ).undo;
+      return {
+        text: element.textContent,
+        history: JSON.stringify([undo.commandStack, undo.index]),
+      };
+    });
+    expect(input.text).toContain('AlphaXZ');
+    // Releasing immediately after this cached read cannot deliver the withheld
+    // notifications. Only a new renderer request can observe the actual Z input.
+    const atRelease = await page.evaluate(() => {
+      const control = (window as TabWindow).__tabControl;
+      const renderer = control.renderer;
+      if (!renderer) throw new Error('Missing captured renderer');
+      const cached = {
+        source: renderer.getMarkdown(),
+        revision: renderer.revision,
+        pending: renderer.hasPendingChanges,
+      };
+      control.deferTrack = false;
+      control.releaseTrack();
+      return cached;
+    });
+    expect(atRelease).toEqual({
+      source: preflight.source,
+      revision: preflight.revision,
+      pending: false,
+    });
+    await expect(page.locator('.document-status')).toContainText('文稿或窗口状态已更改');
+    expect(await calls(page, 'native_tab_action')).toHaveLength(0);
+    expect(await calls(page, 'create_editor_window')).toHaveLength(0);
+    expect(await calls(page, 'save_document')).toHaveLength(0);
+    expect(await history(page)).toBe(input.history);
+    expect(
+      await page.evaluate(() => (window as TabWindow).__tabControl.renderer?.getMarkdown()),
+    ).toBe(raw.replace('Alpha', 'AlphaXZ'));
+    await page.evaluate(() => {
+      const mock = (window as TestWindow).__desktopMock;
+      mock.holdDirty = false;
+      mock.holdChanged = false;
+    });
+    await menu(page, 'tab:next');
+    await expect.poll(async () => (await calls(page, 'native_tab_action')).length).toBe(1);
+    expect(
+      await page.evaluate(() => (window as TabWindow).__tabControl.observations.at(-1)?.texts),
+    ).toContain(raw.replace('Alpha', 'AlphaXZ'));
+    expect(await history(page)).toBe(input.history);
+    await expect(write(page)).toContainText('AlphaXZ');
+    expect(await calls(page, 'save_document')).toHaveLength(0);
+  } finally {
+    const evidence = await page.evaluate(() => {
+      const host = window as TabWindow;
+      return {
+        parentSource: host.__tabControl.renderer?.getMarkdown(),
+        parentRevision: host.__tabControl.renderer?.revision,
+        pendingTracks: host.__tabControl.pendingTracks,
+        observations: host.__tabControl.observations,
+        calls: host.__desktopMock.calls.filter((call) =>
+          [
+            'track_window_session',
+            'native_tab_action',
+            'create_editor_window',
+            'save_document',
+          ].includes(call.command),
+        ),
+      };
+    });
+    await info.attach('native-tab-input-fence', {
+      contentType: 'application/json',
+      body: JSON.stringify({ preflight, evidence }, null, 2),
+    });
+    await page.evaluate(() => {
+      const host = window as TabWindow;
+      host.__desktopMock.holdDirty = false;
+      host.__desktopMock.holdChanged = false;
+      host.__tabControl.deferTrack = false;
+      host.__tabControl.releaseTrack();
+    });
+  }
+});
+
 test('same-byte document replacement during session tracking cancels the retired owner tab action', async ({
   page,
 }) => {
@@ -464,20 +619,33 @@ test('native tab layout events change only the titlebar inset and reject another
   await setup(page, 'main', true);
   const iframe = await page.locator(editorFrame).elementHandle();
   const beforeHistory = await history(page);
-  const inset = () =>
-    page
+  const inset = async () => {
+    const pane = await page.locator('main.document-area').evaluate((element) => ({
+      top: element.getBoundingClientRect().top,
+      innerTop: element.getBoundingClientRect().top + element.clientTop,
+    }));
+    const frame = await page.locator(editorFrame).boundingBox();
+    const contentTop = await page
       .frameLocator(editorFrame)
-      .locator('html')
-      .evaluate((element) => element.style.getPropertyValue('--marklyra-content-top'));
+      .locator('content')
+      .evaluate((element) => element.getBoundingClientRect().top);
+    return {
+      // A fixed 4px card gap remains when AppKit supplies a separate titlebar.
+      titlebarOffset: pane.top - 4,
+      contentAligned: !!frame && frame.y + contentTop === pane.innerTop,
+      contentTop,
+    };
+  };
   await expect(page.locator('.shell')).toHaveAttribute('data-native-overlay', 'true');
   await expect(page.locator('.native-titlebar-drag')).toHaveCount(1);
-  await expect.poll(inset).toBe('28px');
+  await expect.poll(inset).toEqual({ titlebarOffset: 28, contentAligned: true, contentTop: 0 });
   await page.evaluate(() =>
     (window as TestWindow).__desktopMock.emitTarget('another-owner', 'native-tab-layout', {
       overlay: false,
     }),
   );
   await expect(page.locator('.shell')).toHaveAttribute('data-native-overlay', 'true');
+  await expect.poll(inset).toEqual({ titlebarOffset: 28, contentAligned: true, contentTop: 0 });
   await page.evaluate(() =>
     (window as TestWindow).__desktopMock.emitTarget('main', 'native-tab-layout', {
       overlay: false,
@@ -485,14 +653,14 @@ test('native tab layout events change only the titlebar inset and reject another
   );
   await expect(page.locator('.shell')).toHaveAttribute('data-native-overlay', 'false');
   await expect(page.locator('.native-titlebar-drag')).toHaveCount(0);
-  await expect.poll(inset).toBe('0px');
+  await expect.poll(inset).toEqual({ titlebarOffset: 0, contentAligned: true, contentTop: 0 });
   await expect(page.locator('aside.sidebar')).toHaveCSS('padding-top', '0px');
   await page.evaluate(() =>
     (window as TestWindow).__desktopMock.emitTarget('main', 'native-tab-layout', { overlay: true }),
   );
   await expect(page.locator('.shell')).toHaveAttribute('data-native-overlay', 'true');
   await expect(page.locator('.native-titlebar-drag')).toHaveCount(1);
-  await expect.poll(inset).toBe('28px');
+  await expect.poll(inset).toEqual({ titlebarOffset: 28, contentAligned: true, contentTop: 0 });
   expect(await iframe?.evaluate((element) => element.isConnected)).toBe(true);
   expect(await history(page)).toBe(beforeHistory);
   await expect(write(page)).toContainText('Alpha');

@@ -1,15 +1,20 @@
 // codemirror/overlay-mode.
-// SystemJS module 23. Dependencies: 20.
-$__System.registerDynamic('23', ['20'], !0, function (e, t, n) {
+export default function initializeCodemirrorOverlayMode(
+  requireModule,
+  moduleExports,
+  moduleRecord,
+) {
   'use strict';
-  this || self;
-  var i = e('20');
-  i.overlayMode = function (e, t, n) {
+  if (!this) {
+    self;
+  }
+  var CodeMirror = requireModule('libraries/codemirror');
+  CodeMirror.overlayMode = function (baseMode, overlayMode, combineStyles) {
     return {
       startState: function () {
         return {
-          base: i.startState(e),
-          overlay: i.startState(t),
+          base: CodeMirror.startState(baseMode),
+          overlay: CodeMirror.startState(overlayMode),
           basePos: 0,
           baseCur: null,
           overlayPos: 0,
@@ -17,53 +22,76 @@ $__System.registerDynamic('23', ['20'], !0, function (e, t, n) {
           streamSeen: null,
         };
       },
-      copyState: function (n) {
+      copyState: function (state) {
         return {
-          base: i.copyState(e, n.base),
-          overlay: i.copyState(t, n.overlay),
-          basePos: n.basePos,
+          base: CodeMirror.copyState(baseMode, state.base),
+          overlay: CodeMirror.copyState(overlayMode, state.overlay),
+          basePos: state.basePos,
           baseCur: null,
-          overlayPos: n.overlayPos,
+          overlayPos: state.overlayPos,
           overlayCur: null,
         };
       },
-      token: function (i, r) {
-        return (
-          (i != r.streamSeen || Math.min(r.basePos, r.overlayPos) < i.start) &&
-            ((r.streamSeen = i), (r.basePos = r.overlayPos = i.start)),
-          i.start == r.basePos &&
-            ((r.base.lineBefore = r.lineBefore),
-            (r.base.lineAfter = r.lineAfter),
-            (r.baseCur = e.token(i, r.base)),
-            (r.basePos = i.pos)),
-          i.start == r.overlayPos &&
-            ((i.pos = i.start), (r.overlayCur = t.token(i, r.overlay)), (r.overlayPos = i.pos)),
-          (i.pos = Math.min(r.basePos, r.overlayPos)),
-          null == r.overlayCur
-            ? r.baseCur
-            : (null != r.baseCur && r.overlay.combineTokens) ||
-                (n && null == r.overlay.combineTokens)
-              ? r.baseCur + ' ' + r.overlayCur
-              : r.overlayCur
-        );
+      token: function (stream, state) {
+        if (
+          stream != state.streamSeen ||
+          Math.min(state.basePos, state.overlayPos) < stream.start
+        ) {
+          state.streamSeen = stream;
+          state.basePos = state.overlayPos = stream.start;
+        }
+        if (stream.start == state.basePos) {
+          state.base.lineBefore = state.lineBefore;
+          state.base.lineAfter = state.lineAfter;
+          state.baseCur = baseMode.token(stream, state.base);
+          state.basePos = stream.pos;
+        }
+        if (stream.start == state.overlayPos) {
+          stream.pos = stream.start;
+          state.overlayCur = overlayMode.token(stream, state.overlay);
+          state.overlayPos = stream.pos;
+        }
+        stream.pos = Math.min(state.basePos, state.overlayPos);
+        if (null == state.overlayCur) {
+          return state.baseCur;
+        } else {
+          if (
+            (null != state.baseCur && state.overlay.combineTokens) ||
+            (combineStyles && null == state.overlay.combineTokens)
+          ) {
+            return state.baseCur + ' ' + state.overlayCur;
+          } else {
+            return state.overlayCur;
+          }
+        }
       },
       indent:
-        e.indent &&
-        function (t, n) {
-          return e.indent(t.base, n);
+        baseMode.indent &&
+        function (state, textAfter) {
+          return baseMode.indent(state.base, textAfter);
         },
-      electricChars: e.electricChars,
-      innerMode: function (t) {
-        return { state: t.base, mode: e };
+      electricChars: baseMode.electricChars,
+      innerMode: function (state) {
+        return { state: state.base, mode: baseMode };
       },
-      blankLine: function (i) {
-        var r, o;
-        return (
-          e.blankLine && (r = e.blankLine(i.base)),
-          t.blankLine && (o = t.blankLine(i.overlay)),
-          null == o ? r : n && null != r ? r + ' ' + o : o
-        );
+      blankLine: function (state) {
+        var baseStyle, overlayStyle;
+        if (baseMode.blankLine) {
+          baseStyle = baseMode.blankLine(state.base);
+        }
+        if (overlayMode.blankLine) {
+          overlayStyle = overlayMode.blankLine(state.overlay);
+        }
+        if (null == overlayStyle) {
+          return baseStyle;
+        } else {
+          if (combineStyles && null != baseStyle) {
+            return baseStyle + ' ' + overlayStyle;
+          } else {
+            return overlayStyle;
+          }
+        }
       },
     };
   };
-});
+}

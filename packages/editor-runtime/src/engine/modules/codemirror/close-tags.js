@@ -1,71 +1,117 @@
 // codemirror/close-tags.
-// SystemJS module 22. Dependencies: 20.
-$__System.registerDynamic('22', ['20'], !0, function (e, t, n) {
-  this || self;
-  var i = e('20');
+export default function initializeCodemirrorCloseTags(requireModule, moduleExports, moduleRecord) {
+  if (!this) {
+    self;
+  }
+  var CodeMirror = requireModule('libraries/codemirror');
   !(function () {
-    i.defineOption('autoCloseTags', !1, function (a, s, l) {
-      if ((l != i.Init && l && a.removeKeyMap('autoCloseTags'), s)) {
-        var c = { name: 'autoCloseTags' };
-        ('object' != typeof s || s.whenClosing) &&
-          (c["'/'"] = function (e) {
-            return (function (e) {
-              return e.getOption('disableInput') ? i.Pass : n(e, !0);
-            })(e);
-          }),
-          ('object' != typeof s || s.whenOpening) &&
-            (c["'>'"] = function (n) {
-              return (function (n) {
-                if (n.getOption('disableInput')) return i.Pass;
-                for (var a = n.listSelections(), s = [], l = 0; l < a.length; l++) {
-                  if (!a[l].empty()) return i.Pass;
-                  var c = a[l].head,
-                    d = n.getTokenAt(c),
-                    u = i.innerMode(n.getMode(), d.state),
-                    h = u.state;
-                  if ('xml' != u.mode.name || !h.tagName) return i.Pass;
-                  var p = n.getOption('autoCloseTags'),
-                    f = 'html' == u.mode.configuration,
-                    m = ('object' == typeof p && p.dontCloseTags) || (f && e),
-                    g = ('object' == typeof p && p.indentTags) || (f && t),
-                    v = h.tagName;
-                  d.end > c.ch && (v = v.slice(0, v.length - d.end + c.ch));
-                  var y = v.toLowerCase();
-                  if (
-                    !v ||
-                    ('string' == d.type &&
-                      (d.end != c.ch ||
-                        !/[\"\']/.test(d.string.charAt(d.string.length - 1)) ||
-                        1 == d.string.length)) ||
-                    ('tag' == d.type && 'closeTag' == h.type) ||
-                    d.string.indexOf('/') == d.string.length - 1 ||
-                    (m && r(m, y) > -1) ||
-                    o(n, v, c, h, !0)
-                  )
-                    return i.Pass;
-                  var b = g && r(g, y) > -1;
-                  s[l] = {
-                    indent: b,
-                    text: '>' + (b ? '\n\n' : '') + '</' + v + '>',
-                    newPos: b ? i.Pos(c.line + 1, 0) : i.Pos(c.line, c.ch + 1),
-                  };
+    Object.defineProperty(completeClosingTag, 'name', { value: 'n', configurable: true });
+    Object.defineProperty(indexOfTag, 'name', { value: 'r', configurable: true });
+    Object.defineProperty(hasClosingTag, 'name', { value: 'o', configurable: true });
+
+    CodeMirror.defineOption('autoCloseTags', false, function (editor, options, previousValue) {
+      if (previousValue != CodeMirror.Init && previousValue) {
+        editor.removeKeyMap('autoCloseTags');
+      }
+      if (options) {
+        var keyMap = { name: 'autoCloseTags' };
+        if ('object' != typeof options || options.whenClosing) {
+          keyMap["'/'"] = function (editor) {
+            return (function (editor) {
+              if (editor.getOption('disableInput')) {
+                return CodeMirror.Pass;
+              } else {
+                return completeClosingTag(editor, true);
+              }
+            })(editor);
+          };
+        }
+        if ('object' != typeof options || options.whenOpening) {
+          keyMap["'>'"] = function (editor) {
+            return (function (editor) {
+              if (editor.getOption('disableInput')) {
+                return CodeMirror.Pass;
+              }
+              for (
+                var selections = editor.listSelections(), insertions = [], selectionIndex = 0;
+                selectionIndex < selections.length;
+                selectionIndex++
+              ) {
+                if (!selections[selectionIndex].empty()) {
+                  return CodeMirror.Pass;
                 }
-                for (var l = a.length - 1; l >= 0; l--) {
-                  var w = s[l];
-                  n.replaceRange(w.text, a[l].head, a[l].anchor, '+insert');
-                  var x = n.listSelections().slice(0);
-                  (x[l] = { head: w.newPos, anchor: w.newPos }),
-                    n.setSelections(x),
-                    w.indent &&
-                      (n.indentLine(w.newPos.line, null, !0),
-                      n.indentLine(w.newPos.line + 1, null, !0));
+                var cursor = selections[selectionIndex].head,
+                  token = editor.getTokenAt(cursor),
+                  innerMode = CodeMirror.innerMode(editor.getMode(), token.state),
+                  xmlState = innerMode.state;
+                if ('xml' != innerMode.mode.name || !xmlState.tagName) {
+                  return CodeMirror.Pass;
                 }
-              })(n);
-            }),
-          a.addKeyMap(c);
+                var options = editor.getOption('autoCloseTags'),
+                  htmlMode = 'html' == innerMode.mode.configuration,
+                  dontCloseTags =
+                    ('object' == typeof options && options.dontCloseTags) ||
+                    (htmlMode && htmlVoidTags),
+                  indentTags =
+                    ('object' == typeof options && options.indentTags) ||
+                    (htmlMode && htmlIndentTags),
+                  tagName = xmlState.tagName;
+                if (token.end > cursor.ch) {
+                  tagName = tagName.slice(0, tagName.length - token.end + cursor.ch);
+                }
+                var lowerTagName = tagName.toLowerCase();
+                if (
+                  !tagName ||
+                  ('string' == token.type &&
+                    (token.end != cursor.ch ||
+                      !/[\"\']/.test(token.string.charAt(token.string.length - 1)) ||
+                      1 == token.string.length)) ||
+                  ('tag' == token.type && 'closeTag' == xmlState.type) ||
+                  token.string.indexOf('/') == token.string.length - 1 ||
+                  (dontCloseTags && indexOfTag(dontCloseTags, lowerTagName) > -1) ||
+                  hasClosingTag(editor, tagName, cursor, xmlState, true)
+                ) {
+                  return CodeMirror.Pass;
+                }
+                var indentClosingTag = indentTags && indexOfTag(indentTags, lowerTagName) > -1;
+                insertions[selectionIndex] = {
+                  indent: indentClosingTag,
+                  text: '>' + (indentClosingTag ? '\n\n' : '') + '</' + tagName + '>',
+                  newPos: indentClosingTag
+                    ? CodeMirror.Pos(cursor.line + 1, 0)
+                    : CodeMirror.Pos(cursor.line, cursor.ch + 1),
+                };
+              }
+              for (
+                var selectionIndex = selections.length - 1;
+                selectionIndex >= 0;
+                selectionIndex--
+              ) {
+                var insertion = insertions[selectionIndex];
+                editor.replaceRange(
+                  insertion.text,
+                  selections[selectionIndex].head,
+                  selections[selectionIndex].anchor,
+                  '+insert',
+                );
+                var nextSelections = editor.listSelections().slice(0);
+                nextSelections[selectionIndex] = {
+                  head: insertion.newPos,
+                  anchor: insertion.newPos,
+                };
+                editor.setSelections(nextSelections);
+                if (insertion.indent) {
+                  editor.indentLine(insertion.newPos.line, null, true);
+                  editor.indentLine(insertion.newPos.line + 1, null, true);
+                }
+              }
+            })(editor);
+          };
+        }
+        editor.addKeyMap(keyMap);
       }
     });
-    var e = [
+    var htmlVoidTags = [
         'area',
         'base',
         'br',
@@ -83,7 +129,7 @@ $__System.registerDynamic('22', ['20'], !0, function (e, t, n) {
         'track',
         'wbr',
       ],
-      t = [
+      htmlIndentTags = [
         'applet',
         'blockquote',
         'body',
@@ -111,53 +157,103 @@ $__System.registerDynamic('22', ['20'], !0, function (e, t, n) {
         'table',
         'ul',
       ];
-    function n(e, t) {
-      for (var n = e.listSelections(), r = [], a = t ? '/' : '</', s = 0; s < n.length; s++) {
-        if (!n[s].empty()) return i.Pass;
-        var l,
-          c = n[s].head,
-          d = e.getTokenAt(c),
-          u = i.innerMode(e.getMode(), d.state),
-          h = u.state;
-        if (t && ('string' == d.type || '<' != d.string.charAt(0) || d.start != c.ch - 1))
-          return i.Pass;
-        if ('xml' != u.mode.name)
-          if ('htmlmixed' == e.getMode().name && 'javascript' == u.mode.name) l = a + 'script';
-          else {
-            if ('htmlmixed' != e.getMode().name || 'css' != u.mode.name) return i.Pass;
-            l = a + 'style';
-          }
-        else {
-          if (!h.context || !h.context.tagName || o(e, h.context.tagName, c, h)) return i.Pass;
-          l = a + h.context.tagName;
+    function completeClosingTag(editor, afterSlash) {
+      for (
+        var selections = editor.listSelections(),
+          closingTags = [],
+          tagPrefix = afterSlash ? '/' : '</',
+          selectionIndex = 0;
+        selectionIndex < selections.length;
+        selectionIndex++
+      ) {
+        if (!selections[selectionIndex].empty()) {
+          return CodeMirror.Pass;
         }
-        '>' != e.getLine(c.line).charAt(d.end) && (l += '>'), (r[s] = l);
+        var closingTag,
+          cursor = selections[selectionIndex].head,
+          token = editor.getTokenAt(cursor),
+          innerMode = CodeMirror.innerMode(editor.getMode(), token.state),
+          xmlState = innerMode.state;
+        if (
+          afterSlash &&
+          ('string' == token.type || '<' != token.string.charAt(0) || token.start != cursor.ch - 1)
+        ) {
+          return CodeMirror.Pass;
+        }
+        if ('xml' != innerMode.mode.name) {
+          if ('htmlmixed' == editor.getMode().name && 'javascript' == innerMode.mode.name) {
+            closingTag = tagPrefix + 'script';
+          } else {
+            if ('htmlmixed' != editor.getMode().name || 'css' != innerMode.mode.name) {
+              return CodeMirror.Pass;
+            }
+            closingTag = tagPrefix + 'style';
+          }
+        } else {
+          if (
+            !xmlState.context ||
+            !xmlState.context.tagName ||
+            hasClosingTag(editor, xmlState.context.tagName, cursor, xmlState)
+          ) {
+            return CodeMirror.Pass;
+          }
+          closingTag = tagPrefix + xmlState.context.tagName;
+        }
+        if ('>' != editor.getLine(cursor.line).charAt(token.end)) {
+          closingTag += '>';
+        }
+        closingTags[selectionIndex] = closingTag;
       }
-      e.replaceSelections(r), (n = e.listSelections());
-      for (s = 0; s < n.length; s++)
-        (s == n.length - 1 || n[s].head.line < n[s + 1].head.line) && e.indentLine(n[s].head.line);
+      editor.replaceSelections(closingTags);
+      selections = editor.listSelections();
+      for (selectionIndex = 0; selectionIndex < selections.length; selectionIndex++) {
+        if (
+          selectionIndex == selections.length - 1 ||
+          selections[selectionIndex].head.line < selections[selectionIndex + 1].head.line
+        ) {
+          editor.indentLine(selections[selectionIndex].head.line);
+        }
+      }
     }
-    function r(e, t) {
-      if (e.indexOf) return e.indexOf(t);
-      for (var n = 0, i = e.length; n < i; ++n) if (e[n] == t) return n;
+    function indexOfTag(tags, tagName) {
+      if (tags.indexOf) {
+        return tags.indexOf(tagName);
+      }
+      for (var tagIndex = 0, tagCount = tags.length; tagIndex < tagCount; ++tagIndex) {
+        if (tags[tagIndex] == tagName) {
+          return tagIndex;
+        }
+      }
       return -1;
     }
-    function o(e, t, n, r, o) {
-      if (!i.scanForClosingTag) return !1;
-      var a = Math.min(e.lastLine() + 1, n.line + 500),
-        s = i.scanForClosingTag(e, n, null, a);
-      if (!s || s.tag != t) return !1;
-      for (var l = r.context, c = o ? 1 : 0; l && l.tagName == t; l = l.prev) ++c;
-      n = s.to;
-      for (var d = 1; d < c; d++) {
-        var u = i.scanForClosingTag(e, n, null, a);
-        if (!u || u.tag != t) return !1;
-        n = u.to;
+    function hasClosingTag(editor, tagName, cursor, xmlState, includeCurrentTag) {
+      if (!CodeMirror.scanForClosingTag) {
+        return false;
       }
-      return !0;
+      var scanEndLine = Math.min(editor.lastLine() + 1, cursor.line + 500),
+        closingTag = CodeMirror.scanForClosingTag(editor, cursor, null, scanEndLine);
+      if (!closingTag || closingTag.tag != tagName) {
+        return false;
+      }
+      for (
+        var context = xmlState.context, matchingDepth = includeCurrentTag ? 1 : 0;
+        context && context.tagName == tagName;
+        context = context.prev
+      ) {
+        ++matchingDepth;
+      }
+      cursor = closingTag.to;
+      for (var depth = 1; depth < matchingDepth; depth++) {
+        var nextClosingTag = CodeMirror.scanForClosingTag(editor, cursor, null, scanEndLine);
+        if (!nextClosingTag || nextClosingTag.tag != tagName) {
+          return false;
+        }
+        cursor = nextClosingTag.to;
+      }
+      return true;
     }
-    i.commands.closeTag = function (e) {
-      return n(e);
+    CodeMirror.commands.closeTag = function (editor) {
+      return completeClosingTag(editor);
     };
   })();
-});
+}

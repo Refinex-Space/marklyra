@@ -94,7 +94,9 @@ test('compact windows fold the menu titles into one menu button', async ({ page 
   await expect(page.locator('.titlebar-menu')).toHaveCount(8);
 });
 
-test('the word count menu follows the AppKit unit menu and persists the choice', async ({ page }) => {
+test('the word count menu follows the AppKit unit menu and persists the choice', async ({
+  page,
+}) => {
   await ready(page);
   const trigger = page.locator('.document-statistics-button');
   await expect(trigger).toContainText('词');
@@ -187,7 +189,9 @@ test('settings page hides document controls but keeps menus and caption buttons'
   await expect(frame.getByText('按住 Ctrl 时使用鼠标滑轮缩放')).toBeVisible();
 });
 
-test('fullscreen removes the titlebar and keeps the word count in the document card', async ({ page }) => {
+test('fullscreen removes the titlebar and keeps the word count in the document card', async ({
+  page,
+}) => {
   await ready(page);
   await page.evaluate(() => Reflect.set(window, '__marklyraLayoutFullscreen', true));
   await emitLayoutMenu(page, 'view:fullscreen');

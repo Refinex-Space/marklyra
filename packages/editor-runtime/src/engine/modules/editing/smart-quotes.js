@@ -1,77 +1,85 @@
 // editing/smart-quotes.
-// SystemJS module 1e. Dependencies: 11, 13, 1b, 1d.
-$__System.registerDynamic(
-  '1e',
-  ['11', '13', '1b', '1d'],
-  !0,
-  function (requireModule, moduleExports, moduleRecord) {
-    'use strict';
-    this || self, requireModule('11');
-    var range,
-      currentRange,
-      documentModel = requireModule('13'),
-      SnapFlag = requireModule('1b').SnapFlag,
-      rangy = (documentModel.Node, documentModel.TYPE, requireModule('1d')),
-      userQuotesArray = ['“', '”', '‘', '’'],
-      smartQuotes = {
-        isSmartQuote: function (searchValue) {
-          return (
-            !!smartQuotes.shouldTriggerReplaceQuote() &&
-            [
-              smartQuotes.userQuote(0),
-              smartQuotes.userQuote(1),
-              smartQuotes.userQuote(2),
-              smartQuotes.userQuote(3),
-            ].indexOf(searchValue) > -1
-          );
-        },
-        shouldTriggerReplaceQuote: function () {
-          return !File.option.convertSmartOnRender && File.option.smartQuote;
-        },
-        replaceQuote: function (domNode, inputDomNode) {
-          if (!File.option.convertSmartOnRender && File.option.smartQuote) {
-            var isSingleQuote = "'" == domNode.textContent.toString()[0];
-            domNode &&
-              (2 == domNode.textContent.length
-                ? (domNode.nodeValue =
-                    smartQuotes.userQuote(isSingleQuote ? 2 : 0, !1, !0) +
-                    smartQuotes.userQuote(isSingleQuote ? 3 : 1, !1, !0))
-                : (domNode.nodeValue = smartQuotes.userQuote(isSingleQuote ? 2 : 0, !1, !0))),
-              inputDomNode &&
-                (inputDomNode.nodeValue = smartQuotes.userQuote(isSingleQuote ? 3 : 1, !1, !0));
+export default function initializeEditingSmartQuotes(requireModule, moduleExports, moduleRecord) {
+  'use strict';
+  if (!this) {
+    self;
+  }
+  requireModule('shared/utilities');
+  var range,
+    currentRange,
+    documentModel = requireModule('model/document-model'),
+    SnapFlag = requireModule('editing/undo-manager').SnapFlag,
+    rangy = (documentModel.Node, documentModel.TYPE, requireModule('libraries/rangy')),
+    userQuotesArray = ['“', '”', '‘', '’'],
+    smartQuotes = {
+      isSmartQuote: function (searchValue) {
+        return (
+          !!smartQuotes.shouldTriggerReplaceQuote() &&
+          [
+            smartQuotes.userQuote(0),
+            smartQuotes.userQuote(1),
+            smartQuotes.userQuote(2),
+            smartQuotes.userQuote(3),
+          ].indexOf(searchValue) > -1
+        );
+      },
+      shouldTriggerReplaceQuote: function () {
+        return !File.option.convertSmartOnRender && File.option.smartQuote;
+      },
+      replaceQuote: function (domNode, inputDomNode) {
+        if (!File.option.convertSmartOnRender && File.option.smartQuote) {
+          var isSingleQuote = "'" == domNode.textContent.toString()[0];
+          if (domNode) {
+            if (2 == domNode.textContent.length) {
+              domNode.nodeValue =
+                smartQuotes.userQuote(isSingleQuote ? 2 : 0, false, true) +
+                smartQuotes.userQuote(isSingleQuote ? 3 : 1, false, true);
+            } else {
+              domNode.nodeValue = smartQuotes.userQuote(isSingleQuote ? 2 : 0, false, true);
+            }
           }
-        },
-        userQuote: function (quoteIndex, requireSmartQuote, preserveSpacing) {
-          var text =
-            (File.option.userQuotesArray || userQuotesArray)[quoteIndex] ||
-            userQuotesArray[quoteIndex];
-          return !requireSmartQuote || ('"' != text && "'" != text)
-            ? preserveSpacing && !File.option.convertSmartOnRender
-              ? text
-              : text.trim()
-            : null;
-        },
-        shouldTriggerReplace: function (editor, inputRange) {
-          var element = editor.getJQueryElem(inputRange.commonAncestorContainer);
-          return (
-            !element.closest(
-              "[md-inline='code'], code, script, pre, [md-inline='escape'], .md-image-src-span, .md-url",
-            ).length && !element.find("code, script, [md-inline='escape']").length
-          );
-        },
-        clearLastQuoteState: function () {
-          (range = !1), (currentRange = !1);
-        },
-        handlerCh: function (
-          editor,
-          typedCharacter,
-          targetNode,
-          unusedParameter4,
-          unusedParameter5,
-          inputRange,
-        ) {
-          var unescapedPrefix,
-            h = function (textBeforeCaret, isSingleQuote) {
+          if (inputDomNode) {
+            inputDomNode.nodeValue = smartQuotes.userQuote(isSingleQuote ? 3 : 1, false, true);
+          }
+        }
+      },
+      userQuote: function (quoteIndex, requireSmartQuote, preserveSpacing) {
+        var text =
+          (File.option.userQuotesArray || userQuotesArray)[quoteIndex] ||
+          userQuotesArray[quoteIndex];
+        if (!requireSmartQuote || ('"' != text && "'" != text)) {
+          if (preserveSpacing && !File.option.convertSmartOnRender) {
+            return text;
+          } else {
+            return text.trim();
+          }
+        } else {
+          return null;
+        }
+      },
+      shouldTriggerReplace: function (editor, inputRange) {
+        var element = editor.getJQueryElem(inputRange.commonAncestorContainer);
+        return (
+          !element.closest(
+            "[md-inline='code'], code, script, pre, [md-inline='escape'], .md-image-src-span, .md-url",
+          ).length && !element.find("code, script, [md-inline='escape']").length
+        );
+      },
+      clearLastQuoteState: function () {
+        range = false;
+        currentRange = false;
+      },
+      handlerCh: function (
+        editor,
+        typedCharacter,
+        targetNode,
+        unusedParameter4,
+        unusedParameter5,
+        inputRange,
+      ) {
+        var unescapedPrefix,
+          shouldUseOpeningQuote = Object.defineProperty(
+            function (textBeforeCaret, isSingleQuote) {
               var previousCharacter = textBeforeCaret[textBeforeCaret.length - 1] || '';
               return (
                 !(
@@ -82,45 +90,55 @@ $__System.registerDynamic(
                 (!isSingleQuote && smartQuotes.userQuote(2) == previousCharacter)
               );
             },
-            p = function () {
-              return void 0 !== unescapedPrefix
-                ? unescapedPrefix
-                : (unescapedPrefix = f().replace(/\\[-."']/g, ''));
+            'name',
+            { value: 'h', configurable: true },
+          ),
+          getUnescapedPrefix = Object.defineProperty(
+            function () {
+              if (void 0 !== unescapedPrefix) {
+                return unescapedPrefix;
+              } else {
+                return (unescapedPrefix = getTextBeforeCaret().replace(/\\[-."']/g, ''));
+              }
             },
-            f = function () {
+            'name',
+            { value: 'p', configurable: true },
+          ),
+          getTextBeforeCaret = Object.defineProperty(
+            function () {
               try {
                 var localRange = rangy.createRange();
-                return (
-                  localRange.setEnd(inputRange.startContainer, inputRange.startOffset),
-                  localRange.setStart(
-                    $(inputRange.startContainer).closest('[md-inline], [cid]')[0],
-                    0,
-                  ),
-                  localRange.toString()
+                localRange.setEnd(inputRange.startContainer, inputRange.startOffset);
+                localRange.setStart(
+                  $(inputRange.startContainer).closest('[md-inline], [cid]')[0],
+                  0,
                 );
+                return localRange.toString();
               } catch (error) {}
               return '';
             },
-            m = function (precedingCharacterCount, replacementText) {
+            'name',
+            { value: 'f', configurable: true },
+          ),
+          replacePrecedingCharacters = Object.defineProperty(
+            function (precedingCharacterCount, replacementText) {
               var insertionSelection = (function () {
                 var selectionSnapshot = editor.selection.buildUndo(inputRange),
                   textNode = document.createTextNode(typedCharacter);
-                return (
-                  inputRange.insertNode(textNode),
-                  inputRange.setStart(textNode, typedCharacter.length),
-                  inputRange.setEnd(textNode, typedCharacter.length),
-                  inputRange.select(),
-                  editor.undo.addSnap(targetNode.cid, SnapFlag.ADD),
-                  (selectionSnapshot.end = selectionSnapshot.start + 1),
-                  (selectionSnapshot.start = selectionSnapshot.end),
-                  selectionSnapshot
-                );
+                inputRange.insertNode(textNode);
+                inputRange.setStart(textNode, typedCharacter.length);
+                inputRange.setEnd(textNode, typedCharacter.length);
+                inputRange.select();
+                editor.undo.addSnap(targetNode.cid, SnapFlag.ADD);
+                selectionSnapshot.end = selectionSnapshot.start + 1;
+                selectionSnapshot.start = selectionSnapshot.end;
+                return selectionSnapshot;
               })();
-              (insertionSelection.start -= 1 + precedingCharacterCount),
-                editor.selection.restoreSelection(editor.findElemById(targetNode.cid)[0], {
-                  start: insertionSelection.end,
-                  end: insertionSelection.end,
-                });
+              insertionSelection.start -= 1 + precedingCharacterCount;
+              editor.selection.restoreSelection(editor.findElemById(targetNode.cid)[0], {
+                start: insertionSelection.end,
+                end: insertionSelection.end,
+              });
               var replacementRange = editor.selection.restoreSelection(
                 editor.findElemById(targetNode.cid)[0],
                 {
@@ -130,69 +148,117 @@ $__System.registerDynamic(
               );
               if (replacementRange) {
                 var currentTextNode = document.createTextNode(replacementText);
-                replacementRange.deleteContents(),
-                  replacementRange.insertNode(currentTextNode),
-                  replacementRange.setStartAndEnd(currentTextNode, replacementText.length),
-                  replacementRange.select();
+                replacementRange.deleteContents();
+                replacementRange.insertNode(currentTextNode);
+                replacementRange.setStartAndEnd(currentTextNode, replacementText.length);
+                replacementRange.select();
               }
               editor.undo.addSnap(targetNode.cid, SnapFlag.REPLACE);
             },
-            g = function (callbackRange, isSingleQuote) {
+            'name',
+            { value: 'm', configurable: true },
+          ),
+          isClosingQuoteContext = Object.defineProperty(
+            function (callbackRange, isSingleQuote) {
               var markElement = editor.getMarkElem(callbackRange.startContainer),
                 startOffset = editor.selection.getOffset(markElement, callbackRange);
-              return isSingleQuote
-                ? !(
+              if (isSingleQuote) {
+                return (
+                  !(
                     !range ||
                     range.startContainer != markElement[0] ||
                     range.startOffset != startOffset
-                  ) || ((range = { startContainer: markElement[0], startOffset: startOffset }), !1)
-                : !(
+                  ) ||
+                  ((range = { startContainer: markElement[0], startOffset: startOffset }), false)
+                );
+              } else {
+                return (
+                  !(
                     !currentRange ||
                     currentRange.startContainer != markElement[0] ||
                     currentRange.startOffset != startOffset
                   ) ||
-                    ((currentRange = { startContainer: markElement[0], startOffset: startOffset }),
-                    !1);
-            };
-          if (!File.option.convertSmartOnRender) {
-            if ('-' == typedCharacter && File.option.smartDash) {
-              if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) return;
-              var match;
-              if (/\\$/.exec(p())) return;
-              if ((match = /(--|–)$/.exec(p()))) return m(match[0].length, '—'), !0;
-              if (/-$/.exec(p())) return m(1, File.option.twoHyphensToEm ? '—' : '–'), !0;
+                  ((currentRange = { startContainer: markElement[0], startOffset: startOffset }),
+                  false)
+                );
+              }
+            },
+            'name',
+            { value: 'g', configurable: true },
+          );
+        if (!File.option.convertSmartOnRender) {
+          if ('-' == typedCharacter && File.option.smartDash) {
+            if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) {
+              return;
             }
-            if ('.' == typedCharacter && File.option.smartDash) {
-              if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) return;
-              if (/\\$/.exec(p())) return;
-              if (/\.\.$/.exec(p())) return m(2, '…'), !0;
+            var match;
+            if (/\\$/.exec(getUnescapedPrefix())) {
+              return;
             }
-            var useOpeningQuote;
-            if ("'" == typedCharacter && File.option.smartQuote) {
-              if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) return;
-              if (/\\$/.exec(p())) return;
-              return (
-                (useOpeningQuote = h(p(), !0)),
-                g(inputRange, !0) && ((range = null), (useOpeningQuote = !useOpeningQuote)),
-                useOpeningQuote
-                  ? (m(0, smartQuotes.userQuote(2)), !0)
-                  : (m(0, smartQuotes.userQuote(3)), !0)
-              );
+            if ((match = /(--|–)$/.exec(getUnescapedPrefix()))) {
+              replacePrecedingCharacters(match[0].length, '—');
+              return true;
             }
-            if ('"' == typedCharacter && File.option.smartQuote) {
-              if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) return;
-              if (/\\$/.exec(p())) return;
-              return (
-                (useOpeningQuote = h(p(), !1)),
-                g(inputRange, !1) && ((currentRange = null), (useOpeningQuote = !useOpeningQuote)),
-                useOpeningQuote
-                  ? (m(0, smartQuotes.userQuote(0, void 0, !0)), !0)
-                  : (m(0, smartQuotes.userQuote(1, void 0, !0)), !0)
-              );
+            if (/-$/.exec(getUnescapedPrefix())) {
+              replacePrecedingCharacters(1, File.option.twoHyphensToEm ? '—' : '–');
+              return true;
             }
           }
-        },
-      };
-    moduleRecord.exports = smartQuotes;
-  },
-);
+          if ('.' == typedCharacter && File.option.smartDash) {
+            if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) {
+              return;
+            }
+            if (/\\$/.exec(getUnescapedPrefix())) {
+              return;
+            }
+            if (/\.\.$/.exec(getUnescapedPrefix())) {
+              replacePrecedingCharacters(2, '…');
+              return true;
+            }
+          }
+          var useOpeningQuote;
+          if ("'" == typedCharacter && File.option.smartQuote) {
+            if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) {
+              return;
+            }
+            if (/\\$/.exec(getUnescapedPrefix())) {
+              return;
+            }
+            useOpeningQuote = shouldUseOpeningQuote(getUnescapedPrefix(), true);
+            if (isClosingQuoteContext(inputRange, true)) {
+              range = null;
+              useOpeningQuote = !useOpeningQuote;
+            }
+            if (useOpeningQuote) {
+              replacePrecedingCharacters(0, smartQuotes.userQuote(2));
+              return true;
+            } else {
+              replacePrecedingCharacters(0, smartQuotes.userQuote(3));
+              return true;
+            }
+          }
+          if ('"' == typedCharacter && File.option.smartQuote) {
+            if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) {
+              return;
+            }
+            if (/\\$/.exec(getUnescapedPrefix())) {
+              return;
+            }
+            useOpeningQuote = shouldUseOpeningQuote(getUnescapedPrefix(), false);
+            if (isClosingQuoteContext(inputRange, false)) {
+              currentRange = null;
+              useOpeningQuote = !useOpeningQuote;
+            }
+            if (useOpeningQuote) {
+              replacePrecedingCharacters(0, smartQuotes.userQuote(0, void 0, true));
+              return true;
+            } else {
+              replacePrecedingCharacters(0, smartQuotes.userQuote(1, void 0, true));
+              return true;
+            }
+          }
+        }
+      },
+    };
+  moduleRecord.exports = smartQuotes;
+}

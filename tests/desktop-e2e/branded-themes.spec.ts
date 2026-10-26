@@ -6,6 +6,7 @@ import {
   readyLayout,
   saveLayoutSource,
 } from './layout.helpers.js';
+import { waitForNativeUndo } from './native-menu.helpers.js';
 
 const source =
   '\uFEFF# MarkLyra Theme\r\n\r\nA **clear** document with a [link](https://example.com).\r\n\r\n> A quiet quotation with `inline code`.\r\n\r\n| Item | Value |\r\n| --- | --- |\r\n| Alpha | 42 |\r\n| Beta | 64 |\r\n\r\n- [x] A completed task\r\n- [ ] A task to do\r\n\r\n```javascript\r\nconst answer = 42; // A comment\r\nconsole.log("MarkLyra");\r\n```\r\n\r\n$$\r\nE = mc^2\r\n$$\r\n\r\n```mermaid\r\ngraph LR\r\n  Document --> Preview\r\n```\r\n';
@@ -56,6 +57,7 @@ test('the built-in pair shares layout, renders dark content clearly and is brand
     await table.locator('tbody tr:last-child td:last-child').click();
     await page.keyboard.press('Tab');
     await expect(table.locator('tbody tr')).toHaveCount(3);
+    await waitForNativeUndo(page);
     await emitLayoutMenu(page, 'undo');
     await expect(table.locator('tbody tr')).toHaveCount(2);
     if (theme === 'marklyra-dark') {

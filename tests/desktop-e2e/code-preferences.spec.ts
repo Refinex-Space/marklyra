@@ -1,5 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
-import type { LegacyEditor } from '../../packages/editor-runtime/src/runtime/legacy-types.js';
+import type {
+  LegacyConfigurableCodeMirror,
+  LegacyEditor,
+} from '../../packages/editor-runtime/src/runtime/legacy-types.js';
 import { installMock, type TestWindow } from './desktop.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 
@@ -8,15 +11,27 @@ type CodeWindow = Window & {
   File: { option: Record<string, unknown> };
 };
 const markdown = '\uFEFF```javascript\r\nconst value = 1;\r\n```\n';
-async function openCode(page: Page, id = 'code-a') {
+async function openCode(page: Page, id = 'code-a', reuseCurrent = false) {
   await page.evaluate(
-    ({ markdown, id }) => {
+    ({ markdown, id, reuseCurrent }) => {
       const mock = (window as TestWindow).__desktopMock;
       mock.nextDocument = { id, path: `/mock/${id}.md`, text: markdown, encoding: 'UTF-8 BOM' };
-      mock.emitMenu('open');
+      mock.emitMenu(reuseCurrent ? 'recent-open:00000000-0000-4000-8000-000000000001' : 'open');
     },
-    { markdown, id },
+    { markdown, id, reuseCurrent },
   );
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (documentId) =>
+          (window as TestWindow).__desktopMock.calls.some(
+            (call) =>
+              call.command === 'track_window_session' && call.args.documentId === documentId,
+          ),
+        id,
+      ),
+    )
+    .toBe(true);
   await expect(
     page.frameLocator('.marklyra-editor-frame').locator('#write .CodeMirror'),
   ).toHaveCount(1);
@@ -27,7 +42,12 @@ async function view(page: Page) {
     .locator('#write')
     .evaluate((area) => {
       const child = window as unknown as CodeWindow;
-      const cm = Object.values(child.editor.fences.queue ?? {})[0];
+      const cm = (
+        area.querySelector('.CodeMirror') as
+          | (HTMLElement & { CodeMirror?: LegacyConfigurableCodeMirror })
+          | null
+      )?.CodeMirror;
+      if (!cm) throw new Error('Missing current document code editor');
       return {
         global: {
           numbers: child.File.option.showLineNumbersForFence,
@@ -50,6 +70,21 @@ test('original code controls keep restart-only settings out of the current WebVi
 }) => {
   await page.addInitScript(installMock, { nativeChrome: true });
   await page.addInitScript(installRecoveryMock);
+  await page.addInitScript(() => {
+    if (window !== window.top) return;
+    const internal = Reflect.get(window, '__TAURI_INTERNALS__') as {
+      invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;
+    };
+    const previous = internal.invoke;
+    internal.invoke = (command, args = {}) => {
+      if (command === 'open_recent_file') {
+        const mock = (window as TestWindow).__desktopMock;
+        mock.calls.push({ command, args });
+        return Promise.resolve({ ...mock.nextDocument });
+      }
+      return previous(command, args);
+    };
+  });
   await page.goto('/');
   await expect(page.locator('main.document-area')).toHaveAttribute('aria-busy', 'false');
   await openCode(page);
@@ -94,8 +129,9 @@ test('original code controls keep restart-only settings out of the current WebVi
         noWrapClass: false,
       });
     expect(await instance?.evaluate((element) => element.isConnected)).toBe(true);
-    // Opening another file reuses the current WebView and its startup display values.
-    await openCode(page, 'code-b');
+    // Recent-file navigation replaces this document. The native Open command
+    // intentionally opens a new window once the current document has a path.
+    await openCode(page, 'code-b', true);
     await expect
       .poll(() => view(page))
       .toEqual({

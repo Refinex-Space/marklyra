@@ -1,70 +1,123 @@
 // codemirror/editor-extensions.
-// SystemJS module 25. Dependencies: 20, 1f, 21, 22, 23, 24.
-$__System.registerDynamic('25', ['20', '1f', '21', '22', '23', '24'], !0, function (e, t, n) {
-  this || self;
-  var i = e('20'),
-    r = (e('1f'), e('21'), e('22'), e('23'), e('24'), i.prototype.focus);
-  (i.prototype.focus = function () {
-    i.signal(this, 'focus', this), r.apply(this);
-  }),
-    window.webkit &&
-      (delete i.keyMap.emacsy['Alt-F'],
-      delete i.keyMap.emacsy['Alt-D'],
-      delete i.keyMap.emacsy['Alt-B']);
-  var o = i.Pos;
-  (i.commands.moveLineUp = function (e) {
-    if (e.isReadOnly()) return i.Pass;
-    for (
-      var t = e.listSelections(), n = [], r = e.firstLine() - 1, a = [], s = 0;
-      s < t.length;
-      s++
-    ) {
-      var l = t[s],
-        c = l.from().line - 1,
-        d = l.to().line;
-      a.push({ anchor: o(l.anchor.line - 1, l.anchor.ch), head: o(l.head.line - 1, l.head.ch) }),
-        0 != l.to().ch || l.empty() || --d,
-        c > r ? n.push(c, d) : n.length && (n[n.length - 1] = d),
-        (r = d);
+export default function initializeCodemirrorEditorExtensions(
+  requireModule,
+  moduleExports,
+  moduleRecord,
+) {
+  if (!this) {
+    self;
+  }
+  var CodeMirror = requireModule('libraries/codemirror'),
+    originalFocus =
+      (requireModule('codemirror/selection-markers'),
+      requireModule('codemirror/close-brackets'),
+      requireModule('codemirror/close-tags'),
+      requireModule('codemirror/overlay-mode'),
+      requireModule('codemirror/lint'),
+      CodeMirror.prototype.focus);
+  CodeMirror.prototype.focus = function () {
+    CodeMirror.signal(this, 'focus', this);
+    originalFocus.apply(this);
+  };
+  if (window.webkit) {
+    delete CodeMirror.keyMap.emacsy['Alt-F'];
+    delete CodeMirror.keyMap.emacsy['Alt-D'];
+    delete CodeMirror.keyMap.emacsy['Alt-B'];
+  }
+  var position = CodeMirror.Pos;
+  CodeMirror.commands.moveLineUp = function (editor) {
+    if (editor.isReadOnly()) {
+      return CodeMirror.Pass;
     }
-    e.operation(function () {
-      for (var t = 0; t < n.length; t += 2) {
-        var i = n[t],
-          r = n[t + 1],
-          s = e.getLine(i);
-        e.replaceRange('', o(i, 0), o(i + 1, 0), '+swapLine'),
-          r > e.lastLine()
-            ? e.replaceRange('\n' + s, o(e.lastLine()), null, '+swapLine')
-            : e.replaceRange(s + '\n', o(r, 0), null, '+swapLine');
-      }
-      e.setSelections(a), e.scrollIntoView();
-    });
-  }),
-    (i.commands.moveLineDown = function (e) {
-      if (e.isReadOnly()) return i.Pass;
-      for (
-        var t = e.listSelections(), n = [], r = e.lastLine() + 1, a = t.length - 1;
-        a >= 0;
-        a--
-      ) {
-        var s = t[a],
-          l = s.to().line + 1,
-          c = s.from().line;
-        0 != s.to().ch || s.empty() || l--,
-          l < r ? n.push(l, c) : n.length && (n[n.length - 1] = c),
-          (r = c);
-      }
-      e.operation(function () {
-        for (var t = n.length - 2; t >= 0; t -= 2) {
-          var i = n[t],
-            r = n[t + 1],
-            a = e.getLine(i);
-          i == e.lastLine()
-            ? e.replaceRange('', o(i - 1), o(i), '+swapLine')
-            : e.replaceRange('', o(i, 0), o(i + 1, 0), '+swapLine'),
-            e.replaceRange(a + '\n', o(r, 0), null, '+swapLine');
-        }
-        e.scrollIntoView();
+    for (
+      var selections = editor.listSelections(),
+        linePairs = [],
+        lastAffectedLine = editor.firstLine() - 1,
+        nextSelections = [],
+        selectionIndex = 0;
+      selectionIndex < selections.length;
+      selectionIndex++
+    ) {
+      var selection = selections[selectionIndex],
+        precedingLine = selection.from().line - 1,
+        lastSelectedLine = selection.to().line;
+      nextSelections.push({
+        anchor: position(selection.anchor.line - 1, selection.anchor.ch),
+        head: position(selection.head.line - 1, selection.head.ch),
       });
+      if (!(0 != selection.to().ch || selection.empty())) {
+        --lastSelectedLine;
+      }
+      if (precedingLine > lastAffectedLine) {
+        linePairs.push(precedingLine, lastSelectedLine);
+      } else {
+        if (linePairs.length) {
+          linePairs[linePairs.length - 1] = lastSelectedLine;
+        }
+      }
+      lastAffectedLine = lastSelectedLine;
+    }
+    editor.operation(function () {
+      for (var pairIndex = 0; pairIndex < linePairs.length; pairIndex += 2) {
+        var sourceLine = linePairs[pairIndex],
+          targetLine = linePairs[pairIndex + 1],
+          lineText = editor.getLine(sourceLine);
+        editor.replaceRange('', position(sourceLine, 0), position(sourceLine + 1, 0), '+swapLine');
+        if (targetLine > editor.lastLine()) {
+          editor.replaceRange('\n' + lineText, position(editor.lastLine()), null, '+swapLine');
+        } else {
+          editor.replaceRange(lineText + '\n', position(targetLine, 0), null, '+swapLine');
+        }
+      }
+      editor.setSelections(nextSelections);
+      editor.scrollIntoView();
     });
-});
+  };
+  CodeMirror.commands.moveLineDown = function (editor) {
+    if (editor.isReadOnly()) {
+      return CodeMirror.Pass;
+    }
+    for (
+      var selections = editor.listSelections(),
+        linePairs = [],
+        lastAffectedLine = editor.lastLine() + 1,
+        selectionIndex = selections.length - 1;
+      selectionIndex >= 0;
+      selectionIndex--
+    ) {
+      var selection = selections[selectionIndex],
+        followingLine = selection.to().line + 1,
+        firstSelectedLine = selection.from().line;
+      if (!(0 != selection.to().ch || selection.empty())) {
+        followingLine--;
+      }
+      if (followingLine < lastAffectedLine) {
+        linePairs.push(followingLine, firstSelectedLine);
+      } else {
+        if (linePairs.length) {
+          linePairs[linePairs.length - 1] = firstSelectedLine;
+        }
+      }
+      lastAffectedLine = firstSelectedLine;
+    }
+    editor.operation(function () {
+      for (var pairIndex = linePairs.length - 2; pairIndex >= 0; pairIndex -= 2) {
+        var sourceLine = linePairs[pairIndex],
+          targetLine = linePairs[pairIndex + 1],
+          lineText = editor.getLine(sourceLine);
+        if (sourceLine == editor.lastLine()) {
+          editor.replaceRange('', position(sourceLine - 1), position(sourceLine), '+swapLine');
+        } else {
+          editor.replaceRange(
+            '',
+            position(sourceLine, 0),
+            position(sourceLine + 1, 0),
+            '+swapLine',
+          );
+        }
+        editor.replaceRange(lineText + '\n', position(targetLine, 0), null, '+swapLine');
+      }
+      editor.scrollIntoView();
+    });
+  };
+}

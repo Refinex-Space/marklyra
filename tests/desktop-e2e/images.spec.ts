@@ -472,7 +472,10 @@ test('Word export hands the converter Markdown with the document images embedded
   page,
 }) => {
   await start(page, '# Title\n\n![pic](assets/pic.png)\n');
-  await expect(child(page).locator('#write img').first()).toHaveAttribute('src', /^data:image\/png/);
+  await expect(child(page).locator('#write img').first()).toHaveAttribute(
+    'src',
+    /^data:image\/png/,
+  );
   await page.evaluate(() => (window as ImageWindow).__imageMock.menu('export-docx'));
   await expect
     .poll(async () => (await calls(page, 'save_export_format')).length, { timeout: 30_000 })

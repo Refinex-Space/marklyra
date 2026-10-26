@@ -22,6 +22,29 @@ async function link(page: Page, text = '打开说明') {
   await frame(page).getByRole('link', { name: text, exact: true }).click();
 }
 
+test('link hint translates its title after the initial dictionary request fails', async ({
+  page,
+}, info) => {
+  let requests = 0;
+  await page.route('**/locales/zh-Hans.lproj/Front.json', async (route) => {
+    if (++requests === 1) await route.abort('timedout');
+    else await route.continue();
+  });
+  await installLayout(page);
+  await readyLayout(page, 'marklyra-light');
+  await openLayoutDocument(page, source);
+  const history = await layoutHistory(page);
+  await link(page);
+  const title = frame(page).locator('#md-notification .marklyra-enter-mode-warning-header');
+  await expect(title).toContainText('您可以按下');
+  await expect(title).toContainText('点击');
+  await expect(title.locator('strong')).toContainText('点击');
+  await expect(title.locator('a')).toHaveText('此链接');
+  expect(requests).toBeGreaterThanOrEqual(2);
+  expect(await layoutHistory(page)).toEqual(history);
+  await saveLayoutSource(page, info, 'dictionary-retry', source);
+});
+
 for (const theme of layoutThemes) {
   test(`${theme}: link hint text and right-aligned actions stay above both sidebars and suppression survives reload`, async ({
     page,

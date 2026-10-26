@@ -1,19 +1,23 @@
 // editing/emoji.
-// SystemJS module 5a. Dependencies: e.
-$__System.registerDynamic('5a', ['e'], !0, function (requireModule, moduleExports, moduleRecord) {
+export default function initializeEditingEmoji(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  this || self;
-  var jquery = requireModule('e');
-  class r {
+  if (!this) {
+    self;
+  }
+  var jquery = requireModule('libraries/jquery');
+  class EmojiCompletion {
     constructor(editor) {
-      (this.editor = editor),
-        setTimeout(function () {
-          jquery.getScript('./appsrc/editor/EmojiSearchMap.js', function () {
-            var EmojiSearchMap = window.EmojiSearchMap;
-            for (var emojiName in r.data)
-              EmojiSearchMap[emojiName] || (EmojiSearchMap[emojiName] = [emojiName]);
-          });
-        }, 1e3);
+      this.editor = editor;
+      setTimeout(function () {
+        jquery.getScript('./appsrc/editor/EmojiSearchMap.js', function () {
+          var EmojiSearchMap = window.EmojiSearchMap;
+          for (var emojiName in EmojiCompletion.data) {
+            if (!EmojiSearchMap[emojiName]) {
+              EmojiSearchMap[emojiName] = [emojiName];
+            }
+          }
+        });
+      }, 1e3);
     }
     autoCompleteOption() {
       return {
@@ -24,15 +28,17 @@ $__System.registerDynamic('5a', ['e'], !0, function (requireModule, moduleExport
           "' data-content='" +
           text +
           "' ><span class='marklyra-emoji-icon'>" +
-          r.data[text.replace(/:/g, '')] +
+          EmojiCompletion.data[text.replace(/:/g, '')] +
           "</span><span class='emoji-meta'>" +
           text +
           '</span></li>',
       };
     }
     search(itemIndex, unusedParameter2) {
-      if (!itemIndex) return [];
-      var keys = Object.keys(r.data);
+      if (!itemIndex) {
+        return [];
+      }
+      var keys = Object.keys(EmojiCompletion.data);
       keys.sort();
       var filteredItems = keys.filter((item) => 0 === item.indexOf(itemIndex));
       try {
@@ -47,21 +53,25 @@ $__System.registerDynamic('5a', ['e'], !0, function (requireModule, moduleExport
           ),
         );
       } catch (error) {}
-      if (
-        (r.data[itemIndex] && filteredItems.unshift(itemIndex),
-        (keywordSuggestions = (window.EmojiSearchMap || {})[itemIndex]))
-      )
+      if (EmojiCompletion.data[itemIndex]) {
+        filteredItems.unshift(itemIndex);
+      }
+      if ((keywordSuggestions = (window.EmojiSearchMap || {})[itemIndex])) {
         for (
           var currentItemIndex = 0;
           currentItemIndex < keywordSuggestions.length;
           currentItemIndex++
-        )
-          -1 == filteredItems.indexOf(keywordSuggestions[currentItemIndex]) &&
+        ) {
+          if (-1 == filteredItems.indexOf(keywordSuggestions[currentItemIndex])) {
             filteredItems.push(keywordSuggestions[currentItemIndex]);
+          }
+        }
+      }
       return filteredItems.map((item) => ':' + item + ':');
     }
   }
-  (r.data = {
+  Object.defineProperty(EmojiCompletion, 'name', { value: 'r', configurable: true });
+  EmojiCompletion.data = {
     100: '💯',
     1234: '🔢',
     grinning: '😀',
@@ -1542,7 +1552,7 @@ $__System.registerDynamic('5a', ['e'], !0, function (requireModule, moduleExport
     yemen: '🇾🇪',
     zambia: '🇿🇲',
     zimbabwe: '🇿🇼',
-  }),
-    (r.data.happy = r.data.smile),
-    (moduleRecord.exports = r);
-});
+  };
+  EmojiCompletion.data.happy = EmojiCompletion.data.smile;
+  moduleRecord.exports = EmojiCompletion;
+}

@@ -103,14 +103,17 @@ for (const host of ['windows', 'macos'] as const) {
           };
           const centerX = (rect: DOMRect) => rect.left + rect.width / 2;
           const centerY = (rect: DOMRect) => rect.top + rect.height / 2;
+          const header = box('.workspace-navigation-header');
           const root = box('.workspace-navigation-header .workspace-root-row > .workspace-glyph');
+          const firstRow = box('button[data-entry-path="Big"]');
           const first = box('button[data-entry-path="Big"] > .workspace-glyph');
           const second = box('button[data-entry-path="Empty"] > .workspace-glyph');
           const parent = box('button[data-entry-path="Folder"] > .workspace-glyph');
           const child = box('button[data-entry-path="Folder/Inner"] > .workspace-glyph');
           const search = box('.sidebar-header-action[aria-label="全文搜索"] .ui-icon');
           return {
-            rootGap: centerY(first) - centerY(root),
+            headerGap: firstRow.top - header.bottom,
+            rowHeight: firstRow.height,
             rowGap: centerY(second) - centerY(first),
             firstIndent: first.left - centerX(root),
             nestedIndent: child.left - parent.left,
@@ -124,7 +127,9 @@ for (const host of ['windows', 'macos'] as const) {
             }),
           };
         });
-        expect(Math.abs(geometry.rootGap - geometry.rowGap)).toBeLessThanOrEqual(1);
+        // The 40px navigation row is taller than a tree row; their edges stay contiguous.
+        expect(Math.abs(geometry.headerGap)).toBeLessThanOrEqual(1);
+        expect(Math.abs(geometry.rowHeight - geometry.rowGap)).toBeLessThanOrEqual(1);
         expect(Math.abs(geometry.firstIndent)).toBeLessThanOrEqual(1);
         expect(geometry.nestedIndent).toBe(8);
         for (const number of geometry.counts) {

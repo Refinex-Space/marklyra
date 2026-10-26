@@ -41,7 +41,9 @@ export function sameValue(left: unknown, right: unknown): boolean {
     const b = Object.entries(right);
     return (
       a.length === b.length &&
-      a.every(([key, value]) => Object.hasOwn(right, key) && sameValue(value, Reflect.get(right, key)))
+      a.every(
+        ([key, value]) => Object.hasOwn(right, key) && sameValue(value, Reflect.get(right, key)),
+      )
     );
   }
   return left === right;

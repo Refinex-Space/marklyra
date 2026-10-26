@@ -101,14 +101,22 @@ export type TestWindow = Window & typeof globalThis & { __desktopMock: DesktopMo
 export function installMock(
   configuration:
     | string
-    | { label?: string; nativeChrome?: boolean; titlebar?: 'appkit' | 'web'; home?: boolean } = 'main',
+    | {
+        label?: string;
+        nativeChrome?: boolean;
+        titlebar?: 'appkit' | 'web';
+        home?: boolean;
+        /** Omit to keep the product default; manual-save scenarios opt out explicitly. */
+        autoSave?: boolean;
+      } = 'main',
 ) {
   if (window !== window.top) return;
   const windowLabel =
     typeof configuration === 'string' ? configuration : (configuration.label ?? 'main');
   const nativeChrome = typeof configuration === 'object' && configuration.nativeChrome === true;
   // 'web' models the Windows host: the WebView draws titlebar, menu entry points and caption buttons.
-  const titlebar = typeof configuration === 'object' ? (configuration.titlebar ?? 'appkit') : 'appkit';
+  const titlebar =
+    typeof configuration === 'object' ? (configuration.titlebar ?? 'appkit') : 'appkit';
   // Most specs exercise the editor itself. They start where a person lands after pressing
   // "新建笔记" on the home view; only specs about the home view itself pass `home: true`.
   if (!(typeof configuration === 'object' && configuration.home === true)) {
@@ -141,7 +149,14 @@ export function installMock(
       pandocPath: '',
     },
     exportPreferencesError: null,
-    applicationPreferences: { schemaVersion: 1, revision: 0, values: {} },
+    applicationPreferences: {
+      schemaVersion: 1,
+      revision: 0,
+      values:
+        typeof configuration === 'object' && typeof configuration.autoSave === 'boolean'
+          ? { enableAutoSave: configuration.autoSave }
+          : {},
+    },
     markdownPreferences: { schemaVersion: 1, revision: 0, indentSize: 2, prettyIndent: false },
     startupBoot: { document: null, workspace: null, warnings: [] },
     filePreferences: {
@@ -261,7 +276,8 @@ export function installMock(
     if (command === 'choose_pandoc_path') {
       if (mock.selectedPandocPath === null) return null;
       const before = storedExportPreferences();
-      if (before.revision !== args.expectedRevision) throw Error('导出设置已由其它窗口修改，请重新打开设置');
+      if (before.revision !== args.expectedRevision)
+        throw Error('导出设置已由其它窗口修改，请重新打开设置');
       return commitExportPreferences({
         ...before,
         revision: before.revision + 1,
@@ -271,7 +287,8 @@ export function installMock(
     if (command === 'choose_export_path') {
       if (mock.chosenPath === null) return null;
       const before = storedExportPreferences();
-      if (before.revision !== args.expectedRevision) throw Error('导出设置已由其它窗口修改，请重新打开设置');
+      if (before.revision !== args.expectedRevision)
+        throw Error('导出设置已由其它窗口修改，请重新打开设置');
       const target = args.target as { kind: string; format?: string };
       const next = structuredClone(before);
       if (target.kind === 'folder') {
@@ -290,7 +307,11 @@ export function installMock(
           if (!entry) throw Error('自定义导出不存在');
           entry.options = { ...entry.options, [field]: path };
         } else {
-          if (!['docx', 'odt', 'rtf', 'epub', 'latex', 'wiki', 'rst', 'textile', 'opml'].includes(format))
+          if (
+            !['docx', 'odt', 'rtf', 'epub', 'latex', 'wiki', 'rst', 'textile', 'opml'].includes(
+              format,
+            )
+          )
             throw Error('导出格式未知');
           next.formats[format] = { ...next.formats[format], [field]: path };
         }
@@ -323,10 +344,26 @@ export function installMock(
         '--strip-comments',
         '--eol',
       ]);
-      const flags = new Set(['--toc', '--table-of-contents', '--number-sections', '--preserve-tabs', '--reference-links', '--section-divs', '--ascii', '--strip-comments']);
-      const short: Record<string, string> = { N: '--number-sections', V: '--variable', M: '--metadata', p: '--preserve-tabs' };
+      const flags = new Set([
+        '--toc',
+        '--table-of-contents',
+        '--number-sections',
+        '--preserve-tabs',
+        '--reference-links',
+        '--section-divs',
+        '--ascii',
+        '--strip-comments',
+      ]);
+      const short: Record<string, string> = {
+        N: '--number-sections',
+        V: '--variable',
+        M: '--metadata',
+        p: '--preserve-tabs',
+      };
       const text = String(args.text ?? '');
-      const tokens = [...text.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map((m) => m[1] ?? m[2] ?? m[3] ?? '');
+      const tokens = [...text.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map(
+        (m) => m[1] ?? m[2] ?? m[3] ?? '',
+      );
       const result: string[] = [];
       for (let index = 0; index < tokens.length; index++) {
         const token = tokens[index] ?? '';
@@ -352,7 +389,8 @@ export function installMock(
           value = tokens[++index];
           if (value === undefined) throw Error(`选项 ${name} 缺少值`);
         }
-        if (name === '--toc-depth' && !/^[1-6]$/.test(value)) throw Error(`选项 ${name} 的值“${value}”无效`);
+        if (name === '--toc-depth' && !/^[1-6]$/.test(value))
+          throw Error(`选项 ${name} 的值“${value}”无效`);
         result.push(`${name}=${value}`);
       }
       return result;
@@ -382,7 +420,8 @@ export function installMock(
         throw Error(message);
       }
       const before = storedExportPreferences();
-      if (before.revision !== args.expectedRevision) throw Error('导出设置已由其它窗口修改，请重新打开设置');
+      if (before.revision !== args.expectedRevision)
+        throw Error('导出设置已由其它窗口修改，请重新打开设置');
       const change = args.change as { key: string; value: unknown };
       const fields: Record<string, keyof CompleteExportPreferences> = {
         'export.general': 'general',
@@ -492,7 +531,8 @@ export function installMock(
     if (command === 'initialise_editor_chrome')
       return { native: nativeChrome, titlebar, preferencesWindow: nativeChrome };
     if (command === 'list_app_menu') return menuTitles;
-    if (command === 'plugin:window|is_maximized') return Reflect.get(window, '__testMaximized') === true;
+    if (command === 'plugin:window|is_maximized')
+      return Reflect.get(window, '__testMaximized') === true;
     if (command === 'editor_runtime_url') return 'http://127.0.0.1:4174/index.html';
     if (command === 'reset_dialog_warnings') return null;
     if (command === 'system_appearance_dark')

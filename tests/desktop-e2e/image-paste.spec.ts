@@ -37,10 +37,15 @@ test('desktop native image clipboard respects saved storage preference and exact
     Reflect.set(window, '__nativeImagePng', canvas.toDataURL('image/png').split(',')[1]);
   });
   await page.getByRole('button', { name: '打开', exact: true }).click();
+  const frame = page.frameLocator('#root main.document-area .marklyra-editor-frame');
+  await expect(page.locator('#root .document-title')).toHaveText('A.md');
+  await expect(page.locator('#root .document-title')).toHaveAttribute('title', '/mock/A.md');
+  await expect(frame.locator('#write')).toBeVisible();
+  await expect(frame.locator('#write')).toHaveText('Alpha');
+  await expect(page.locator('#root main.document-area')).toHaveAttribute('aria-busy', 'false');
   await page.getByRole('button', { name: '偏好设置', exact: true }).click();
   await page.getByLabel('图片保存位置', { exact: true }).selectOption('${filename}.assets');
   await page.getByRole('button', { name: '完成', exact: true }).click();
-  const frame = page.frameLocator('.marklyra-editor-frame');
   await frame.locator('#write p').click();
   await frame.locator('#write p').evaluate((element) => {
     const range = document.createRange();

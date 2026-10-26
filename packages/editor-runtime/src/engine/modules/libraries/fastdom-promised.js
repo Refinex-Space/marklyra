@@ -1,45 +1,61 @@
-// libraries/fastdom-promised.
-// SystemJS module c. Dependencies: none.
-(function () {
-  var e = {
-    initialize: function () {
-      this._tasks = new Map();
-    },
-    mutate: function (e, n) {
-      return t(this, 'mutate', e, n);
-    },
-    measure: function (e, n) {
-      return t(this, 'measure', e, n);
-    },
-    clear: function (e) {
-      var t = this._tasks,
-        n = t.get(e);
-      this.fastdom.clear(n), t.delete(n);
-    },
-  };
-  function t(e, t, n, i) {
-    var r,
-      o = e._tasks,
-      a = e.fastdom,
-      s = new Promise(function (e, l) {
-        r = a[t](function () {
-          o.delete(s);
-          try {
-            e(i ? n.call(i) : n());
-          } catch (e) {
-            l(e);
-          }
-        }, i);
-      });
-    return o.set(s, r), s;
-  }
-  'f' == 'function'[0]
-    ? $__System.registerDynamic('c', [], !1, function (t, n, i) {
-        return function () {
-          return e;
-        }.call(this);
-      })
-    : 'o' == (typeof module)[0]
-      ? (module.exports = e)
-      : (window.fastdomPromised = e);
-})();
+// Install this compatibility library in the supplied engine environment.
+export default function installLibrariesFastdomPromised(engineModules, vendorScope) {
+  // libraries/fastdom-promised.
+  // Vendor adapter; version and local behavior are preserved.
+  (function () {
+    Object.defineProperty(schedulePromise, 'name', { value: 't', configurable: true });
+
+    var promisedExtension = {
+      initialize: function () {
+        this._tasks = new Map();
+      },
+      mutate: function (callback, context) {
+        return schedulePromise(this, 'mutate', callback, context);
+      },
+      measure: function (callback, context) {
+        return schedulePromise(this, 'measure', callback, context);
+      },
+      clear: function (promise) {
+        var tasks = this._tasks,
+          task = tasks.get(promise);
+        this.fastdom.clear(task);
+        tasks.delete(task);
+      },
+    };
+    function schedulePromise(scheduler, taskType, callback, context) {
+      var task,
+        tasks = scheduler._tasks,
+        fastdom = scheduler.fastdom,
+        promise = new Promise(function (resolvePromise, rejectPromise) {
+          task = fastdom[taskType](function () {
+            tasks.delete(promise);
+            try {
+              resolvePromise(context ? callback.call(context) : callback());
+            } catch (error) {
+              rejectPromise(error);
+            }
+          }, context);
+        });
+      tasks.set(promise, task);
+      return promise;
+    }
+    if ('f' == 'function'[0]) {
+      engineModules.define(
+        'libraries/fastdom-promised',
+        [],
+        false,
+        function (requireModule, moduleExports, moduleRecord) {
+          return function () {
+            return promisedExtension;
+          }.call(this);
+        },
+      );
+    } else {
+      if ('o' == (typeof vendorScope.commonJsModule)[0]) {
+        vendorScope.commonJsModule.exports = promisedExtension;
+      } else {
+        window.fastdomPromised = promisedExtension;
+      }
+    }
+  })();
+}

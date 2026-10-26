@@ -1,65 +1,72 @@
 // editing/table-row-move.
-// SystemJS module 54. Dependencies: e, 13, 1b, 2c, 37, 27.
-$__System.registerDynamic(
-  '54',
-  ['e', '13', '1b', '2c', '37', '27'],
-  !0,
-  function (requireModule, moduleExports, moduleRecord) {
-    this || self;
-    var jquery = requireModule('e'),
-      documentModel = requireModule('13'),
-      NodeType = documentModel.TYPE,
-      DocumentNode = documentModel.Node,
-      undoManager = requireModule('1b');
-    requireModule('2c'), requireModule('37'), requireModule('27').map;
-    moduleExports.moveRowUpOrDown = function e(moveUp, documentNode, inputDocumentNode) {
+export default function initializeEditingTableRowMove(requireModule, moduleExports, moduleRecord) {
+  if (!this) {
+    self;
+  }
+  var jquery = requireModule('libraries/jquery'),
+    documentModel = requireModule('model/document-model'),
+    NodeType = documentModel.TYPE,
+    DocumentNode = documentModel.Node,
+    undoManager = requireModule('editing/undo-manager');
+  requireModule('host/environment');
+  requireModule('ui/document-menu');
+  requireModule('editing/keyboard-shortcuts').map;
+  moduleExports.moveRowUpOrDown = Object.defineProperty(
+    function moveTableRow(moveUp, documentNode, inputDocumentNode) {
       var editor = File.editor,
         element = jquery(document.activeElement).closest('.CodeMirror');
-      if (element.length)
-        return (
-          (cm = element[0].CodeMirror),
-          void (moveUp
-            ? editor.sourceView.cm.execCommand('moveLineUp')
-            : editor.sourceView.cm.execCommand('moveLineDown'))
-        );
+      if (element.length) {
+        cm = element[0].CodeMirror;
+        return void (moveUp
+          ? editor.sourceView.cm.execCommand('moveLineUp')
+          : editor.sourceView.cm.execCommand('moveLineDown'));
+      }
       var range = editor.selection.getRangy();
       if (range && !File.isLocked) {
         if (
           jquery(range.commonAncestorContainer).closest("[mdtype='table_row']").closest('tr').length
-        )
-          return editor.tableEdit.moveRowUpOrDown(moveUp), !0;
+        ) {
+          editor.tableEdit.moveRowUpOrDown(moveUp);
+          return true;
+        }
         if (!documentNode) {
           var currentElement = editor.getMarkElem(range.startContainer),
             localElement = editor.getMarkElem(range.endContainer);
-          (documentNode = editor.getNode(currentElement.attr('cid'))),
-            (inputDocumentNode = editor.getNode(localElement.attr('cid')));
+          documentNode = editor.getNode(currentElement.attr('cid'));
+          inputDocumentNode = editor.getNode(localElement.attr('cid'));
           var treePosition = DocumentNode.getTreePosition(documentNode, inputDocumentNode);
-          (documentNode = treePosition[1]), (inputDocumentNode = treePosition[2]);
+          documentNode = treePosition[1];
+          inputDocumentNode = treePosition[2];
         }
         var rangeEndExclusive = inputDocumentNode && inputDocumentNode.get('after');
         if (documentNode) {
           var adjacentBlock = moveUp ? documentNode.get('before') : inputDocumentNode.get('after');
-          if (!adjacentBlock)
-            return (
-              (inputDocumentNode = documentNode = documentNode.get('parent')),
-              documentNode ? e(moveUp, documentNode, inputDocumentNode) : void 0
-            );
-          editor.undo.endSnap(!0);
+          if (!adjacentBlock) {
+            inputDocumentNode = documentNode = documentNode.get('parent');
+            if (documentNode) {
+              return moveTableRow(moveUp, documentNode, inputDocumentNode);
+            } else {
+              return void 0;
+            }
+          }
+          editor.undo.endSnap(true);
           for (
             var selectionUndo = editor.selection.buildUndo(),
               moveCommand = undoManager.makeEmptyCommand(selectionUndo),
               currentDocumentNode = documentNode;
             currentDocumentNode && currentDocumentNode != rangeEndExclusive;
-          )
-            editor.findElemById(currentDocumentNode.id).remove(),
-              (currentDocumentNode = currentDocumentNode.get('after'));
+          ) {
+            editor.findElemById(currentDocumentNode.id).remove();
+            currentDocumentNode = currentDocumentNode.get('after');
+          }
           var items = (function (firstBlock, endExclusive) {
               for (
                 var currentItems = [], localDocumentNode = firstBlock;
                 localDocumentNode && localDocumentNode != endExclusive;
-              )
-                currentItems.push(localDocumentNode),
-                  (localDocumentNode = localDocumentNode.get('after'));
+              ) {
+                currentItems.push(localDocumentNode);
+                localDocumentNode = localDocumentNode.get('after');
+              }
               return currentItems;
             })(documentNode, rangeEndExclusive),
             movedHtml = items
@@ -67,22 +74,27 @@ $__System.registerDynamic(
                 return item.toHTML();
               })
               .join('\n');
-          undoManager.addUndoForRemoveArray(moveCommand, items),
-            moveUp
-              ? (adjacentBlock.addBeforeTillEnd(documentNode, inputDocumentNode),
-                editor.findElemById(adjacentBlock.id).before(movedHtml))
-              : (adjacentBlock.addAfterTillEnd(documentNode, inputDocumentNode),
-                editor.findElemById(adjacentBlock.id).after(movedHtml)),
-            undoManager.addUndoForInsertArray(moveCommand, items),
-            moveCommand.redo.push(selectionUndo),
-            editor.undo.exeCommand(selectionUndo),
-            editor.undo.register(moveCommand),
-            DocumentNode.isType(documentNode.get('parent'), NodeType.blockquote) &&
-              (editor.brush.brushNode(documentNode.id),
-              editor.brush.brushNode(documentNode.get('parent').getFirstChild().id),
-              editor.undo.exeCommand(selectionUndo));
+          undoManager.addUndoForRemoveArray(moveCommand, items);
+          if (moveUp) {
+            adjacentBlock.addBeforeTillEnd(documentNode, inputDocumentNode);
+            editor.findElemById(adjacentBlock.id).before(movedHtml);
+          } else {
+            adjacentBlock.addAfterTillEnd(documentNode, inputDocumentNode);
+            editor.findElemById(adjacentBlock.id).after(movedHtml);
+          }
+          undoManager.addUndoForInsertArray(moveCommand, items);
+          moveCommand.redo.push(selectionUndo);
+          editor.undo.exeCommand(selectionUndo);
+          editor.undo.register(moveCommand);
+          if (DocumentNode.isType(documentNode.get('parent'), NodeType.blockquote)) {
+            editor.brush.brushNode(documentNode.id);
+            editor.brush.brushNode(documentNode.get('parent').getFirstChild().id);
+            editor.undo.exeCommand(selectionUndo);
+          }
         }
       }
-    };
-  },
-);
+    },
+    'name',
+    { value: 'e', configurable: true },
+  );
+}
