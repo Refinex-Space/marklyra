@@ -130,7 +130,7 @@ const copyOnly = new Set<ContextAction>([
   'image.preview',
 ]);
 
-/** An authored capability boundary over runtime commands. Original menu tokens
+/** An authored capability boundary over runtime commands. Menu tokens
  * choose finite groups; callbacks, selectors and document bookmarks never leave the frame. */
 export class RuntimeContextMenu {
   private binding: Binding | undefined;
@@ -302,7 +302,7 @@ export class RuntimeContextMenu {
           stamp = { ...this.deps.stamp() },
           eventEditor = this.deps.runtime.editor,
           sourceMode = eventEditor?.sourceView.inSourceMode;
-        // Microtasks can run between native event listeners, before the original
+        // Microtasks can run between native event listeners, before the
         // jQuery handler. Only classify a missing bridge offer after that task.
         setTimeout(() => {
           const current = this.deps.stamp();
@@ -344,7 +344,7 @@ export class RuntimeContextMenu {
         previewTarget && previewNode?.get('type') === 'math_block'
           ? { target: previewTarget, node: previewNode, mark: previewNode.toMark() }
           : undefined;
-    // Capture after the original event task has completed its selection changes.
+    // Capture after the event task has completed its selection changes.
     setTimeout(() => {
       const current = this.deps.stamp();
       if (
@@ -404,8 +404,8 @@ export class RuntimeContextMenu {
         });
     }, 0);
   }
-  /** The host restores captured CM ranges itself. Do not let the original
-   * delayed single-range replay overwrite a consumed menu or a newer edit. */
+  /** The host restores captured CM ranges itself. Do not let the delayed single-range
+   * replay overwrite a consumed menu or a newer edit. */
   replaySourceContext(cm: unknown, event: unknown, execute: () => unknown): unknown {
     const original =
       event && typeof event === 'object' ? Reflect.get(event, 'originalEvent') : undefined;
@@ -460,7 +460,7 @@ export class RuntimeContextMenu {
     this.abort?.abort();
     this.abort = undefined;
   }
-  /** Only bridge writes made within our synchronous original copy invocation. */
+  /** Only bridge writes made within our synchronous copy invocation. */
   captureClipboardWrite(data: unknown): boolean {
     if (!this.collecting) return false;
     if (!data || typeof data !== 'object') throw Error('无效的原剪贴板数据');
@@ -551,7 +551,7 @@ export class RuntimeContextMenu {
       };
     }
     if (binding.preview && request.actionId.startsWith('block.')) {
-      // Rebind the original command's private target to the proven stable block;
+      // Rebind the command's private target to the proven stable block;
       // MathJax may have retired the SVG node captured by its context handler.
       binding.editor.contextMenu.getMenuItemsForMac(binding.target);
     } else this.restore(binding);
@@ -612,7 +612,7 @@ export class RuntimeContextMenu {
         const title = image?.getAttribute('title') ?? '';
         if (request.actionId === 'image.toMarkdown' && title) {
           // The shipped HTML-to-Markdown helper reads an unrelated free `title`
-          // variable. Preserve actual metadata through the original selected
+          // variable. Preserve actual metadata through the selected
           // inline replacement transaction instead of dropping the title.
           const alt = image?.getAttribute('alt') ?? '';
           if (/[\r\n]/.test(title + alt)) throw Error('此多行图片标题暂不支持安全转换');
@@ -769,7 +769,7 @@ export class RuntimeContextMenu {
       return;
     }
     if (selection.cm && cut.binding.codeLines) {
-      // Preserve the original empty carets as the history's selection-before.
+      // Preserve the captured empty carets as the history's selection-before.
       // Selecting whole lines first would make Undo restore those temporary ranges.
       const cm = selection.cm;
       const codeLines = cut.binding.codeLines;
@@ -944,7 +944,7 @@ export class RuntimeContextMenu {
     const firstRange = first === undefined ? undefined : lines.get(first);
     return {
       value,
-      // The original textarea copy path selects its DOM value, whose newline
+      // The source textarea copy path selects its DOM value, whose newline
       // normalization differs from cut's direct clipboardData Text write.
       text: copying && inputStyle === 'textarea' ? combined.replace(/\r\n?/g, '\n') : combined,
       origin: inputStyle === 'textarea' ? 'cut-line' : 'cut',

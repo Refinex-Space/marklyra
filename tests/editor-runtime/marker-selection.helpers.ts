@@ -36,7 +36,7 @@ export async function settleMarkerClick(page: Page): Promise<void> {
       return handle;
     }) as typeof window.setTimeout;
   });
-  // Clicking the link itself opens the original link editor. Use plain Alpha.
+  // Clicking the link itself opens the link editor. Use plain Alpha.
   await frame.locator('#write > p > [md-inline="plain"]').first().click();
   await settleMarkerClickTasks(page);
 }

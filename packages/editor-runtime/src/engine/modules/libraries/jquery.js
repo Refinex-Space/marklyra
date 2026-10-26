@@ -21,59 +21,6 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
     }
   })('undefined' != typeof window ? window : this, function (window, noGlobal) {
     'use strict';
-    Object.defineProperty(DOMEval, 'name', { value: 'y', configurable: true });
-    Object.defineProperty(toType, 'name', { value: 'b', configurable: true });
-    Object.defineProperty(isArrayLike, 'name', { value: 'C', configurable: true });
-    Object.defineProperty(nodeName, 'name', { value: 'T', configurable: true });
-    Object.defineProperty(winnow, 'name', { value: 'A', configurable: true });
-    Object.defineProperty(sibling, 'name', { value: 'R', configurable: true });
-    Object.defineProperty(Identity, 'name', { value: 'P', configurable: true });
-    Object.defineProperty(Thrower, 'name', { value: 'I', configurable: true });
-    Object.defineProperty(adoptValue, 'name', { value: 'O', configurable: true });
-    Object.defineProperty(completed, 'name', { value: 'U', configurable: true });
-    Object.defineProperty(fcamelCase, 'name', { value: 'z', configurable: true });
-    Object.defineProperty(camelCase, 'name', { value: 'V', configurable: true });
-    Object.defineProperty(Data, 'name', { value: 'K', configurable: true });
-    Object.defineProperty(dataAttr, 'name', { value: 'Z', configurable: true });
-    Object.defineProperty(adjustCSS, 'name', { value: 'oe', configurable: true });
-    Object.defineProperty(getDefaultDisplay, 'name', { value: 'se', configurable: true });
-    Object.defineProperty(showHide, 'name', { value: 'le', configurable: true });
-    Object.defineProperty(getAll, 'name', { value: 'pe', configurable: true });
-    Object.defineProperty(setGlobalEval, 'name', { value: 'fe', configurable: true });
-    Object.defineProperty(buildFragment, 'name', { value: 'ge', configurable: true });
-    Object.defineProperty(returnTrue, 'name', { value: 'xe', configurable: true });
-    Object.defineProperty(returnFalse, 'name', { value: 'Ce', configurable: true });
-    Object.defineProperty(safeActiveElement, 'name', { value: 'Fe', configurable: true });
-    Object.defineProperty(on, 'name', { value: 'Se', configurable: true });
-    Object.defineProperty(manipulationTarget, 'name', { value: 'Ae', configurable: true });
-    Object.defineProperty(disableScript, 'name', { value: 'Me', configurable: true });
-    Object.defineProperty(restoreScript, 'name', { value: 'Le', configurable: true });
-    Object.defineProperty(cloneCopyEvent, 'name', { value: 'Ne', configurable: true });
-    Object.defineProperty(fixInput, 'name', { value: 'De', configurable: true });
-    Object.defineProperty(domManip, 'name', { value: 'Re', configurable: true });
-    Object.defineProperty(remove, 'name', { value: 'Be', configurable: true });
-    Object.defineProperty(curCSS, 'name', { value: '$e', configurable: true });
-    Object.defineProperty(addGetHookIf, 'name', { value: 'He', configurable: true });
-    Object.defineProperty(finalPropName, 'name', { value: 'Je', configurable: true });
-    Object.defineProperty(setPositiveNumber, 'name', { value: 'Ke', configurable: true });
-    Object.defineProperty(boxModelAdjustment, 'name', { value: 'Ye', configurable: true });
-    Object.defineProperty(getWidthOrHeight, 'name', { value: 'Ge', configurable: true });
-    Object.defineProperty(Tween, 'name', { value: 'Qe', configurable: true });
-    Object.defineProperty(schedule, 'name', { value: 'nt', configurable: true });
-    Object.defineProperty(createFxNow, 'name', { value: 'it', configurable: true });
-    Object.defineProperty(genFx, 'name', { value: 'rt', configurable: true });
-    Object.defineProperty(createTween, 'name', { value: 'ot', configurable: true });
-    Object.defineProperty(Animation, 'name', { value: 'at', configurable: true });
-    Object.defineProperty(stripAndCollapse, 'name', { value: 'ut', configurable: true });
-    Object.defineProperty(getClass, 'name', { value: 'ht', configurable: true });
-    Object.defineProperty(classesToArray, 'name', { value: 'pt', configurable: true });
-    Object.defineProperty(buildParams, 'name', { value: 'St', configurable: true });
-    Object.defineProperty(addToPrefiltersOrTransports, 'name', { value: 'Bt', configurable: true });
-    Object.defineProperty(inspectPrefiltersOrTransports, 'name', {
-      value: 'Pt',
-      configurable: true,
-    });
-    Object.defineProperty(extendAjaxOptions, 'name', { value: 'It', configurable: true });
 
     var items = [],
       document = window.document,
@@ -88,20 +35,12 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       fnToString = hasOwn.toString,
       ObjectFunctionString = fnToString.call(Object),
       support = {},
-      isFunction = Object.defineProperty(
-        function (object) {
-          return 'function' == typeof object && 'number' != typeof object.nodeType;
-        },
-        'name',
-        { value: 'm', configurable: true },
-      ),
-      isWindow = Object.defineProperty(
-        function (object) {
-          return null != object && object === object.window;
-        },
-        'name',
-        { value: 'g', configurable: true },
-      ),
+      isFunction = function (object) {
+        return 'function' == typeof object && 'number' != typeof object.nodeType;
+      },
+      isWindow = function (object) {
+        return null != object && object === object.window;
+      },
       preservedScriptAttributes = { type: true, src: true, noModule: true };
     function DOMEval(code, documentModel, node) {
       var attributeName,
@@ -127,13 +66,9 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
         }
       }
     }
-    var jQuery = Object.defineProperty(
-        function (selector, context) {
-          return new jQuery.fn.init(selector, context);
-        },
-        'name',
-        { value: 'w', configurable: true },
-      ),
+    var jQuery = function (selector, context) {
+        return new jQuery.fn.init(selector, context);
+      },
       rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
     function isArrayLike(object) {
       var length = !!object && 'length' in object && object.length,
@@ -375,26 +310,6 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       },
     );
     var Sizzle = (function (window) {
-      Object.defineProperty(Sizzle, 'name', { value: 'oe', configurable: true });
-      Object.defineProperty(createCache, 'name', { value: 'ae', configurable: true });
-      Object.defineProperty(markFunction, 'name', { value: 'se', configurable: true });
-      Object.defineProperty(assert, 'name', { value: 'le', configurable: true });
-      Object.defineProperty(addHandle, 'name', { value: 'ce', configurable: true });
-      Object.defineProperty(siblingCheck, 'name', { value: 'de', configurable: true });
-      Object.defineProperty(createInputPseudo, 'name', { value: 'ue', configurable: true });
-      Object.defineProperty(createButtonPseudo, 'name', { value: 'he', configurable: true });
-      Object.defineProperty(createDisabledPseudo, 'name', { value: 'pe', configurable: true });
-      Object.defineProperty(createPositionalPseudo, 'name', { value: 'fe', configurable: true });
-      Object.defineProperty(testContext, 'name', { value: 'me', configurable: true });
-      Object.defineProperty(setFilters, 'name', { value: 'ge', configurable: true });
-      Object.defineProperty(toSelector, 'name', { value: 've', configurable: true });
-      Object.defineProperty(addCombinator, 'name', { value: 'ye', configurable: true });
-      Object.defineProperty(elementMatcher, 'name', { value: 'be', configurable: true });
-      Object.defineProperty(condense, 'name', { value: 'we', configurable: true });
-      Object.defineProperty(setMatcher, 'name', { value: 'xe', configurable: true });
-      Object.defineProperty(matcherFromTokens, 'name', { value: 'Ce', configurable: true });
-      Object.defineProperty(matcherFromGroupMatchers, 'name', { value: 'Fe', configurable: true });
-
       var windowGlobal,
         support,
         Expr,
@@ -421,34 +336,26 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
         classCache = createCache(),
         tokenCache = createCache(),
         compilerCache = createCache(),
-        sortOrder = Object.defineProperty(
-          function (left, right) {
-            if (left === right) {
-              hasDuplicate = true;
-            }
-            return 0;
-          },
-          'name',
-          { value: 'T', configurable: true },
-        ),
+        sortOrder = function (left, right) {
+          if (left === right) {
+            hasDuplicate = true;
+          }
+          return 0;
+        },
         hasOwn = {}.hasOwnProperty,
         items = [],
         pop = items.pop,
         push_native = items.push,
         push = items.push,
         slice = items.slice,
-        indexOf = Object.defineProperty(
-          function (list, elem) {
-            for (var itemIndex = 0, len = list.length; itemIndex < len; itemIndex++) {
-              if (list[itemIndex] === elem) {
-                return itemIndex;
-              }
+        indexOf = function (list, elem) {
+          for (var itemIndex = 0, len = list.length; itemIndex < len; itemIndex++) {
+            if (list[itemIndex] === elem) {
+              return itemIndex;
             }
-            return -1;
-          },
-          'name',
-          { value: 'R', configurable: true },
-        ),
+          }
+          return -1;
+        },
         booleans =
           'checked|selected|async|autofocus|autoplay|controls|defer|disabled|hidden|ismap|loop|multiple|open|readonly|required|scoped',
         whitespace = '[\\x20\\t\\r\\n\\f]',
@@ -527,50 +434,38 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
           '\\\\([\\da-f]{1,6}' + whitespace + '?|(' + whitespace + ')|.)',
           'ig',
         ),
-        funescape = Object.defineProperty(
-          function (escapeMatch, escaped, escapedWhitespace) {
-            var high = '0x' + escaped - 65536;
-            if (high != high || escapedWhitespace) {
-              return escaped;
+        funescape = function (escapeMatch, escaped, escapedWhitespace) {
+          var high = '0x' + escaped - 65536;
+          if (high != high || escapedWhitespace) {
+            return escaped;
+          } else {
+            if (high < 0) {
+              return String.fromCharCode(high + 65536);
             } else {
-              if (high < 0) {
-                return String.fromCharCode(high + 65536);
-              } else {
-                return String.fromCharCode((high >> 10) | 55296, (1023 & high) | 56320);
-              }
+              return String.fromCharCode((high >> 10) | 55296, (1023 & high) | 56320);
             }
-          },
-          'name',
-          { value: 'ee', configurable: true },
-        ),
+          }
+        },
         rcssescape = /([\0-\x1f\x7f]|^-?\d)|^-$|[^\0-\x1f\x7f-\uFFFF\w-]/g,
-        fcssescape = Object.defineProperty(
-          function (character, asCodePoint) {
-            if (asCodePoint) {
-              if ('\0' === character) {
-                return '�';
-              } else {
-                return (
-                  character.slice(0, -1) +
-                  '\\' +
-                  character.charCodeAt(character.length - 1).toString(16) +
-                  ' '
-                );
-              }
+        fcssescape = function (character, asCodePoint) {
+          if (asCodePoint) {
+            if ('\0' === character) {
+              return '�';
             } else {
-              return '\\' + character;
+              return (
+                character.slice(0, -1) +
+                '\\' +
+                character.charCodeAt(character.length - 1).toString(16) +
+                ' '
+              );
             }
-          },
-          'name',
-          { value: 'ne', configurable: true },
-        ),
-        unloadHandler = Object.defineProperty(
-          function () {
-            setDocument();
-          },
-          'name',
-          { value: 'ie', configurable: true },
-        ),
+          } else {
+            return '\\' + character;
+          }
+        },
+        unloadHandler = function () {
+          setDocument();
+        },
         disabledAncestor = addCombinator(
           function (elem) {
             return true === elem.disabled && ('form' in elem || 'label' in elem);
@@ -697,16 +592,12 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       }
       function createCache() {
         var keys = [];
-        return Object.defineProperty(
-          function cache(key, value) {
-            if (keys.push(key + ' ') > Expr.cacheLength) {
-              delete cache[keys.shift()];
-            }
-            return (cache[key + ' '] = value);
-          },
-          'name',
-          { value: 't', configurable: true },
-        );
+        return function cache(key, value) {
+          if (keys.push(key + ' ') > Expr.cacheLength) {
+            delete cache[keys.shift()];
+          }
+          return (cache[key + ' '] = value);
+        };
       }
       function markFunction(callback) {
         callback[expando] = true;
@@ -1894,84 +1785,80 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       function matcherFromGroupMatchers(elementMatchers, setMatchers) {
         var bySet = setMatchers.length > 0,
           byElement = elementMatchers.length > 0,
-          superMatcher = Object.defineProperty(
-            function (seed, context, xml, results, outermost) {
-              var elem,
-                matcherIndex,
-                matcher,
-                matchedCount = 0,
-                elementIndex = '0',
-                unmatched = seed && [],
-                setMatched = [],
-                contextBackup = outermostContext,
-                elems = seed || (byElement && Expr.find.TAG('*', outermost)),
-                runIdentifier = (dirruns += null == contextBackup ? 1 : Math.random() || 0.1),
-                len = elems.length;
-              for (
-                outermost && (outermostContext = context === document || context || outermost);
-                elementIndex !== len && null != (elem = elems[elementIndex]);
-                elementIndex++
-              ) {
-                if (byElement && elem) {
-                  for (
-                    matcherIndex = 0,
-                      context ||
-                        elem.ownerDocument === document ||
-                        (setDocument(elem), (xml = !documentIsHTML));
-                    (matcher = elementMatchers[matcherIndex++]);
-                  ) {
-                    if (matcher(elem, context || document, xml)) {
-                      results.push(elem);
-                      break;
-                    }
-                  }
-                  if (outermost) {
-                    dirruns = runIdentifier;
+          superMatcher = function (seed, context, xml, results, outermost) {
+            var elem,
+              matcherIndex,
+              matcher,
+              matchedCount = 0,
+              elementIndex = '0',
+              unmatched = seed && [],
+              setMatched = [],
+              contextBackup = outermostContext,
+              elems = seed || (byElement && Expr.find.TAG('*', outermost)),
+              runIdentifier = (dirruns += null == contextBackup ? 1 : Math.random() || 0.1),
+              len = elems.length;
+            for (
+              outermost && (outermostContext = context === document || context || outermost);
+              elementIndex !== len && null != (elem = elems[elementIndex]);
+              elementIndex++
+            ) {
+              if (byElement && elem) {
+                for (
+                  matcherIndex = 0,
+                    context ||
+                      elem.ownerDocument === document ||
+                      (setDocument(elem), (xml = !documentIsHTML));
+                  (matcher = elementMatchers[matcherIndex++]);
+                ) {
+                  if (matcher(elem, context || document, xml)) {
+                    results.push(elem);
+                    break;
                   }
                 }
-                if (bySet) {
-                  if ((elem = !matcher && elem)) {
-                    matchedCount--;
-                  }
-                  if (seed) {
-                    unmatched.push(elem);
-                  }
+                if (outermost) {
+                  dirruns = runIdentifier;
                 }
               }
-              matchedCount += elementIndex;
-              if (bySet && elementIndex !== matchedCount) {
-                for (matcherIndex = 0; (matcher = setMatchers[matcherIndex++]); ) {
-                  matcher(unmatched, setMatched, context, xml);
+              if (bySet) {
+                if ((elem = !matcher && elem)) {
+                  matchedCount--;
                 }
                 if (seed) {
-                  if (matchedCount > 0) {
-                    for (; elementIndex--; ) {
-                      if (!(unmatched[elementIndex] || setMatched[elementIndex])) {
-                        setMatched[elementIndex] = pop.call(results);
-                      }
+                  unmatched.push(elem);
+                }
+              }
+            }
+            matchedCount += elementIndex;
+            if (bySet && elementIndex !== matchedCount) {
+              for (matcherIndex = 0; (matcher = setMatchers[matcherIndex++]); ) {
+                matcher(unmatched, setMatched, context, xml);
+              }
+              if (seed) {
+                if (matchedCount > 0) {
+                  for (; elementIndex--; ) {
+                    if (!(unmatched[elementIndex] || setMatched[elementIndex])) {
+                      setMatched[elementIndex] = pop.call(results);
                     }
                   }
-                  setMatched = condense(setMatched);
                 }
-                push.apply(results, setMatched);
-                if (
-                  outermost &&
-                  !seed &&
-                  setMatched.length > 0 &&
-                  matchedCount + setMatchers.length > 1
-                ) {
-                  Sizzle.uniqueSort(results);
-                }
+                setMatched = condense(setMatched);
               }
-              if (outermost) {
-                dirruns = runIdentifier;
-                outermostContext = contextBackup;
+              push.apply(results, setMatched);
+              if (
+                outermost &&
+                !seed &&
+                setMatched.length > 0 &&
+                matchedCount + setMatchers.length > 1
+              ) {
+                Sizzle.uniqueSort(results);
               }
-              return unmatched;
-            },
-            'name',
-            { value: 'o', configurable: true },
-          );
+            }
+            if (outermost) {
+              dirruns = runIdentifier;
+              outermostContext = contextBackup;
+            }
+            return unmatched;
+          };
         if (bySet) {
           return markFunction(superMatcher);
         } else {
@@ -2171,36 +2058,28 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
     jQuery.isXMLDoc = Sizzle.isXML;
     jQuery.contains = Sizzle.contains;
     jQuery.escapeSelector = Sizzle.escape;
-    var dir = Object.defineProperty(
-        function (elem, dir, until) {
-          for (
-            var matched = [], truncate = void 0 !== until;
-            (elem = elem[dir]) && 9 !== elem.nodeType;
-          ) {
-            if (1 === elem.nodeType) {
-              if (truncate && jQuery(elem).is(until)) {
-                break;
-              }
-              matched.push(elem);
+    var dir = function (elem, dir, until) {
+        for (
+          var matched = [], truncate = void 0 !== until;
+          (elem = elem[dir]) && 9 !== elem.nodeType;
+        ) {
+          if (1 === elem.nodeType) {
+            if (truncate && jQuery(elem).is(until)) {
+              break;
             }
+            matched.push(elem);
           }
-          return matched;
-        },
-        'name',
-        { value: 'S', configurable: true },
-      ),
-      siblings = Object.defineProperty(
-        function (firstNode, elem) {
-          for (var matched = []; firstNode; firstNode = firstNode.nextSibling) {
-            if (1 === firstNode.nodeType && firstNode !== elem) {
-              matched.push(firstNode);
-            }
+        }
+        return matched;
+      },
+      siblings = function (firstNode, elem) {
+        for (var matched = []; firstNode; firstNode = firstNode.nextSibling) {
+          if (1 === firstNode.nodeType && firstNode !== elem) {
+            matched.push(firstNode);
           }
-          return matched;
-        },
-        'name',
-        { value: 'k', configurable: true },
-      ),
+        }
+        return matched;
+      },
       rneedsContext = jQuery.expr.match.needsContext;
     function nodeName(elem, name) {
       return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
@@ -2533,34 +2412,27 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
         list = [],
         queue = [],
         firingIndex = -1,
-        fire = Object.defineProperty(
-          function () {
-            for (
-              locked = locked || options.once, fired = firing = true;
-              queue.length;
-              firingIndex = -1
-            ) {
-              for (memory = queue.shift(); ++firingIndex < list.length; ) {
-                if (
-                  false === list[firingIndex].apply(memory[0], memory[1]) &&
-                  options.stopOnFalse
-                ) {
-                  firingIndex = list.length;
-                  memory = false;
-                }
+        fire = function () {
+          for (
+            locked = locked || options.once, fired = firing = true;
+            queue.length;
+            firingIndex = -1
+          ) {
+            for (memory = queue.shift(); ++firingIndex < list.length; ) {
+              if (false === list[firingIndex].apply(memory[0], memory[1]) && options.stopOnFalse) {
+                firingIndex = list.length;
+                memory = false;
               }
             }
-            if (!options.memory) {
-              memory = false;
-            }
-            firing = false;
-            if (locked) {
-              list = memory ? [] : '';
-            }
-          },
-          'name',
-          { value: 'l', configurable: true },
-        ),
+          }
+          if (!options.memory) {
+            memory = false;
+          }
+          firing = false;
+          if (locked) {
+            list = memory ? [] : '';
+          }
+        },
         self = {
           add: function () {
             if (list) {
@@ -2568,23 +2440,19 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
                 firingIndex = list.length - 1;
                 queue.push(memory);
               }
-              Object.defineProperty(
-                function add(args) {
-                  jQuery.each(args, function (callbackIndex, arg) {
-                    if (isFunction(arg)) {
-                      if (!(options.unique && self.has(arg))) {
-                        list.push(arg);
-                      }
-                    } else {
-                      if (arg && arg.length && 'string' !== toType(arg)) {
-                        add(arg);
-                      }
+              (function add(args) {
+                jQuery.each(args, function (callbackIndex, arg) {
+                  if (isFunction(arg)) {
+                    if (!(options.unique && self.has(arg))) {
+                      list.push(arg);
                     }
-                  });
-                },
-                'name',
-                { value: 't', configurable: true },
-              )(arguments);
+                  } else {
+                    if (arg && arg.length && 'string' !== toType(arg)) {
+                      add(arg);
+                    }
+                  }
+                });
+              })(arguments);
               if (memory && !firing) {
                 fire();
               }
@@ -2710,52 +2578,46 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
                 .promise();
             },
             then: function (onFulfilled, onRejected, onProgress) {
-              Object.defineProperty(resolve, 'name', { value: 'a', configurable: true });
-
               var maxDepth = 0;
               function resolve(depth, deferred, handler, special) {
                 return function () {
                   var that = this,
                     args = arguments,
-                    mightThrow = Object.defineProperty(
-                      function () {
-                        var returned, then;
-                        if (!(depth < maxDepth)) {
-                          if ((returned = handler.apply(that, args)) === deferred.promise()) {
-                            throw new TypeError('Thenable self-resolution');
-                          }
-                          then =
-                            returned &&
-                            ('object' == typeof returned || 'function' == typeof returned) &&
-                            returned.then;
-                          if (isFunction(then)) {
-                            if (special) {
-                              then.call(
-                                returned,
-                                resolve(maxDepth, deferred, Identity, special),
-                                resolve(maxDepth, deferred, Thrower, special),
-                              );
-                            } else {
-                              maxDepth++;
-                              then.call(
-                                returned,
-                                resolve(maxDepth, deferred, Identity, special),
-                                resolve(maxDepth, deferred, Thrower, special),
-                                resolve(maxDepth, deferred, Identity, deferred.notifyWith),
-                              );
-                            }
-                          } else {
-                            if (handler !== Identity) {
-                              that = void 0;
-                              args = [returned];
-                            }
-                            (special || deferred.resolveWith)(that, args);
-                          }
+                    mightThrow = function () {
+                      var returned, then;
+                      if (!(depth < maxDepth)) {
+                        if ((returned = handler.apply(that, args)) === deferred.promise()) {
+                          throw new TypeError('Thenable self-resolution');
                         }
-                      },
-                      'name',
-                      { value: 'c', configurable: true },
-                    ),
+                        then =
+                          returned &&
+                          ('object' == typeof returned || 'function' == typeof returned) &&
+                          returned.then;
+                        if (isFunction(then)) {
+                          if (special) {
+                            then.call(
+                              returned,
+                              resolve(maxDepth, deferred, Identity, special),
+                              resolve(maxDepth, deferred, Thrower, special),
+                            );
+                          } else {
+                            maxDepth++;
+                            then.call(
+                              returned,
+                              resolve(maxDepth, deferred, Identity, special),
+                              resolve(maxDepth, deferred, Thrower, special),
+                              resolve(maxDepth, deferred, Identity, deferred.notifyWith),
+                            );
+                          }
+                        } else {
+                          if (handler !== Identity) {
+                            that = void 0;
+                            args = [returned];
+                          }
+                          (special || deferred.resolveWith)(that, args);
+                        }
+                      }
+                    },
                     process = special
                       ? mightThrow
                       : function () {
@@ -2846,20 +2708,15 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
           resolveContexts = Array(remainingCount),
           resolveValues = slice.call(arguments),
           master = jQuery.Deferred(),
-          updateFunc = Object.defineProperty(
-            function (resolutionIndex) {
-              return function (value) {
-                resolveContexts[resolutionIndex] = this;
-                resolveValues[resolutionIndex] =
-                  arguments.length > 1 ? slice.call(arguments) : value;
-                if (!--remaining) {
-                  master.resolveWith(resolveContexts, resolveValues);
-                }
-              };
-            },
-            'name',
-            { value: 's', configurable: true },
-          );
+          updateFunc = function (resolutionIndex) {
+            return function (value) {
+              resolveContexts[resolutionIndex] = this;
+              resolveValues[resolutionIndex] = arguments.length > 1 ? slice.call(arguments) : value;
+              if (!--remaining) {
+                master.resolveWith(resolveContexts, resolveValues);
+              }
+            };
+          };
         if (
           remaining <= 1 &&
           (adoptValue(
@@ -2924,65 +2781,57 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       document.addEventListener('DOMContentLoaded', completed);
       window.addEventListener('load', completed);
     }
-    var access = Object.defineProperty(
-        function (elems, callback, key, value, chainable, emptyGet, raw) {
-          var elementIndex = 0,
-            len = elems.length,
-            bulk = null == key;
-          if ('object' === toType(key)) {
-            for (elementIndex in ((chainable = true), key)) {
-              access(elems, callback, elementIndex, key[elementIndex], true, emptyGet, raw);
-            }
-          } else {
-            if (
-              void 0 !== value &&
-              ((chainable = true),
-              isFunction(value) || (raw = true),
-              bulk &&
-                (raw
-                  ? (callback.call(elems, value), (callback = null))
-                  : ((bulk = callback),
-                    (callback = Object.defineProperty(
-                      function (elem, key, value) {
-                        return bulk.call(jQuery(elem), value);
-                      },
-                      'name',
-                      { value: 't', configurable: true },
-                    )))),
-              callback)
-            ) {
-              for (; elementIndex < len; elementIndex++) {
-                callback(
-                  elems[elementIndex],
-                  key,
-                  raw
-                    ? value
-                    : value.call(
-                        elems[elementIndex],
-                        elementIndex,
-                        callback(elems[elementIndex], key),
-                      ),
-                );
-              }
+    var access = function (elems, callback, key, value, chainable, emptyGet, raw) {
+        var elementIndex = 0,
+          len = elems.length,
+          bulk = null == key;
+        if ('object' === toType(key)) {
+          for (elementIndex in ((chainable = true), key)) {
+            access(elems, callback, elementIndex, key[elementIndex], true, emptyGet, raw);
+          }
+        } else {
+          if (
+            void 0 !== value &&
+            ((chainable = true),
+            isFunction(value) || (raw = true),
+            bulk &&
+              (raw
+                ? (callback.call(elems, value), (callback = null))
+                : ((bulk = callback),
+                  (callback = function (elem, key, value) {
+                    return bulk.call(jQuery(elem), value);
+                  }))),
+            callback)
+          ) {
+            for (; elementIndex < len; elementIndex++) {
+              callback(
+                elems[elementIndex],
+                key,
+                raw
+                  ? value
+                  : value.call(
+                      elems[elementIndex],
+                      elementIndex,
+                      callback(elems[elementIndex], key),
+                    ),
+              );
             }
           }
-          if (chainable) {
-            return elems;
+        }
+        if (chainable) {
+          return elems;
+        } else {
+          if (bulk) {
+            return callback.call(elems);
           } else {
-            if (bulk) {
-              return callback.call(elems);
+            if (len) {
+              return callback(elems[0], key);
             } else {
-              if (len) {
-                return callback(elems[0], key);
-              } else {
-                return emptyGet;
-              }
+              return emptyGet;
             }
           }
-        },
-        'name',
-        { value: 'j', configurable: true },
-      ),
+        }
+      },
       rmsPrefix = /^-ms-/,
       rdashAlpha = /-([a-z])/g;
     function fcamelCase(all, letter) {
@@ -2991,13 +2840,9 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
     function camelCase(string) {
       return string.replace(rmsPrefix, 'ms-').replace(rdashAlpha, fcamelCase);
     }
-    var acceptData = Object.defineProperty(
-      function (owner) {
-        return 1 === owner.nodeType || 9 === owner.nodeType || !+owner.nodeType;
-      },
-      'name',
-      { value: 'J', configurable: true },
-    );
+    var acceptData = function (owner) {
+      return 1 === owner.nodeType || 9 === owner.nodeType || !+owner.nodeType;
+    };
     function Data() {
       this.expando = jQuery.expando + Data.uid++;
     }
@@ -3279,15 +3124,11 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
           defer = jQuery.Deferred(),
           elements = this,
           elementCount = this.length,
-          resolve = Object.defineProperty(
-            function () {
-              if (!--count) {
-                defer.resolveWith(elements, [elements]);
-              }
-            },
-            'name',
-            { value: 's', configurable: true },
-          );
+          resolve = function () {
+            if (!--count) {
+              defer.resolveWith(elements, [elements]);
+            }
+          };
         for (
           'string' != typeof type && ((object = type), (type = void 0)), type = type || 'fx';
           elementCount--;
@@ -3304,35 +3145,27 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
     var pnum = /[+-]?(?:\d*\.|)\d+(?:[eE][+-]?\d+|)/.source,
       rcssNum = new RegExp('^(?:([+-])=|)(' + pnum + ')([a-z%]*)$', 'i'),
       cssExpand = ['Top', 'Right', 'Bottom', 'Left'],
-      isHiddenWithinTree = Object.defineProperty(
-        function (elem, element) {
-          return (
-            'none' === (elem = element || elem).style.display ||
-            ('' === elem.style.display &&
-              jQuery.contains(elem.ownerDocument, elem) &&
-              'none' === jQuery.css(elem, 'display'))
-          );
-        },
-        'name',
-        { value: 'ie', configurable: true },
-      ),
-      swap = Object.defineProperty(
-        function (elem, options, callback, args) {
-          var ret,
-            name,
-            old = {};
-          for (name in options) {
-            old[name] = elem.style[name];
-            elem.style[name] = options[name];
-          }
-          for (name in ((ret = callback.apply(elem, args || [])), options)) {
-            elem.style[name] = old[name];
-          }
-          return ret;
-        },
-        'name',
-        { value: 're', configurable: true },
-      );
+      isHiddenWithinTree = function (elem, element) {
+        return (
+          'none' === (elem = element || elem).style.display ||
+          ('' === elem.style.display &&
+            jQuery.contains(elem.ownerDocument, elem) &&
+            'none' === jQuery.css(elem, 'display'))
+        );
+      },
+      swap = function (elem, options, callback, args) {
+        var ret,
+          name,
+          old = {};
+        for (name in options) {
+          old[name] = elem.style[name];
+          elem.style[name] = options[name];
+        }
+        for (name in ((ret = callback.apply(elem, args || [])), options)) {
+          elem.style[name] = old[name];
+        }
+        return ret;
+      };
     function adjustCSS(elem, prop, valueParts, tween) {
       var adjusted,
         scale,
@@ -3613,14 +3446,10 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       }
       if (1 === one) {
         origFn = callback;
-        (callback = Object.defineProperty(
-          function (event) {
-            jQuery().off(event);
-            return origFn.apply(this, arguments);
-          },
-          'name',
-          { value: 'r', configurable: true },
-        )).guid = origFn.guid || (origFn.guid = jQuery.guid++);
+        (callback = function (event) {
+          jQuery().off(event);
+          return origFn.apply(this, arguments);
+        }).guid = origFn.guid || (origFn.guid = jQuery.guid++);
       }
       return elem.each(function () {
         jQuery.event.add(this, types, callback, data, selector);
@@ -4512,17 +4341,13 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       },
     );
     var rnumnonpx = new RegExp('^(' + pnum + ')(?!px)[a-z%]+$', 'i'),
-      getStyles = Object.defineProperty(
-        function (elem) {
-          var view = elem.ownerDocument.defaultView;
-          if (!(view && view.opener)) {
-            view = window;
-          }
-          return view.getComputedStyle(elem);
-        },
-        'name',
-        { value: 'Ie', configurable: true },
-      ),
+      getStyles = function (elem) {
+        var view = elem.ownerDocument.defaultView;
+        if (!(view && view.opener)) {
+          view = window;
+        }
+        return view.getComputedStyle(elem);
+      },
       rboxStyle = new RegExp(cssExpand.join('|'), 'i');
     function curCSS(elem, name, computed) {
       var width,
@@ -4567,9 +4392,6 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       };
     }
     !(function () {
-      Object.defineProperty(computeStyleTests, 'name', { value: 't', configurable: true });
-      Object.defineProperty(roundPixelMeasures, 'name', { value: 'n', configurable: true });
-
       function computeStyleTests() {
         if (div) {
           container.style.cssText =
@@ -5093,36 +4915,32 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
         deferred = jQuery.Deferred().always(function () {
           delete tick.elem;
         }),
-        tick = Object.defineProperty(
-          function () {
-            if (stopped) {
-              return false;
+        tick = function () {
+          if (stopped) {
+            return false;
+          }
+          for (
+            var currentTime = fxNow || createFxNow(),
+              remaining = Math.max(0, animation.startTime + animation.duration - currentTime),
+              percent = 1 - (remaining / animation.duration || 0),
+              index = 0,
+              length = animation.tweens.length;
+            index < length;
+            index++
+          ) {
+            animation.tweens[index].run(percent);
+          }
+          deferred.notifyWith(elem, [animation, percent, remaining]);
+          if (percent < 1 && length) {
+            return remaining;
+          } else {
+            if (!length) {
+              deferred.notifyWith(elem, [animation, 1, 0]);
             }
-            for (
-              var currentTime = fxNow || createFxNow(),
-                remaining = Math.max(0, animation.startTime + animation.duration - currentTime),
-                percent = 1 - (remaining / animation.duration || 0),
-                index = 0,
-                length = animation.tweens.length;
-              index < length;
-              index++
-            ) {
-              animation.tweens[index].run(percent);
-            }
-            deferred.notifyWith(elem, [animation, percent, remaining]);
-            if (percent < 1 && length) {
-              return remaining;
-            } else {
-              if (!length) {
-                deferred.notifyWith(elem, [animation, 1, 0]);
-              }
-              deferred.resolveWith(elem, [animation]);
-              return false;
-            }
-          },
-          'name',
-          { value: 'l', configurable: true },
-        ),
+            deferred.resolveWith(elem, [animation]);
+            return false;
+          }
+        },
         animation = deferred.promise({
           elem: elem,
           props: jQuery.extend({}, properties),
@@ -5405,16 +5223,12 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       animate: function (prop, speed, easing, callback) {
         var empty = jQuery.isEmptyObject(prop),
           optall = jQuery.speed(speed, easing, callback),
-          doAnimation = Object.defineProperty(
-            function () {
-              var anim = Animation(this, jQuery.extend({}, prop), optall);
-              if (empty || dataPriv.get(this, 'finish')) {
-                anim.stop(true);
-              }
-            },
-            'name',
-            { value: 'a', configurable: true },
-          );
+          doAnimation = function () {
+            var anim = Animation(this, jQuery.extend({}, prop), optall);
+            if (empty || dataPriv.get(this, 'finish')) {
+              anim.stop(true);
+            }
+          };
         doAnimation.finish = doAnimation;
         if (empty || false === optall.queue) {
           return this.each(doAnimation);
@@ -5423,15 +5237,11 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
         }
       },
       stop: function (type, clearQueue, gotoEnd) {
-        var stopQueue = Object.defineProperty(
-          function (hooks) {
-            var stop = hooks.stop;
-            delete hooks.stop;
-            stop(gotoEnd);
-          },
-          'name',
-          { value: 'i', configurable: true },
-        );
+        var stopQueue = function (hooks) {
+          var stop = hooks.stop;
+          delete hooks.stop;
+          stop(gotoEnd);
+        };
         if ('string' != typeof type) {
           gotoEnd = clearQueue;
           clearQueue = type;
@@ -6065,13 +5875,9 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
     });
     support.focusin = 'onfocusin' in window;
     var rfocusMorph = /^(?:focusinfocus|focusoutblur)$/,
-      stopPropagationCallback = Object.defineProperty(
-        function (event) {
-          event.stopPropagation();
-        },
-        'name',
-        { value: 'gt', configurable: true },
-      );
+      stopPropagationCallback = function (event) {
+        event.stopPropagation();
+      };
     jQuery.extend(jQuery.event, {
       trigger: function (event, data, elem, onlyHandlers) {
         var eventPathIndex,
@@ -6194,13 +6000,9 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
     });
     if (!support.focusin) {
       jQuery.each({ focus: 'focusin', blur: 'focusout' }, function (orig, fix) {
-        var handler = Object.defineProperty(
-          function (event) {
-            jQuery.event.simulate(fix, event.target, jQuery.event.fix(event));
-          },
-          'name',
-          { value: 'n', configurable: true },
-        );
+        var handler = function (event) {
+          jQuery.event.simulate(fix, event.target, jQuery.event.fix(event));
+        };
         jQuery.event.special[fix] = {
           setup: function () {
             var documentModel = this.ownerDocument || this,
@@ -6273,15 +6075,11 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
     jQuery.param = function (input, traditional) {
       var prefix,
         parameters = [],
-        add = Object.defineProperty(
-          function (key, valueOrFunction) {
-            var value = isFunction(valueOrFunction) ? valueOrFunction() : valueOrFunction;
-            parameters[parameters.length] =
-              encodeURIComponent(key) + '=' + encodeURIComponent(null == value ? '' : value);
-          },
-          'name',
-          { value: 'r', configurable: true },
-        );
+        add = function (key, valueOrFunction) {
+          var value = isFunction(valueOrFunction) ? valueOrFunction() : valueOrFunction;
+          parameters[parameters.length] =
+            encodeURIComponent(key) + '=' + encodeURIComponent(null == value ? '' : value);
+        };
       if (Array.isArray(input) || (input.jquery && !jQuery.isPlainObject(input))) {
         jQuery.each(input, function () {
           add(this.name, this.value);
@@ -6365,8 +6163,6 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       };
     }
     function inspectPrefiltersOrTransports(structure, options, originalOptions, jqXHR) {
-      Object.defineProperty(inspectDataType, 'name', { value: 'a', configurable: true });
-
       var inspected = {},
         seekingTransport = structure === transports;
       function inspectDataType(dataType) {
@@ -6450,8 +6246,6 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       ajaxPrefilter: addToPrefiltersOrTransports(prefilters),
       ajaxTransport: addToPrefiltersOrTransports(transports),
       ajax: function (url, options) {
-        Object.defineProperty(completeRequest, 'name', { value: 'k', configurable: true });
-
         if ('object' == typeof url) {
           options = url;
           url = void 0;
@@ -6956,45 +6750,41 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
             headers)) {
               xhr.setRequestHeader(headerName, headers[headerName]);
             }
-            callback = Object.defineProperty(
-              function (eventType) {
-                return function () {
-                  if (callback) {
-                    callback =
-                      errorCallback =
-                      xhr.onload =
-                      xhr.onerror =
-                      xhr.onabort =
-                      xhr.ontimeout =
-                      xhr.onreadystatechange =
-                        null;
-                    if ('abort' === eventType) {
-                      xhr.abort();
-                    } else {
-                      if ('error' === eventType) {
-                        if ('number' != typeof xhr.status) {
-                          complete(0, 'error');
-                        } else {
-                          complete(xhr.status, xhr.statusText);
-                        }
+            callback = function (eventType) {
+              return function () {
+                if (callback) {
+                  callback =
+                    errorCallback =
+                    xhr.onload =
+                    xhr.onerror =
+                    xhr.onabort =
+                    xhr.ontimeout =
+                    xhr.onreadystatechange =
+                      null;
+                  if ('abort' === eventType) {
+                    xhr.abort();
+                  } else {
+                    if ('error' === eventType) {
+                      if ('number' != typeof xhr.status) {
+                        complete(0, 'error');
                       } else {
-                        complete(
-                          xhrSuccessStatus[xhr.status] || xhr.status,
-                          xhr.statusText,
-                          'text' !== (xhr.responseType || 'text') ||
-                            'string' != typeof xhr.responseText
-                            ? { binary: xhr.response }
-                            : { text: xhr.responseText },
-                          xhr.getAllResponseHeaders(),
-                        );
+                        complete(xhr.status, xhr.statusText);
                       }
+                    } else {
+                      complete(
+                        xhrSuccessStatus[xhr.status] || xhr.status,
+                        xhr.statusText,
+                        'text' !== (xhr.responseType || 'text') ||
+                          'string' != typeof xhr.responseText
+                          ? { binary: xhr.response }
+                          : { text: xhr.responseText },
+                        xhr.getAllResponseHeaders(),
+                      );
                     }
                   }
-                };
-              },
-              'name',
-              { value: 'n', configurable: true },
-            );
+                }
+              };
+            };
             xhr.onload = callback();
             errorCallback = xhr.onerror = xhr.ontimeout = callback('error');
             if (void 0 !== xhr.onabort) {
@@ -7062,17 +6852,13 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
               .prop({ charset: options.scriptCharset, src: options.url })
               .on(
                 'load error',
-                (callback = Object.defineProperty(
-                  function (event) {
-                    script.remove();
-                    callback = null;
-                    if (event) {
-                      complete('error' === event.type ? 404 : 200, event.type);
-                    }
-                  },
-                  'name',
-                  { value: 'n', configurable: true },
-                )),
+                (callback = function (event) {
+                  script.remove();
+                  callback = null;
+                  if (event) {
+                    complete('error' === event.type ? 404 : 200, event.type);
+                  }
+                }),
               );
             document.head.appendChild(script[0]);
           },
@@ -7492,13 +7278,9 @@ export default function installLibrariesJquery(engineModules, vendorScope) {
       }
       if (isFunction(callback)) {
         args = slice.call(arguments, 2);
-        (proxy = Object.defineProperty(
-          function () {
-            return callback.apply(context || this, args.concat(slice.call(arguments)));
-          },
-          'name',
-          { value: 'r', configurable: true },
-        )).guid = callback.guid = callback.guid || jQuery.guid++;
+        (proxy = function () {
+          return callback.apply(context || this, args.concat(slice.call(arguments)));
+        }).guid = callback.guid = callback.guid || jQuery.guid++;
         return proxy;
       }
     };

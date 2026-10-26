@@ -247,7 +247,7 @@ impl EditorChrome {
             self.statistics
                 .setTranslatesAutoresizingMaskIntoConstraints(false);
             content.addSubview(&self.statistics);
-            // Original native constraints: right = content.right - 4; top = content.top + 2.
+            // Native layout constraints: right = content.right - 4; top = content.top + 2.
             let constraints = NSArray::from_retained_slice(&[
                 self.statistics
                     .rightAnchor()

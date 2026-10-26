@@ -551,7 +551,7 @@ export function useDocumentSession(
         committed = true;
         assertOwner();
         // A disk acknowledgement remains valid when newer input makes the view
-        // update obsolete. Native aliases retain the original hrefs for that draft.
+        // update obsolete. Native aliases retain the saved hrefs for that draft.
         if (
           active.revision === revision &&
           active.getMarkdown() === text &&

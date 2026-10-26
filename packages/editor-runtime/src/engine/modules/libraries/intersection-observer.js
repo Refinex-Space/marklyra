@@ -12,16 +12,6 @@ export default function installLibrariesIntersectionObserver(engineModules, vend
         .prepareGlobal(moduleRecord.id, null, null);
       (function (windowGlobal, documentGlobal) {
         'use strict';
-        Object.defineProperty(IntersectionEntry, 'name', { value: 'i', configurable: true });
-        Object.defineProperty(IntersectionObserverPolyfill, 'name', {
-          value: 'r',
-          configurable: true,
-        });
-        Object.defineProperty(addEvent, 'name', { value: 'o', configurable: true });
-        Object.defineProperty(removeEvent, 'name', { value: 'a', configurable: true });
-        Object.defineProperty(getBoundingClientRect, 'name', { value: 's', configurable: true });
-        Object.defineProperty(containsDeep, 'name', { value: 'l', configurable: true });
-        Object.defineProperty(getParentNode, 'name', { value: 'c', configurable: true });
 
         if (
           'IntersectionObserver' in windowGlobal &&

@@ -12,24 +12,6 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
         self;
       }
       var rangy = (function (global) {
-        Object.defineProperty(isHostMethod, 'name', { value: 'l', configurable: true });
-        Object.defineProperty(isHostObject, 'name', { value: 'c', configurable: true });
-        Object.defineProperty(isHostProperty, 'name', { value: 'd', configurable: true });
-        Object.defineProperty(createMultiplePropertyTest, 'name', {
-          value: 'u',
-          configurable: true,
-        });
-        Object.defineProperty(isTextRange, 'name', { value: 'm', configurable: true });
-        Object.defineProperty(getBody, 'name', { value: 'g', configurable: true });
-        Object.defineProperty(consoleLog, 'name', { value: 'w', configurable: true });
-        Object.defineProperty(alertOrLog, 'name', { value: 'x', configurable: true });
-        Object.defineProperty(fail, 'name', { value: 'C', configurable: true });
-        Object.defineProperty(getErrorDesc, 'name', { value: 'S', configurable: true });
-        Object.defineProperty(init, 'name', { value: 'k', configurable: true });
-        Object.defineProperty(Module, 'name', { value: 'T', configurable: true });
-        Object.defineProperty(createModule, 'name', { value: '_', configurable: true });
-        Object.defineProperty(RangePrototype, 'name', { value: 'A', configurable: true });
-
         var OBJECT = 'object',
           FUNCTION = 'function',
           UNDEFINED = 'undefined',
@@ -198,50 +180,34 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
             slice = [].slice;
           try {
             if (1 == slice.call(testElement.childNodes, 0)[0].nodeType) {
-              toArray = Object.defineProperty(
-                function (arrayLike) {
-                  return slice.call(arrayLike, 0);
-                },
-                'name',
-                { value: 't', configurable: true },
-              );
+              toArray = function (arrayLike) {
+                return slice.call(arrayLike, 0);
+              };
             }
           } catch (error) {}
           if (!toArray) {
-            toArray = Object.defineProperty(
-              function (arrayLike) {
-                for (
-                  var arr = [], itemIndex = 0, itemCount = arrayLike.length;
-                  itemIndex < itemCount;
-                  ++itemIndex
-                ) {
-                  arr[itemIndex] = arrayLike[itemIndex];
-                }
-                return arr;
-              },
-              'name',
-              { value: 't', configurable: true },
-            );
+            toArray = function (arrayLike) {
+              for (
+                var arr = [], itemIndex = 0, itemCount = arrayLike.length;
+                itemIndex < itemCount;
+                ++itemIndex
+              ) {
+                arr[itemIndex] = arrayLike[itemIndex];
+              }
+              return arr;
+            };
           }
           api.util.toArray = toArray;
         })();
         if (isHostMethod(document, 'addEventListener')) {
-          addListener = Object.defineProperty(
-            function (obj, eventType, listener) {
-              obj.addEventListener(eventType, listener, false);
-            },
-            'name',
-            { value: 'v', configurable: true },
-          );
+          addListener = function (obj, eventType, listener) {
+            obj.addEventListener(eventType, listener, false);
+          };
         } else {
           if (isHostMethod(document, 'attachEvent')) {
-            addListener = Object.defineProperty(
-              function (obj, eventType, listener) {
-                obj.attachEvent('on' + eventType, listener);
-              },
-              'name',
-              { value: 'v', configurable: true },
-            );
+            addListener = function (obj, eventType, listener) {
+              obj.attachEvent('on' + eventType, listener);
+            };
           } else {
             fail('Document does not have required addEventListener or attachEvent method');
           }
@@ -416,18 +382,14 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
         api.rangePrototype = new RangePrototype();
         api.selectionPrototype = new (function () {})();
         var docReady = false,
-          loadHandler = Object.defineProperty(
-            function (event) {
-              if (!docReady) {
-                docReady = true;
-                if (!api.initialized) {
-                  init();
-                }
+          loadHandler = function (event) {
+            if (!docReady) {
+              docReady = true;
+              if (!api.initialized) {
+                init();
               }
-            },
-            'name',
-            { value: 'L', configurable: true },
-          );
+            }
+          };
         if (typeof window != UNDEFINED) {
           if (typeof document != UNDEFINED) {
             if (isHostMethod(document, 'addEventListener')) {
@@ -442,22 +404,6 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
         }
       })();
       rangy.createCoreModule('DomUtil', [], function (api, module) {
-        Object.defineProperty(getNodeIndex, 'name', { value: 's', configurable: true });
-        Object.defineProperty(getCommonAncestor, 'name', { value: 'l', configurable: true });
-        Object.defineProperty(isAncestorOf, 'name', { value: 'c', configurable: true });
-        Object.defineProperty(getClosestAncestorIn, 'name', { value: 'd', configurable: true });
-        Object.defineProperty(isCharacterDataNode, 'name', { value: 'u', configurable: true });
-        Object.defineProperty(insertAfter, 'name', { value: 'h', configurable: true });
-        Object.defineProperty(getDocument, 'name', { value: 'p', configurable: true });
-        Object.defineProperty(getWindow, 'name', { value: 'f', configurable: true });
-        Object.defineProperty(getIframeDocument, 'name', { value: 'm', configurable: true });
-        Object.defineProperty(isWindow, 'name', { value: 'g', configurable: true });
-        Object.defineProperty(isBrokenNode, 'name', { value: 'b', configurable: true });
-        Object.defineProperty(inspectNode, 'name', { value: 'w', configurable: true });
-        Object.defineProperty(NodeIterator, 'name', { value: 'x', configurable: true });
-        Object.defineProperty(DomPosition, 'name', { value: 'C', configurable: true });
-        Object.defineProperty(DOMException, 'name', { value: 'F', configurable: true });
-
         var UNDEF = 'undefined',
           util = api.util;
         if (
@@ -506,18 +452,14 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
         ) {
           module.fail('Incomplete Text Node implementation');
         }
-        var arrayContains = Object.defineProperty(
-          function (arr, val) {
-            for (var itemIndex = arr.length; itemIndex--; ) {
-              if (arr[itemIndex] === val) {
-                return true;
-              }
+        var arrayContains = function (arr, val) {
+          for (var itemIndex = arr.length; itemIndex--; ) {
+            if (arr[itemIndex] === val) {
+              return true;
             }
-            return false;
-          },
-          'name',
-          { value: 'a', configurable: true },
-        );
+          }
+          return false;
+        };
         function getNodeIndex(node) {
           for (var siblingIndex = 0; (node = node.previousSibling); ) {
             ++siblingIndex;
@@ -678,22 +620,14 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
           api.features.crashyTextNodes = crashyTextNodes;
         })();
         if (typeof window.getComputedStyle != UNDEF) {
-          getComputedStyleProperty = Object.defineProperty(
-            function (element, propName) {
-              return getWindow(element).getComputedStyle(element, null)[propName];
-            },
-            'name',
-            { value: 'v', configurable: true },
-          );
+          getComputedStyleProperty = function (element, propName) {
+            return getWindow(element).getComputedStyle(element, null)[propName];
+          };
         } else {
           if (typeof document.documentElement.currentStyle != UNDEF) {
-            getComputedStyleProperty = Object.defineProperty(
-              function (element, propName) {
-                return element.currentStyle[propName];
-              },
-              'name',
-              { value: 'v', configurable: true },
-            );
+            getComputedStyleProperty = function (element, propName) {
+              return element.currentStyle[propName];
+            };
           } else {
             module.fail('No means of obtaining computed style properties found');
           }
@@ -926,55 +860,6 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
         api.DOMException = DOMException;
       });
       rangy.createCoreModule('DomRange', ['DomUtil'], function (api, module) {
-        Object.defineProperty(isNonTextPartiallySelected, 'name', {
-          value: 'v',
-          configurable: true,
-        });
-        Object.defineProperty(getRangeDocument, 'name', { value: 'y', configurable: true });
-        Object.defineProperty(getBoundaryBeforeNode, 'name', { value: 'b', configurable: true });
-        Object.defineProperty(getBoundaryAfterNode, 'name', { value: 'w', configurable: true });
-        Object.defineProperty(insertNodeAtPosition, 'name', { value: 'x', configurable: true });
-        Object.defineProperty(rangesIntersect, 'name', { value: 'C', configurable: true });
-        Object.defineProperty(iterateSubtree, 'name', { value: 'F', configurable: true });
-        Object.defineProperty(deleteSubtree, 'name', { value: 'S', configurable: true });
-        Object.defineProperty(extractSubtree, 'name', { value: 'k', configurable: true });
-        Object.defineProperty(inspect, 'name', { value: 'E', configurable: true });
-        Object.defineProperty(RangeIterator, 'name', { value: 'T', configurable: true });
-        Object.defineProperty(createAncestorFinder, 'name', { value: 'N', configurable: true });
-        Object.defineProperty(assertNoDocTypeNotationEntityAncestor, 'name', {
-          value: 'P',
-          configurable: true,
-        });
-        Object.defineProperty(assertValidNodeType, 'name', { value: 'I', configurable: true });
-        Object.defineProperty(assertValidOffset, 'name', { value: 'O', configurable: true });
-        Object.defineProperty(assertSameDocumentOrFragment, 'name', {
-          value: '$',
-          configurable: true,
-        });
-        Object.defineProperty(assertNodeNotReadOnly, 'name', { value: 'H', configurable: true });
-        Object.defineProperty(assertNode, 'name', { value: 'U', configurable: true });
-        Object.defineProperty(isOrphan, 'name', { value: 'j', configurable: true });
-        Object.defineProperty(isValidOffset, 'name', { value: 'q', configurable: true });
-        Object.defineProperty(isRangeValid, 'name', { value: 'W', configurable: true });
-        Object.defineProperty(assertRangeValid, 'name', { value: 'z', configurable: true });
-        Object.defineProperty(splitRangeBoundaries, 'name', { value: 'Y', configurable: true });
-        Object.defineProperty(copyComparisonConstantsToObject, 'name', {
-          value: 'oe',
-          configurable: true,
-        });
-        Object.defineProperty(copyComparisonConstants, 'name', { value: 'ae', configurable: true });
-        Object.defineProperty(createRangeContentRemover, 'name', {
-          value: 'se',
-          configurable: true,
-        });
-        Object.defineProperty(createPrototypeRange, 'name', { value: 'le', configurable: true });
-        Object.defineProperty(updateCollapsedAndCommonAncestor, 'name', {
-          value: 'ce',
-          configurable: true,
-        });
-        Object.defineProperty(updateBoundaries, 'name', { value: 'de', configurable: true });
-        Object.defineProperty(Range, 'name', { value: 'ue', configurable: true });
-
         var dom = api.dom,
           util = api.util,
           DomPosition = dom.DomPosition,
@@ -1434,13 +1319,6 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
           };
         }
         function createPrototypeRange(constructor, boundaryUpdater) {
-          Object.defineProperty(createBeforeAfterNodeSetter, 'name', {
-            value: 'r',
-            configurable: true,
-          });
-          Object.defineProperty(setRangeStart, 'name', { value: 'o', configurable: true });
-          Object.defineProperty(setRangeEnd, 'name', { value: 'l', configurable: true });
-
           function createBeforeAfterNodeSetter(isBefore, isStart) {
             return function (node) {
               assertValidNodeType(node, beforeAfterNodeTypes);
@@ -1481,10 +1359,7 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
               boundaryUpdater(range, startContainer, startOffset, node, offset);
             }
           }
-          var RangePrototypeBridge = Object.defineProperty(function () {}, 'name', {
-            value: 'c',
-            configurable: true,
-          });
+          var RangePrototypeBridge = function () {};
           RangePrototypeBridge.prototype = api.rangePrototype;
           constructor.prototype = new RangePrototypeBridge();
           util.extend(constructor.prototype, {
@@ -1577,49 +1452,41 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
                 startOffset = this.startOffset,
                 endContainer = this.endContainer,
                 endOffset = this.endOffset,
-                mergeForward = Object.defineProperty(
-                  function (node) {
-                    var sibling = node.nextSibling;
-                    if (sibling && sibling.nodeType == node.nodeType) {
-                      endContainer = node;
-                      endOffset = node.length;
-                      node.appendData(sibling.data);
-                      sibling.parentNode.removeChild(sibling);
-                    }
-                  },
-                  'name',
-                  { value: 'o', configurable: true },
-                ),
-                mergeBackward = Object.defineProperty(
-                  function (node) {
-                    var sibling = node.previousSibling;
-                    if (sibling && sibling.nodeType == node.nodeType) {
-                      startContainer = node;
-                      var nodeLength = node.length;
-                      startOffset = sibling.length;
-                      node.insertData(0, sibling.data);
-                      sibling.parentNode.removeChild(sibling);
-                      if (startContainer == endContainer) {
-                        endOffset += startOffset;
-                        endContainer = startContainer;
-                      } else {
-                        if (endContainer == node.parentNode) {
-                          var nodeIndex = getNodeIndex(node);
-                          if (endOffset == nodeIndex) {
-                            endContainer = node;
-                            endOffset = nodeLength;
-                          } else {
-                            if (endOffset > nodeIndex) {
-                              endOffset--;
-                            }
+                mergeForward = function (node) {
+                  var sibling = node.nextSibling;
+                  if (sibling && sibling.nodeType == node.nodeType) {
+                    endContainer = node;
+                    endOffset = node.length;
+                    node.appendData(sibling.data);
+                    sibling.parentNode.removeChild(sibling);
+                  }
+                },
+                mergeBackward = function (node) {
+                  var sibling = node.previousSibling;
+                  if (sibling && sibling.nodeType == node.nodeType) {
+                    startContainer = node;
+                    var nodeLength = node.length;
+                    startOffset = sibling.length;
+                    node.insertData(0, sibling.data);
+                    sibling.parentNode.removeChild(sibling);
+                    if (startContainer == endContainer) {
+                      endOffset += startOffset;
+                      endContainer = startContainer;
+                    } else {
+                      if (endContainer == node.parentNode) {
+                        var nodeIndex = getNodeIndex(node);
+                        if (endOffset == nodeIndex) {
+                          endContainer = node;
+                          endOffset = nodeLength;
+                        } else {
+                          if (endOffset > nodeIndex) {
+                            endOffset--;
                           }
                         }
                       }
                     }
-                  },
-                  'name',
-                  { value: 'l', configurable: true },
-                ),
+                  }
+                },
                 normalizeStart = true;
               if (isCharacterDataNode(endContainer)) {
                 if (endContainer.length == endOffset) {
@@ -1729,32 +1596,28 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
               return frag;
             }
             var iterator = new RangeIterator(this, true);
-            clone = Object.defineProperty(
-              function cloneSubtree(iterator) {
-                for (
-                  var partiallySelected,
-                    node,
-                    subIterator,
-                    frag = getRangeDocument(iterator.range).createDocumentFragment();
-                  (node = iterator.next());
-                ) {
-                  partiallySelected = iterator.isPartiallySelectedSubtree();
-                  node = node.cloneNode(!partiallySelected);
-                  if (partiallySelected) {
-                    subIterator = iterator.getSubtreeIterator();
-                    node.appendChild(cloneSubtree(subIterator));
-                    subIterator.detach();
-                  }
-                  if (10 == node.nodeType) {
-                    throw new DOMException('HIERARCHY_REQUEST_ERR');
-                  }
-                  frag.appendChild(node);
+            clone = (function cloneSubtree(iterator) {
+              for (
+                var partiallySelected,
+                  node,
+                  subIterator,
+                  frag = getRangeDocument(iterator.range).createDocumentFragment();
+                (node = iterator.next());
+              ) {
+                partiallySelected = iterator.isPartiallySelectedSubtree();
+                node = node.cloneNode(!partiallySelected);
+                if (partiallySelected) {
+                  subIterator = iterator.getSubtreeIterator();
+                  node.appendChild(cloneSubtree(subIterator));
+                  subIterator.detach();
                 }
-                return frag;
-              },
-              'name',
-              { value: 'e', configurable: true },
-            )(iterator);
+                if (10 == node.nodeType) {
+                  throw new DOMException('HIERARCHY_REQUEST_ERR');
+                }
+                frag.appendChild(node);
+              }
+              return frag;
+            })(iterator);
             iterator.detach();
             return clone;
           },
@@ -2034,8 +1897,6 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
             this.collapse(true);
           },
           getBookmark: function (containerNode, omitMathSuffix) {
-            Object.defineProperty(visibleTextLength, 'name', { value: 'r', configurable: true });
-
             if (!containerNode) {
               return {};
             }
@@ -2162,11 +2023,6 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
           isCharacterDataNode = dom.isCharacterDataNode;
         if (api.features.implementsDomRange) {
           (function () {
-            Object.defineProperty(updateRangeProperties, 'name', {
-              value: 'u',
-              configurable: true,
-            });
-
             var rangePrototype,
               createBoundarySetter,
               rangeProperties = DomRange.rangeProperties;
@@ -2179,17 +2035,13 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
                 range.startContainer === range.endContainer &&
                 range.startOffset === range.endOffset;
             }
-            WrappedRange = Object.defineProperty(
-              function (range) {
-                if (!range) {
-                  throw module.createError('WrappedRange: Range must be specified');
-                }
-                this.nativeRange = range;
-                updateRangeProperties(this);
-              },
-              'name',
-              { value: 'n', configurable: true },
-            );
+            WrappedRange = function (range) {
+              if (!range) {
+                throw module.createError('WrappedRange: Range must be specified');
+              }
+              this.nativeRange = range;
+              updateRangeProperties(this);
+            };
             DomRange.createPrototypeRange(
               WrappedRange,
               function (range, startContainer, startOffset, endContainer, endOffset) {
@@ -2244,16 +2096,12 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
                 this.nativeRange.setEnd(node, offset);
                 updateRangeProperties(this);
               };
-              createBoundarySetter = Object.defineProperty(
-                function (name) {
-                  return function (node) {
-                    this.nativeRange[name](node);
-                    updateRangeProperties(this);
-                  };
-                },
-                'name',
-                { value: 'a', configurable: true },
-              );
+              createBoundarySetter = function (name) {
+                return function (node) {
+                  this.nativeRange[name](node);
+                  updateRangeProperties(this);
+                };
+              };
             } catch (error) {
               rangePrototype.setStart = function (node, offset) {
                 try {
@@ -2273,21 +2121,17 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
                 }
                 updateRangeProperties(this);
               };
-              createBoundarySetter = Object.defineProperty(
-                function (name, oppositeName) {
-                  return function (node) {
-                    try {
-                      this.nativeRange[name](node);
-                    } catch (error) {
-                      this.nativeRange[oppositeName](node);
-                      this.nativeRange[name](node);
-                    }
-                    updateRangeProperties(this);
-                  };
-                },
-                'name',
-                { value: 'a', configurable: true },
-              );
+              createBoundarySetter = function (name, oppositeName) {
+                return function (node) {
+                  try {
+                    this.nativeRange[name](node);
+                  } catch (error) {
+                    this.nativeRange[oppositeName](node);
+                    this.nativeRange[name](node);
+                  }
+                  updateRangeProperties(this);
+                };
+              };
             }
             rangePrototype.setStartBefore = createBoundarySetter('setStartBefore', 'setEndBefore');
             rangePrototype.setStartAfter = createBoundarySetter('setStartAfter', 'setEndAfter');
@@ -2361,148 +2205,142 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
           })();
         }
         if (api.features.implementsTextRange) {
-          var getTextRangeBoundaryPosition = Object.defineProperty(
-              function (textRange, wholeRangeContainer, isStart, isCollapsed, startInfo) {
-                var workingRange = textRange.duplicate();
-                workingRange.collapse(isStart);
-                var containerElement = workingRange.parentElement();
-                if (!dom.isOrIsAncestorOf(wholeRangeContainer, containerElement)) {
-                  containerElement = wholeRangeContainer;
-                }
-                if (!containerElement.canHaveHTML) {
-                  var elementPosition = new DomPosition(
-                    containerElement.parentNode,
-                    dom.getNodeIndex(containerElement),
-                  );
-                  return {
-                    boundaryPosition: elementPosition,
-                    nodeInfo: {
-                      nodeIndex: elementPosition.offset,
-                      containerElement: elementPosition.node,
-                    },
-                  };
-                }
-                var markerElement = dom.getDocument(containerElement).createElement('span');
-                if (markerElement.parentNode) {
-                  markerElement.parentNode.removeChild(markerElement);
-                }
-                for (
-                  var comparison,
-                    previousNode,
-                    nextNode,
-                    boundaryPosition,
-                    boundaryTextNode,
-                    comparisonType = isStart ? 'StartToStart' : 'StartToEnd',
-                    lowerIndex =
-                      startInfo && startInfo.containerElement == containerElement
-                        ? startInfo.nodeIndex
-                        : 0,
-                    childCount = containerElement.childNodes.length,
-                    upperIndex = childCount,
-                    nodeIndex = upperIndex;
-                  nodeIndex == childCount
-                    ? containerElement.appendChild(markerElement)
-                    : containerElement.insertBefore(
-                        markerElement,
-                        containerElement.childNodes[nodeIndex],
-                      ),
-                    workingRange.moveToElementText(markerElement),
-                    0 != (comparison = workingRange.compareEndPoints(comparisonType, textRange)) &&
-                      lowerIndex != upperIndex;
-                ) {
-                  if (-1 == comparison) {
-                    if (upperIndex == lowerIndex + 1) {
-                      break;
-                    }
-                    lowerIndex = nodeIndex;
-                  } else {
-                    upperIndex = upperIndex == lowerIndex + 1 ? lowerIndex : nodeIndex;
-                  }
-                  nodeIndex = Math.floor((lowerIndex + upperIndex) / 2);
-                  containerElement.removeChild(markerElement);
-                }
-                boundaryTextNode = markerElement.nextSibling;
-                if (-1 == comparison && boundaryTextNode && isCharacterDataNode(boundaryTextNode)) {
-                  var characterOffset;
-                  workingRange.setEndPoint(isStart ? 'EndToStart' : 'EndToEnd', textRange);
-                  if (/[\r\n]/.test(boundaryTextNode.data)) {
-                    var characterRange = workingRange.duplicate(),
-                      normalizedTextLength = characterRange.text.replace(/\r\n/g, '\r').length;
-                    for (
-                      characterOffset = characterRange.moveStart('character', normalizedTextLength);
-                      -1 ==
-                      (comparison = characterRange.compareEndPoints('StartToEnd', characterRange));
-                    ) {
-                      characterOffset++;
-                      characterRange.moveStart('character', 1);
-                    }
-                  } else {
-                    characterOffset = workingRange.text.length;
-                  }
-                  boundaryPosition = new DomPosition(boundaryTextNode, characterOffset);
-                } else {
-                  previousNode = (isCollapsed || !isStart) && markerElement.previousSibling;
-                  boundaryPosition =
-                    (nextNode = (isCollapsed || isStart) && markerElement.nextSibling) &&
-                    isCharacterDataNode(nextNode)
-                      ? new DomPosition(nextNode, 0)
-                      : previousNode && isCharacterDataNode(previousNode)
-                        ? new DomPosition(previousNode, previousNode.data.length)
-                        : new DomPosition(containerElement, dom.getNodeIndex(markerElement));
-                }
-                markerElement.parentNode.removeChild(markerElement);
+          var getTextRangeBoundaryPosition = function (
+              textRange,
+              wholeRangeContainer,
+              isStart,
+              isCollapsed,
+              startInfo,
+            ) {
+              var workingRange = textRange.duplicate();
+              workingRange.collapse(isStart);
+              var containerElement = workingRange.parentElement();
+              if (!dom.isOrIsAncestorOf(wholeRangeContainer, containerElement)) {
+                containerElement = wholeRangeContainer;
+              }
+              if (!containerElement.canHaveHTML) {
+                var elementPosition = new DomPosition(
+                  containerElement.parentNode,
+                  dom.getNodeIndex(containerElement),
+                );
                 return {
-                  boundaryPosition: boundaryPosition,
-                  nodeInfo: { nodeIndex: nodeIndex, containerElement: containerElement },
+                  boundaryPosition: elementPosition,
+                  nodeInfo: {
+                    nodeIndex: elementPosition.offset,
+                    containerElement: elementPosition.node,
+                  },
                 };
-              },
-              'name',
-              { value: 'u', configurable: true },
-            ),
-            createBoundaryTextRange = Object.defineProperty(
-              function (position, isStart) {
-                var referenceNode,
-                  containerElement,
-                  markerElement,
-                  childNodes,
-                  offset = position.offset,
-                  ownerDocument = dom.getDocument(position.node),
-                  textRange = getBody(ownerDocument).createTextRange(),
-                  isCharacterData = isCharacterDataNode(position.node);
-                if (isCharacterData) {
-                  containerElement = (referenceNode = position.node).parentNode;
+              }
+              var markerElement = dom.getDocument(containerElement).createElement('span');
+              if (markerElement.parentNode) {
+                markerElement.parentNode.removeChild(markerElement);
+              }
+              for (
+                var comparison,
+                  previousNode,
+                  nextNode,
+                  boundaryPosition,
+                  boundaryTextNode,
+                  comparisonType = isStart ? 'StartToStart' : 'StartToEnd',
+                  lowerIndex =
+                    startInfo && startInfo.containerElement == containerElement
+                      ? startInfo.nodeIndex
+                      : 0,
+                  childCount = containerElement.childNodes.length,
+                  upperIndex = childCount,
+                  nodeIndex = upperIndex;
+                nodeIndex == childCount
+                  ? containerElement.appendChild(markerElement)
+                  : containerElement.insertBefore(
+                      markerElement,
+                      containerElement.childNodes[nodeIndex],
+                    ),
+                  workingRange.moveToElementText(markerElement),
+                  0 != (comparison = workingRange.compareEndPoints(comparisonType, textRange)) &&
+                    lowerIndex != upperIndex;
+              ) {
+                if (-1 == comparison) {
+                  if (upperIndex == lowerIndex + 1) {
+                    break;
+                  }
+                  lowerIndex = nodeIndex;
                 } else {
-                  referenceNode =
-                    offset < (childNodes = position.node.childNodes).length
-                      ? childNodes[offset]
-                      : null;
-                  containerElement = position.node;
+                  upperIndex = upperIndex == lowerIndex + 1 ? lowerIndex : nodeIndex;
                 }
-                (markerElement = ownerDocument.createElement('span')).innerHTML = '&#feff;';
-                if (referenceNode) {
-                  containerElement.insertBefore(markerElement, referenceNode);
-                } else {
-                  containerElement.appendChild(markerElement);
-                }
-                textRange.moveToElementText(markerElement);
-                textRange.collapse(!isStart);
+                nodeIndex = Math.floor((lowerIndex + upperIndex) / 2);
                 containerElement.removeChild(markerElement);
-                if (isCharacterData) {
-                  textRange[isStart ? 'moveStart' : 'moveEnd']('character', offset);
+              }
+              boundaryTextNode = markerElement.nextSibling;
+              if (-1 == comparison && boundaryTextNode && isCharacterDataNode(boundaryTextNode)) {
+                var characterOffset;
+                workingRange.setEndPoint(isStart ? 'EndToStart' : 'EndToEnd', textRange);
+                if (/[\r\n]/.test(boundaryTextNode.data)) {
+                  var characterRange = workingRange.duplicate(),
+                    normalizedTextLength = characterRange.text.replace(/\r\n/g, '\r').length;
+                  for (
+                    characterOffset = characterRange.moveStart('character', normalizedTextLength);
+                    -1 ==
+                    (comparison = characterRange.compareEndPoints('StartToEnd', characterRange));
+                  ) {
+                    characterOffset++;
+                    characterRange.moveStart('character', 1);
+                  }
+                } else {
+                  characterOffset = workingRange.text.length;
                 }
-                return textRange;
-              },
-              'name',
-              { value: 'h', configurable: true },
-            );
-          (WrappedTextRange = Object.defineProperty(
-            function (textRange) {
-              this.textRange = textRange;
-              this.refresh();
+                boundaryPosition = new DomPosition(boundaryTextNode, characterOffset);
+              } else {
+                previousNode = (isCollapsed || !isStart) && markerElement.previousSibling;
+                boundaryPosition =
+                  (nextNode = (isCollapsed || isStart) && markerElement.nextSibling) &&
+                  isCharacterDataNode(nextNode)
+                    ? new DomPosition(nextNode, 0)
+                    : previousNode && isCharacterDataNode(previousNode)
+                      ? new DomPosition(previousNode, previousNode.data.length)
+                      : new DomPosition(containerElement, dom.getNodeIndex(markerElement));
+              }
+              markerElement.parentNode.removeChild(markerElement);
+              return {
+                boundaryPosition: boundaryPosition,
+                nodeInfo: { nodeIndex: nodeIndex, containerElement: containerElement },
+              };
             },
-            'name',
-            { value: 'i', configurable: true },
-          )).prototype = new DomRange(document);
+            createBoundaryTextRange = function (position, isStart) {
+              var referenceNode,
+                containerElement,
+                markerElement,
+                childNodes,
+                offset = position.offset,
+                ownerDocument = dom.getDocument(position.node),
+                textRange = getBody(ownerDocument).createTextRange(),
+                isCharacterData = isCharacterDataNode(position.node);
+              if (isCharacterData) {
+                containerElement = (referenceNode = position.node).parentNode;
+              } else {
+                referenceNode =
+                  offset < (childNodes = position.node.childNodes).length
+                    ? childNodes[offset]
+                    : null;
+                containerElement = position.node;
+              }
+              (markerElement = ownerDocument.createElement('span')).innerHTML = '&#feff;';
+              if (referenceNode) {
+                containerElement.insertBefore(markerElement, referenceNode);
+              } else {
+                containerElement.appendChild(markerElement);
+              }
+              textRange.moveToElementText(markerElement);
+              textRange.collapse(!isStart);
+              containerElement.removeChild(markerElement);
+              if (isCharacterData) {
+                textRange[isStart ? 'moveStart' : 'moveEnd']('character', offset);
+              }
+              return textRange;
+            };
+          (WrappedTextRange = function (textRange) {
+            this.textRange = textRange;
+            this.refresh();
+          }).prototype = new DomRange(document);
           WrappedTextRange.prototype.refresh = function () {
             var startPosition,
               endPosition,
@@ -2619,44 +2457,6 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
         'WrappedSelection',
         ['DomRange', 'WrappedRange'],
         function (api, module) {
-          Object.defineProperty(isDirectionBackward, 'name', { value: 'm', configurable: true });
-          Object.defineProperty(getWindow, 'name', { value: 'g', configurable: true });
-          Object.defineProperty(getDocSelection, 'name', { value: 'v', configurable: true });
-          Object.defineProperty(winSelectionIsBackward, 'name', { value: 'y', configurable: true });
-          Object.defineProperty(updateAnchorAndFocusFromRange, 'name', {
-            value: 'N',
-            configurable: true,
-          });
-          Object.defineProperty(updateEmptySelection, 'name', { value: 'D', configurable: true });
-          Object.defineProperty(getNativeRange, 'name', { value: 'R', configurable: true });
-          Object.defineProperty(getSingleElementFromRange, 'name', {
-            value: 'B',
-            configurable: true,
-          });
-          Object.defineProperty(isTextRangeObject, 'name', { value: 'P', configurable: true });
-          Object.defineProperty(updateFromTextRange, 'name', { value: 'I', configurable: true });
-          Object.defineProperty(refreshControlSelection, 'name', {
-            value: 'O',
-            configurable: true,
-          });
-          Object.defineProperty(addRangeToControlSelection, 'name', {
-            value: '$',
-            configurable: true,
-          });
-          Object.defineProperty(WrappedSelection, 'name', { value: 'H', configurable: true });
-          Object.defineProperty(deleteProperties, 'name', { value: 'U', configurable: true });
-          Object.defineProperty(actOnCachedSelection, 'name', { value: 'q', configurable: true });
-          Object.defineProperty(createControlSelection, 'name', { value: 'J', configurable: true });
-          Object.defineProperty(assertNodeInSameDocument, 'name', {
-            value: 'Q',
-            configurable: true,
-          });
-          Object.defineProperty(createSelectionBoundarySetter, 'name', {
-            value: 'X',
-            configurable: true,
-          });
-          Object.defineProperty(inspectSelection, 'name', { value: 'Z', configurable: true });
-
           api.config.checkSelectionRanges = true;
           var getNativeSelection,
             isSelectionCollapsed,
@@ -2721,13 +2521,9 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
             };
           } else {
             if (supportsWindowSelection) {
-              getNativeSelection = Object.defineProperty(
-                function (winParam) {
-                  return getWindow(winParam, 'getWinSelection').getSelection();
-                },
-                'name',
-                { value: 'n', configurable: true },
-              );
+              getNativeSelection = function (winParam) {
+                return getWindow(winParam, 'getWinSelection').getSelection();
+              };
               api.isSelectionValid = function () {
                 return true;
               };
@@ -2954,42 +2750,34 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
                 return !!error.rangeCount && error.getRangeAt(error.rangeCount - 1).collapsed;
               };
           if (isHostMethod(testSelection, 'getRangeAt')) {
-            getNativeRangeAt = Object.defineProperty(
-              function (sel, index) {
-                try {
-                  return sel.getRangeAt(index);
-                } catch (error) {
-                  return null;
-                }
-              },
-              'name',
-              { value: 'M', configurable: true },
-            );
+            getNativeRangeAt = function (sel, index) {
+              try {
+                return sel.getRangeAt(index);
+              } catch (error) {
+                return null;
+              }
+            };
           } else {
             if (hasAnchorAndFocus) {
-              getNativeRangeAt = Object.defineProperty(
-                function (sel) {
-                  var doc = getDocument(sel.anchorNode),
-                    range = api.createRange(doc);
+              getNativeRangeAt = function (sel) {
+                var doc = getDocument(sel.anchorNode),
+                  range = api.createRange(doc);
+                range.setStartAndEnd(
+                  sel.anchorNode,
+                  sel.anchorOffset,
+                  sel.focusNode,
+                  sel.focusOffset,
+                );
+                if (range.collapsed !== this.isCollapsed) {
                   range.setStartAndEnd(
-                    sel.anchorNode,
-                    sel.anchorOffset,
                     sel.focusNode,
                     sel.focusOffset,
+                    sel.anchorNode,
+                    sel.anchorOffset,
                   );
-                  if (range.collapsed !== this.isCollapsed) {
-                    range.setStartAndEnd(
-                      sel.focusNode,
-                      sel.focusOffset,
-                      sel.anchorNode,
-                      sel.anchorOffset,
-                    );
-                  }
-                  return range;
-                },
-                'name',
-                { value: 'M', configurable: true },
-              );
+                }
+                return range;
+              };
             }
           }
           WrappedSelection.prototype = api.selectionPrototype;
@@ -3018,32 +2806,26 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
             }
             return null;
           }
-          var getSelection = Object.defineProperty(
-            function (targetWindow) {
-              if (targetWindow && targetWindow instanceof WrappedSelection) {
-                targetWindow.refresh();
-                return targetWindow;
-              }
-              var selection = actOnCachedSelection(
-                  (targetWindow = getWindow(targetWindow, 'getNativeSelection')),
-                ),
-                nativeSelection = getNativeSelection(targetWindow),
-                documentSelection = supportsDocumentSelection
-                  ? getDocSelection(targetWindow)
-                  : null;
-              if (selection) {
-                selection.nativeSelection = nativeSelection;
-                selection.docSelection = documentSelection;
-                selection.refresh();
-              } else {
-                selection = new WrappedSelection(nativeSelection, documentSelection, targetWindow);
-                selectionCache.push({ win: targetWindow, selection: selection });
-              }
-              return selection;
-            },
-            'name',
-            { value: 'W', configurable: true },
-          );
+          var getSelection = function (targetWindow) {
+            if (targetWindow && targetWindow instanceof WrappedSelection) {
+              targetWindow.refresh();
+              return targetWindow;
+            }
+            var selection = actOnCachedSelection(
+                (targetWindow = getWindow(targetWindow, 'getNativeSelection')),
+              ),
+              nativeSelection = getNativeSelection(targetWindow),
+              documentSelection = supportsDocumentSelection ? getDocSelection(targetWindow) : null;
+            if (selection) {
+              selection.nativeSelection = nativeSelection;
+              selection.docSelection = documentSelection;
+              selection.refresh();
+            } else {
+              selection = new WrappedSelection(nativeSelection, documentSelection, targetWindow);
+              selectionCache.push({ win: targetWindow, selection: selection });
+            }
+            return selection;
+          };
           api.getSelection = getSelection;
           api.getIframeSelection = function (iframeEl) {
             module.deprecationNotice('getIframeSelection()', 'getSelection(iframeEl)');
@@ -3082,14 +2864,10 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
               this.nativeSelection.removeAllRanges();
               updateEmptySelection(this);
             };
-            var addRangeBackward = Object.defineProperty(
-              function (sel, range) {
-                addRangeBackwardToNative(sel.nativeSelection, range);
-                sel.refresh();
-              },
-              'name',
-              { value: 'K', configurable: true },
-            );
+            var addRangeBackward = function (sel, range) {
+              addRangeBackwardToNative(sel.nativeSelection, range);
+              sel.refresh();
+            };
             selectionPrototype.addRange = hasRangeCount
               ? function (range, direction) {
                   var previousRangeCount;
@@ -3218,67 +2996,59 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
             return this._ranges[index].cloneRange();
           };
           if (useDocumentSelection) {
-            refreshSelection = Object.defineProperty(
-              function (selection) {
-                var textRange;
-                if (api.isSelectionValid(selection.win)) {
-                  textRange = selection.docSelection.createRange();
+            refreshSelection = function (selection) {
+              var textRange;
+              if (api.isSelectionValid(selection.win)) {
+                textRange = selection.docSelection.createRange();
+              } else {
+                (textRange = getBody(selection.win.document).createTextRange()).collapse(true);
+              }
+              if ('Control' == selection.docSelection.type) {
+                refreshControlSelection(selection);
+              } else {
+                if (isTextRangeObject(textRange)) {
+                  updateFromTextRange(selection, textRange);
                 } else {
-                  (textRange = getBody(selection.win.document).createTextRange()).collapse(true);
+                  updateEmptySelection(selection);
                 }
-                if ('Control' == selection.docSelection.type) {
-                  refreshControlSelection(selection);
-                } else {
-                  if (isTextRangeObject(textRange)) {
-                    updateFromTextRange(selection, textRange);
-                  } else {
-                    updateEmptySelection(selection);
-                  }
-                }
-              },
-              'name',
-              { value: 'z', configurable: true },
-            );
+              }
+            };
           } else {
             if (
               isHostMethod(testSelection, 'getRangeAt') &&
               'number' == typeof testSelection.rangeCount
             ) {
-              refreshSelection = Object.defineProperty(
-                function (selection) {
-                  if (
-                    supportsControlRange &&
-                    supportsDocumentSelection &&
-                    'Control' == selection.docSelection.type
-                  ) {
-                    refreshControlSelection(selection);
-                  } else {
-                    selection._ranges.length = selection.rangeCount =
-                      selection.nativeSelection.rangeCount;
-                    if (selection.rangeCount) {
-                      for (
-                        var rangeIndex = 0, rangeCount = selection.rangeCount;
-                        rangeIndex < rangeCount;
-                        ++rangeIndex
-                      ) {
-                        selection._ranges[rangeIndex] = new api.WrappedRange(
-                          selection.nativeSelection.getRangeAt(rangeIndex),
-                        );
-                      }
-                      updateAnchorAndFocusFromRange(
-                        selection,
-                        selection._ranges[selection.rangeCount - 1],
-                        isNativeSelectionBackward(selection.nativeSelection),
+              refreshSelection = function (selection) {
+                if (
+                  supportsControlRange &&
+                  supportsDocumentSelection &&
+                  'Control' == selection.docSelection.type
+                ) {
+                  refreshControlSelection(selection);
+                } else {
+                  selection._ranges.length = selection.rangeCount =
+                    selection.nativeSelection.rangeCount;
+                  if (selection.rangeCount) {
+                    for (
+                      var rangeIndex = 0, rangeCount = selection.rangeCount;
+                      rangeIndex < rangeCount;
+                      ++rangeIndex
+                    ) {
+                      selection._ranges[rangeIndex] = new api.WrappedRange(
+                        selection.nativeSelection.getRangeAt(rangeIndex),
                       );
-                      selection.isCollapsed = isSelectionCollapsed(selection);
-                    } else {
-                      updateEmptySelection(selection);
                     }
+                    updateAnchorAndFocusFromRange(
+                      selection,
+                      selection._ranges[selection.rangeCount - 1],
+                      isNativeSelectionBackward(selection.nativeSelection),
+                    );
+                    selection.isCollapsed = isSelectionCollapsed(selection);
+                  } else {
+                    updateEmptySelection(selection);
                   }
-                },
-                'name',
-                { value: 'z', configurable: true },
-              );
+                }
+              };
             } else {
               if (
                 !hasAnchorAndFocus ||
@@ -3291,29 +3061,25 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
                 );
                 return false;
               }
-              refreshSelection = Object.defineProperty(
-                function (selection) {
-                  var range,
-                    nativeSelection = selection.nativeSelection;
-                  if (nativeSelection.anchorNode) {
-                    range = getNativeRangeAt(nativeSelection, 0);
-                    selection._ranges = [range];
-                    selection.rangeCount = 1;
-                    (function (sel) {
-                      var nativeSel = sel.nativeSelection;
-                      sel.anchorNode = nativeSel.anchorNode;
-                      sel.anchorOffset = nativeSel.anchorOffset;
-                      sel.focusNode = nativeSel.focusNode;
-                      sel.focusOffset = nativeSel.focusOffset;
-                    })(selection);
-                    selection.isCollapsed = isSelectionCollapsed(selection);
-                  } else {
-                    updateEmptySelection(selection);
-                  }
-                },
-                'name',
-                { value: 'z', configurable: true },
-              );
+              refreshSelection = function (selection) {
+                var range,
+                  nativeSelection = selection.nativeSelection;
+                if (nativeSelection.anchorNode) {
+                  range = getNativeRangeAt(nativeSelection, 0);
+                  selection._ranges = [range];
+                  selection.rangeCount = 1;
+                  (function (sel) {
+                    var nativeSel = sel.nativeSelection;
+                    sel.anchorNode = nativeSel.anchorNode;
+                    sel.anchorOffset = nativeSel.anchorOffset;
+                    sel.focusNode = nativeSel.focusNode;
+                    sel.focusOffset = nativeSel.focusOffset;
+                  })(selection);
+                  selection.isCollapsed = isSelectionCollapsed(selection);
+                } else {
+                  updateEmptySelection(selection);
+                }
+              };
             }
           }
           selectionPrototype.refresh = function (checkForChanges) {
@@ -3338,26 +3104,22 @@ export default function installLibrariesRangy(engineModules, vendorScope) {
             }
           };
           var isNativeSelectionBackward,
-            removeRangeFromSelection = Object.defineProperty(
-              function (selection, removedRange) {
-                var ranges = selection.getAllRanges();
-                selection.removeAllRanges();
-                for (
-                  var rangeIndex = 0, rangeCount = ranges.length;
-                  rangeIndex < rangeCount;
-                  ++rangeIndex
-                ) {
-                  if (!rangesEqual(removedRange, ranges[rangeIndex])) {
-                    selection.addRange(ranges[rangeIndex]);
-                  }
+            removeRangeFromSelection = function (selection, removedRange) {
+              var ranges = selection.getAllRanges();
+              selection.removeAllRanges();
+              for (
+                var rangeIndex = 0, rangeCount = ranges.length;
+                rangeIndex < rangeCount;
+                ++rangeIndex
+              ) {
+                if (!rangesEqual(removedRange, ranges[rangeIndex])) {
+                  selection.addRange(ranges[rangeIndex]);
                 }
-                if (!selection.rangeCount) {
-                  updateEmptySelection(selection);
-                }
-              },
-              'name',
-              { value: 'G', configurable: true },
-            );
+              }
+              if (!selection.rangeCount) {
+                updateEmptySelection(selection);
+              }
+            };
           function assertNodeInSameDocument(sel, node) {
             if (sel.win.document != getDocument(node)) {
               throw new DOMException('WRONG_DOCUMENT_ERR');

@@ -74,7 +74,7 @@ export function structuralBreakReceipt(
     suffix = text.slice(offset);
   const splitLine = prefix.split('\n').length - 1;
   const column = prefix.slice(prefix.lastIndexOf('\n') + 1).length;
-  // Original paragraph Enter consumes the existing soft newline at the split.
+  // Paragraph Enter consumes the existing soft newline at the split.
   // Admit that exact observed case only, preserving its serialized quote prefix.
   const consumedSoftLine =
     !soft && suffix.startsWith('\n') && second.body.join('\n') === suffix.slice(1);
@@ -178,7 +178,7 @@ export function structuralBreakReceipt(
   };
 }
 
-/** One original Enter/Shift+Enter on an exact plain paragraph in a
+/** One Enter/Shift+Enter on an exact plain paragraph in a
  * proved list/quote. It never authorizes arbitrary block replacement. */
 export function captureStructuralBreak(
   runtime: LegacyGlobals,

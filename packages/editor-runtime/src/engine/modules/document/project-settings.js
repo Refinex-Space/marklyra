@@ -4,8 +4,6 @@ export default function initializeDocumentProjectSettings(
   moduleExports,
   moduleRecord,
 ) {
-  Object.defineProperty(normalizeSettings, 'name', { value: 'l', configurable: true });
-
   if (!this) {
     self;
   }
@@ -26,24 +24,18 @@ export default function initializeDocumentProjectSettings(
       'append-head',
       'append-body',
     ].concat(items);
-  var ProjectSettingsBridge = Object.defineProperty(
-    function (editor) {
-      this.editor = editor;
-      this.levels = [];
-      this.fileSetting = {};
-      this.projectSetting = {};
-      this.isLoadingProjectSetting = false;
-      this.prevFilePath = null;
-      if (File.bundle.path) {
-        this.loadFromProject();
-      }
-    },
-    'name',
-    { value: 's', configurable: true },
-  );
+  var ProjectSettingsBridge = function (editor) {
+    this.editor = editor;
+    this.levels = [];
+    this.fileSetting = {};
+    this.projectSetting = {};
+    this.isLoadingProjectSetting = false;
+    this.prevFilePath = null;
+    if (File.bundle.path) {
+      this.loadFromProject();
+    }
+  };
   function normalizeSettings(readSetting) {
-    Object.defineProperty(readSettingAlias, 'name', { value: 'n', configurable: true });
-
     var normalizedSettings = {};
     function readSettingAlias(text) {
       var settingValue = readSetting(text);
@@ -160,17 +152,13 @@ export default function initializeDocumentProjectSettings(
   };
   ProjectSettingsBridge.prototype.loadFromProject = async function (unusedParameter1) {};
   ProjectSettingsBridge.prototype.getCalculatedProjectSetting = async function () {
-    const mergeProjectSettings = Object.defineProperty(
-      () => {
-        var mergedSettings = {};
-        for (record of this.levels) {
-          Object.assign(mergedSettings, record[1]);
-        }
-        return mergedSettings;
-      },
-      'name',
-      { value: 'e', configurable: true },
-    );
+    const mergeProjectSettings = () => {
+      var mergedSettings = {};
+      for (record of this.levels) {
+        Object.assign(mergedSettings, record[1]);
+      }
+      return mergedSettings;
+    };
     if (this.isLoadingProjectSetting) {
       return new Promise((resolvePromise) => {
         setTimeout(() => {
@@ -215,56 +203,45 @@ export default function initializeDocumentProjectSettings(
     if (!startDirectory) {
       return;
     }
-    const readEditorConfig = Object.defineProperty(
-        async (directoryPath) => {
-          try {
-            var configText = await fileSystemExtra.readFile(
-              directoryPath + '/.editorConfig',
-              'utf8',
-            );
-            if (!configText) {
-              return;
-            }
-            var localItems = this.parseFromString(configText),
-              editorConfig = {};
-            localItems.map((item) => {
-              if (!item[0]) {
-                editorConfig.notRoot = 'true' !== item[1].root;
-              }
-              if (!(item[0] && 'marklyra' !== item[0])) {
-                editorConfig = Object.assign(
-                  editorConfig,
-                  normalizeSettings((settingKey) => item[1][settingKey]),
-                );
-              }
-            });
-            return editorConfig;
-          } catch (error) {
-            console.debug(error);
+    const readEditorConfig = async (directoryPath) => {
+        try {
+          var configText = await fileSystemExtra.readFile(directoryPath + '/.editorConfig', 'utf8');
+          if (!configText) {
+            return;
           }
-          return null;
-        },
-        'name',
-        { value: 's', configurable: true },
-      ),
-      readMarkLyraConfig = Object.defineProperty(
-        async (directoryPath) => {
-          try {
-            var configText = await fileSystemExtra.readFile(
-              directoryPath + '/.marklyraConfig',
-              'utf8',
-            );
-            if (!configText) {
-              return;
+          var localItems = this.parseFromString(configText),
+            editorConfig = {};
+          localItems.map((item) => {
+            if (!item[0]) {
+              editorConfig.notRoot = 'true' !== item[1].root;
             }
-            var sectionValues = this.parseFromString(configText)[0][1];
-            return normalizeSettings((settingKey) => sectionValues[settingKey]);
-          } catch (error) {}
-          return null;
-        },
-        'name',
-        { value: 'c', configurable: true },
-      );
+            if (!(item[0] && 'marklyra' !== item[0])) {
+              editorConfig = Object.assign(
+                editorConfig,
+                normalizeSettings((settingKey) => item[1][settingKey]),
+              );
+            }
+          });
+          return editorConfig;
+        } catch (error) {
+          console.debug(error);
+        }
+        return null;
+      },
+      readMarkLyraConfig = async (directoryPath) => {
+        try {
+          var configText = await fileSystemExtra.readFile(
+            directoryPath + '/.marklyraConfig',
+            'utf8',
+          );
+          if (!configText) {
+            return;
+          }
+          var sectionValues = this.parseFromString(configText)[0][1];
+          return normalizeSettings((settingKey) => sectionValues[settingKey]);
+        } catch (error) {}
+        return null;
+      };
     for (
       var reachedEditorConfigRoot = false,
         foundProjectConfig = false,
@@ -308,8 +285,6 @@ export default function initializeDocumentProjectSettings(
     eatNextLine: /\\\s*$/,
   };
   ProjectSettingsBridge.prototype.parseFromString = function (text) {
-    Object.defineProperty(unescapeConfigValue, 'name', { value: 'r', configurable: true });
-
     var sectionValues = {},
       sectionName = null,
       localItems = [[sectionName, sectionValues]];
@@ -378,21 +353,17 @@ export default function initializeDocumentProjectSettings(
           return;
         }
         var { type: messageType, _callbackID: current_callbackID } = messageEvent.data;
-        const sendSettingsResponse = Object.defineProperty(
-          (callbackResult) => {
-            if (current_callbackID) {
-              callbackResult = callbackResult || {};
-              var callbackMessage = Object.assign({}, callbackResult, {
-                _callbackID: current_callbackID,
-                type: 'callback',
-              });
-              IFRAMEElement.contentWindow.postMessage(callbackMessage, '*');
-            }
-            current_callbackID = null;
-          },
-          'name',
-          { value: 'r', configurable: true },
-        );
+        const sendSettingsResponse = (callbackResult) => {
+          if (current_callbackID) {
+            callbackResult = callbackResult || {};
+            var callbackMessage = Object.assign({}, callbackResult, {
+              _callbackID: current_callbackID,
+              type: 'callback',
+            });
+            IFRAMEElement.contentWindow.postMessage(callbackMessage, '*');
+          }
+          current_callbackID = null;
+        };
         if ('closeLocalSetting' == messageType) {
           this.close();
         } else {

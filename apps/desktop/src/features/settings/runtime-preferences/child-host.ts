@@ -165,7 +165,7 @@ function fieldKey(element: Element): string | undefined {
   // This internal key is guarded by the exact runtime React vendor hash at build time.
   const key = Object.keys(element).find((name) => name.startsWith('__reactInternalInstance$'));
   let fiber = key ? (element as unknown as Record<string, ReactFiber>)[key] : undefined;
-  // Export settings are drawn by the host (see native-pages.ts); the original panel is unused.
+  // Export settings are drawn by the host (see native-pages.ts); the panel is unused.
   if (element.closest('.export-config')) return undefined;
   for (let index = 0; fiber && index < 18; index++, fiber = fiber.return) {
     const props = fiber.memoizedProps;
@@ -446,7 +446,7 @@ function protectControls() {
 function restoreConfirmedView(component?: RuntimeComponent) {
   const selected = document.querySelector<HTMLElement>('.nav-group-item.active')?.dataset.index;
   if (typeof runtime.forceReload === 'function') {
-    // The original font control retains its own hook draft even after parent props roll back.
+    // The font control retains its own hook draft even after parent props roll back.
     // A new React key remounts only this isolated preferences UI from confirmed host values.
     runtime._options = {
       ...runtime._options,
@@ -605,7 +605,7 @@ function closePreferences() {
     });
 }
 
-// The original bridge is not a transport for arbitrary host code or filesystem access.
+// The bridge is not a transport for arbitrary host code or filesystem access.
 runtime.__MARKLYRA_SETTINGS_BRIDGE__ = {
   postMessage(message) {
     if (!isRecord(message)) return;
@@ -868,7 +868,7 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
       resolve();
     }
   });
-  // Original panels stay mounted: navigation/search can change only nav classes.
+  // Panels stay mounted: navigation/search can change only nav classes.
   // Observe the completed React commit rather than a capture-phase microtask.
   new MutationObserver((records) => {
     if (

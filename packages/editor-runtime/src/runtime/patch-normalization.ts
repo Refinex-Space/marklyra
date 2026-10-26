@@ -14,8 +14,8 @@ export interface PlacementCheck {
   range: Range;
 }
 
-/** Adjacent serializer partitions can insert at the same original boundary.
- * Join only those insertions, retain their original placement obligations, and
+/** Adjacent serializer partitions can insert at the same input boundary.
+ * Join only those insertions, retain their individual placement obligations, and
  * prove the complete next text. Never reorder edits or rediff the document. */
 export function normalizeTrackedPatches(
   before: string,

@@ -1,5 +1,5 @@
 /** Parser/constructor options are immutable for one runtime. A fresh iframe is
- * required for reversals of original shared lexer/fence rules. No hot reparse. */
+ * required for reversals of shared lexer/fence rules. No hot reparse. */
 export const defaultMarkLyraStartupPreferences = Object.freeze({
   strictMarkdown: false,
   enableInlineMath: true,

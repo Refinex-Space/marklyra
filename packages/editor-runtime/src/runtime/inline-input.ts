@@ -1,6 +1,6 @@
 /** A finite DOM grammar for source-equivalent inline paragraphs. This is a proof
  * boundary, not an HTML-to-Markdown converter. The caller must additionally
- * compare original rawText, model text, serializer output and actual next text. */
+ * compare captured rawText, model text, serializer output and actual next text. */
 export function sourceInlineTree(paragraph: HTMLElement): boolean {
   // Literal Unicode (including emoji joiners) is source. Runtime controls and
   // structural characters with unproven rawText behavior are not accepted.
@@ -125,7 +125,7 @@ export function sourceInlineTree(paragraph: HTMLElement): boolean {
         meta(close, 'after')
       );
     }
-    // Original rendering wraps an empty formatting pair after body deletion.
+    // Rendering wraps an empty formatting pair after body deletion.
     // Other block-like constructs (heading, rule, quote...) are not accepted.
     if (type === null && classes(element, ['md-block-like']) && element.classList.length === 1) {
       const pair = element.firstElementChild;

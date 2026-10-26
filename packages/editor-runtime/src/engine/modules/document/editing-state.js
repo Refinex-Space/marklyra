@@ -215,9 +215,6 @@ export default function initializeDocumentEditingState(requireModule, moduleExpo
         }
       },
       onDropFile: async function (droppedPaths, dataTransfer, prepareDropSelection) {
-        Object.defineProperty(insertDroppedLink, 'name', { value: 's', configurable: true });
-        Object.defineProperty(openDroppedFile, 'name', { value: 'l', configurable: true });
-
         var isInternalUrl = dataTransfer.types.indexOf('marklyra.url') > -1,
           hasNativeEntries = File.isNode && dataTransfer.items.length == dataTransfer.files.length,
           currentEditor = File.editor,

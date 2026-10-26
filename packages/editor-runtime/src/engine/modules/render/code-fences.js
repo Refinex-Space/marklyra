@@ -1,8 +1,6 @@
 // render/code-fences.
 export default function initializeRenderCodeFences(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(resolveCodeMirrorMode, 'name', { value: 'g', configurable: true });
-  Object.defineProperty(applyTextReplacement, 'name', { value: 'x', configurable: true });
 
   if (!this) {
     self;
@@ -315,30 +313,44 @@ export default function initializeRenderCodeFences(requireModule, moduleExports,
       } catch (error) {}
     };
   })(CodeMirror);
-  var bindLanguageInput = Object.defineProperty(
-    function (languageInput, documentNode) {
-      var receiver = this;
-      languageInput
-        .on('change blur', function () {
-          if (this.textContent != documentNode.get('lang')) {
-            receiver.tryAddLangUndo(documentNode, this);
+  var bindLanguageInput = function (languageInput, documentNode) {
+    var receiver = this;
+    languageInput
+      .on('change blur', function () {
+        if (this.textContent != documentNode.get('lang')) {
+          receiver.tryAddLangUndo(documentNode, this);
+        }
+      })
+      .keydown(function (keyboardEvent) {
+        var keyCode = keyboardEvent.which || keyboardEvent.keyCode;
+        if ('Enter' == map[keyCode]) {
+          jquery(this).trigger('change');
+        }
+      })
+      .focus(function () {
+        if (File.isMac) {
+          bridge.callHandler('touchBar.setFencesOnSetLang', true);
+        }
+      })
+      .on('keydown', function (keyboardEvent) {
+        var range,
+          keyCode = keyboardEvent.keyCode || keyboardEvent.which;
+        if ('Delete' == map[keyCode]) {
+          if (
+            !(range = receiver.editor.selection.getRangy()) ||
+            range.commonAncestorContainer.parentElement != this
+          ) {
+            return false;
           }
-        })
-        .keydown(function (keyboardEvent) {
-          var keyCode = keyboardEvent.which || keyboardEvent.keyCode;
-          if ('Enter' == map[keyCode]) {
-            jquery(this).trigger('change');
+          if (
+            range.commonAncestorContainer == this ||
+            (range.startOffset == range.endOffset && range.endOffset == this.textContent.length)
+          ) {
+            receiver.editor.selection.moveUpOrDown(false);
+            return false;
           }
-        })
-        .focus(function () {
-          if (File.isMac) {
-            bridge.callHandler('touchBar.setFencesOnSetLang', true);
-          }
-        })
-        .on('keydown', function (keyboardEvent) {
-          var range,
-            keyCode = keyboardEvent.keyCode || keyboardEvent.which;
-          if ('Delete' == map[keyCode]) {
+        } else {
+          if ('Backspace' == map[keyCode]) {
             if (
               !(range = receiver.editor.selection.getRangy()) ||
               range.commonAncestorContainer.parentElement != this
@@ -347,57 +359,39 @@ export default function initializeRenderCodeFences(requireModule, moduleExports,
             }
             if (
               range.commonAncestorContainer == this ||
-              (range.startOffset == range.endOffset && range.endOffset == this.textContent.length)
+              (range.startOffset == range.endOffset && 0 == range.startOffset)
             ) {
-              receiver.editor.selection.moveUpOrDown(false);
+              receiver.editor.selection.moveUpOrDown(true);
               return false;
             }
           } else {
-            if ('Backspace' == map[keyCode]) {
-              if (
-                !(range = receiver.editor.selection.getRangy()) ||
-                range.commonAncestorContainer.parentElement != this
-              ) {
-                return false;
+            if ('Return' == map[keyCode] || 'Enter' == map[keyCode]) {
+              if (!receiver.editor.autoComplete.isShown()) {
+                receiver.editor.selection.moveUpOrDown(false);
               }
-              if (
-                range.commonAncestorContainer == this ||
-                (range.startOffset == range.endOffset && 0 == range.startOffset)
-              ) {
-                receiver.editor.selection.moveUpOrDown(true);
-                return false;
-              }
-            } else {
-              if ('Return' == map[keyCode] || 'Enter' == map[keyCode]) {
-                if (!receiver.editor.autoComplete.isShown()) {
-                  receiver.editor.selection.moveUpOrDown(false);
-                }
-                return false;
-              }
+              return false;
             }
           }
-        })
-        .on('paste', function (inputEvent) {
-          setTimeout(function () {
-            inputEvent.target.textContent = inputEvent.target.textContent
-              .replace(/(^\n+)|(\n+$)/g, '')
-              .split(/\r?\n/)[0];
-            jquery(inputEvent.target).trigger('change');
-          }, 0);
-        })
-        .on('input', function (unusedParameter1) {
-          if (this.querySelector(':not(br)')) {
-            this.textContent = this.textContent.replace(/(^\n+)|(\n+$)/g, '');
-          }
-        });
-      this.editor.autoComplete.show(ALL, languageInput[0], void 0, {
-        type: 'fences',
-        render: this.autoCompleteRender,
+        }
+      })
+      .on('paste', function (inputEvent) {
+        setTimeout(function () {
+          inputEvent.target.textContent = inputEvent.target.textContent
+            .replace(/(^\n+)|(\n+$)/g, '')
+            .split(/\r?\n/)[0];
+          jquery(inputEvent.target).trigger('change');
+        }, 0);
+      })
+      .on('input', function (unusedParameter1) {
+        if (this.querySelector(':not(br)')) {
+          this.textContent = this.textContent.replace(/(^\n+)|(\n+$)/g, '');
+        }
       });
-    },
-    'name',
-    { value: 'm', configurable: true },
-  );
+    this.editor.autoComplete.show(ALL, languageInput[0], void 0, {
+      type: 'fences',
+      render: this.autoCompleteRender,
+    });
+  };
   function resolveCodeMirrorMode(language, nameOnly, canonicalLanguage) {
     if (language) {
       switch (language) {
@@ -1199,50 +1193,42 @@ export default function initializeRenderCodeFences(requireModule, moduleExports,
       }
     }
   }
-  var createLanguageTooltip = Object.defineProperty(
-      function (language) {
-        var divElement = document.createElement('div');
-        divElement.setAttribute('class', 'code-tooltip md-tooltip-remove');
-        divElement.setAttribute('align', 'right');
-        divElement.setAttribute('contenteditable', 'false');
-        divElement.innerHTML =
-          "<span class='marklyra-input marklyra-input-after marklyra-cm-lang-input' contenteditable tabindex='-1' autocorrect='false' placeholder='" +
-          jquery.localize.getString('code language') +
-          "'></span>";
-        divElement.childNodes[0].textContent = language || '';
-        return divElement;
-      },
-      'name',
-      { value: 'v', configurable: true },
-    ),
-    parseFenceAttributes = Object.defineProperty(
-      function (text) {
-        if (!text) {
-          return {};
-        }
-        if ('{' != text[0] || '}' != text[text.length - 1]) {
-          return {};
-        }
-        var parts = text.replace(/(^{)|(}$)/g, '').split(/\s+/);
-        if (!parts || !parts.length) {
-          return {};
-        }
-        var fenceOptions = {};
-        parts.forEach(function (item) {
-          var match;
-          if ((match = /^[.]number((-?l)|L)ines/.exec(item))) {
-            fenceOptions.lineNumbers = true;
-          } else {
-            if ((match = /^startFrom=['"](\d+)['"]$/.exec(item))) {
-              fenceOptions.firstLineNumber = match[1] - 0;
-            }
+  var createLanguageTooltip = function (language) {
+      var divElement = document.createElement('div');
+      divElement.setAttribute('class', 'code-tooltip md-tooltip-remove');
+      divElement.setAttribute('align', 'right');
+      divElement.setAttribute('contenteditable', 'false');
+      divElement.innerHTML =
+        "<span class='marklyra-input marklyra-input-after marklyra-cm-lang-input' contenteditable tabindex='-1' autocorrect='false' placeholder='" +
+        jquery.localize.getString('code language') +
+        "'></span>";
+      divElement.childNodes[0].textContent = language || '';
+      return divElement;
+    },
+    parseFenceAttributes = function (text) {
+      if (!text) {
+        return {};
+      }
+      if ('{' != text[0] || '}' != text[text.length - 1]) {
+        return {};
+      }
+      var parts = text.replace(/(^{)|(}$)/g, '').split(/\s+/);
+      if (!parts || !parts.length) {
+        return {};
+      }
+      var fenceOptions = {};
+      parts.forEach(function (item) {
+        var match;
+        if ((match = /^[.]number((-?l)|L)ines/.exec(item))) {
+          fenceOptions.lineNumbers = true;
+        } else {
+          if ((match = /^startFrom=['"](\d+)['"]$/.exec(item))) {
+            fenceOptions.firstLineNumber = match[1] - 0;
           }
-        });
-        return fenceOptions;
-      },
-      'name',
-      { value: 'y', configurable: true },
-    );
+        }
+      });
+      return fenceOptions;
+    };
   window.getCodeMirrorMode = function (trimmedText, rejectUnknown, nameOnly, canonicalLanguage) {
     var text = ((trimmedText = (trimmedText = trimmedText ? trimmedText.toLowerCase() : '')
         .replace(/^\s*\.*lang(uage)*-/g, '')
@@ -1605,17 +1591,6 @@ export default function initializeRenderCodeFences(requireModule, moduleExports,
       }
     }
     addCodeBlock(documentNode) {
-      Object.defineProperty(convertFenceToParagraph, 'name', { value: 'r', configurable: true });
-      Object.defineProperty(handleFenceBoundaryKey, 'name', { value: 's', configurable: true });
-      Object.defineProperty(handleFenceKeyDown, 'name', { value: 'd', configurable: true });
-      Object.defineProperty(handleFenceFocus, 'name', { value: 'u', configurable: true });
-      Object.defineProperty(handleFenceContextMenu, 'name', { value: 'h', configurable: true });
-      Object.defineProperty(handleFenceChanges, 'name', { value: 'p', configurable: true });
-      Object.defineProperty(handleFenceSelectionChange, 'name', { value: 'f', configurable: true });
-      Object.defineProperty(handleFenceCursorActivity, 'name', { value: 'g', configurable: true });
-      Object.defineProperty(preventTypewriterScroll, 'name', { value: 'b', configurable: true });
-      Object.defineProperty(handleFenceMouseDown, 'name', { value: 'w', configurable: true });
-
       var currentEditor = this.editor,
         receiver = this;
       function convertFenceToParagraph(codeMirror) {
@@ -2254,7 +2229,7 @@ export default function initializeRenderCodeFences(requireModule, moduleExports,
       }
     }
   }
-  Object.defineProperty(CodeFenceController, 'name', { value: 'C', configurable: true });
+
   CodeFenceController.renderFencesByUpdate = function (documentNode, element, language) {
     element.classList.remove('md-diagram');
     element.classList.remove('md-fences-math');

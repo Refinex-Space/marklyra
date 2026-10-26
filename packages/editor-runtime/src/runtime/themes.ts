@@ -15,7 +15,7 @@ const layoutVariables =
   /--marklyra-(?:content-(?:inset|trailing|top)|document-scrollbar-space|source-scrollbar-space|notification-top)s*:[^;]*;?/g;
 const withoutLayout = (style: string | null) => (style ?? '').replace(layoutVariables, '').trim();
 
-/** Operates on the original three style links, outside the document/history model. */
+/** Operates on the three style links, outside the document/history model. */
 export class RuntimeThemes {
   private sources: ThemeStyles = { ...emptyThemeStyles };
   private builtin = new URL('./style/themes/marklyra-light.css', location.href).href;

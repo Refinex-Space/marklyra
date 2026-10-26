@@ -1,8 +1,6 @@
 // export/html.
 export default function initializeExportHtml(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(resolveDiagramPlaceholders, 'name', { value: 'F', configurable: true });
-  Object.defineProperty(removeTemporaryDiagramFiles, 'name', { value: 'S', configurable: true });
 
   if (!this) {
     self;
@@ -111,412 +109,383 @@ export default function initializeExportHtml(requireModule, moduleExports, modul
     }
   }
   var nativeInlineLexer,
-    escapeNativeString = Object.defineProperty(
-      function (literalText) {
-        return markdownParser
-          .recoverEscape(literalText)
-          .replace(/["'\\\b\t\n\f\r]/g, function (escapedCharacter) {
-            return escapeSequences[escapedCharacter];
-          })
-          .replace(/\u200b/g, '');
-      },
-      'name',
-      { value: 'E', configurable: true },
-    ),
+    escapeNativeString = function (literalText) {
+      return markdownParser
+        .recoverEscape(literalText)
+        .replace(/["'\\\b\t\n\f\r]/g, function (escapedCharacter) {
+          return escapeSequences[escapedCharacter];
+        })
+        .replace(/\u200b/g, '');
+    },
     alignmentCommands = { left: 'AlignLeft', right: 'AlignRight', center: 'AlignCenter' },
-    renderNativeChildren = Object.defineProperty(
-      function (documentNode, separator, firstChild, renderContext, inlinePrefix) {
-        separator = void 0 === separator ? ',' : separator;
-        renderContext = renderContext || exportContext;
-        for (
-          var nativeBlock,
-            currentTextParts = [],
-            currentDocumentNode = firstChild || documentNode.getFirstChild();
-          currentDocumentNode;
-        ) {
-          if ((nativeBlock = renderNativeBlock(currentDocumentNode, renderContext, inlinePrefix))) {
-            currentTextParts.push(nativeBlock);
-          }
-          currentDocumentNode = currentDocumentNode.get('after');
+    renderNativeChildren = function (
+      documentNode,
+      separator,
+      firstChild,
+      renderContext,
+      inlinePrefix,
+    ) {
+      separator = void 0 === separator ? ',' : separator;
+      renderContext = renderContext || exportContext;
+      for (
+        var nativeBlock,
+          currentTextParts = [],
+          currentDocumentNode = firstChild || documentNode.getFirstChild();
+        currentDocumentNode;
+      ) {
+        if ((nativeBlock = renderNativeBlock(currentDocumentNode, renderContext, inlinePrefix))) {
+          currentTextParts.push(nativeBlock);
         }
-        return currentTextParts.join(separator);
-      },
-      'name',
-      { value: '_', configurable: true },
-    ),
-    renderNativeInlineContent = Object.defineProperty(
-      function (documentNode, sourceText) {
-        sourceText = sourceText || documentNode.get('text');
-        var parentNode = documentNode.get('parent'),
-          inlineOptions = {};
-        if (
-          DocumentNode.isType(documentNode, NodeType.paragraph) &&
-          !documentNode.get('before') &&
-          DocumentNode.isType(parentNode, NodeType.blockquote) &&
-          parentNode.get('alert')
-        ) {
-          inlineOptions.alert = true;
-        }
-        return (
-          nativeInlineLexer.output(sourceText, void 0, void 0, inlineOptions).replace(/, $/, '') ||
-          'Str ""'
-        );
-      },
-      'name',
-      { value: 'A', configurable: true },
-    ),
-    requiresRawHtml = Object.defineProperty(
-      function (targetFormat) {
-        return DocumentNode.isType(targetFormat, 'epub', 'rst', 'opml', 'textile', 'markdown');
-      },
-      'name',
-      { value: 'M', configurable: true },
-    ),
-    isMarkdownTarget = Object.defineProperty(
-      function (targetFormat) {
-        return DocumentNode.isType(targetFormat, 'gfm', 'markdown');
-      },
-      'name',
-      { value: 'L', configurable: true },
-    ),
+        currentDocumentNode = currentDocumentNode.get('after');
+      }
+      return currentTextParts.join(separator);
+    },
+    renderNativeInlineContent = function (documentNode, sourceText) {
+      sourceText = sourceText || documentNode.get('text');
+      var parentNode = documentNode.get('parent'),
+        inlineOptions = {};
+      if (
+        DocumentNode.isType(documentNode, NodeType.paragraph) &&
+        !documentNode.get('before') &&
+        DocumentNode.isType(parentNode, NodeType.blockquote) &&
+        parentNode.get('alert')
+      ) {
+        inlineOptions.alert = true;
+      }
+      return (
+        nativeInlineLexer.output(sourceText, void 0, void 0, inlineOptions).replace(/, $/, '') ||
+        'Str ""'
+      );
+    },
+    requiresRawHtml = function (targetFormat) {
+      return DocumentNode.isType(targetFormat, 'epub', 'rst', 'opml', 'textile', 'markdown');
+    },
+    isMarkdownTarget = function (targetFormat) {
+      return DocumentNode.isType(targetFormat, 'gfm', 'markdown');
+    },
     mathTagPattern = /([^\\]|^)\\tag{([^}]+)}\s*/,
     mathLabelPattern = /([^\\]|^)\\label{([^}]+)}\s*/,
     mathOverPattern = /([^\\]|^)\\over[^\w\d]/,
-    renderNativeBlock = Object.defineProperty(
-      function (documentNode, renderContext, inlinePrefix) {
-        var text,
-          renderChildBlocks = Object.defineProperty(
-            function (parentNode, separator, firstChild, childPrefix) {
-              return renderNativeChildren(
-                parentNode,
-                separator,
-                firstChild,
-                renderContext,
-                childPrefix,
-              );
-            },
-            'name',
-            { value: 'o', configurable: true },
-          ),
-          useRawHtml = requiresRawHtml(renderContext.target),
-          renderNativeMathBlock = Object.defineProperty(
-            function (inputDocumentNode, renderContext) {
-              text = inputDocumentNode
-                .get('text')
-                .trim()
-                .replace(/\u200b/g, '');
-              if ('epub' == renderContext.target) {
-                var mathMl = DOMPurify.sanitize(
-                  MathJax.tex2mml(text, { display: true }),
-                  svgSanitizerOptions,
-                );
-                if (mathMl) {
-                  return (
-                    'RawBlock (Format "html") ' +
-                    JSON.stringify(
-                      (function (mathMlText) {
-                        try {
-                          var mathDocument = new DOMParser().parseFromString(
-                            mathMlText,
-                            'text/html',
-                          );
-                          mathDocument.querySelectorAll('mtable').forEach(function (element) {
-                            if (
-                              element.hasAttribute('columnalign') &&
-                              !element.getAttribute('columnalign')
-                            ) {
-                              element.removeAttribute('columnalign');
-                            }
-                          });
-                          return mathDocument.body.innerHTML;
-                        } catch (error) {}
-                        return mathMlText;
-                      })(mathMl),
-                    ) +
-                    ' '
-                  );
-                }
-              } else {
-                if ('latex' == renderContext.target) {
-                  if (
-                    text.match(
-                      /^\\(begin|newcommand|renewcommand|newenvironment|renewenvironment|def|let){/,
-                    )
-                  ) {
-                    return 'RawBlock (Format "latex") ' + JSON.stringify(text);
-                  }
-                } else {
-                  if (
-                    'docx' == renderContext.target &&
-                    ((text = text.replace(/\n[\\]+\n/g, '\n')),
-                    File.option.autoNumberingForMath && !/\\nonumber\s*$/.exec(text))
-                  ) {
-                    var mathSourceAndNumber = (function (inputText, numberingState) {
-                      var number;
-                      numberingState.number = numberingState.number || 1;
-                      if (File.option.autoNumberingForMath) {
-                        number = numberingState.number;
-                        numberingState.number++;
-                      }
-                      if (mathOverPattern.test(inputText)) {
-                        return [inputText, number];
-                      }
-                      var match = mathTagPattern.exec(inputText);
-                      inputText = inputText.replace(/([^\\]|^)\\eqref{([^}]+)}\s*/g, '$1($2)');
-                      if (match) {
-                        number = match[2];
-                        return [
-                          (inputText =
-                            inputText.replace(/([^\\]|^)\\tag{([^}]+)}\s*/g, '$1') +
-                            '\\qquad\\text{(' +
-                            utilities.escapeInQuote(number) +
-                            ')}'),
-                          number,
-                        ];
-                      } else {
-                        inputText = inputText +=
-                          '\\qquad\\text{(' + utilities.escapeInQuote(number + '') + ')}';
-                        if ((match = mathLabelPattern.exec(inputText))) {
-                          number = match[2];
-                        }
-                        return [inputText, number];
-                      }
-                    })(text, renderContext);
-                    return (
-                      'Plain [' +
-                      [
-                        'Math DisplayMath "' + escapeNativeString(mathSourceAndNumber[0]) + '" ',
-                      ].join(',') +
-                      ']'
-                    );
-                  }
-                }
-              }
-              return 'Plain [Math DisplayMath "' + escapeNativeString(text) + '"]';
-            },
-            'name',
-            { value: 'p', configurable: true },
-          ),
-          versionAfter2_10 = renderContext.versionAfter2_10;
-        switch (documentNode.get('type')) {
-          case NodeType.paragraph:
-            text = renderNativeInlineContent(documentNode);
-            return 'Para [' + (inlinePrefix || '') + text + ']';
-          case NodeType.meta_block:
-            return '';
-          case NodeType.heading:
-            var anchorId = renderContext.anchorMap[documentNode.cid];
-            return (
-              'Header ' +
-              documentNode.get('depth') +
-              ' ("' +
-              utilities.escapeInQuote(anchorId) +
-              '", [], []) [' +
-              (inlinePrefix || '') +
-              renderNativeInlineContent(documentNode) +
-              ']'
+    renderNativeBlock = function (documentNode, renderContext, inlinePrefix) {
+      var text,
+        renderChildBlocks = function (parentNode, separator, firstChild, childPrefix) {
+          return renderNativeChildren(
+            parentNode,
+            separator,
+            firstChild,
+            renderContext,
+            childPrefix,
+          );
+        },
+        useRawHtml = requiresRawHtml(renderContext.target),
+        renderNativeMathBlock = function (inputDocumentNode, renderContext) {
+          text = inputDocumentNode
+            .get('text')
+            .trim()
+            .replace(/\u200b/g, '');
+          if ('epub' == renderContext.target) {
+            var mathMl = DOMPurify.sanitize(
+              MathJax.tex2mml(text, { display: true }),
+              svgSanitizerOptions,
             );
-          case NodeType.blockquote:
-            text = renderChildBlocks(documentNode);
-            if (
-              !isMarkdownTarget(renderContext.target) &&
-              DocumentNode.isType(
-                documentNode.get('alert'),
-                'note',
-                'warning',
-                'important',
-                'tip',
-                'caution',
-              )
-            ) {
-              return `Div ("", ["${documentNode.get('alert')}", "alert"], []) [${text}]`;
-            } else {
-              return 'BlockQuote [' + text + ']';
-            }
-          case NodeType.list:
-            var style = documentNode.get('style');
-            text = renderChildBlocks(documentNode);
-            if (style == DocumentNode.ListType.ol) {
-              return 'OrderedList (1,Decimal,Period) [' + text + ']';
-            } else {
-              return 'BulletList [' + text + ']';
-            }
-          case NodeType.list_item:
-            let taskPrefix = '';
-            if (
-              documentNode.get('parent') &&
-              documentNode.get('style') === DocumentNode.ListType.task
-            ) {
-              taskPrefix = documentNode.get('checked')
-                ? 'Str "\\9746" , Space , '
-                : 'Str "\\9744" , Space , ';
-            }
-            return '[' + (text = renderChildBlocks(documentNode, void 0, void 0, taskPrefix)) + ']';
-          case NodeType.fences:
-            if (
-              diagrams.isDiagramType(documentNode.get('lang')) &&
-              DocumentNode.isType(renderContext.target, 'epub', 'docx', 'odt', 'latex')
-            ) {
-              items.push(documentNode);
-              set.add(documentNode.cid);
-              var bounds = document
-                .querySelector("[cid='" + documentNode.cid + "'] svg")
-                .getBoundingClientRect();
+            if (mathMl) {
               return (
-                'Div ("",[],[("style","text-align:center"), ("align", "center")]) [Para [Image ("",[' +
-                JSON.stringify(documentNode.get('lang')) +
-                '],[("width", "' +
-                (bounds.right - bounds.left) +
-                '"), ("align", "center")]) [Str ""] (' +
-                (diagramPlaceholder + (items.length - 1)) +
-                ',"fig:")]] '
+                'RawBlock (Format "html") ' +
+                JSON.stringify(
+                  (function (mathMlText) {
+                    try {
+                      var mathDocument = new DOMParser().parseFromString(mathMlText, 'text/html');
+                      mathDocument.querySelectorAll('mtable').forEach(function (element) {
+                        if (
+                          element.hasAttribute('columnalign') &&
+                          !element.getAttribute('columnalign')
+                        ) {
+                          element.removeAttribute('columnalign');
+                        }
+                      });
+                      return mathDocument.body.innerHTML;
+                    } catch (error) {}
+                    return mathMlText;
+                  })(mathMl),
+                ) +
+                ' '
               );
             }
-            if (mathBlocks.isMathType(documentNode.get('lang'))) {
-              return renderNativeMathBlock(documentNode, renderContext);
-            }
-            var codeAttributes = markdownParser.parsePandocAttr(documentNode.get('lang'));
-            if (Object.keys(codeAttributes).length) {
-              var currentTextParts = [];
-              for (var currentText in codeAttributes.nativeAttr) {
-                currentTextParts.push(
-                  '("' +
-                    currentText.replace(/['"]/g, '') +
-                    '","' +
-                    codeAttributes.nativeAttr[currentText].replace(/['"]/g, '') +
-                    '")',
+          } else {
+            if ('latex' == renderContext.target) {
+              if (
+                text.match(
+                  /^\\(begin|newcommand|renewcommand|newenvironment|renewenvironment|def|let){/,
+                )
+              ) {
+                return 'RawBlock (Format "latex") ' + JSON.stringify(text);
+              }
+            } else {
+              if (
+                'docx' == renderContext.target &&
+                ((text = text.replace(/\n[\\]+\n/g, '\n')),
+                File.option.autoNumberingForMath && !/\\nonumber\s*$/.exec(text))
+              ) {
+                var mathSourceAndNumber = (function (inputText, numberingState) {
+                  var number;
+                  numberingState.number = numberingState.number || 1;
+                  if (File.option.autoNumberingForMath) {
+                    number = numberingState.number;
+                    numberingState.number++;
+                  }
+                  if (mathOverPattern.test(inputText)) {
+                    return [inputText, number];
+                  }
+                  var match = mathTagPattern.exec(inputText);
+                  inputText = inputText.replace(/([^\\]|^)\\eqref{([^}]+)}\s*/g, '$1($2)');
+                  if (match) {
+                    number = match[2];
+                    return [
+                      (inputText =
+                        inputText.replace(/([^\\]|^)\\tag{([^}]+)}\s*/g, '$1') +
+                        '\\qquad\\text{(' +
+                        utilities.escapeInQuote(number) +
+                        ')}'),
+                      number,
+                    ];
+                  } else {
+                    inputText = inputText +=
+                      '\\qquad\\text{(' + utilities.escapeInQuote(number + '') + ')}';
+                    if ((match = mathLabelPattern.exec(inputText))) {
+                      number = match[2];
+                    }
+                    return [inputText, number];
+                  }
+                })(text, renderContext);
+                return (
+                  'Plain [' +
+                  ['Math DisplayMath "' + escapeNativeString(mathSourceAndNumber[0]) + '" '].join(
+                    ',',
+                  ) +
+                  ']'
                 );
               }
-              return (
-                'CodeBlock ("' +
-                escapeNativeString(codeAttributes.id || '') +
-                '",[' +
-                (codeAttributes.class || '')
-                  .trim()
-                  .split(/\s+/)
-                  .map(function (item) {
-                    return '"' + escapeNativeString(item) + '"';
-                  })
-                  .join(',') +
-                '],[' +
-                currentTextParts.join(',') +
-                ']) "' +
-                escapeNativeString(documentNode.get('text')) +
-                '"'
+            }
+          }
+          return 'Plain [Math DisplayMath "' + escapeNativeString(text) + '"]';
+        },
+        versionAfter2_10 = renderContext.versionAfter2_10;
+      switch (documentNode.get('type')) {
+        case NodeType.paragraph:
+          text = renderNativeInlineContent(documentNode);
+          return 'Para [' + (inlinePrefix || '') + text + ']';
+        case NodeType.meta_block:
+          return '';
+        case NodeType.heading:
+          var anchorId = renderContext.anchorMap[documentNode.cid];
+          return (
+            'Header ' +
+            documentNode.get('depth') +
+            ' ("' +
+            utilities.escapeInQuote(anchorId) +
+            '", [], []) [' +
+            (inlinePrefix || '') +
+            renderNativeInlineContent(documentNode) +
+            ']'
+          );
+        case NodeType.blockquote:
+          text = renderChildBlocks(documentNode);
+          if (
+            !isMarkdownTarget(renderContext.target) &&
+            DocumentNode.isType(
+              documentNode.get('alert'),
+              'note',
+              'warning',
+              'important',
+              'tip',
+              'caution',
+            )
+          ) {
+            return `Div ("", ["${documentNode.get('alert')}", "alert"], []) [${text}]`;
+          } else {
+            return 'BlockQuote [' + text + ']';
+          }
+        case NodeType.list:
+          var style = documentNode.get('style');
+          text = renderChildBlocks(documentNode);
+          if (style == DocumentNode.ListType.ol) {
+            return 'OrderedList (1,Decimal,Period) [' + text + ']';
+          } else {
+            return 'BulletList [' + text + ']';
+          }
+        case NodeType.list_item:
+          let taskPrefix = '';
+          if (
+            documentNode.get('parent') &&
+            documentNode.get('style') === DocumentNode.ListType.task
+          ) {
+            taskPrefix = documentNode.get('checked')
+              ? 'Str "\\9746" , Space , '
+              : 'Str "\\9744" , Space , ';
+          }
+          return '[' + (text = renderChildBlocks(documentNode, void 0, void 0, taskPrefix)) + ']';
+        case NodeType.fences:
+          if (
+            diagrams.isDiagramType(documentNode.get('lang')) &&
+            DocumentNode.isType(renderContext.target, 'epub', 'docx', 'odt', 'latex')
+          ) {
+            items.push(documentNode);
+            set.add(documentNode.cid);
+            var bounds = document
+              .querySelector("[cid='" + documentNode.cid + "'] svg")
+              .getBoundingClientRect();
+            return (
+              'Div ("",[],[("style","text-align:center"), ("align", "center")]) [Para [Image ("",[' +
+              JSON.stringify(documentNode.get('lang')) +
+              '],[("width", "' +
+              (bounds.right - bounds.left) +
+              '"), ("align", "center")]) [Str ""] (' +
+              (diagramPlaceholder + (items.length - 1)) +
+              ',"fig:")]] '
+            );
+          }
+          if (mathBlocks.isMathType(documentNode.get('lang'))) {
+            return renderNativeMathBlock(documentNode, renderContext);
+          }
+          var codeAttributes = markdownParser.parsePandocAttr(documentNode.get('lang'));
+          if (Object.keys(codeAttributes).length) {
+            var currentTextParts = [];
+            for (var currentText in codeAttributes.nativeAttr) {
+              currentTextParts.push(
+                '("' +
+                  currentText.replace(/['"]/g, '') +
+                  '","' +
+                  codeAttributes.nativeAttr[currentText].replace(/['"]/g, '') +
+                  '")',
               );
             }
             return (
-              'CodeBlock ("",["' +
-              escapeNativeString(
-                getCodeMirrorMode(documentNode.get('lang') || '', false, true, true),
-              ) +
-              '"],[]) "' +
+              'CodeBlock ("' +
+              escapeNativeString(codeAttributes.id || '') +
+              '",[' +
+              (codeAttributes.class || '')
+                .trim()
+                .split(/\s+/)
+                .map(function (item) {
+                  return '"' + escapeNativeString(item) + '"';
+                })
+                .join(',') +
+              '],[' +
+              currentTextParts.join(',') +
+              ']) "' +
               escapeNativeString(documentNode.get('text')) +
               '"'
             );
-          case NodeType.math_block:
-            return renderNativeMathBlock(documentNode, renderContext);
-          case NodeType.hr:
-            return 'HorizontalRule';
-          case NodeType.def_footnote:
-          case NodeType.def_link:
-            return '';
-          case NodeType.toc:
-            if ('latex' == renderContext.target) {
-              return 'RawBlock (Format "latex") "\\\\tableofcontents"';
+          }
+          return (
+            'CodeBlock ("",["' +
+            escapeNativeString(
+              getCodeMirrorMode(documentNode.get('lang') || '', false, true, true),
+            ) +
+            '"],[]) "' +
+            escapeNativeString(documentNode.get('text')) +
+            '"'
+          );
+        case NodeType.math_block:
+          return renderNativeMathBlock(documentNode, renderContext);
+        case NodeType.hr:
+          return 'HorizontalRule';
+        case NodeType.def_footnote:
+        case NodeType.def_link:
+          return '';
+        case NodeType.toc:
+          if ('latex' == renderContext.target) {
+            return 'RawBlock (Format "latex") "\\\\tableofcontents"';
+          } else {
+            if ('wiki' == renderContext.target) {
+              return 'RawBlock (Format "mediawiki") "__TOC__", RawBlock (Format "mediawiki") ""';
             } else {
-              if ('wiki' == renderContext.target) {
-                return 'RawBlock (Format "mediawiki") "__TOC__", RawBlock (Format "mediawiki") ""';
+              if ('rst' == renderContext.target) {
+                return 'RawBlock (Format "rst") ".. contents::", RawBlock (Format "rst") "\n"';
               } else {
-                if ('rst' == renderContext.target) {
-                  return 'RawBlock (Format "rst") ".. contents::", RawBlock (Format "rst") "\n"';
+                if ('opml' == renderContext.target) {
+                  return '';
                 } else {
-                  if ('opml' == renderContext.target) {
-                    return '';
+                  if ('textile' == renderContext.target) {
+                    return 'RawBlock (Format "textile") "{toc}", RawBlock (Format "textile") "\n"';
                   } else {
-                    if ('textile' == renderContext.target) {
-                      return 'RawBlock (Format "textile") "{toc}", RawBlock (Format "textile") "\n"';
-                    } else {
-                      return '';
-                    }
+                    return '';
                   }
                 }
               }
             }
-          case NodeType.table:
-            var currentDocumentNode = documentNode.getFirstChild(),
-              nextNode = currentDocumentNode.get('after'),
-              tableBodies = '';
-            if (versionAfter2_10) {
-              var mappedItems = documentNode
-                .get('align')
-                .fill()
-                .map(function (item) {
-                  return `(${alignmentCommands[item] || 'AlignDefault'},ColWidthDefault)`;
-                });
-              tableBodies = nextNode
-                ? `(TableBody ("",[],[]) (RowHeadColumns 0) [] [${renderChildBlocks(documentNode, ',', currentDocumentNode.get('after'))}])`
-                : '(TableBody ("",[],[]) (RowHeadColumns 0) [] [])';
-              return `Table ("",[],[]) (Caption Nothing []) [${mappedItems.join(',')}] (TableHead ("",[],[]) [${renderNativeBlock(currentDocumentNode, renderContext)}]) [${tableBodies}] (TableFoot ("",[],[])\n\t\t\t\t[])`;
-            }
-            var currentMappedItems = documentNode
-                .get('align')
-                .fill()
-                .map(function (item) {
-                  return alignmentCommands[item] || 'AlignDefault';
-                }),
-              localMappedItems = currentMappedItems.map(() => '0.0');
+          }
+        case NodeType.table:
+          var currentDocumentNode = documentNode.getFirstChild(),
+            nextNode = currentDocumentNode.get('after'),
+            tableBodies = '';
+          if (versionAfter2_10) {
+            var mappedItems = documentNode
+              .get('align')
+              .fill()
+              .map(function (item) {
+                return `(${alignmentCommands[item] || 'AlignDefault'},ColWidthDefault)`;
+              });
+            tableBodies = nextNode
+              ? `(TableBody ("",[],[]) (RowHeadColumns 0) [] [${renderChildBlocks(documentNode, ',', currentDocumentNode.get('after'))}])`
+              : '(TableBody ("",[],[]) (RowHeadColumns 0) [] [])';
+            return `Table ("",[],[]) (Caption Nothing []) [${mappedItems.join(',')}] (TableHead ("",[],[]) [${renderNativeBlock(currentDocumentNode, renderContext)}]) [${tableBodies}] (TableFoot ("",[],[])\n\t\t\t\t[])`;
+          }
+          var currentMappedItems = documentNode
+              .get('align')
+              .fill()
+              .map(function (item) {
+                return alignmentCommands[item] || 'AlignDefault';
+              }),
+            localMappedItems = currentMappedItems.map(() => '0.0');
+          return (
+            'Table [] [' +
+            currentMappedItems.join(',') +
+            '] [' +
+            localMappedItems.join(',') +
+            '] [' +
+            renderChildBlocks(currentDocumentNode) +
+            '] [' +
+            (nextNode
+              ? renderChildBlocks(documentNode, ',', currentDocumentNode.get('after'))
+              : '[]') +
+            ']'
+          );
+        case NodeType.table_row:
+          if (versionAfter2_10) {
+            return `Row ("",[],[]) [${renderChildBlocks(documentNode)}]`;
+          } else {
+            return '[' + renderChildBlocks(documentNode) + ']';
+          }
+        case NodeType.table_cell:
+          if (versionAfter2_10) {
+            return `Cell ("",[],[]) AlignDefault (RowSpan 1) (ColSpan 1) [Plain [${renderNativeInlineContent(documentNode)}]]`;
+          } else {
+            return '[Plain [' + renderNativeInlineContent(documentNode) + ']]';
+          }
+        case NodeType.html_block:
+          var exportHtml = htmlBlocks.buildHTMLForExport(
+              documentNode.get('text'),
+              File.editor,
+              renderContext.target,
+            ),
+            localText = '';
+          if (useRawHtml) {
+            localText = htmlBlocks.convertToXHTML(exportHtml);
             return (
-              'Table [] [' +
-              currentMappedItems.join(',') +
-              '] [' +
-              localMappedItems.join(',') +
-              '] [' +
-              renderChildBlocks(currentDocumentNode) +
-              '] [' +
-              (nextNode
-                ? renderChildBlocks(documentNode, ',', currentDocumentNode.get('after'))
-                : '[]') +
-              ']'
+              'RawBlock (Format "html") "' +
+              escapeNativeString(localText.replace(/\r\n/g, '')) +
+              '"'
             );
-          case NodeType.table_row:
-            if (versionAfter2_10) {
-              return `Row ("",[],[]) [${renderChildBlocks(documentNode)}]`;
-            } else {
-              return '[' + renderChildBlocks(documentNode) + ']';
-            }
-          case NodeType.table_cell:
-            if (versionAfter2_10) {
-              return `Cell ("",[],[]) AlignDefault (RowSpan 1) (ColSpan 1) [Plain [${renderNativeInlineContent(documentNode)}]]`;
-            } else {
-              return '[Plain [' + renderNativeInlineContent(documentNode) + ']]';
-            }
-          case NodeType.html_block:
-            var exportHtml = htmlBlocks.buildHTMLForExport(
-                documentNode.get('text'),
-                File.editor,
-                renderContext.target,
-              ),
-              localText = '';
-            if (useRawHtml) {
-              localText = htmlBlocks.convertToXHTML(exportHtml);
-              return (
-                'RawBlock (Format "html") "' +
-                escapeNativeString(localText.replace(/\r\n/g, '')) +
-                '"'
-              );
-            }
-            try {
-              localText = $.parseHTML(exportHtml)[0].textContent || '';
-            } catch (currentError) {}
-            return 'Para [Str "' + escapeNativeString(localText) + '"]';
-          default:
-            return '';
-        }
-      },
-      'name',
-      { value: 'B', configurable: true },
-    ),
+          }
+          try {
+            localText = $.parseHTML(exportHtml)[0].textContent || '';
+          } catch (currentError) {}
+          return 'Para [Str "' + escapeNativeString(localText) + '"]';
+        default:
+          return '';
+      }
+    },
     inlineConstructors = [];
   inlineConstructors[NodeType.strong] = 'Strong';
   inlineConstructors[NodeType.em] = 'Emph';
@@ -538,258 +507,239 @@ export default function initializeExportHtml(requireModule, moduleExports, modul
       latex: 'RawInline (Format "latex") "\\\\hl{", $0, RawInline (Format "latex") "}", ',
     },
     skipOp = { atag: false, imgtag: false, comment: true },
-    renderPlainInlineText = Object.defineProperty(
-      function (token) {
-        var readInlineTokenText = Object.defineProperty(
-          function (token) {
-            return token.inner || token.text || '';
-          },
-          'name',
-          { value: 't', configurable: true },
-        );
-        if (!plainInlineLexer) {
-          plainInlineLexer = new markdownParser.InlineLexer(
-            { skipOp: skipOp },
-            readInlineTokenText,
-          );
-        }
-        try {
-          return plainInlineLexer.output(token.text, readInlineTokenText, true);
-        } catch (error) {
-          return false;
-        }
-      },
-      'name',
-      { value: 'j', configurable: true },
-    ),
-    renderNativeInlineToken = Object.defineProperty(
-      function (token, renderContext) {
-        var documentNode,
-          linkTarget,
-          linkTitle,
-          linkConstructor,
-          currentHighlightFormats,
-          plainText,
-          wordPattern = /^(\S*)(?:(\n)|(\s*))/,
-          renderNativeText = Object.defineProperty(
-            function (textSlice) {
-              for (
-                var match, nativeText = '';
-                textSlice.length && (match = wordPattern.exec(textSlice));
-              ) {
-                textSlice = textSlice.substring(match[0].length);
-                if (match[1]) {
-                  nativeText += 'Str "' + escapeNativeString(match[1]) + '", ';
-                }
-                if (match[2]) {
-                  nativeText += File.option.preLinebreakOnExport ? 'LineBreak, ' : 'SoftBreak, ';
-                } else {
-                  if (match[3]) {
-                    nativeText += 'Space, ';
-                  }
-                }
-              }
-              return nativeText;
-            },
-            'name',
-            { value: 'u', configurable: true },
-          );
-        if (token.inner) {
-          token.inner = token.inner.replace(/, $/, '');
-        }
-        var fileProtocolPattern = /^file:[\\\/]{0,2}/i;
-        switch (token.type) {
-          case NodeType.strong:
-          case NodeType.em:
-          case NodeType.del:
-          case NodeType.subscript:
-          case NodeType.superscript:
-            return inlineConstructors[token.type] + ' [' + token.inner + '], ';
-          case NodeType.plain:
-          case NodeType.escape:
-          case NodeType.tab:
-          case NodeType.emptyline:
-            return renderNativeText(token.text);
-          case NodeType.html_entity:
-            return renderNativeText(utilities.decodeHtmlEntity(token.text) || token.text);
-          case NodeType.pants:
-            return renderNativeText(token.inner);
-          case NodeType.softbreak:
-            if (File.option.preLinebreakOnExport) {
-              return 'LineBreak, ';
+    renderPlainInlineText = function (token) {
+      var readInlineTokenText = function (token) {
+        return token.inner || token.text || '';
+      };
+      if (!plainInlineLexer) {
+        plainInlineLexer = new markdownParser.InlineLexer({ skipOp: skipOp }, readInlineTokenText);
+      }
+      try {
+        return plainInlineLexer.output(token.text, readInlineTokenText, true);
+      } catch (error) {
+        return false;
+      }
+    },
+    renderNativeInlineToken = function (token, renderContext) {
+      var documentNode,
+        linkTarget,
+        linkTitle,
+        linkConstructor,
+        currentHighlightFormats,
+        plainText,
+        wordPattern = /^(\S*)(?:(\n)|(\s*))/,
+        renderNativeText = function (textSlice) {
+          for (
+            var match, nativeText = '';
+            textSlice.length && (match = wordPattern.exec(textSlice));
+          ) {
+            textSlice = textSlice.substring(match[0].length);
+            if (match[1]) {
+              nativeText += 'Str "' + escapeNativeString(match[1]) + '", ';
+            }
+            if (match[2]) {
+              nativeText += File.option.preLinebreakOnExport ? 'LineBreak, ' : 'SoftBreak, ';
             } else {
-              return 'SoftBreak, ';
+              if (match[3]) {
+                nativeText += 'Space, ';
+              }
             }
-          case NodeType.code:
-            return 'Code ("", [], []) "' + escapeNativeString(token.text.trim()) + '", ';
-          case NodeType.autolink:
-          case NodeType.url:
-            return (
-              'Link ("", [], []) [Str "' +
-              escapeNativeString(token.text) +
-              '"] ("' +
-              escapeNativeString(token.href) +
-              '", ""), '
-            );
-          case NodeType.atag:
-            if (!requiresRawHtml(renderContext.target)) {
-              return (
-                'Link ("", [], []) [' +
-                token.inner +
-                '] ("' +
-                escapeNativeString(token.href) +
-                '", "' +
-                escapeNativeString('') +
-                '"), '
-              );
-            }
-          case NodeType.imgtag:
-            if (!requiresRawHtml(renderContext.target)) {
-              var element = $($.parseHTML(token.text));
-              return (
-                'Image ("",[],[]) [Str "' +
-                escapeNativeString(element.attr('title') || element.attr('alt') || '') +
-                '"] ("' +
-                escapeNativeString(
-                  File.editor.imgEdit.getRealSrc(token.href).replace(fileProtocolPattern, ''),
-                ) +
-                '","fig:"), '
-              );
-            }
-          case NodeType.tag:
-          case NodeType.comment:
-          case NodeType.ruby:
-            return 'RawInline (Format "html") "' + escapeNativeString(token.text) + '", ';
-          case NodeType.link:
-            if ('#' == (token.href || '').trim()[0]) {
-              token.href = dialogs.normalizeAnchor(token.href, renderContext.anchorList);
-            }
+          }
+          return nativeText;
+        };
+      if (token.inner) {
+        token.inner = token.inner.replace(/, $/, '');
+      }
+      var fileProtocolPattern = /^file:[\\\/]{0,2}/i;
+      switch (token.type) {
+        case NodeType.strong:
+        case NodeType.em:
+        case NodeType.del:
+        case NodeType.subscript:
+        case NodeType.superscript:
+          return inlineConstructors[token.type] + ' [' + token.inner + '], ';
+        case NodeType.plain:
+        case NodeType.escape:
+        case NodeType.tab:
+        case NodeType.emptyline:
+          return renderNativeText(token.text);
+        case NodeType.html_entity:
+          return renderNativeText(utilities.decodeHtmlEntity(token.text) || token.text);
+        case NodeType.pants:
+          return renderNativeText(token.inner);
+        case NodeType.softbreak:
+          if (File.option.preLinebreakOnExport) {
+            return 'LineBreak, ';
+          } else {
+            return 'SoftBreak, ';
+          }
+        case NodeType.code:
+          return 'Code ("", [], []) "' + escapeNativeString(token.text.trim()) + '", ';
+        case NodeType.autolink:
+        case NodeType.url:
+          return (
+            'Link ("", [], []) [Str "' +
+            escapeNativeString(token.text) +
+            '"] ("' +
+            escapeNativeString(token.href) +
+            '", ""), '
+          );
+        case NodeType.atag:
+          if (!requiresRawHtml(renderContext.target)) {
             return (
               'Link ("", [], []) [' +
               token.inner +
               '] ("' +
               escapeNativeString(token.href) +
               '", "' +
-              escapeNativeString(token.title || '') +
+              escapeNativeString('') +
               '"), '
             );
-          case NodeType.image:
+          }
+        case NodeType.imgtag:
+          if (!requiresRawHtml(renderContext.target)) {
+            var element = $($.parseHTML(token.text));
             return (
               'Image ("",[],[]) [Str "' +
-              escapeNativeString(token.title || '') +
+              escapeNativeString(element.attr('title') || element.attr('alt') || '') +
               '"] ("' +
               escapeNativeString(
                 File.editor.imgEdit.getRealSrc(token.href).replace(fileProtocolPattern, ''),
               ) +
               '","fig:"), '
             );
-          case NodeType.refimg:
-            linkConstructor = 'Image';
-          case NodeType.reflink:
-            linkTarget = (documentNode = renderContext.nodeMap.link_list.getNodeByRef(
-              token.ref || token.text,
-            ))
-              ? escapeNativeString(documentNode.get('href').replace(fileProtocolPattern, ''))
-              : '';
-            linkTitle = escapeNativeString((documentNode && documentNode.get('title')) || '');
-            if ('Image' == (linkConstructor = linkConstructor || 'Link')) {
-              token.inner = 'Str "' + escapeNativeString(linkTitle || '') + '"';
-            }
-            return (
-              linkConstructor +
-              ' ("", [], []) [' +
-              token.inner +
-              '] ("' +
-              linkTarget +
-              '", "' +
-              linkTitle +
-              '"), '
-            );
-          case NodeType.footnote:
-            var footnoteNode = renderContext.nodeMap.foot_list.getNodeByRef(token.text);
-            if (footnoteNode) {
-              return 'Note [Para [' + renderNativeInlineContent(footnoteNode) + ']], ';
-            } else {
-              return renderNativeText(token.text);
-            }
-          case NodeType.attr:
+          }
+        case NodeType.tag:
+        case NodeType.comment:
+        case NodeType.ruby:
+          return 'RawInline (Format "html") "' + escapeNativeString(token.text) + '", ';
+        case NodeType.link:
+          if ('#' == (token.href || '').trim()[0]) {
+            token.href = dialogs.normalizeAnchor(token.href, renderContext.anchorList);
+          }
+          return (
+            'Link ("", [], []) [' +
+            token.inner +
+            '] ("' +
+            escapeNativeString(token.href) +
+            '", "' +
+            escapeNativeString(token.title || '') +
+            '"), '
+          );
+        case NodeType.image:
+          return (
+            'Image ("",[],[]) [Str "' +
+            escapeNativeString(token.title || '') +
+            '"] ("' +
+            escapeNativeString(
+              File.editor.imgEdit.getRealSrc(token.href).replace(fileProtocolPattern, ''),
+            ) +
+            '","fig:"), '
+          );
+        case NodeType.refimg:
+          linkConstructor = 'Image';
+        case NodeType.reflink:
+          linkTarget = (documentNode = renderContext.nodeMap.link_list.getNodeByRef(
+            token.ref || token.text,
+          ))
+            ? escapeNativeString(documentNode.get('href').replace(fileProtocolPattern, ''))
+            : '';
+          linkTitle = escapeNativeString((documentNode && documentNode.get('title')) || '');
+          if ('Image' == (linkConstructor = linkConstructor || 'Link')) {
+            token.inner = 'Str "' + escapeNativeString(linkTitle || '') + '"';
+          }
+          return (
+            linkConstructor +
+            ' ("", [], []) [' +
+            token.inner +
+            '] ("' +
+            linkTarget +
+            '", "' +
+            linkTitle +
+            '"), '
+          );
+        case NodeType.footnote:
+          var footnoteNode = renderContext.nodeMap.foot_list.getNodeByRef(token.text);
+          if (footnoteNode) {
+            return 'Note [Para [' + renderNativeInlineContent(footnoteNode) + ']], ';
+          } else {
             return renderNativeText(token.text);
-          case NodeType.emoji:
-            return 'Str "' + escapeNativeString(token.inner) + '", ';
-          case NodeType.inline_math:
-            if ('epub' == renderContext.target) {
-              var mathMl = DOMPurify.sanitize(
-                MathJax.tex2mml(token.text.replace(/(^\s*\$+)|(\$+\s*$)|\u200b/g, '').trim(), {
-                  display: false,
-                }),
-                svgSanitizerOptions,
-              );
-              if (mathMl) {
-                return 'RawInline (Format "html") ' + JSON.stringify(mathMl) + ', ';
-              }
-            }
-            return (
-              'Math InlineMath "' +
-              escapeNativeString(token.text.replace(/(^\s*\$+)|(\$+\s*$)|\u200b/g, '')) +
-              '", '
+          }
+        case NodeType.attr:
+          return renderNativeText(token.text);
+        case NodeType.emoji:
+          return 'Str "' + escapeNativeString(token.inner) + '", ';
+        case NodeType.inline_math:
+          if ('epub' == renderContext.target) {
+            var mathMl = DOMPurify.sanitize(
+              MathJax.tex2mml(token.text.replace(/(^\s*\$+)|(\$+\s*$)|\u200b/g, '').trim(), {
+                display: false,
+              }),
+              svgSanitizerOptions,
             );
-          case NodeType.br:
-          case NodeType.linebreak:
-            return 'LineBreak, ';
-          case NodeType.highlight:
-            if ('latex' == renderContext.target) {
-              if (-1 == textParts.indexOf('\\usepackage{color}')) {
-                textParts.push('\\usepackage{color}');
-                textParts.push('\\usepackage{soulutf8}');
-              }
-            } else {
-              if ('docx' == renderContext.target) {
-                plainText = renderPlainInlineText(token);
-                return highlightFormats[renderContext.target].replace(
-                  '$0',
-                  escapeNativeString(utilities.escape(plainText)),
-                );
-              }
+            if (mathMl) {
+              return 'RawInline (Format "html") ' + JSON.stringify(mathMl) + ', ';
             }
+          }
+          return (
+            'Math InlineMath "' +
+            escapeNativeString(token.text.replace(/(^\s*\$+)|(\$+\s*$)|\u200b/g, '')) +
+            '", '
+          );
+        case NodeType.br:
+        case NodeType.linebreak:
+          return 'LineBreak, ';
+        case NodeType.highlight:
+          if ('latex' == renderContext.target) {
+            if (-1 == textParts.indexOf('\\usepackage{color}')) {
+              textParts.push('\\usepackage{color}');
+              textParts.push('\\usepackage{soulutf8}');
+            }
+          } else {
+            if ('docx' == renderContext.target) {
+              plainText = renderPlainInlineText(token);
+              return highlightFormats[renderContext.target].replace(
+                '$0',
+                escapeNativeString(utilities.escape(plainText)),
+              );
+            }
+          }
+          return (
+            (currentHighlightFormats = highlightFormats)[renderContext.target] ||
+            currentHighlightFormats.html
+          ).replace('$0', token.inner);
+        case NodeType.alert_text:
+          if (isMarkdownTarget(renderContext.target)) {
+            return renderNativeText(token.text || '');
+          } else {
             return (
-              (currentHighlightFormats = highlightFormats)[renderContext.target] ||
-              currentHighlightFormats.html
-            ).replace('$0', token.inner);
-          case NodeType.alert_text:
-            if (isMarkdownTarget(renderContext.target)) {
-              return renderNativeText(token.text || '');
+              inlineConstructors[NodeType.strong] +
+              ' [' +
+              renderNativeText(utilities.capitalize(token.inner)).replace(/,\s*$/, '') +
+              '], LineBreak, '
+            );
+          }
+        case NodeType.underline:
+          if (renderContext.versionAfter2_10) {
+            return inlineConstructors[token.type] + ' [' + token.inner + '], ';
+          } else {
+            currentHighlightFormats = underlineFormats;
+            if ('docx' == renderContext.target) {
+              plainText = renderPlainInlineText(token);
+              return currentHighlightFormats[renderContext.target].replace(
+                '$0',
+                escapeNativeString(utilities.escape(plainText)),
+              );
             } else {
               return (
-                inlineConstructors[NodeType.strong] +
-                ' [' +
-                renderNativeText(utilities.capitalize(token.inner)).replace(/,\s*$/, '') +
-                '], LineBreak, '
-              );
+                currentHighlightFormats[renderContext.target] || currentHighlightFormats.html
+              ).replace('$0', token.inner);
             }
-          case NodeType.underline:
-            if (renderContext.versionAfter2_10) {
-              return inlineConstructors[token.type] + ' [' + token.inner + '], ';
-            } else {
-              currentHighlightFormats = underlineFormats;
-              if ('docx' == renderContext.target) {
-                plainText = renderPlainInlineText(token);
-                return currentHighlightFormats[renderContext.target].replace(
-                  '$0',
-                  escapeNativeString(utilities.escape(plainText)),
-                );
-              } else {
-                return (
-                  currentHighlightFormats[renderContext.target] || currentHighlightFormats.html
-                ).replace('$0', token.inner);
-              }
-            }
-          default:
-            return renderNativeText(token.text || '');
-        }
-      },
-      'name',
-      { value: 'q', configurable: true },
-    );
+          }
+        default:
+          return renderNativeText(token.text || '');
+      }
+    };
   DocumentMap.prototype.exportToNative = function (
     targetFormat,
     onComplete,
@@ -884,9 +834,6 @@ export default function initializeExportHtml(requireModule, moduleExports, modul
     var nativeDocument =
       'Pandoc (Meta {unMeta = fromList [' +
       (function (metadata) {
-        Object.defineProperty(renderMetadataEntry, 'name', { value: 'n', configurable: true });
-        Object.defineProperty(renderMetadataValue, 'name', { value: 'i', configurable: true });
-
         var localItems = [];
         function renderMetadataEntry(metadataKey, metadataValue) {
           if (

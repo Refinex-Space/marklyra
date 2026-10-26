@@ -1,9 +1,5 @@
 // codemirror/active-line.
 export default function initializeCodemirrorActiveLine(requireModule, moduleExports, moduleRecord) {
-  Object.defineProperty(clearActiveLines, 'name', { value: 's', configurable: true });
-  Object.defineProperty(updateActiveLines, 'name', { value: 'l', configurable: true });
-  Object.defineProperty(handleSelectionChange, 'name', { value: 'c', configurable: true });
-
   if (!this) {
     self;
   }

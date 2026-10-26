@@ -93,13 +93,6 @@ import initializeStartup from './modules/startup.js';
 const hostGlobal =
   typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : globalThis;
 
-// Factory names are private initialization metadata. Preserve their historical
-// anonymous runtime identity once at registration, without wrapping their calls.
-function anonymousFactory(initialize) {
-  Object.defineProperty(initialize, 'name', { value: '', configurable: true });
-  return initialize;
-}
-
 createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModules(engineModules) {
   const environment = {
     nativeRequire: hostGlobal.require,
@@ -111,24 +104,19 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
   installSharedGlobalHelpers.call(hostGlobal, engineModules, environment);
   installLibrariesFastdom.call(hostGlobal, engineModules, environment);
   installLibrariesFastdomPromised.call(hostGlobal, engineModules, environment);
-  engineModules.define(
-    'ui/localization',
-    ['libraries/jquery'],
-    true,
-    anonymousFactory(initializeUiLocalization),
-  );
+  engineModules.define('ui/localization', ['libraries/jquery'], true, initializeUiLocalization);
   installLibrariesBootstrapWidgets.call(hostGlobal, engineModules, environment);
   engineModules.define(
     'host/clipboard-bridge',
     ['shared/utilities'],
     true,
-    anonymousFactory(initializeHostClipboardBridge),
+    initializeHostClipboardBridge,
   );
   engineModules.define(
     'model/markdown-serializer',
     ['model/document-model', 'shared/utilities'],
     true,
-    anonymousFactory(initializeModelMarkdownSerializer),
+    initializeModelMarkdownSerializer,
   );
   engineModules.define(
     'model/html-renderer',
@@ -142,7 +130,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'model/markdown-parser',
     ],
     true,
-    anonymousFactory(initializeModelHtmlRenderer),
+    initializeModelHtmlRenderer,
   );
   engineModules.define(
     'model/node-editing',
@@ -156,38 +144,33 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/smart-quotes',
     ],
     true,
-    anonymousFactory(initializeModelNodeEditing),
+    initializeModelNodeEditing,
   );
   engineModules.define(
     'codemirror/selection-markers',
     ['libraries/codemirror'],
     true,
-    anonymousFactory(initializeCodemirrorSelectionMarkers),
+    initializeCodemirrorSelectionMarkers,
   );
   engineModules.define(
     'codemirror/close-brackets',
     ['libraries/codemirror'],
     true,
-    anonymousFactory(initializeCodemirrorCloseBrackets),
+    initializeCodemirrorCloseBrackets,
   );
   engineModules.define(
     'codemirror/close-tags',
     ['libraries/codemirror'],
     true,
-    anonymousFactory(initializeCodemirrorCloseTags),
+    initializeCodemirrorCloseTags,
   );
   engineModules.define(
     'codemirror/overlay-mode',
     ['libraries/codemirror'],
     true,
-    anonymousFactory(initializeCodemirrorOverlayMode),
+    initializeCodemirrorOverlayMode,
   );
-  engineModules.define(
-    'codemirror/lint',
-    ['libraries/codemirror'],
-    true,
-    anonymousFactory(initializeCodemirrorLint),
-  );
+  engineModules.define('codemirror/lint', ['libraries/codemirror'], true, initializeCodemirrorLint);
   engineModules.define(
     'codemirror/editor-extensions',
     [
@@ -199,7 +182,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'codemirror/lint',
     ],
     true,
-    anonymousFactory(initializeCodemirrorEditorExtensions),
+    initializeCodemirrorEditorExtensions,
   );
   engineModules.define(
     'render/code-fences',
@@ -216,7 +199,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'codemirror/editor-extensions',
     ],
     true,
-    anonymousFactory(initializeRenderCodeFences),
+    initializeRenderCodeFences,
   );
   engineModules.define(
     'render/inline-math',
@@ -231,7 +214,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'libraries/rangy',
     ],
     true,
-    anonymousFactory(initializeRenderInlineMath),
+    initializeRenderInlineMath,
   );
   engineModules.define(
     'render/brush-queue',
@@ -246,7 +229,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'libraries/rangy',
     ],
     true,
-    anonymousFactory(initializeRenderBrushQueue),
+    initializeRenderBrushQueue,
   );
   engineModules.define(
     'editing/autocomplete',
@@ -259,14 +242,9 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'libraries/rangy',
     ],
     true,
-    anonymousFactory(initializeEditingAutocomplete),
+    initializeEditingAutocomplete,
   );
-  engineModules.define(
-    'media/image-scale',
-    ['shared/utilities'],
-    true,
-    anonymousFactory(initializeMediaImageScale),
-  );
+  engineModules.define('media/image-scale', ['shared/utilities'], true, initializeMediaImageScale);
   engineModules.define(
     'media/image-editor',
     [
@@ -286,7 +264,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'render/html-blocks',
     ],
     true,
-    anonymousFactory(initializeMediaImageEditor),
+    initializeMediaImageEditor,
   );
   engineModules.define(
     'document/options',
@@ -302,7 +280,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'document/recovery',
     ],
     true,
-    anonymousFactory(initializeDocumentOptions),
+    initializeDocumentOptions,
   );
   engineModules.define(
     'document/file-snapshot',
@@ -319,28 +297,18 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'host/local-diagnostics',
     ],
     true,
-    anonymousFactory(initializeDocumentFileSnapshot),
+    initializeDocumentFileSnapshot,
   );
   engineModules.define(
     'document/text-bundle',
     ['media/asset-storage', 'shared/utilities', 'document/recovery'],
     true,
-    anonymousFactory(initializeDocumentTextBundle),
+    initializeDocumentTextBundle,
   );
-  engineModules.define(
-    'document/file-writer',
-    [],
-    true,
-    anonymousFactory(initializeDocumentFileWriter),
-  );
+  engineModules.define('document/file-writer', [], true, initializeDocumentFileWriter);
   installLibrariesErrorReporterRuntime.call(hostGlobal, engineModules, environment);
   installLibrariesErrorReporterExport.call(hostGlobal, engineModules, environment);
-  engineModules.define(
-    'host/local-diagnostics',
-    [],
-    true,
-    anonymousFactory(initializeHostLocalDiagnostics),
-  );
+  engineModules.define('host/local-diagnostics', [], true, initializeHostLocalDiagnostics);
   engineModules.define(
     'document/file-controller',
     [
@@ -363,7 +331,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'host/local-diagnostics',
     ],
     true,
-    anonymousFactory(initializeDocumentFileController),
+    initializeDocumentFileController,
   );
   engineModules.define(
     'document/editing-state',
@@ -379,7 +347,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'model/html-parser',
     ],
     true,
-    anonymousFactory(initializeDocumentEditingState),
+    initializeDocumentEditingState,
   );
   engineModules.define(
     'ui/find-replace',
@@ -394,15 +362,15 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'ui/dialogs',
     ],
     true,
-    anonymousFactory(initializeUiFindReplace),
+    initializeUiFindReplace,
   );
   engineModules.define(
     'ui/word-count',
     ['shared/utilities', 'libraries/jquery', 'model/document-model'],
     true,
-    anonymousFactory(initializeUiWordCount),
+    initializeUiWordCount,
   );
-  engineModules.define('ui/page-breaks', [], true, anonymousFactory(initializeUiPageBreaks));
+  engineModules.define('ui/page-breaks', [], true, initializeUiPageBreaks);
   engineModules.define(
     'export/html',
     [
@@ -417,19 +385,19 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'ui/dialogs',
     ],
     true,
-    anonymousFactory(initializeExportHtml),
+    initializeExportHtml,
   );
   engineModules.define(
     'export/print-and-images',
     ['ui/dialogs', 'shared/utilities', 'host/file-integration'],
     true,
-    anonymousFactory(initializeExportPrintAndImages),
+    initializeExportPrintAndImages,
   );
   engineModules.define(
     'export/pandoc',
     ['shared/utilities', 'ui/dialogs', 'host/file-integration', 'document/recovery'],
     true,
-    anonymousFactory(initializeExportPandoc),
+    initializeExportPandoc,
   );
   engineModules.define(
     'export/controller',
@@ -451,19 +419,19 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'host/environment',
     ],
     true,
-    anonymousFactory(initializeExportController),
+    initializeExportController,
   );
   engineModules.define(
     'codemirror/active-line',
     ['libraries/codemirror'],
     true,
-    anonymousFactory(initializeCodemirrorActiveLine),
+    initializeCodemirrorActiveLine,
   );
   engineModules.define(
     'codemirror/markdown-overlay',
     ['libraries/codemirror'],
     true,
-    anonymousFactory(initializeCodemirrorMarkdownOverlay),
+    initializeCodemirrorMarkdownOverlay,
   );
   engineModules.define(
     'editing/source-mode',
@@ -478,19 +446,19 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/undo-manager',
     ],
     true,
-    anonymousFactory(initializeEditingSourceMode),
+    initializeEditingSourceMode,
   );
   engineModules.define(
     'document/project-settings',
     ['host/file-integration', 'shared/utilities'],
     true,
-    anonymousFactory(initializeDocumentProjectSettings),
+    initializeDocumentProjectSettings,
   );
   engineModules.define(
     'ui/folder-search',
     ['libraries/jquery', 'shared/utilities', 'editing/keyboard-shortcuts', 'host/file-integration'],
     true,
-    anonymousFactory(initializeUiFolderSearch),
+    initializeUiFolderSearch,
   );
   engineModules.define(
     'ui/context-menu',
@@ -504,9 +472,9 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/undo-manager',
     ],
     true,
-    anonymousFactory(initializeUiContextMenu),
+    initializeUiContextMenu,
   );
-  engineModules.define('host/spellchecker', [], true, anonymousFactory(initializeHostSpellchecker));
+  engineModules.define('host/spellchecker', [], true, initializeHostSpellchecker);
   engineModules.define(
     'ui/spelling',
     [
@@ -517,7 +485,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'host/spellchecker',
     ],
     true,
-    anonymousFactory(initializeUiSpelling),
+    initializeUiSpelling,
   );
   installLibrariesDomMorph.call(hostGlobal, engineModules, environment);
   engineModules.define(
@@ -532,7 +500,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'libraries/dom-morph',
     ],
     true,
-    anonymousFactory(initializeUiFileTree),
+    initializeUiFileTree,
   );
   engineModules.define(
     'ui/file-list',
@@ -547,7 +515,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'libraries/jquery',
     ],
     true,
-    anonymousFactory(initializeUiFileList),
+    initializeUiFileList,
   );
   engineModules.define(
     'editing/selection',
@@ -560,7 +528,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/keyboard-shortcuts',
     ],
     true,
-    anonymousFactory(initializeEditingSelection),
+    initializeEditingSelection,
   );
   engineModules.define(
     'ui/outline',
@@ -576,7 +544,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'render/inline-decoration',
     ],
     true,
-    anonymousFactory(initializeUiOutline),
+    initializeUiOutline,
   );
   engineModules.define(
     'ui/quick-open',
@@ -590,7 +558,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'ui/outline',
     ],
     true,
-    anonymousFactory(initializeUiQuickOpen),
+    initializeUiQuickOpen,
   );
   engineModules.define(
     'editing/table-row-move',
@@ -603,7 +571,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/keyboard-shortcuts',
     ],
     true,
-    anonymousFactory(initializeEditingTableRowMove),
+    initializeEditingTableRowMove,
   );
   engineModules.define(
     'editing/formatting',
@@ -617,13 +585,13 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'ui/document-menu',
     ],
     true,
-    anonymousFactory(initializeEditingFormatting),
+    initializeEditingFormatting,
   );
   engineModules.define(
     'editing/list-indent',
     ['shared/utilities', 'model/document-model', 'editing/undo-manager', 'libraries/rangy'],
     true,
-    anonymousFactory(initializeEditingListIndent),
+    initializeEditingListIndent,
   );
   engineModules.define(
     'editing/character-pairs',
@@ -635,7 +603,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/smart-quotes',
     ],
     true,
-    anonymousFactory(initializeEditingCharacterPairs),
+    initializeEditingCharacterPairs,
   );
   engineModules.define(
     'editing/deletion',
@@ -649,7 +617,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/character-pairs',
     ],
     true,
-    anonymousFactory(initializeEditingDeletion),
+    initializeEditingDeletion,
   );
   engineModules.define(
     'editing/clipboard',
@@ -669,7 +637,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'media/actions',
     ],
     true,
-    anonymousFactory(initializeEditingClipboard),
+    initializeEditingClipboard,
   );
   engineModules.define(
     'editing/user-operations',
@@ -690,20 +658,20 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/clipboard',
     ],
     true,
-    anonymousFactory(initializeEditingUserOperations),
+    initializeEditingUserOperations,
   );
   installLibrariesIntersectionObserver.call(hostGlobal, engineModules, environment);
   engineModules.define(
     'host/environment',
     ['libraries/jquery', 'libraries/intersection-observer'],
     true,
-    anonymousFactory(initializeHostEnvironment),
+    initializeHostEnvironment,
   );
   engineModules.define(
     'ui/document-menu',
     ['editing/undo-manager', 'model/document-model', 'host/environment'],
     true,
-    anonymousFactory(initializeUiDocumentMenu),
+    initializeUiDocumentMenu,
   );
   engineModules.define(
     'editing/table-editor',
@@ -716,19 +684,19 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/keyboard-shortcuts',
     ],
     true,
-    anonymousFactory(initializeEditingTableEditor),
+    initializeEditingTableEditor,
   );
   engineModules.define(
     'document/recovery',
     ['shared/utilities', 'host/file-integration', 'ui/dialogs'],
     true,
-    anonymousFactory(initializeDocumentRecovery),
+    initializeDocumentRecovery,
   );
   engineModules.define(
     'media/asset-storage',
     ['shared/utilities', 'host/file-integration', 'document/recovery'],
     true,
-    anonymousFactory(initializeMediaAssetStorage),
+    initializeMediaAssetStorage,
   );
   engineModules.define(
     'render/inline-decoration',
@@ -743,20 +711,15 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'media/actions',
     ],
     true,
-    anonymousFactory(initializeRenderInlineDecoration),
+    initializeRenderInlineDecoration,
   );
-  engineModules.define(
-    'editing/emoji',
-    ['libraries/jquery'],
-    true,
-    anonymousFactory(initializeEditingEmoji),
-  );
+  engineModules.define('editing/emoji', ['libraries/jquery'], true, initializeEditingEmoji);
   installLibrariesRangy.call(hostGlobal, engineModules, environment);
   engineModules.define(
     'editing/smart-quotes',
     ['shared/utilities', 'model/document-model', 'editing/undo-manager', 'libraries/rangy'],
     true,
-    anonymousFactory(initializeEditingSmartQuotes),
+    initializeEditingSmartQuotes,
   );
   engineModules.define(
     'model/markdown-parser',
@@ -770,7 +733,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/smart-quotes',
     ],
     true,
-    anonymousFactory(initializeModelMarkdownParser),
+    initializeModelMarkdownParser,
   );
   installLibrariesDomPurifyRuntime.call(hostGlobal, engineModules, environment);
   installLibrariesDomPurifyExport.call(hostGlobal, engineModules, environment);
@@ -787,7 +750,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/keyboard-shortcuts',
     ],
     true,
-    anonymousFactory(initializeRenderMathBlocks),
+    initializeRenderMathBlocks,
   );
   engineModules.define(
     'render/diagrams',
@@ -799,13 +762,13 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'render/math-blocks',
     ],
     true,
-    anonymousFactory(initializeRenderDiagrams),
+    initializeRenderDiagrams,
   );
   engineModules.define(
     'editing/undo-manager',
     ['shared/utilities', 'model/document-model'],
     true,
-    anonymousFactory(initializeEditingUndoManager),
+    initializeEditingUndoManager,
   );
   engineModules.define(
     'render/html-blocks',
@@ -820,7 +783,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/undo-manager',
     ],
     true,
-    anonymousFactory(initializeRenderHtmlBlocks),
+    initializeRenderHtmlBlocks,
   );
   engineModules.define(
     'model/html-parser',
@@ -833,7 +796,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'libraries/jquery',
     ],
     true,
-    anonymousFactory(initializeModelHtmlParser),
+    initializeModelHtmlParser,
   );
   engineModules.define(
     'media/actions',
@@ -848,44 +811,39 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editing/keyboard-shortcuts',
     ],
     true,
-    anonymousFactory(initializeMediaActions),
+    initializeMediaActions,
   );
   engineModules.define(
     'model/document-model',
     ['shared/utilities'],
     true,
-    anonymousFactory(initializeModelDocumentModel),
+    initializeModelDocumentModel,
   );
   installLibrariesUnicodeNormalization.call(hostGlobal, engineModules, environment);
   engineModules.define(
     'shared/utilities',
     ['libraries/unicode-normalization'],
     true,
-    anonymousFactory(initializeSharedUtilities),
+    initializeSharedUtilities,
   );
   engineModules.define(
     'ui/dialogs',
     ['libraries/jquery', 'model/document-model', 'shared/utilities'],
     true,
-    anonymousFactory(initializeUiDialogs),
+    initializeUiDialogs,
   );
   engineModules.define(
     'host/file-integration',
     ['shared/utilities', 'media/asset-storage', 'media/actions', 'ui/dialogs'],
     true,
-    anonymousFactory(initializeHostFileIntegration),
+    initializeHostFileIntegration,
   );
-  engineModules.define(
-    'editing/keyboard-shortcuts',
-    [],
-    true,
-    anonymousFactory(initializeEditingKeyboardShortcuts),
-  );
+  engineModules.define('editing/keyboard-shortcuts', [], true, initializeEditingKeyboardShortcuts);
   engineModules.define(
     'ui/file-search-results',
     ['shared/utilities', 'libraries/jquery', 'host/file-integration', 'editing/keyboard-shortcuts'],
     true,
-    anonymousFactory(initializeUiFileSearchResults),
+    initializeUiFileSearchResults,
   );
   installLibrariesJquery.call(hostGlobal, engineModules, environment);
   engineModules.define(
@@ -905,7 +863,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'libraries/jquery',
     ],
     true,
-    anonymousFactory(initializeUiSidebar),
+    initializeUiSidebar,
   );
   engineModules.define(
     'editor-controller',
@@ -951,7 +909,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'ui/sidebar',
     ],
     true,
-    anonymousFactory(initializeEditorController),
+    initializeEditorController,
   );
   engineModules.define(
     'startup',
@@ -966,7 +924,7 @@ createEngineLoader(hostGlobal)(['startup'], [], true, function installEngineModu
       'editor-controller',
     ],
     true,
-    anonymousFactory(initializeStartup),
+    initializeStartup,
   );
 })(function publishEngine(initialize) {
   if (typeof define === 'function' && define.amd) {

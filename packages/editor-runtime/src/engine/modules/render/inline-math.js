@@ -17,242 +17,208 @@ export default function initializeRenderInlineMath(requireModule, moduleExports,
   var timerId,
     previewTarget,
     intersectionObserver = null,
-    renderInlineMath = Object.defineProperty(
-      async function (domNode) {
-        if (domNode) {
-          var text = domNode.querySelector('script').textContent.replace(/\u200B+/g, ''),
-            renderedSvg = '';
+    renderInlineMath = async function (domNode) {
+      if (domNode) {
+        var text = domNode.querySelector('script').textContent.replace(/\u200B+/g, ''),
+          renderedSvg = '';
+        try {
+          renderedSvg = await MathJax.tex2svgPromise(text, { display: false });
+        } catch (error) {
+          return void window.Reporter.error('MathJax Error', {
+            level: 'warning',
+            extra: { text: text, stack: error.stack },
+          });
+        }
+        var element = domNode.querySelector('mjx-container');
+        if (element) {
+          element.remove();
+        }
+        domNode.prepend(renderedSvg);
+        var parentElement = domNode.parentElement;
+        if (parentElement && !parentElement.classList.contains('math-jax-postprocess')) {
+          parentElement.classList.add('math-jax-postprocess');
+          parentElement.classList.remove('math-jax-preprocess');
+          var clonedNode = domNode.cloneNode(true);
+          if (
+            ((clonedNode.querySelector('script') || {}).textContent || '').replace(
+              /\u200B+/g,
+              '',
+            ) === text
+          ) {
+            svgCache[text.trim()] = mediaActions.processExportedSVG(clonedNode.innerHTML, true);
+          }
+        }
+      }
+    },
+    scheduleBusyModeCheck = function () {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+      timerId = setTimeout(function () {
+        File.editor.tryEnterBusyMode();
+        timerId = null;
+      }, 100);
+    },
+    renderInlineMathBatch = async function (editor, items, activeBookmark, lazyRender) {
+      if (!items.length) {
+        return false;
+      }
+      if (!((lazyRender = lazyRender && !!window.IntersectionObserver) || activeBookmark)) {
+        editor.brush.pause();
+      }
+      var isLargeBatch = items.length > 60;
+      if (lazyRender) {
+        var receiver = this;
+        if (intersectionObserver) {
+          intersectionObserver.disconnect();
+        }
+        intersectionObserver = new IntersectionObserver(function (inputItems) {
+          inputItems.forEach(async function (item) {
+            if (!(item.intersectionRatio <= 0)) {
+              await renderInlineMath.call(receiver, item.target);
+              if (intersectionObserver) {
+                intersectionObserver.unobserve(item.target);
+              }
+              if (isLargeBatch) {
+                scheduleBusyModeCheck();
+              }
+            }
+          });
+        });
+        items.forEach(function (item) {
+          intersectionObserver.observe(item);
+        });
+      } else {
+        await Promise.all(
+          Array.from(items).map((item) =>
+            this.isUnderPreview(item)
+              ? Promise.resolve()
+              : renderInlineMath.call(this, item, activeBookmark),
+          ),
+        );
+        if (isLargeBatch) {
+          scheduleBusyModeCheck();
+        }
+      }
+      if (!(lazyRender || activeBookmark)) {
+        editor.brush.resume();
+      }
+      return true;
+    },
+    bindPreviewEvents = function () {
+      var editor = this.editor;
+      jquery(this.editor.sessionStr)
+        .on('cursorChange', function (unusedParameter1, selectionState) {
+          if (selectionState) {
+            var element,
+              range = selectionState.cursor || editor.selection.getRangy();
+            if (!range) {
+              return hideInlineMathPreview(editor);
+            }
+            if (
+              (element = jquery(range.commonAncestorContainer).closest(
+                '.md-inline-math.md-expand',
+              )).find('script').length
+            ) {
+              if (previewTarget != element[0]) {
+                hideInlineMathPreview(editor);
+                showInlineMathPreview(editor, element);
+              }
+            } else {
+              hideInlineMathPreview(editor);
+            }
+          }
+        })
+        .on('mousedown', '.md-inline-math mjx-container', function (unusedParameter1) {
+          hideInlineMathPreview(editor);
+          jquery('.md-expand').removeClass('md-expand');
+          if (!File.isLocked) {
+            var element = jquery(this).closest('.md-inline-math'),
+              elements = element.addClass('md-expand').find('script');
+            editor.selection.selectAllElem(elements);
+            showInlineMathPreview(editor, element);
+          }
+        });
+    },
+    previewChangeHandler = null,
+    previewCache = {},
+    showInlineMathPreview = async function (editor, inputElement) {
+      previewTarget = inputElement[0];
+      var previewPanel = jquery('#math-inline-preview'),
+        element = document.querySelector('#math-inline-preview-content'),
+        trimmedText = inputElement.find('script').text().trim();
+      async function renderPreviewMath(text, synchronous) {
+        if (MathJax.tex2svg) {
+          element.dataset.text = text;
+          if (previewCache[text] || svgCache[text]) {
+            element.innerHTML = previewCache[text] || svgCache[text];
+            if (!element.querySelector('rect') && !previewCache[text]) {
+              return;
+            }
+            previewCache[text] = previewCache[text] || svgCache[text];
+          }
           try {
-            renderedSvg = await MathJax.tex2svgPromise(text, { display: false });
+            var renderedSvg = synchronous
+              ? MathJax.tex2svg(text, { display: false })
+              : await MathJax.tex2svgPromise(text, { display: false });
+            element.innerHTML = '';
+            element.appendChild(renderedSvg);
           } catch (error) {
-            return void window.Reporter.error('MathJax Error', {
+            window.Reporter.error('MathJax Error', {
               level: 'warning',
               extra: { text: text, stack: error.stack },
             });
           }
-          var element = domNode.querySelector('mjx-container');
-          if (element) {
-            element.remove();
-          }
-          domNode.prepend(renderedSvg);
-          var parentElement = domNode.parentElement;
-          if (parentElement && !parentElement.classList.contains('math-jax-postprocess')) {
-            parentElement.classList.add('math-jax-postprocess');
-            parentElement.classList.remove('math-jax-preprocess');
-            var clonedNode = domNode.cloneNode(true);
-            if (
-              ((clonedNode.querySelector('script') || {}).textContent || '').replace(
-                /\u200B+/g,
-                '',
-              ) === text
-            ) {
-              svgCache[text.trim()] = mediaActions.processExportedSVG(clonedNode.innerHTML, true);
-            }
-          }
         }
-      },
-      'name',
-      { value: 'u', configurable: true },
-    ),
-    scheduleBusyModeCheck = Object.defineProperty(
-      function () {
-        if (timerId) {
-          clearTimeout(timerId);
+      }
+      previewChangeHandler = async function () {
+        var expandedMath = jquery('.md-inline-math.md-expand'),
+          elements = expandedMath.find('script'),
+          texSource = elements.text().replace(/\u200B+/g, ''),
+          changeHandler = previewChangeHandler;
+        if (!elements.height()) {
+          return jquery(editor.sessionStr).off('inline-math-changed', changeHandler);
         }
-        timerId = setTimeout(function () {
-          File.editor.tryEnterBusyMode();
-          timerId = null;
-        }, 100);
-      },
-      'name',
-      { value: 'h', configurable: true },
-    ),
-    renderInlineMathBatch = Object.defineProperty(
-      async function (editor, items, activeBookmark, lazyRender) {
-        if (!items.length) {
-          return false;
+        if (!svgCache[texSource]) {
+          await renderPreviewMath(texSource);
+          dialogs.fixPopoverPosition(elements, previewPanel);
+          expandedMath
+            .find('mjx-container')
+            .replaceWith(previewPanel.find('mjx-container').clone());
         }
-        if (!((lazyRender = lazyRender && !!window.IntersectionObserver) || activeBookmark)) {
-          editor.brush.pause();
-        }
-        var isLargeBatch = items.length > 60;
-        if (lazyRender) {
-          var receiver = this;
-          if (intersectionObserver) {
-            intersectionObserver.disconnect();
-          }
-          intersectionObserver = new IntersectionObserver(function (inputItems) {
-            inputItems.forEach(async function (item) {
-              if (!(item.intersectionRatio <= 0)) {
-                await renderInlineMath.call(receiver, item.target);
-                if (intersectionObserver) {
-                  intersectionObserver.unobserve(item.target);
-                }
-                if (isLargeBatch) {
-                  scheduleBusyModeCheck();
-                }
-              }
-            });
-          });
-          items.forEach(function (item) {
-            intersectionObserver.observe(item);
-          });
-        } else {
-          await Promise.all(
-            Array.from(items).map((item) =>
-              this.isUnderPreview(item)
-                ? Promise.resolve()
-                : renderInlineMath.call(this, item, activeBookmark),
-            ),
-          );
-          if (isLargeBatch) {
-            scheduleBusyModeCheck();
-          }
-        }
-        if (!(lazyRender || activeBookmark)) {
-          editor.brush.resume();
-        }
-        return true;
-      },
-      'name',
-      { value: 'p', configurable: true },
-    ),
-    bindPreviewEvents = Object.defineProperty(
-      function () {
-        var editor = this.editor;
-        jquery(this.editor.sessionStr)
-          .on('cursorChange', function (unusedParameter1, selectionState) {
-            if (selectionState) {
-              var element,
-                range = selectionState.cursor || editor.selection.getRangy();
-              if (!range) {
-                return hideInlineMathPreview(editor);
-              }
-              if (
-                (element = jquery(range.commonAncestorContainer).closest(
-                  '.md-inline-math.md-expand',
-                )).find('script').length
-              ) {
-                if (previewTarget != element[0]) {
-                  hideInlineMathPreview(editor);
-                  showInlineMathPreview(editor, element);
-                }
-              } else {
-                hideInlineMathPreview(editor);
-              }
-            }
-          })
-          .on('mousedown', '.md-inline-math mjx-container', function (unusedParameter1) {
-            hideInlineMathPreview(editor);
-            jquery('.md-expand').removeClass('md-expand');
-            if (!File.isLocked) {
-              var element = jquery(this).closest('.md-inline-math'),
-                elements = element.addClass('md-expand').find('script');
-              editor.selection.selectAllElem(elements);
-              showInlineMathPreview(editor, element);
-            }
-          });
-      },
-      'name',
-      { value: 'f', configurable: true },
-    ),
-    previewChangeHandler = null,
-    previewCache = {},
-    showInlineMathPreview = Object.defineProperty(
-      async function (editor, inputElement) {
-        Object.defineProperty(renderPreviewMath, 'name', { value: 's', configurable: true });
-
-        previewTarget = inputElement[0];
-        var previewPanel = jquery('#math-inline-preview'),
-          element = document.querySelector('#math-inline-preview-content'),
-          trimmedText = inputElement.find('script').text().trim();
-        async function renderPreviewMath(text, synchronous) {
-          if (MathJax.tex2svg) {
-            element.dataset.text = text;
-            if (previewCache[text] || svgCache[text]) {
-              element.innerHTML = previewCache[text] || svgCache[text];
-              if (!element.querySelector('rect') && !previewCache[text]) {
-                return;
-              }
-              previewCache[text] = previewCache[text] || svgCache[text];
-            }
-            try {
-              var renderedSvg = synchronous
-                ? MathJax.tex2svg(text, { display: false })
-                : await MathJax.tex2svgPromise(text, { display: false });
-              element.innerHTML = '';
-              element.appendChild(renderedSvg);
-            } catch (error) {
-              window.Reporter.error('MathJax Error', {
-                level: 'warning',
-                extra: { text: text, stack: error.stack },
-              });
-            }
-          }
-        }
-        previewChangeHandler = Object.defineProperty(
-          async function () {
-            var expandedMath = jquery('.md-inline-math.md-expand'),
-              elements = expandedMath.find('script'),
-              texSource = elements.text().replace(/\u200B+/g, ''),
-              changeHandler = previewChangeHandler;
-            if (!elements.height()) {
-              return jquery(editor.sessionStr).off('inline-math-changed', changeHandler);
-            }
-            if (!svgCache[texSource]) {
-              await renderPreviewMath(texSource);
-              dialogs.fixPopoverPosition(elements, previewPanel);
-              expandedMath
-                .find('mjx-container')
-                .replaceWith(previewPanel.find('mjx-container').clone());
-            }
-          },
-          'name',
-          { value: 'm', configurable: true },
-        );
-        var previewChanged = false;
-        if (
-          inputElement.hasClass('math-jax-postprocess') &&
-          (element.dataset.text || '').replace(/[\s\u200b]/g, '') !=
-            trimmedText.replace(/[\s\u200b]/g, '')
-        ) {
-          previewChanged = true;
-        }
-        if (previewChanged || 'none' === previewPanel[0].style.display) {
-          jquery(editor.sessionStr).off('inline-math-changed');
-          jquery(editor.sessionStr).on('inline-math-changed', previewChangeHandler);
-          await renderPreviewMath(trimmedText, true);
-          delete svgCache[trimmedText];
-          previewPanel.show();
-          dialogs.fixPopoverPosition(inputElement.find('script'), previewPanel);
-        }
-      },
-      'name',
-      { value: 'v', configurable: true },
-    ),
-    hideInlineMathPreview = Object.defineProperty(
-      function (editor) {
-        previewTarget = null;
-        var previewPanel = jquery('#math-inline-preview');
-        if ('none' !== previewPanel[0].style.display) {
-          previewPanel.hide();
-        }
-        if (previewChangeHandler) {
-          jquery(editor.sessionStr).off('inline-math-changed', previewChangeHandler);
-          previewChangeHandler = null;
-        }
-      },
-      'name',
-      { value: 'y', configurable: true },
-    ),
-    getSelectedInlineMath = Object.defineProperty(
-      function () {
-        var range = this.editor.selection.getRangy();
-        return jquery(range.commonAncestorContainer).closest('.md-inline-math');
-      },
-      'name',
-      { value: 'b', configurable: true },
-    );
+      };
+      var previewChanged = false;
+      if (
+        inputElement.hasClass('math-jax-postprocess') &&
+        (element.dataset.text || '').replace(/[\s\u200b]/g, '') !=
+          trimmedText.replace(/[\s\u200b]/g, '')
+      ) {
+        previewChanged = true;
+      }
+      if (previewChanged || 'none' === previewPanel[0].style.display) {
+        jquery(editor.sessionStr).off('inline-math-changed');
+        jquery(editor.sessionStr).on('inline-math-changed', previewChangeHandler);
+        await renderPreviewMath(trimmedText, true);
+        delete svgCache[trimmedText];
+        previewPanel.show();
+        dialogs.fixPopoverPosition(inputElement.find('script'), previewPanel);
+      }
+    },
+    hideInlineMathPreview = function (editor) {
+      previewTarget = null;
+      var previewPanel = jquery('#math-inline-preview');
+      if ('none' !== previewPanel[0].style.display) {
+        previewPanel.hide();
+      }
+      if (previewChangeHandler) {
+        jquery(editor.sessionStr).off('inline-math-changed', previewChangeHandler);
+        previewChangeHandler = null;
+      }
+    },
+    getSelectedInlineMath = function () {
+      var range = this.editor.selection.getRangy();
+      return jquery(range.commonAncestorContainer).closest('.md-inline-math');
+    };
   moduleRecord.exports = class {
     constructor(editor) {
       this.editor = editor;
@@ -297,8 +263,6 @@ export default function initializeRenderInlineMath(requireModule, moduleExports,
       } catch (error) {}
     }
     async renderAll(forceRender, rootElement, refreshReferences, disableLazyRender) {
-      Object.defineProperty(clearRenderedMath, 'name', { value: 'o', configurable: true });
-
       if (File.option.enableInlineMath) {
         var mathElements = [];
         if (refreshReferences) {

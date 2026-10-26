@@ -27,7 +27,7 @@ describe('Markdown export image embedding', () => {
     expect(result).toContain(`![图](${png})`);
     expect(result).toContain(`![两张](${jpg} "标题")`);
     expect(result).toContain(`<img src="${png}" width="40">`);
-    // Links, inline code, fenced code and front matter keep their original text.
+    // Links, inline code, fenced code and front matter keep their source text.
     expect(result).toContain('[链接](assets/a.png)');
     expect(result).toContain('`![code](assets/a.png)`');
     expect(result).toContain('![fence](assets/a.png)');

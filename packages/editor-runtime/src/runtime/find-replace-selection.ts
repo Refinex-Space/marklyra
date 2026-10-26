@@ -6,8 +6,8 @@ interface Hit {
   end: number;
 }
 
-/** Correct a context-sensitive regex insert only within the original CM
- * replaceSelection call. The original transaction/history remain the writer. */
+/** Correct a context-sensitive regex insert only within the CM
+ * replaceSelection call. The transaction/history remain the writer. */
 export function installFindSelectionReplacement(
   panel: object,
   replacement: string,
@@ -84,7 +84,7 @@ interface CodeMirror {
   doc: { setSelection(anchor: unknown, head: unknown): void };
 }
 
-/** Original CM replacement expands captures before writing, but shifts later
+/** CM replacement expands captures before writing, but shifts later
  * hits using the literal replacement field length. Repair only actual retained
  * hit identities after a proven single-range CM change. */
 export function captureFindSelectionCorrection(panel: object): (() => void) | undefined {

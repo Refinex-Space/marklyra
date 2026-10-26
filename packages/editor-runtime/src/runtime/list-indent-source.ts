@@ -107,7 +107,7 @@ export function captureListIndent(
   )
     return;
   const mark = root.toMark();
-  // The only admitted suffix is the original inter-root separator. Final-block
+  // The only admitted suffix is the source inter-root separator. Final-block
   // wrappers and unusual ahead/tail layouts need their own explicit receipt.
   if (block.text !== mark + ending || !root.get('after')) return;
   const lines = mark.split(ending),

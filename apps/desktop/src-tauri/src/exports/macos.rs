@@ -64,7 +64,7 @@ pub(super) fn begin(
         return Err("此 macOS 版本不支持 WKWebView 原生打印".into());
     }
     // SAFETY: WKWebView is an NSView; its documented window property is retained
-    // only for this setup. No original application's object is touched.
+    // only for this print preview setup.
     let parent: Option<Retained<NSWindow>> = unsafe { msg_send![view, window] };
     let parent = parent.ok_or("打印预览窗口已关闭")?;
     if parent.attachedSheet().is_some() {

@@ -253,7 +253,7 @@ export class RuntimeExport {
     try {
       editor.export.beforeExport(!!options.print);
       await this.readyAssets();
-      // The original exporter intentionally emits Markdown destinations, not decorated img.src.
+      // The exporter intentionally emits Markdown destinations, not decorated img.src.
       // Rebind only destinations already resolved by this renderer's document-scoped image host.
       const imageUrls = new Map<string, string>();
       for (const image of editor.writingArea.querySelectorAll<HTMLImageElement>('img')) {
@@ -268,7 +268,7 @@ export class RuntimeExport {
       });
       const doc = new DOMParser().parseFromString(html, 'text/html');
       if (options.print) {
-        // The Mac serializer delegates af:/at: links to its original native
+        // The Mac serializer delegates af:/at: links to its native
         // PDF host. Convert only its actual heading destinations into standard
         // document fragments for this scriptless HTML/PDF preview.
         const headings = new Map<string, string>();
@@ -351,7 +351,7 @@ export class RuntimeExport {
         element.setAttribute('style', portableCss(element.getAttribute('style') ?? ''));
       if (options.styled) {
         // Native path.readText is deliberately unavailable. Include the actual bundled
-        // theme explicitly; original export's null-read join can suppress its fallback.
+        // theme explicitly; export's null-read join can suppress its fallback.
         const theme = doc.createElement('style');
         theme.id = 'marklyra-export-theme';
         theme.textContent = await this.themeStyles(!!options.print);

@@ -5,23 +5,15 @@ export default function initializeHostSpellchecker(requireModule, moduleExports,
   }
   var pathUtilities = reqnode('path'),
     spellcheckerCache = {},
-    setUserWordsByLanguage = Object.defineProperty(
-      function (userWordsByLanguage) {
-        spellcheckerCache = userWordsByLanguage;
-      },
-      'name',
-      { value: 'o', configurable: true },
-    ),
-    Spellchecker = Object.defineProperty(
-      function () {
-        this.cache = new Map();
-        this.dictPath = this.getDictionaryPath();
-        this.userDictPath = null;
-        this.userListProvider = null;
-      },
-      'name',
-      { value: 'a', configurable: true },
-    );
+    setUserWordsByLanguage = function (userWordsByLanguage) {
+      spellcheckerCache = userWordsByLanguage;
+    },
+    Spellchecker = function () {
+      this.cache = new Map();
+      this.dictPath = this.getDictionaryPath();
+      this.userDictPath = null;
+      this.userListProvider = null;
+    };
   Spellchecker.prototype.clearCache = function () {
     var items = [];
     this.cache.forEach(function (item, itemIndex) {

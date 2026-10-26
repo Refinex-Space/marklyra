@@ -34,7 +34,7 @@ impl PrintOptions {
         if !self.header.is_empty() || !self.footer.is_empty() {
             return Err("此宿主尚不支持自定义打印页眉和页脚；请清空后重试".into());
         }
-        // These millimetre values follow the original application's paper UI,
+        // These millimetre values follow the editor's paper selection UI,
         // including its rounded US paper dimensions.
         let paper_mm = match self.paper_size.as_str() {
             "" => None,
@@ -108,7 +108,7 @@ impl PrintLayout {
             html
         } else {
             // A style appended after the immutable export wins over the
-            // original forPrint margin:0 rule without executing any script.
+            // forPrint margin:0 rule without executing any script.
             format!("{html}<style>@media print{{@page{{{rules}}}}}</style>")
         }
     }

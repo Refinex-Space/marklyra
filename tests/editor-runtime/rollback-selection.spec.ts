@@ -89,7 +89,7 @@ for (const operation of ['load', 'reload'] as const) {
     const before = await sourceSelection(page);
     await reject(page, operation, true);
     expect(await sourceSelection(page)).toEqual(before);
-    // Original snapshot restore schedules a 200ms refresh; verify the result outlives it.
+    // Snapshot restore schedules a 200ms refresh; verify the result outlives it.
     await page.waitForTimeout(250);
     expect(await sourceSelection(page)).toEqual(before);
     expect(await imageSource(page)).toBe(source);

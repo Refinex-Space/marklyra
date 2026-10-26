@@ -207,7 +207,7 @@ export function historySignature(changes: unknown): string {
   );
 }
 
-/** Captures original serializer node identity, not DOM text offsets. */
+/** Captures serializer node identity, not DOM text offsets. */
 export class RuntimeSourceTracking {
   private serial = 0;
   private checkpoint = 0;
@@ -279,7 +279,7 @@ export class RuntimeSourceTracking {
     if (this.previous) this.journalPolicies.set(this.checkpoint, policy);
   }
 
-  /** Arm a host command or plain clipboard event before its original operation.
+  /** Arm a host command or plain clipboard event before its operation.
    * A later capture must still match the complete expected canonical output. */
   armAuthorizedReplacement(
     text: string,
@@ -552,7 +552,7 @@ export class RuntimeSourceTracking {
         )
       : undefined;
   }
-  /** Original clipboard bookmarks misread an Element boundary as offset zero.
+  /** Clipboard bookmarks misread an Element boundary as offset zero.
    * Re-express only a proven, focused plain range using actual text endpoints. */
   normalizePlainSelection(): boolean {
     const selection = this.captureActiveSelection();
@@ -1061,7 +1061,7 @@ export class RuntimeSourceTracking {
     let placementChecks: PlacementCheck[] | undefined;
     if (externalSource !== undefined) patches = diffText(previous.canonical, canonical);
     else if (historyTarget !== undefined) {
-      // The real original history identity already names a journal target.
+      // The real history identity already names a journal target.
       // Transport its canonical delta without inferring fresh edit placement
       // across cids removed/recreated by Undo. Core still verifies the complete
       // target canonical before restoring its raw source representation.

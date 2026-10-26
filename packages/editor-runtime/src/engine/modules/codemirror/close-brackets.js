@@ -8,13 +8,6 @@ export default function initializeCodemirrorCloseBrackets(
     self;
   }
   !(function (CodeMirror) {
-    Object.defineProperty(getOptionValue, 'name', { value: 'i', configurable: true });
-    Object.defineProperty(registerPairKeys, 'name', { value: 'o', configurable: true });
-    Object.defineProperty(createCharacterHandler, 'name', { value: 'a', configurable: true });
-    Object.defineProperty(getBracketOptions, 'name', { value: 's', configurable: true });
-    Object.defineProperty(getAdjacentCharacters, 'name', { value: 'l', configurable: true });
-    Object.defineProperty(startsStringToken, 'name', { value: 'c', configurable: true });
-
     var defaultOptions = {
         pairs: '()[]{}\'\'""',
         closeBefore: ')]}\'":;>',

@@ -70,7 +70,7 @@ export default function initializeEditingEmoji(requireModule, moduleExports, mod
       return filteredItems.map((item) => ':' + item + ':');
     }
   }
-  Object.defineProperty(EmojiCompletion, 'name', { value: 'r', configurable: true });
+
   EmojiCompletion.data = {
     100: '💯',
     1234: '🔢',

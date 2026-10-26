@@ -80,9 +80,9 @@ async function open(page: Page) {
   await page.waitForFunction(() => Boolean((window as Host).bodyCopy.request));
 }
 // Observe the exact menu binding rather than a later live selection. WebKit's
-// original marker expansion may extend the latter after the menu was offered.
+// marker expansion may extend the latter after the menu was offered.
 // This spy delegates unchanged and reads only when captureContextSelection calls
-// the original bookmark builder; it never rewrites a range or a bookmark.
+// the bookmark builder; it never rewrites a range or a bookmark.
 async function observeBinding(page: Page) {
   await frame(page)
     .locator('#write')

@@ -91,7 +91,7 @@ impl SelectedPath {
         } else {
             return Err("原生输入仅接受普通文件与目录".into());
         };
-        // A file receipt includes its original directory entity. A leaf inode
+        // A file receipt includes its captured directory entity. A leaf inode
         // alone could be hard-linked into a replaced parent and must never grant
         // that parent's unrelated siblings to a later DocumentService open.
         let parent = path.parent().unwrap_or(path.as_path());

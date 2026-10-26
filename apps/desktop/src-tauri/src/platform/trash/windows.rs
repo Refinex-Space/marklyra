@@ -350,7 +350,7 @@ pub(super) fn open_entry(directory: &Dir, name: &Path) -> io::Result<File> {
     )?))
 }
 
-/// Win32 rejects a RootDirectory handle for FILE_RENAME_INFO, so the destination is the original
+/// Win32 rejects a RootDirectory handle for FILE_RENAME_INFO, so the destination is the source
 /// parent's full path plus the name. The retained handle holds no DELETE right: a short-lived
 /// handle to the same object, checked against it, performs the rename.
 pub(super) fn restore(placement: &TrashPlacement) -> io::Result<()> {

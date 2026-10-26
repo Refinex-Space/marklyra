@@ -354,7 +354,7 @@ for (const sourceMode of [false, true]) {
     await reload(page, after);
     await command(page, 'toggleSource');
     if (!sourceMode) {
-      // Original source mode starts a separate empty CodeMirror history.
+      // Source mode starts a separate empty CodeMirror history.
       await command(page, 'undo');
       expect(await imageSource(page)).toBe(after);
       await command(page, 'toggleSource');

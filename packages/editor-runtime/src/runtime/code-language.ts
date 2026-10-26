@@ -35,7 +35,7 @@ export function pasteCodeLanguage(field: HTMLElement, text: string): boolean {
   return !value || document.execCommand('insertText', false, value);
 }
 
-/** Passive notifications must not make original File.sync trigger change on
+/** Passive notifications must not make File.sync trigger change on
  * a still-edited language field. Explicit flush/save keeps the native commit. */
 export function pendingCodeLanguage(editor: LegacyEditor | undefined): boolean {
   const area = editor?.writingArea,

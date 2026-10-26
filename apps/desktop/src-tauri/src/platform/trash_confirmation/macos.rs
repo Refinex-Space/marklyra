@@ -94,7 +94,7 @@ pub(super) fn begin(
         ),
     };
     let alert = NSAlert::new(mtm);
-    // The runtime original uses integer style 1 (Informational).
+    // Use an informational alert for the file replacement decision.
     alert.setAlertStyle(NSAlertStyle::Informational);
     alert.setMessageText(&NSString::from_str(&question));
     alert.setInformativeText(&NSString::from_str(&detail));

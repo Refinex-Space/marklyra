@@ -3,8 +3,6 @@ export default function installLibrariesFastdomPromised(engineModules, vendorSco
   // libraries/fastdom-promised.
   // Vendor adapter; version and local behavior are preserved.
   (function () {
-    Object.defineProperty(schedulePromise, 'name', { value: 't', configurable: true });
-
     var promisedExtension = {
       initialize: function () {
         this._tasks = new Map();

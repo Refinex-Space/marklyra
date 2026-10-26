@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 type Host = Window &
   typeof globalThis & { marklyraEditor: MarkLyraEditor; historyErrors: string[] };
 
-// The original serializer spells trailing empty paragraphs (and a few other block gaps) differently
+// The serializer spells trailing empty paragraphs (and a few other block gaps) differently
 // from the checkpoint the shell journaled. Undo/Redo must keep the exact raw bytes instead of
 // reporting "History checkpoint does not match canonical".
 const documents = {

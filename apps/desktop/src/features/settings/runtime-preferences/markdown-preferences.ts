@@ -104,7 +104,7 @@ export function markdownPreferencesOptions(
     heading_style: snapshot.headingStyle ?? 0,
     ul_style: snapshot.ulStyle ?? 0,
     ol_style: snapshot.olStyle ?? 0,
-    // Original getValue checks its camel-case prop before reading the raw key.
+    // The getValue method checks its camel-case prop before reading the raw key.
     headingStyle: snapshot.headingStyle ?? 0,
     ulStyle: snapshot.ulStyle ?? 0,
     olStyle: snapshot.olStyle ?? 0,

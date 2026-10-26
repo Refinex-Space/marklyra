@@ -185,7 +185,7 @@ export class RuntimeImages {
     if (this.installed || !editor) return;
     this.installed = true;
     this.automatic.install();
-    // The original resolver otherwise creates file:// URLs. No fallback may grant file/network access.
+    // The resolver otherwise creates file:// URLs. No fallback may grant file/network access.
     editor.imgEdit.getRealSrc = (source: string) => this.resolve(source);
     document.addEventListener('load', this.imageLoaded, {
       capture: true,
@@ -302,7 +302,7 @@ export class RuntimeImages {
       pending.reject(new ImageHostError(value.error ?? '宿主未返回图片资源'));
     else pending.resolve({ source: value.source, url: value.url });
   }
-  /** Called after original model changes, including edits to YAML outside image DOM. */
+  /** Called after model changes, including edits to YAML outside image DOM. */
   documentChanged(): void {
     this.automatic.changed();
     if (!this.installed || this.deps.loading()) return;
@@ -396,7 +396,7 @@ export class RuntimeImages {
       selected?.anchorNode &&
       editor.writingArea.contains(selected.anchorNode) &&
       editor.writingArea.contains(document.activeElement);
-    // Original bookmarks read an Element-end caret as text offset zero. Use the
+    // Bookmarks read an Element-end caret as text offset zero. Use the
     // proven plain source range before bookmarking a decoration-only refresh.
     if (
       preserve &&
@@ -421,7 +421,7 @@ export class RuntimeImages {
       else repaint();
       if (bookmark) {
         editor.undo.exeCommand(bookmark);
-        // Original undo bookmarks preserve the range but not its selection direction.
+        // Undo bookmarks preserve the range but not its selection direction.
         const restored = document.getSelection();
         const restoredRange = restored?.rangeCount ? restored.getRangeAt(0) : null;
         if (backward && restored && restoredRange)
@@ -486,7 +486,7 @@ export class RuntimeImages {
   capture(): ImageCheckpoint {
     if (this.deps.composing() || this.deps.loading())
       throw new ImageHostError('请先完成输入或文档切换');
-    // The original bookmark reads valid Element boundaries as offset zero.
+    // The bookmark reads valid Element boundaries as offset zero.
     // Reuse the source-proven endpoint normalization before freezing its cursor.
     this.deps.normalizeSelection?.();
     const state = this.deps.state();
@@ -833,7 +833,7 @@ export class RuntimeImages {
       event.stopImmediatePropagation();
     };
     if (markup || html) {
-      // Keep the original ordinary HTML route, but never let a mixed Files
+      // Keep the ordinary HTML route, but never let a mixed Files
       // flavor outrank the richer content or force a duplicate binary import.
       if (!markup && !files.length) return;
       stop();
@@ -846,7 +846,7 @@ export class RuntimeImages {
           html,
           ...(markup ? { markHtml: markup } : {}),
         };
-        // Original rich paste bookmarks read an Element-end caret as offset
+        // Rich paste bookmarks read an Element-end caret as offset
         // zero; normalize that proven source position before its snapshot.
         this.deps.normalizeSelection?.();
         if (!sourceMode && markup)
@@ -886,7 +886,7 @@ export class RuntimeImages {
   private drop = (event: DragEvent): void => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target?.closest('#write,#marklyra-source')) return;
-    // Native has relinquished rich drops to WebKit. Preserve every original
+    // Native has relinquished rich drops to WebKit. Preserve every
     // rich flavor and its priority; Files must not claim that same gesture.
     const markup = event.dataTransfer?.getData('text/markhtml') ?? '';
     const html = event.dataTransfer?.getData('text/html') ?? '';
@@ -894,7 +894,7 @@ export class RuntimeImages {
       const sourceMode = Boolean(this.deps.runtime.editor?.sourceView.inSourceMode);
       // CodeMirror's native File handling cannot provide Source text semantics.
       // The SDK private Markdown flavor also needs its existing sanitizer;
-      // ordinary WYS HTML remains entirely on the original drop route.
+      // ordinary WYS HTML remains entirely on the drop route.
       if (sourceMode || (markup && !html)) {
         event.preventDefault();
         event.stopImmediatePropagation();

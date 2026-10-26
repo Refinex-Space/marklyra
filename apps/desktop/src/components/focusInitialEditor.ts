@@ -16,7 +16,7 @@ export async function focusInitialEditor(
   const active = owner.activeElement;
   if (active !== owner.body && active !== owner.documentElement && active !== editor.element)
     return true;
-  // The original iframe can focus itself while loading. Preserve a Shell control
+  // The iframe can focus itself while loading. Preserve a Shell control
   // chosen before its ready message, rather than considering that iframe unowned.
   const priorControl = loadingControl();
   if (priorControl?.isConnected) {

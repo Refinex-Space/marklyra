@@ -20,7 +20,7 @@ function bodyCompound(prefix: string): boolean {
 }
 
 /** Named editor roles are compatible across theme namespaces. :is keeps the
- * original match, specificity and negation semantics; unrelated tokens stay intact. */
+ * match, specificity and negation semantics; unrelated tokens stay intact. */
 export function editorThemeSelector(
   selector: string,
   existing: ExistingSelector = () => false,

@@ -50,7 +50,7 @@ export class MenuStateObserver {
     }
   }
 
-  /** Composition changes eligibility even if the original style facts are identical. */
+  /** Composition changes eligibility even if the style facts are identical. */
   notify(): void {
     if (this.disposed || !this.current) return;
     for (const listener of [...this.listeners]) {

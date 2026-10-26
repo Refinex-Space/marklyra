@@ -11,16 +11,6 @@ export default function installLibrariesUnicodeNormalization(engineModules, vend
         .get('runtime/global-helpers')
         .prepareGlobal(moduleRecord.id, null, null);
       (function (normalizerScope) {
-        Object.defineProperty(fromCache, 'name', { value: 'k', configurable: true });
-        Object.defineProperty(fromData, 'name', { value: 'E', configurable: true });
-        Object.defineProperty(fromCodePointOnly, 'name', { value: 'T', configurable: true });
-        Object.defineProperty(fromRuleBasedJamo, 'name', { value: '_', configurable: true });
-        Object.defineProperty(fromCodePointFilter, 'name', { value: 'A', configurable: true });
-        Object.defineProperty(normalizeNfd, 'name', { value: 'M', configurable: true });
-        Object.defineProperty(normalizeNfkd, 'name', { value: 'L', configurable: true });
-        Object.defineProperty(normalizeNfc, 'name', { value: 'N', configurable: true });
-        Object.defineProperty(normalizeNfkc, 'name', { value: 'D', configurable: true });
-
         normalizerScope.nfkc = normalizeNfkc;
         normalizerScope.nfc = normalizeNfc;
         normalizerScope.nfkd = normalizeNfkd;
@@ -63,14 +53,10 @@ export default function installLibrariesUnicodeNormalization(engineModules, vend
             VBase = 4449,
             TBase = 4519,
             SCount = (LCount = 19) * (NCount = (VCount = 21) * (TCount = 28)),
-            UChar = Object.defineProperty(
-              function (codePoint, feature) {
-                this.codepoint = codePoint;
-                this.feature = feature;
-              },
-              'name',
-              { value: 'p', configurable: true },
-            ),
+            UChar = function (codePoint, feature) {
+              this.codepoint = codePoint;
+              this.feature = feature;
+            },
             cache = {},
             cacheCounter = [],
             cachePage = 0;
@@ -213,14 +199,10 @@ export default function installLibrariesUnicodeNormalization(engineModules, vend
             return null;
           }
         };
-        (UCharIterator = Object.defineProperty(
-          function (text) {
-            this.str = text;
-            this.cursor = 0;
-          },
-          'name',
-          { value: 'y', configurable: true },
-        )).prototype.next = function () {
+        (UCharIterator = function (text) {
+          this.str = text;
+          this.cursor = 0;
+        }).prototype.next = function () {
           if (this.str && this.cursor < this.str.length) {
             var lowSurrogate,
               codePoint = this.str.charCodeAt(this.cursor++);
@@ -237,53 +219,41 @@ export default function installLibrariesUnicodeNormalization(engineModules, vend
           this.str = null;
           return null;
         };
-        (RecursiveDecompositionIterator = Object.defineProperty(
-          function (iterator, canonicalOnly) {
-            this.it = iterator;
-            this.canonical = canonicalOnly;
-            this.resBuf = [];
-          },
-          'name',
-          { value: 'b', configurable: true },
-        )).prototype.next = function () {
+        (RecursiveDecompositionIterator = function (iterator, canonicalOnly) {
+          this.it = iterator;
+          this.canonical = canonicalOnly;
+          this.resBuf = [];
+        }).prototype.next = function () {
           if (0 === this.resBuf.length) {
             var character = this.it.next();
             if (!character) {
               return null;
             }
-            this.resBuf = Object.defineProperty(
-              function decomposeRecursively(canonicalOnly, character) {
-                var decomposition = character.getDecomp();
-                if (!decomposition || (canonicalOnly && character.isCompatibility())) {
-                  return [character];
-                }
-                for (
-                  var decomposedCharacters = [], decompositionIndex = 0;
-                  decompositionIndex < decomposition.length;
-                  ++decompositionIndex
-                ) {
-                  var nestedCharacters = decomposeRecursively(
-                    canonicalOnly,
-                    UChar.fromCharCode(decomposition[decompositionIndex]),
-                  );
-                  decomposedCharacters = decomposedCharacters.concat(nestedCharacters);
-                }
-                return decomposedCharacters;
-              },
-              'name',
-              { value: 'e', configurable: true },
-            )(this.canonical, character);
+            this.resBuf = (function decomposeRecursively(canonicalOnly, character) {
+              var decomposition = character.getDecomp();
+              if (!decomposition || (canonicalOnly && character.isCompatibility())) {
+                return [character];
+              }
+              for (
+                var decomposedCharacters = [], decompositionIndex = 0;
+                decompositionIndex < decomposition.length;
+                ++decompositionIndex
+              ) {
+                var nestedCharacters = decomposeRecursively(
+                  canonicalOnly,
+                  UChar.fromCharCode(decomposition[decompositionIndex]),
+                );
+                decomposedCharacters = decomposedCharacters.concat(nestedCharacters);
+              }
+              return decomposedCharacters;
+            })(this.canonical, character);
           }
           return this.resBuf.shift();
         };
-        (DecompositionIterator = Object.defineProperty(
-          function (iterator) {
-            this.it = iterator;
-            this.resBuf = [];
-          },
-          'name',
-          { value: 'w', configurable: true },
-        )).prototype.next = function () {
+        (DecompositionIterator = function (iterator) {
+          this.it = iterator;
+          this.resBuf = [];
+        }).prototype.next = function () {
           var canonicalClass;
           if (0 === this.resBuf.length) {
             do {
@@ -305,16 +275,12 @@ export default function installLibrariesUnicodeNormalization(engineModules, vend
           }
           return this.resBuf.shift();
         };
-        (CompositionIterator = Object.defineProperty(
-          function (iterator) {
-            this.it = iterator;
-            this.procBuf = [];
-            this.resBuf = [];
-            this.lastClass = null;
-          },
-          'name',
-          { value: 'x', configurable: true },
-        )).prototype.next = function () {
+        (CompositionIterator = function (iterator) {
+          this.it = iterator;
+          this.procBuf = [];
+          this.resBuf = [];
+          this.lastClass = null;
+        }).prototype.next = function () {
           for (; 0 === this.resBuf.length; ) {
             var character = this.it.next();
             if (!character) {
@@ -342,50 +308,40 @@ export default function installLibrariesUnicodeNormalization(engineModules, vend
           }
           return this.resBuf.shift();
         };
-        createIterator = Object.defineProperty(
-          function (normalizationForm, text) {
-            switch (normalizationForm) {
-              case 'NFD':
-                return new DecompositionIterator(
+        createIterator = function (normalizationForm, text) {
+          switch (normalizationForm) {
+            case 'NFD':
+              return new DecompositionIterator(
+                new RecursiveDecompositionIterator(new UCharIterator(text), true),
+              );
+            case 'NFKD':
+              return new DecompositionIterator(
+                new RecursiveDecompositionIterator(new UCharIterator(text), false),
+              );
+            case 'NFC':
+              return new CompositionIterator(
+                new DecompositionIterator(
                   new RecursiveDecompositionIterator(new UCharIterator(text), true),
-                );
-              case 'NFKD':
-                return new DecompositionIterator(
+                ),
+              );
+            case 'NFKC':
+              return new CompositionIterator(
+                new DecompositionIterator(
                   new RecursiveDecompositionIterator(new UCharIterator(text), false),
-                );
-              case 'NFC':
-                return new CompositionIterator(
-                  new DecompositionIterator(
-                    new RecursiveDecompositionIterator(new UCharIterator(text), true),
-                  ),
-                );
-              case 'NFKC':
-                return new CompositionIterator(
-                  new DecompositionIterator(
-                    new RecursiveDecompositionIterator(new UCharIterator(text), false),
-                  ),
-                );
-            }
-            throw normalizationForm + ' is invalid';
-          },
-          'name',
-          { value: 'C', configurable: true },
-        );
-        normalize = Object.defineProperty(
-          function (normalizationForm, text) {
-            for (
-              var character,
-                iterator = createIterator(normalizationForm, text),
-                normalizedText = '';
-              (character = iterator.next());
-            ) {
-              normalizedText += character.toString();
-            }
-            return normalizedText;
-          },
-          'name',
-          { value: 'F', configurable: true },
-        );
+                ),
+              );
+          }
+          throw normalizationForm + ' is invalid';
+        };
+        normalize = function (normalizationForm, text) {
+          for (
+            var character, iterator = createIterator(normalizationForm, text), normalizedText = '';
+            (character = iterator.next());
+          ) {
+            normalizedText += character.toString();
+          }
+          return normalizedText;
+        };
         function normalizeNfd(text) {
           return normalize('NFD', text);
         }

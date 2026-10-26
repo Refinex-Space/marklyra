@@ -3,7 +3,7 @@ import {
   installFindSelectionReplacement,
 } from './find-replace-selection.js';
 
-/** Keep the original search engine and UI, but refuse replacements against an
+/** Keep the search engine and UI, but refuse replacements against an
  * invalid, pending or deliberately truncated result set. */
 export function installFindReplaceGuard(panel: object): void {
   const search: unknown = Reflect.get(panel, 'doSearch');
@@ -79,7 +79,7 @@ export function installFindReplaceGuard(panel: object): void {
     });
   Reflect.set(panel, 'doSearch', (text?: unknown, options?: unknown) => {
     if (invalid(text ?? input()?.value, options)) {
-      // Clearing through the original method also cancels its pending timer and
+      // Clearing through the method also cancels its pending timer and
       // removes search marks; an invalid query must never retain old hits.
       Reflect.apply(search, panel, ['']);
       message('无效的正则表达式');

@@ -7,7 +7,7 @@ export interface ExportHTMLOptions {
   theme?: RuntimeConfiguration['theme'];
   /** Static, self-contained CSS. No imports, scripts or external resource URLs. */
   extraCss?: string;
-  /** Use the original print serializer and its top-level heading/footnote page boundaries. */
+  /** Use the print serializer and its top-level heading/footnote page boundaries. */
   print?: { splitPages: boolean };
 }
 export interface ResolvedExportOptions {

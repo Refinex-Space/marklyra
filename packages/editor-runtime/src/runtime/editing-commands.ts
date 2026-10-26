@@ -2,7 +2,7 @@ import type { MarkLyraMenuState } from '../menu-state.js';
 import type { MarkLyraCommand } from '../protocol.js';
 
 /** One finite catalog shared by the right-click menu and the slash menu. Every entry is an
- * existing, source-proven MarkLyraCommand; nothing here reaches original native selectors. */
+ * existing, source-proven MarkLyraCommand; nothing here reaches native selectors. */
 export type EditingCommandId =
   | 'paragraph'
   | 'heading1'

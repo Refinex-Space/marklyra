@@ -28,7 +28,7 @@ pnpm check:boundaries
 pnpm check:engine
 pnpm test:engine
 pnpm test
-pnpm test:runtime-transform
+pnpm test:runtime-contracts
 pnpm test:runtime
 pnpm test:desktop-shell
 cargo fmt --all -- --check

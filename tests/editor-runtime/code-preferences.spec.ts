@@ -103,7 +103,7 @@ for (const numbered of [false, true])
     expect(result.fences[1]).toMatchObject({ numbers: true, first: 8, wrap: false, outer: true });
     expect(result.stored).toEqual({ numbers: numbered, wrap: true, lineWise: true });
     expect(await flush(page)).toBe(source);
-    // Source CM is lazy: inspect its original options only after entering that mode.
+    // Source CM is lazy: inspect its options only after entering that mode.
     await page.evaluate(() =>
       (window as unknown as Host).marklyraEditor.execute({ type: 'toggleSource' }),
     );
@@ -122,7 +122,7 @@ for (const numbered of [false, true])
         }),
     ).toEqual({ numbers: true, wrap: true, lineWise: true });
     expect(await flush(page)).toBe(source);
-    // Original CM setup may notify with the same already-confirmed raw text.
+    // CM setup may notify with the same already-confirmed raw text.
     expect(
       await page.evaluate(
         (source) =>
@@ -232,7 +232,7 @@ test('isolated HTML export uses the active code display configuration without ch
   expect(result.fences).toBe(2);
   expect(result.wrapped).toBe(0);
   expect(result.text).toContain('const value = 1;');
-  // Unstyled export now reaches the original noStyle path; display-only code
+  // Unstyled export now reaches the noStyle path; display-only code
   // gutters are intentionally absent, while code content and live state remain.
   const plain = await page.evaluate(async () => {
     const html = await (window as unknown as Host).marklyraEditor.exportHTML({ styled: false });

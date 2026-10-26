@@ -194,7 +194,7 @@ test('collapsed or foreign ranges have no HTML and metadata-only selection copie
 });
 
 // A full Markdown link contains an editable URL/title sibling as well as the
-// semantic A. Original processClipboardHTML removes that .md-content subtree.
+// semantic A. ProcessClipboardHTML removes that .md-content subtree.
 test('whole link excludes source URL and title editors while preserving href and label', async ({
   page,
 }) => {

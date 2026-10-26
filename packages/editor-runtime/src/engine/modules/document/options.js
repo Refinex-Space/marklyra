@@ -442,117 +442,104 @@ export default function initializeDocumentOptions(requireModule, moduleExports, 
     },
     setTheme: function (curTheme) {
       File.colorBrightness = 1;
-      var finishThemeUpdate = Object.defineProperty(
-          function () {
-            jquery('#bg_css').remove();
-            console.debug('updateWebView after setTheme');
-            setTimeout(() => {
-              !(function () {
-                Object.defineProperty(toHexColorChannel, 'name', {
-                  value: 'o',
-                  configurable: true,
+      var finishThemeUpdate = function () {
+          jquery('#bg_css').remove();
+          console.debug('updateWebView after setTheme');
+          setTimeout(() => {
+            !(function () {
+              var redChannel,
+                greenChannel,
+                blueChannel,
+                mappedItems = (
+                  window.getComputedStyle(document.body).backgroundColor.match(/[\d.]+/gi) || []
+                ).map(function (item) {
+                  return item - 0;
                 });
-
-                var redChannel,
-                  greenChannel,
-                  blueChannel,
-                  mappedItems = (
-                    window.getComputedStyle(document.body).backgroundColor.match(/[\d.]+/gi) || []
-                  ).map(function (item) {
-                    return item - 0;
-                  });
-                function toHexColorChannel(colorChannel) {
-                  var upperCaseText = Number(colorChannel).toString(16).toUpperCase();
-                  if (1 == upperCaseText.length) {
-                    return '0' + upperCaseText;
-                  } else {
-                    return upperCaseText;
-                  }
+              function toHexColorChannel(colorChannel) {
+                var upperCaseText = Number(colorChannel).toString(16).toUpperCase();
+                if (1 == upperCaseText.length) {
+                  return '0' + upperCaseText;
+                } else {
+                  return upperCaseText;
                 }
-                if (!(void 0 !== mappedItems[3] && null !== mappedItems[3])) {
-                  mappedItems[3] = 1;
-                }
-                if (mappedItems.length) {
-                  File.colorBrightness =
-                    (299 * mappedItems[0] + 587 * mappedItems[1] + 114 * mappedItems[2]) / 256e3;
-                  if (File.isMac) {
-                    console.debug('background', mappedItems);
-                    if (mappedItems[0] + mappedItems[1] + mappedItems[2] + mappedItems[3] == 0) {
-                      mappedItems = [255, 255, 255, 0];
-                    }
-                    bridge.callHandler('window.setBackground', mappedItems);
-                    bridge.callHandler('window.setIsSchemeAwareness', findThemeStylesheetRules());
-                  } else {
-                    JSBridge.invoke(
-                      'theme.setThemeSource',
-                      File.colorBrightness < 0.5 ? 'dark' : 'system',
-                    );
-                    JSBridge.putSetting(
-                      'backgroundColor',
-                      ((redChannel = mappedItems[0]),
-                      (greenChannel = mappedItems[1]),
-                      (blueChannel = mappedItems[2]),
-                      '#' +
-                        toHexColorChannel(redChannel) +
-                        toHexColorChannel(greenChannel) +
-                        toHexColorChannel(blueChannel)),
-                    );
-                    JSBridge.putSetting('isDarkMode', File.colorBrightness < 0.5);
-                  }
-                }
+              }
+              if (!(void 0 !== mappedItems[3] && null !== mappedItems[3])) {
+                mappedItems[3] = 1;
+              }
+              if (mappedItems.length) {
+                File.colorBrightness =
+                  (299 * mappedItems[0] + 587 * mappedItems[1] + 114 * mappedItems[2]) / 256e3;
                 if (File.isMac) {
-                  var titlebarLeftInset = null;
-                  if (
-                    'true' !=
-                      (
-                        window
-                          .getComputedStyle(document.body)
-                          .getPropertyValue('--marklyra-center-window-title') || ''
-                      ).trim() &&
-                    document.body.classList.contains('pin-outline')
-                  ) {
-                    titlebarLeftInset = document
-                      .querySelector('#marklyra-sidebar')
-                      .getBoundingClientRect().width;
+                  console.debug('background', mappedItems);
+                  if (mappedItems[0] + mappedItems[1] + mappedItems[2] + mappedItems[3] == 0) {
+                    mappedItems = [255, 255, 255, 0];
                   }
-                  bridge.callHandler('window.setTitlebarTextMarginLeft', titlebarLeftInset);
-                }
-              })();
-              if (!File._onInitTheme) {
-                File.editor.refresh(true);
-              }
-              File._onInitTheme = false;
-              if (File.isNode && File.megaMenu) {
-                File.megaMenu.applyTheme();
-              }
-            }, 100);
-            if (File.isFocusMode) {
-              File.editor.updateFocusMode(File.isFocusMode);
-            }
-            if (File.isTypeWriterMode) {
-              File.editor.setTypeWriterMode(true, true);
-            }
-          },
-          'name',
-          { value: 't', configurable: true },
-        ),
-        findThemeStylesheetRules = Object.defineProperty(
-          function () {
-            var themeLink = document.getElementById('theme_css');
-            for (var stylesheet of document.styleSheets) {
-              if (stylesheet.href === themeLink.href && themeLink.href) {
-                for (var cssRule of stylesheet.rules) {
-                  if (4 === cssRule.type && /prefers\-color\-scheme/.exec(cssRule.cssText || '')) {
-                    return true;
-                  }
+                  bridge.callHandler('window.setBackground', mappedItems);
+                  bridge.callHandler('window.setIsSchemeAwareness', findThemeStylesheetRules());
+                } else {
+                  JSBridge.invoke(
+                    'theme.setThemeSource',
+                    File.colorBrightness < 0.5 ? 'dark' : 'system',
+                  );
+                  JSBridge.putSetting(
+                    'backgroundColor',
+                    ((redChannel = mappedItems[0]),
+                    (greenChannel = mappedItems[1]),
+                    (blueChannel = mappedItems[2]),
+                    '#' +
+                      toHexColorChannel(redChannel) +
+                      toHexColorChannel(greenChannel) +
+                      toHexColorChannel(blueChannel)),
+                  );
+                  JSBridge.putSetting('isDarkMode', File.colorBrightness < 0.5);
                 }
               }
+              if (File.isMac) {
+                var titlebarLeftInset = null;
+                if (
+                  'true' !=
+                    (
+                      window
+                        .getComputedStyle(document.body)
+                        .getPropertyValue('--marklyra-center-window-title') || ''
+                    ).trim() &&
+                  document.body.classList.contains('pin-outline')
+                ) {
+                  titlebarLeftInset = document
+                    .querySelector('#marklyra-sidebar')
+                    .getBoundingClientRect().width;
+                }
+                bridge.callHandler('window.setTitlebarTextMarginLeft', titlebarLeftInset);
+              }
+            })();
+            if (!File._onInitTheme) {
+              File.editor.refresh(true);
             }
-            return false;
-          },
-          'name',
-          { value: 'n', configurable: true },
-        );
+            File._onInitTheme = false;
+            if (File.isNode && File.megaMenu) {
+              File.megaMenu.applyTheme();
+            }
+          }, 100);
+          if (File.isFocusMode) {
+            File.editor.updateFocusMode(File.isFocusMode);
+          }
+          if (File.isTypeWriterMode) {
+            File.editor.setTypeWriterMode(true, true);
+          }
+        },
+        findThemeStylesheetRules = function () {
+          var themeLink = document.getElementById('theme_css');
+          for (var stylesheet of document.styleSheets) {
+            if (stylesheet.href === themeLink.href && themeLink.href) {
+              for (var cssRule of stylesheet.rules) {
+                if (4 === cssRule.type && /prefers\-color\-scheme/.exec(cssRule.cssText || '')) {
+                  return true;
+                }
+              }
+            }
+          }
+          return false;
+        };
       if (File.isMac) {
         var element = document.getElementById('theme_css'),
           linkTarget = element.getAttribute('href'),

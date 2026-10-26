@@ -46,7 +46,7 @@ async function search(frame: Frame, query: string, regex: boolean, count: number
 }
 
 async function history(page: Page, original: string, edited: string) {
-  // These are actual original model/CodeMirror history operations, not a reload.
+  // These are actual model/CodeMirror history operations, not a reload.
   for (const [type, expected] of [
     ['undo', original],
     ['redo', edited],

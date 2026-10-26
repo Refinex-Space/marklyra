@@ -1,8 +1,6 @@
 // render/diagrams.
 export default function initializeRenderDiagrams(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(parseDiagramSource, 'name', { value: 'f', configurable: true });
-  Object.defineProperty(scheduleDiagramThemeRefresh, 'name', { value: 'v', configurable: true });
 
   if (!this) {
     self;
@@ -22,115 +20,107 @@ export default function initializeRenderDiagrams(requireModule, moduleExports, m
     return [diagramSource, 0];
   }
   var timerId,
-    buildDiagramThemeOptions = Object.defineProperty(
-      function (searchValue) {
-        var readCssProperty = Object.defineProperty(
-            function (propertyName, computedStyle) {
-              return (
-                (computedStyle =
-                  computedStyle || window.getComputedStyle(document.body)).getPropertyValue(
-                  propertyName,
-                ) || ''
-              )
-                .replace(/(^[\s\'\"]+)|([\s\'\"]+$)/g, '')
-                .toLowerCase();
-            },
-            'name',
-            { value: 't', configurable: true },
-          ),
-          bodyStyle = searchValue ? void 0 : window.getComputedStyle(document.body);
-        searchValue = searchValue || readCssProperty('--mermaid-theme');
-        currentSearchValue = searchValue;
-        var showSequenceNumbers = 'on' == readCssProperty('--mermaid-sequence-numbers'),
-          curve = readCssProperty('--mermaid-flowchart-curve');
-        if (-1 == ['linear', 'basis', 'step', 'natural'].indexOf(curve)) {
-          curve = void 0;
-        }
-        var leftPadding = readCssProperty('--mermaid--gantt-left-padding') || 75;
-        try {
-          leftPadding = parseFloat(leftPadding);
-          if (isNaN(leftPadding)) {
-            leftPadding = 75;
-          }
-        } catch (error) {
+    buildDiagramThemeOptions = function (searchValue) {
+      var readCssProperty = function (propertyName, computedStyle) {
+          return (
+            (computedStyle =
+              computedStyle || window.getComputedStyle(document.body)).getPropertyValue(
+              propertyName,
+            ) || ''
+          )
+            .replace(/(^[\s\'\"]+)|([\s\'\"]+$)/g, '')
+            .toLowerCase();
+        },
+        bodyStyle = searchValue ? void 0 : window.getComputedStyle(document.body);
+      searchValue = searchValue || readCssProperty('--mermaid-theme');
+      currentSearchValue = searchValue;
+      var showSequenceNumbers = 'on' == readCssProperty('--mermaid-sequence-numbers'),
+        curve = readCssProperty('--mermaid-flowchart-curve');
+      if (-1 == ['linear', 'basis', 'step', 'natural'].indexOf(curve)) {
+        curve = void 0;
+      }
+      var leftPadding = readCssProperty('--mermaid--gantt-left-padding') || 75;
+      try {
+        leftPadding = parseFloat(leftPadding);
+        if (isNaN(leftPadding)) {
           leftPadding = 75;
         }
-        var themeVariables = {};
-        if ('night' == searchValue) {
-          themeVariables = (function (computedStyle) {
-            if (computedStyle) {
-              computedStyle.getPropertyValue('--text-color').trim();
-            }
-            return {
-              darkMode: false,
-              fontFamily:
-                (computedStyle
-                  ? computedStyle.getPropertyValue('--mermaid-font-family').trim()
-                  : void 0) || '"trebuchet ms", verdana, arial, sans-serif',
-            };
-          })(bodyStyle);
-          searchValue = 'dark';
-        } else {
-          if (!(['base', 'default', 'dark', 'forest', 'neutral'].indexOf(searchValue) > -1)) {
-            if (bodyStyle) {
-              themeVariables = (function (computedStyle) {
-                var trimmedText = computedStyle.getPropertyValue('--node-fill').trim(),
-                  darkMode = File.colorBrightness < 0.5;
-                if (trimmedText && /#/.exec(trimmedText)) {
-                  darkMode =
-                    (299 * parseInt(trimmedText.substr(1, 2), 16) +
-                      587 * parseInt(trimmedText.substr(3, 2), 16) +
-                      114 * parseInt(trimmedText.substr(4, 2), 16)) /
-                      1e3 <
-                    40;
-                }
-                var themeOptions = {
-                  darkMode: darkMode,
-                  fontFamily:
-                    computedStyle.getPropertyValue('--mermaid-font-family').trim() ||
-                    '"trebuchet ms", verdana, arial, sans-serif',
-                  noteTextColor: computedStyle.getPropertyValue('--text-color').trim(),
-                  primaryColor: trimmedText,
-                  background:
-                    computedStyle.getPropertyValue('--mermaid-background').trim() ||
-                    computedStyle.getPropertyValue('--bg-color').trim(),
-                  noteBkgColor: computedStyle.getPropertyValue('--cluster-fill').trim(),
-                  textColor:
-                    computedStyle.getPropertyValue('--node-text-color').trim() ||
-                    computedStyle.getPropertyValue('--text-color').trim(),
-                };
-                if (!('#ECECFF' !== trimmedText || themeOptions.darkMode)) {
-                  themeOptions.secondaryColor = '#f4f4f4';
-                }
-                return themeOptions;
-              })(bodyStyle);
-            } else {
-              currentSearchValue = searchValue = 'default';
-            }
+      } catch (error) {
+        leftPadding = 75;
+      }
+      var themeVariables = {};
+      if ('night' == searchValue) {
+        themeVariables = (function (computedStyle) {
+          if (computedStyle) {
+            computedStyle.getPropertyValue('--text-color').trim();
+          }
+          return {
+            darkMode: false,
+            fontFamily:
+              (computedStyle
+                ? computedStyle.getPropertyValue('--mermaid-font-family').trim()
+                : void 0) || '"trebuchet ms", verdana, arial, sans-serif',
+          };
+        })(bodyStyle);
+        searchValue = 'dark';
+      } else {
+        if (!(['base', 'default', 'dark', 'forest', 'neutral'].indexOf(searchValue) > -1)) {
+          if (bodyStyle) {
+            themeVariables = (function (computedStyle) {
+              var trimmedText = computedStyle.getPropertyValue('--node-fill').trim(),
+                darkMode = File.colorBrightness < 0.5;
+              if (trimmedText && /#/.exec(trimmedText)) {
+                darkMode =
+                  (299 * parseInt(trimmedText.substr(1, 2), 16) +
+                    587 * parseInt(trimmedText.substr(3, 2), 16) +
+                    114 * parseInt(trimmedText.substr(4, 2), 16)) /
+                    1e3 <
+                  40;
+              }
+              var themeOptions = {
+                darkMode: darkMode,
+                fontFamily:
+                  computedStyle.getPropertyValue('--mermaid-font-family').trim() ||
+                  '"trebuchet ms", verdana, arial, sans-serif',
+                noteTextColor: computedStyle.getPropertyValue('--text-color').trim(),
+                primaryColor: trimmedText,
+                background:
+                  computedStyle.getPropertyValue('--mermaid-background').trim() ||
+                  computedStyle.getPropertyValue('--bg-color').trim(),
+                noteBkgColor: computedStyle.getPropertyValue('--cluster-fill').trim(),
+                textColor:
+                  computedStyle.getPropertyValue('--node-text-color').trim() ||
+                  computedStyle.getPropertyValue('--text-color').trim(),
+              };
+              if (!('#ECECFF' !== trimmedText || themeOptions.darkMode)) {
+                themeOptions.secondaryColor = '#f4f4f4';
+              }
+              return themeOptions;
+            })(bodyStyle);
+          } else {
+            currentSearchValue = searchValue = 'default';
           }
         }
-        return {
-          securityLevel: 'loose',
-          theme: searchValue || 'base',
-          themeVariables: themeVariables,
-          darkMode: 'night' == searchValue || 'dark' == searchValue,
-          altFontFamily: 'sans-serif',
-          fontFamily: 'sans-serif',
-          startOnLoad: false,
-          flowchart: { htmlLabels: true, useMaxWidth: true, curve: curve },
-          sequence: {
-            showSequenceNumbers: showSequenceNumbers,
-            useMaxWidth: false,
-            diagramMarginX: 8,
-            diagramMarginY: 8,
-            boxMargin: 8,
-          },
-          gantt: { leftPadding: leftPadding, rightPadding: 20 },
-        };
-      },
-      'name',
-      { value: 'g', configurable: true },
-    );
+      }
+      return {
+        securityLevel: 'loose',
+        theme: searchValue || 'base',
+        themeVariables: themeVariables,
+        darkMode: 'night' == searchValue || 'dark' == searchValue,
+        altFontFamily: 'sans-serif',
+        fontFamily: 'sans-serif',
+        startOnLoad: false,
+        flowchart: { htmlLabels: true, useMaxWidth: true, curve: curve },
+        sequence: {
+          showSequenceNumbers: showSequenceNumbers,
+          useMaxWidth: false,
+          diagramMarginX: 8,
+          diagramMarginY: 8,
+          boxMargin: 8,
+        },
+        gantt: { leftPadding: leftPadding, rightPadding: 20 },
+      };
+    };
   function scheduleDiagramThemeRefresh() {
     if (timerId) {
       clearTimeout(timerId);
@@ -214,8 +204,6 @@ export default function initializeRenderDiagrams(requireModule, moduleExports, m
       return activeMermaidOptions;
     }
     lazyload() {
-      Object.defineProperty(finishLoadingDiagramModes, 'name', { value: 'i', configurable: true });
-
       if (File.option.enableDiagram) {
         var receiver = this,
           editor = this.editor;
@@ -300,10 +288,6 @@ export default function initializeRenderDiagrams(requireModule, moduleExports, m
       }
     }
     async updateDiagram(nodeId, suppressLint, renderImmediately, skipMathRefresh) {
-      Object.defineProperty(clearDiagramError, 'name', { value: 'v', configurable: true });
-      Object.defineProperty(showDiagramError, 'name', { value: 'y', configurable: true });
-      Object.defineProperty(renderDiagram, 'name', { value: 'w', configurable: true });
-
       var parsedDiagram,
         editor = this.editor,
         nodeElement = this.editor.findElemById(nodeId),
@@ -407,24 +391,20 @@ export default function initializeRenderDiagrams(requireModule, moduleExports, m
                     ? globalThis.__MARKLYRA_RENDER_TICKET__(element, codeMirror)
                     : null;
                 nodeElement[0].setAttribute('mermaid-type', currentText.toLowerCase());
-                var insertMermaidSvg = Object.defineProperty(
-                  function (svgMarkup) {
-                    if (__marklyraRenderTicket && !__marklyraRenderTicket.current()) {
-                      return;
+                var insertMermaidSvg = function (svgMarkup) {
+                  if (__marklyraRenderTicket && !__marklyraRenderTicket.current()) {
+                    return;
+                  }
+                  element.innerHTML = svgMarkup || '';
+                  let currentElement = element.querySelector('svg');
+                  if (currentElement) {
+                    currentElement.classList.add('mermaid-svg');
+                    let attributeValue = currentElement.getAttribute('aria-roledescription');
+                    if (attributeValue) {
+                      nodeElement[0].setAttribute('mermaid-type', attributeValue);
                     }
-                    element.innerHTML = svgMarkup || '';
-                    let currentElement = element.querySelector('svg');
-                    if (currentElement) {
-                      currentElement.classList.add('mermaid-svg');
-                      let attributeValue = currentElement.getAttribute('aria-roledescription');
-                      if (attributeValue) {
-                        nodeElement[0].setAttribute('mermaid-type', attributeValue);
-                      }
-                    }
-                  },
-                  'name',
-                  { value: 'a', configurable: true },
-                );
+                  }
+                };
                 try {
                   mermaidParseError = null;
                   insertMermaidSvg('');
@@ -585,7 +565,7 @@ export default function initializeRenderDiagrams(requireModule, moduleExports, m
       })(exportOptions);
     }
   }
-  Object.defineProperty(DiagramController, 'name', { value: 'y', configurable: true });
+
   DiagramController.isDiagramType = function (language) {
     return (
       File.option.enableDiagram &&

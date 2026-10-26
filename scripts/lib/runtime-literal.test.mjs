@@ -3,7 +3,7 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { capability, engineModule, expressionOf, hasHook, nodes } from './runtime-test-source.mjs';
 
-const module = engineModule('19');
+const module = engineModule('model/markdown-parser');
 const patterns = nodes(
   module,
   (node) =>

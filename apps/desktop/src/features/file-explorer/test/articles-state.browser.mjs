@@ -160,7 +160,7 @@ async function check(browser, name) {
     });
     await resolve([doc('a.md', 'B', 'Other workspace A'), doc('b.md', 'A', 'Other workspace B')]);
     await summary('B/a.md', 'Other workspace A');
-    // off->on must build first-seen groups from the current flat order, not the original report.
+    // off->on must build first-seen groups from the current flat order, not the previous report.
     await configure({ refresh: 1, sort: 0, noGroup: false });
     await resolve([doc('z.md', 'B', 'z'), doc('a.md', 'A', 'a')]);
     await page.waitForFunction(() => document.querySelectorAll('[data-article-path]').length === 2);

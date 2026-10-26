@@ -5,103 +5,75 @@ export default function initializeSharedUtilities(requireModule, moduleExports, 
     self;
   }
   var whitespaceTextPattern = /^[\s\u200b]+$/,
-    isEmptyValue = Object.defineProperty(
-      function (value) {
-        return null == value || void 0 == value || '' === value || '​' === value;
-      },
-      'name',
-      { value: 'r', configurable: true },
-    ),
-    escapeHtmlText = Object.defineProperty(
-      function (inputValue, escapeMarkdown, unusedParameter3) {
-        if (null == inputValue || void 0 == inputValue || '' == inputValue) {
-          return '';
+    isEmptyValue = function (value) {
+      return null == value || void 0 == value || '' === value || '​' === value;
+    },
+    escapeHtmlText = function (inputValue, escapeMarkdown, unusedParameter3) {
+      if (null == inputValue || void 0 == inputValue || '' == inputValue) {
+        return '';
+      } else {
+        if ('string' != typeof inputValue && 'number' != typeof inputValue) {
+          return inputValue;
         } else {
-          if ('string' != typeof inputValue && 'number' != typeof inputValue) {
-            return inputValue;
-          } else {
-            inputValue = (inputValue + '')
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;')
-              .replace(/'/g, '&#39;');
-            if (escapeMarkdown) {
-              inputValue = escapeMarkdownText(inputValue);
-            }
-            return inputValue;
+          inputValue = (inputValue + '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+          if (escapeMarkdown) {
+            inputValue = escapeMarkdownText(inputValue);
           }
+          return inputValue;
         }
-      },
-      'name',
-      { value: 'o', configurable: true },
-    ),
-    escapeMarkdownText = Object.defineProperty(
-      function (text) {
-        return text.replace(/[[\]~`*\\$<]/g, '\\$&').replace(/(\b_)|(_(?=\s))/g, '\\$&');
-      },
-      'name',
-      { value: 'a', configurable: true },
-    ),
+      }
+    },
+    escapeMarkdownText = function (text) {
+      return text.replace(/[[\]~`*\\$<]/g, '\\$&').replace(/(\b_)|(_(?=\s))/g, '\\$&');
+    },
     urlPattern = /^\s*(([\w-_]+:\/\/)|(www\.)|\w*\/)[\w-.\/?%&=:@]*/i,
     imageUrlPattern =
       /^\s*(([\w-_]+:\/\/)|(www\.)|\w*\/)?[\w-.\/?%&=:@]+(\.jpe?g|png|gif|webp|svg|tiff)/i,
-    replaceWholeWord = Object.defineProperty(
-      function (text, searchPattern, replacement) {
-        return text.replace(new RegExp('\\b' + searchPattern + '\\b', 'gi'), replacement);
-      },
-      'name',
-      { value: 'c', configurable: true },
-    ),
-    formatTime = Object.defineProperty(
-      function (date, includeSeconds) {
-        var hours = date.getHours() + '',
-          minutes = date.getMinutes() + '',
-          seconds = date.getSeconds() + '';
-        return (
-          (hours.length < 2 ? '0' : '') +
-          hours +
-          ':' +
-          (minutes.length < 2 ? '0' : '') +
-          minutes +
-          (includeSeconds ? (seconds.length < 2 ? '0' : '') + seconds : '')
-        );
-      },
-      'name',
-      { value: 'd', configurable: true },
-    ),
-    resolveRelativePath = Object.defineProperty(
-      function (text, inputText, baseIsDirectory) {
-        if (!text) {
-          return inputText;
-        }
-        inputText = inputText || '';
-        var parts = text.split(/[\\\/]/g),
-          currentParts = inputText.split(/[\\\/]/g);
-        if (!baseIsDirectory) {
-          parts.pop();
-        }
-        for (var itemIndex = 0; itemIndex < currentParts.length; itemIndex++) {
-          if ('.' != currentParts[itemIndex]) {
-            if ('..' == currentParts[itemIndex]) {
-              parts.pop();
-            } else {
-              parts.push(currentParts[itemIndex]);
-            }
+    replaceWholeWord = function (text, searchPattern, replacement) {
+      return text.replace(new RegExp('\\b' + searchPattern + '\\b', 'gi'), replacement);
+    },
+    formatTime = function (date, includeSeconds) {
+      var hours = date.getHours() + '',
+        minutes = date.getMinutes() + '',
+        seconds = date.getSeconds() + '';
+      return (
+        (hours.length < 2 ? '0' : '') +
+        hours +
+        ':' +
+        (minutes.length < 2 ? '0' : '') +
+        minutes +
+        (includeSeconds ? (seconds.length < 2 ? '0' : '') + seconds : '')
+      );
+    },
+    resolveRelativePath = function (text, inputText, baseIsDirectory) {
+      if (!text) {
+        return inputText;
+      }
+      inputText = inputText || '';
+      var parts = text.split(/[\\\/]/g),
+        currentParts = inputText.split(/[\\\/]/g);
+      if (!baseIsDirectory) {
+        parts.pop();
+      }
+      for (var itemIndex = 0; itemIndex < currentParts.length; itemIndex++) {
+        if ('.' != currentParts[itemIndex]) {
+          if ('..' == currentParts[itemIndex]) {
+            parts.pop();
+          } else {
+            parts.push(currentParts[itemIndex]);
           }
         }
-        return parts.join('/');
-      },
-      'name',
-      { value: 'u', configurable: true },
-    ),
-    escapeRegexPattern = Object.defineProperty(
-      function (text) {
-        return text.replace(/[\-\\\{\}\*\+\?\|\^\$\.\[\]\(\)\#]/g, '\\$&');
-      },
-      'name',
-      { value: 'h', configurable: true },
-    );
+      }
+      return parts.join('/');
+    },
+    escapeRegexPattern = function (text) {
+      return text.replace(/[\-\\\{\}\*\+\?\|\^\$\.\[\]\(\)\#]/g, '\\$&');
+    };
   String.prototype.replaceExact = function (searchPattern, replacement) {
     return replaceWholeWord(this, searchPattern, replacement);
   };
@@ -242,17 +214,13 @@ export default function initializeSharedUtilities(requireModule, moduleExports, 
       "'": "\\'",
       '\\': '\\\\',
     },
-    getPathBaseName = Object.defineProperty(
-      function (text) {
-        if (File.isMac) {
-          return (text.replace(/[\/]+$/, '').split('/') || []).last();
-        } else {
-          return reqnode('path').basename(text);
-        }
-      },
-      'name',
-      { value: 'b', configurable: true },
-    ),
+    getPathBaseName = function (text) {
+      if (File.isMac) {
+        return (text.replace(/[\/]+$/, '').split('/') || []).last();
+      } else {
+        return reqnode('path').basename(text);
+      }
+    },
     getFileName = getPathBaseName,
     htmlEntities = {
       '&newline;': null,
@@ -409,88 +377,80 @@ export default function initializeSharedUtilities(requireModule, moduleExports, 
       [917760, 917999],
     ],
     characterWidthOptions = { nul: 0, control: 0, tabSize: 4 };
-  var getCodePointWidth = Object.defineProperty(
-    function (codePoint, widthOptions) {
-      if (0 === codePoint) {
-        return widthOptions.nul;
+  var getCodePointWidth = function (codePoint, widthOptions) {
+    if (0 === codePoint) {
+      return widthOptions.nul;
+    } else {
+      if (9 === codePoint) {
+        return widthOptions.tabSize;
       } else {
-        if (9 === codePoint) {
-          return widthOptions.tabSize;
+        if (codePoint < 32 || (codePoint >= 127 && codePoint < 160)) {
+          return widthOptions.control;
         } else {
-          if (codePoint < 32 || (codePoint >= 127 && codePoint < 160)) {
-            return widthOptions.control;
-          } else {
-            if (
-              (function (codePoint) {
-                var middleIndex,
-                  lowerIndex = 0,
-                  upperIndex = combiningCharacterRanges.length - 1;
-                if (
-                  codePoint < combiningCharacterRanges[0][0] ||
-                  codePoint > combiningCharacterRanges[upperIndex][1]
-                ) {
-                  return false;
-                }
-                for (; upperIndex >= lowerIndex; ) {
-                  middleIndex = Math.floor((lowerIndex + upperIndex) / 2);
-                  if (codePoint > combiningCharacterRanges[middleIndex][1]) {
-                    lowerIndex = middleIndex + 1;
-                  } else {
-                    if (!(codePoint < combiningCharacterRanges[middleIndex][0])) {
-                      return true;
-                    }
-                    upperIndex = middleIndex - 1;
-                  }
-                }
+          if (
+            (function (codePoint) {
+              var middleIndex,
+                lowerIndex = 0,
+                upperIndex = combiningCharacterRanges.length - 1;
+              if (
+                codePoint < combiningCharacterRanges[0][0] ||
+                codePoint > combiningCharacterRanges[upperIndex][1]
+              ) {
                 return false;
-              })(codePoint)
-            ) {
-              return 0;
-            } else {
-              return (
-                1 +
-                (codePoint >= 4352 &&
-                  (codePoint <= 4447 ||
-                    9001 == codePoint ||
-                    9002 == codePoint ||
-                    (codePoint >= 11904 && codePoint <= 42191 && 12351 != codePoint) ||
-                    (codePoint >= 44032 && codePoint <= 55203) ||
-                    (codePoint >= 63744 && codePoint <= 64255) ||
-                    (codePoint >= 65040 && codePoint <= 65049) ||
-                    (codePoint >= 65072 && codePoint <= 65135) ||
-                    (codePoint >= 65280 && codePoint <= 65376) ||
-                    (codePoint >= 65504 && codePoint <= 65510) ||
-                    (codePoint >= 131072 && codePoint <= 196605) ||
-                    (codePoint >= 196608 && codePoint <= 262141)))
-              );
-            }
+              }
+              for (; upperIndex >= lowerIndex; ) {
+                middleIndex = Math.floor((lowerIndex + upperIndex) / 2);
+                if (codePoint > combiningCharacterRanges[middleIndex][1]) {
+                  lowerIndex = middleIndex + 1;
+                } else {
+                  if (!(codePoint < combiningCharacterRanges[middleIndex][0])) {
+                    return true;
+                  }
+                  upperIndex = middleIndex - 1;
+                }
+              }
+              return false;
+            })(codePoint)
+          ) {
+            return 0;
+          } else {
+            return (
+              1 +
+              (codePoint >= 4352 &&
+                (codePoint <= 4447 ||
+                  9001 == codePoint ||
+                  9002 == codePoint ||
+                  (codePoint >= 11904 && codePoint <= 42191 && 12351 != codePoint) ||
+                  (codePoint >= 44032 && codePoint <= 55203) ||
+                  (codePoint >= 63744 && codePoint <= 64255) ||
+                  (codePoint >= 65040 && codePoint <= 65049) ||
+                  (codePoint >= 65072 && codePoint <= 65135) ||
+                  (codePoint >= 65280 && codePoint <= 65376) ||
+                  (codePoint >= 65504 && codePoint <= 65510) ||
+                  (codePoint >= 131072 && codePoint <= 196605) ||
+                  (codePoint >= 196608 && codePoint <= 262141)))
+            );
           }
         }
       }
-    },
-    'name',
-    { value: 'k', configurable: true },
-  );
-  var resolveInternalResourceUrl = Object.defineProperty(
-    function (text) {
-      if (0 == text.indexOf('http://marklyra-app/')) {
-        return _options.appPath + '/' + text.substring('http://marklyra-app/'.length);
+    }
+  };
+  var resolveInternalResourceUrl = function (text) {
+    if (0 == text.indexOf('http://marklyra-app/')) {
+      return _options.appPath + '/' + text.substring('http://marklyra-app/'.length);
+    } else {
+      if (0 == text.indexOf('http://marklyra-theme/')) {
+        return (
+          'file://' +
+          _options.currentThemeFolder +
+          '/' +
+          text.substring('http://marklyra-theme/'.length)
+        );
       } else {
-        if (0 == text.indexOf('http://marklyra-theme/')) {
-          return (
-            'file://' +
-            _options.currentThemeFolder +
-            '/' +
-            text.substring('http://marklyra-theme/'.length)
-          );
-        } else {
-          return text;
-        }
+        return text;
       }
-    },
-    'name',
-    { value: 'E', configurable: true },
-  );
+    }
+  };
   moduleExports.orDefault = function (value, fallbackValue) {
     if (null === value || void 0 === value) {
       return fallbackValue;
@@ -518,16 +478,12 @@ export default function initializeSharedUtilities(requireModule, moduleExports, 
       return 0 == inputText.indexOf(text + pathSeparator);
     }
   };
-  var decodeUriSafely = Object.defineProperty(
-    function (encodedUrl) {
-      try {
-        encodedUrl = decodeURI(encodedUrl);
-      } catch (error) {}
-      return encodedUrl;
-    },
-    'name',
-    { value: 'A', configurable: true },
-  );
+  var decodeUriSafely = function (encodedUrl) {
+    try {
+      encodedUrl = decodeURI(encodedUrl);
+    } catch (error) {}
+    return encodedUrl;
+  };
   moduleExports.decodeFromEscapedURL = decodeUriSafely;
   moduleExports.decodeFromEscapedPath = function (encodedPath) {
     try {
@@ -562,8 +518,6 @@ export default function initializeSharedUtilities(requireModule, moduleExports, 
     return Math.round(100 * ratio) + '%';
   };
   moduleExports.dateToNumberString = function (date) {
-    Object.defineProperty(padTwoDigits, 'name', { value: 't', configurable: true });
-
     function padTwoDigits(number) {
       if (number < 10) {
         return '0' + number;
@@ -602,13 +556,9 @@ export default function initializeSharedUtilities(requireModule, moduleExports, 
       suffixLength = Math.floor(retainedLength / 2);
     return text.substr(0, substringLength) + ellipsis + text.substr(text.length - suffixLength);
   };
-  var stripPathParameters = Object.defineProperty(
-    function (text) {
-      return text.replace(/#[^.\/\\]+$/, '').replace(/\?[^\/\\]+/, '');
-    },
-    'name',
-    { value: 'M', configurable: true },
-  );
+  var stripPathParameters = function (text) {
+    return text.replace(/#[^.\/\\]+$/, '').replace(/\?[^\/\\]+/, '');
+  };
   moduleExports.trimPathParam = stripPathParameters;
   moduleExports.absolutePathFrom = function (fileUrl) {
     var text = (fileUrl || '').replace(/^(wk)*file:(\/\/)*/, '');
@@ -1046,10 +996,6 @@ export default function initializeSharedUtilities(requireModule, moduleExports, 
     }
   };
   moduleExports.naturalCompare = function (normalizedText, inputNormalizedText) {
-    Object.defineProperty(getMonthIndex, 'name', { value: 'o', configurable: true });
-    Object.defineProperty(splitNaturalSortTokens, 'name', { value: 'a', configurable: true });
-    Object.defineProperty(compareNaturalSortTokens, 'name', { value: 's', configurable: true });
-
     normalizedText = normalizedText.toLowerCase();
     inputNormalizedText = inputNormalizedText.toLowerCase();
     var tokenPattern = /([.,\s+-]+|\d+)/,

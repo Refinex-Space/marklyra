@@ -1,8 +1,6 @@
 // editing/undo-manager.
 export default function initializeEditingUndoManager(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(hasNativeInputFocus, 'name', { value: 'c', configurable: true });
-  Object.defineProperty(clearRootBoundarySelection, 'name', { value: 'd', configurable: true });
 
   var hostGlobal = this || self,
     documentModel = (requireModule('shared/utilities'), requireModule('model/document-model')),
@@ -64,7 +62,7 @@ export default function initializeEditingUndoManager(requireModule, moduleExport
       return changed;
     }
   }
-  Object.defineProperty(UndoManager, 'name', { value: 'l', configurable: true });
+
   function hasNativeInputFocus() {
     return (
       ('INPUT' == document.activeElement.tagName &&
@@ -327,8 +325,6 @@ export default function initializeEditingUndoManager(requireModule, moduleExport
     return this.index < this.commandStack.length - 1;
   };
   UndoManager.prototype.exeCommand = function (command, relatedCommands, deferRefresh) {
-    Object.defineProperty(restoreInsertedNodes, 'name', { value: 'p', configurable: true });
-
     var element,
       codeMirror,
       documentNode,
@@ -845,39 +841,31 @@ export default function initializeEditingUndoManager(requireModule, moduleExport
     }
   };
   var pendingCursorCommand,
-    snapshotToCommands = Object.defineProperty(
-      function (snapshot, reverseOrder) {
-        if (!snapshot) {
-          return [];
-        }
-        var snapshotCommands = [
-          { type: 'replace', id: snapshot.id, json: snapshot.content },
-          snapshot.selection,
-        ];
-        if (reverseOrder) {
-          snapshotCommands.reverse();
-        }
-        return snapshotCommands;
-      },
-      'name',
-      { value: 'p', configurable: true },
-    );
+    snapshotToCommands = function (snapshot, reverseOrder) {
+      if (!snapshot) {
+        return [];
+      }
+      var snapshotCommands = [
+        { type: 'replace', id: snapshot.id, json: snapshot.content },
+        snapshot.selection,
+      ];
+      if (reverseOrder) {
+        snapshotCommands.reverse();
+      }
+      return snapshotCommands;
+    };
   UndoManager.prototype.prepCursorSnap = function (selectionRange) {
     (pendingCursorCommand = UndoManager.makeEmptyCommand()).undo.push(
       this.editor.selection.buildUndo(selectionRange),
     );
   };
-  var completeHistoryEntry = Object.defineProperty(
-    function (historyEntry) {
-      if (historyEntry) {
-        historyEntry.incomplete = null;
-        historyEntry.date = null;
-        historyEntry.source = null;
-      }
-    },
-    'name',
-    { value: 'f', configurable: true },
-  );
+  var completeHistoryEntry = function (historyEntry) {
+    if (historyEntry) {
+      historyEntry.incomplete = null;
+      historyEntry.date = null;
+      historyEntry.source = null;
+    }
+  };
   UndoManager.prototype.endSnap = function (discardPendingCursor) {
     if (discardPendingCursor) {
       pendingCursorCommand = null;

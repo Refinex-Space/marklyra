@@ -5,9 +5,6 @@ export default function initializeMediaImageScale(requireModule, moduleExports, 
   }
   var utilities = requireModule('shared/utilities');
   moduleExports.getImageScaleByElection = function (pathname) {
-    Object.defineProperty(readPngResolution, 'name', { value: 'o', configurable: true });
-    Object.defineProperty(readJpegResolution, 'name', { value: 'a', configurable: true });
-
     if (!window.File || File.inBusyMode) {
       return Promise.resolve(1);
     }

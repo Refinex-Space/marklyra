@@ -3882,7 +3882,7 @@ titlebar {
   opacity: .3;
 }
 
-/* Retained CodeMirror cursor rules; keep original bytes. */
+/* CodeMirror cursor rules. */
 
 .CodeMirror div.CodeMirror-cursor{border-left:1px solid #000;z-index:3}
 

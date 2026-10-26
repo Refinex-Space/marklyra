@@ -21,7 +21,7 @@ const selector = '[mdtype="fences"].md-fences-math[cid]';
 
 /** The native first pass can create a missing panel after computing its SVG,
  * leaving that new panel empty. Complete only that exact current fence through
- * its original updateDiagram path, whose asynchronous commit uses render tickets. */
+ * its updateDiagram path, whose asynchronous commit uses render tickets. */
 export class RuntimeInitialMathPreviews {
   private readonly pending = new Map<HTMLElement, Candidate>();
   private readonly attempted = new WeakSet<HTMLElement>();
@@ -193,7 +193,7 @@ export class RuntimeInitialMathPreviews {
       }
     }
   }
-  /** Observe only our own native request; the original ticket still exclusively
+  /** Observe only our own native request; the ticket still exclusively
    * decides whether its result may commit. An IME/load cancellation can resume
    * on that lifecycle's stable event, without retrying superseded renders. */
   observeTicket(preview: unknown, cm: unknown, ticket: RenderTicket): RenderTicket {

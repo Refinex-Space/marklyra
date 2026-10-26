@@ -2,7 +2,6 @@ import { lstat, readFile } from 'node:fs/promises';
 import { dirname, relative, resolve, sep } from 'node:path';
 import { parse } from 'acorn';
 import { build } from 'vite';
-import { compileReflectiveNames } from '../../../scripts/lib/engine-reflective-names.mjs';
 
 const repository = resolve(import.meta.dirname, '../../..');
 const sourceDirectory = 'packages/editor-runtime/src/engine';
@@ -134,11 +133,7 @@ async function collectSources(root, entry) {
       if (!call || call.type !== 'CallExpression') continue;
       if (isDefinition(call)) {
         const initializer = call.arguments[3];
-        const local =
-          initializer?.type === 'CallExpression' && initializer.callee.name === 'anonymousFactory'
-            ? initializer.arguments[0]
-            : undefined;
-        const file = local?.type === 'Identifier' ? imports.get(local.name) : undefined;
+        const file = initializer?.type === 'Identifier' ? imports.get(initializer.name) : undefined;
         if (!file)
           throw new Error('Engine factories must reference an imported source initializer');
         const declarations = asts
@@ -196,13 +191,10 @@ export async function inspectEngineSources({ root = repository, entry = 'main.js
   return (await collectSources(resolve(root), entry)).metadata;
 }
 
-/** Build the source entry through Vite/Rollup. No source slots, manifests or
- * runtime eval are involved; library installers are ordinary imported functions.
- */
+/** Build the source entry and its imported library installers through Vite/Rollup. */
 export async function buildEngine({ root = repository, entry = 'main.js' } = {}) {
   root = resolve(root);
   const collected = await collectSources(root, entry);
-  const reflectedNames = [];
   const result = await build({
     root,
     configFile: false,
@@ -223,16 +215,6 @@ export async function buildEngine({ root = repository, entry = 'main.js' } = {})
           if (!collected.sources.has(id)) throw new Error(`Unexpected engine source load: ${id}`);
           return collected.sources.get(id);
         },
-        transform(code, id) {
-          if (!id.endsWith('.js')) return null;
-          const compiled = compileReflectiveNames(code, id);
-          reflectedNames.push({
-            path: relative(root, id).split(sep).join('/'),
-            eliminated: compiled.eliminated,
-            retained: compiled.retained,
-          });
-          return { code: compiled.code, map: null };
-        },
       },
     ],
     build: {
@@ -251,5 +233,5 @@ export async function buildEngine({ root = repository, entry = 'main.js' } = {})
   const chunks = (Array.isArray(result) ? result : [result]).flatMap((item) => item.output);
   if (chunks.length !== 1 || chunks[0].type !== 'chunk')
     throw new Error('Expected one standalone engine script');
-  return { ...collected.metadata, code: chunks[0].code, reflectedNames };
+  return { ...collected.metadata, code: chunks[0].code };
 }

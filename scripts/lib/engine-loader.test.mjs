@@ -1,16 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { buildEngine } from '../../packages/editor-runtime/scripts/build-engine.mjs';
 
-const baseline = await readFile(
-  new URL('../test-fixtures/engine-loader-baseline.txt', import.meta.url),
-  'utf8',
-);
 const current = (await buildEngine({ entry: 'module-loader.js' })).code;
 
-function run(source, definitions, options = {}) {
+function run(definitions, options = {}) {
   const trace = [];
   let result;
   const context = {
@@ -21,28 +16,11 @@ function run(source, definitions, options = {}) {
     },
   };
   context.define.amd = true;
-  const old = source === baseline;
-  const body = old
-    ? definitions
-        .replaceAll('engineModules.define', '$__System.registerDynamic')
-        .replaceAll('engineModules.declare', '$__System.register')
-        .replaceAll('engineModules.namespace', '$__System.newModule')
-        .replaceAll('engineModules.registry', '$__System.registry')
-    : definitions;
-  const script = old
-    ? source.replace("['a']", "['entry']").replace('__MARKLYRA_ENGINE_MODULES__', body)
-    : `${source}\nMarkLyraEngine.createEngineLoader(globalThis)(['entry'], [], true,
-      function(engineModules) { ${body} }
+  const script = `${current}\nMarkLyraEngine.createEngineLoader(globalThis)(['entry'], [], true,
+      function(engineModules) { ${definitions} }
     )(function(initialize) { define([], initialize); });`;
   runInNewContext(script, context);
   return { trace: JSON.parse(JSON.stringify(trace)), result, context };
-}
-
-function compare(definitions, inspect = ({ trace }) => trace, options) {
-  const before = inspect(run(baseline, definitions, options));
-  const after = inspect(run(current, definitions, options));
-  assert.deepEqual(after, before);
-  return after;
 }
 
 test('lazy factories preserve execution order, host this, partial cyclic exports and single initialization', () => {
@@ -63,7 +41,7 @@ test('lazy factories preserve execution order, host this, partial cyclic exports
       trace.push(['second']); exports.value = 12;
     });
   `;
-  const trace = compare(definitions);
+  const { trace } = run(definitions);
   assert.deepEqual(trace, [
     ['entry', true, 'entry'],
     ['first', 'starting'],
@@ -85,7 +63,9 @@ test('eager dependencies and returned exports retain precedence over module.expo
       trace.push(['returned']); module.exports = 'replaced'; return 'returned';
     });
   `;
-  compare(definitions, ({ trace, result }) => ({ trace, result: JSON.stringify(result) }));
+  const { trace, result } = run(definitions);
+  assert.deepEqual(trace, [['eager'], ['returned'], ['entry', 0, 'returned']]);
+  assert.equal(JSON.stringify(result), '{"replaced":true}');
 });
 
 test('namespace interop keeps live property getters, enumeration and frozen declaration receiver', () => {
@@ -108,12 +88,20 @@ test('namespace interop keeps live property getters, enumeration and frozen decl
       return namespace;
     });
   `;
-  compare(definitions);
-  compare(definitions, ({ trace }) => trace, { Symbol: undefined });
+  for (const [options, tag] of [
+    [{}, '[object Module]'],
+    [{ Symbol: undefined }, '[object Object]'],
+  ]) {
+    assert.deepEqual(run(definitions, options).trace, [
+      ['receiver', true],
+      [tag, ['version', 'update'], 1],
+      [2, true],
+    ]);
+  }
 });
 
 test('preinstalled namespace identity and named CommonJS exports survive adaptation', () => {
-  compare(`
+  const { trace } = run(`
     engineModules.registry.set('external', engineModules.namespace({ answer: 42 }));
     engineModules.define('entry', ['external', 'interop'], true, function (require) {
       var external = require('external');
@@ -124,6 +112,7 @@ test('preinstalled namespace identity and named CommonJS exports survive adaptat
       exports.__esModule = true; exports.value = 7;
     });
   `);
+  assert.deepEqual(trace, [[42, 7, true]]);
 });
 
 test('fourteen-module dependency cycles retain the same observable initialization trace', () => {
@@ -138,14 +127,15 @@ test('fourteen-module dependency cycles retain the same observable initializatio
         exports.phase = 'complete'; trace.push(['end', '${name}']);
       });`;
     }
-    compare(definitions);
+    const expected = Array.from({ length }, (_, index) => ['begin', `node${index}`]);
+    for (let index = length - 1; index >= 0; index--) {
+      expected.push(['dependency', `node${index}`, index === length - 1 ? 'partial' : 'complete']);
+      expected.push(['end', `node${index}`]);
+    }
+    assert.deepEqual(run(definitions).trace, expected);
   }
 });
 
-const globalBaseline = await readFile(
-  new URL('../test-fixtures/engine-global-helpers-baseline.txt', import.meta.url),
-  'utf8',
-);
 const globalCurrent =
   (await buildEngine({ entry: 'modules/shared/global-helpers.js' })).code +
   '\nMarkLyraEngine.call(globalThis, engineModules, {});';
@@ -162,9 +152,7 @@ function runGlobalCapture(source) {
       },
     },
     namespace: (values) => values,
-    newModule: (values) => values,
   };
-  context.$__System = modules;
   context.engineModules = modules;
   context.self = context;
   Object.defineProperty(context, 'unreadable', {
@@ -191,5 +179,9 @@ function runGlobalCapture(source) {
 }
 
 test('vendor global capture preserves export identity, AMD restoration and unreadable-global handling', () => {
-  assert.deepEqual(runGlobalCapture(globalCurrent), runGlobalCapture(globalBaseline));
+  assert.deepEqual(runGlobalCapture(globalCurrent), {
+    during: [true, 7],
+    restored: [true, true, true],
+    selected: '{"value":1}',
+  });
 });

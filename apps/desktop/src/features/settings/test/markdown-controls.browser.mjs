@@ -1,4 +1,4 @@
-// Original Preferences UI and real parent/child bridge; Native apply/CAS is a controlled substitute.
+// Preferences UI and real parent/child bridge; Native apply/CAS is a controlled substitute.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';

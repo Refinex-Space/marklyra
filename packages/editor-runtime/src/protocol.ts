@@ -31,7 +31,7 @@ export interface RuntimeChange {
   /** Exact primary syntax components proved against the actual block operation. */
   completePrefixes?: readonly SourceMirrorCompletePrefix[];
   /** Serializer-only change proved by the isolated policy oracle or by exact
-   * identity-bound bodies and container changes of the original operation. */
+   * identity-bound bodies and container changes of the operation. */
   canonicalProjection?: {
     baseProjectionEpoch: number;
     baseCanonical: string;
@@ -45,7 +45,7 @@ export interface RuntimeChange {
     range: { from: number; to: number };
   }[];
   historyTarget?: number;
-  /** Exact raw text for a proven original reload or image-destination transaction. */
+  /** Exact raw text for a proven reload or image-destination transaction. */
   externalSource?: string;
 }
 export interface RuntimeTracking {

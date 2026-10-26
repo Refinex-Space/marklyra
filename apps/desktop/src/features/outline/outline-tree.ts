@@ -37,7 +37,7 @@ export function visibleOutline(nodes: readonly OutlineNode[], collapsed: Readonl
   return result;
 }
 
-/** A collapsed ancestor represents its active descendant, as in the original outline. */
+/** A collapsed ancestor represents its active descendant, as in the outline. */
 export function visibleCurrentHeading(
   nodes: readonly OutlineNode[],
   collapsed: ReadonlySet<string>,

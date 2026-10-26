@@ -94,8 +94,8 @@ export class RuntimePreferences {
         mirrors.push({ cm, key, before: cm.getOption(key), next: !value.noPairingMatch });
     };
     const rememberWidth = (cm: LegacyConfigurableCodeMirror | undefined) => {
-      // Host initial preferences arrive after the original editor is constructed.
-      // Later changes follow the original lifecycle: only new CMs use the new width.
+      // Host initial preferences arrive after the editor is constructed.
+      // Later changes follow the lifecycle: only new CMs use the new width.
       if (!cm || this.startup) return;
       for (const key of ['indentUnit', 'tabSize'])
         mirrors.push({ cm, key, before: cm.getOption(key), next: value.codeIndentSize });
@@ -136,7 +136,7 @@ export class RuntimePreferences {
         });
       }
     }
-    remember(editor.sourceView.cm, false); // Original source mode always keeps tag closing enabled.
+    remember(editor.sourceView.cm, false); // Source mode always keeps tag closing enabled.
     for (const cm of Object.values(editor.fences.queue ?? {})) remember(cm, true);
     remember(editor.mathBlock?.currentCm, true); // HTML editors intentionally are not included.
     rememberWidth(editor.sourceView.cm);

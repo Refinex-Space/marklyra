@@ -185,21 +185,17 @@ export default function initializeEditingAutocomplete(requireModule, moduleExpor
       this.state.beforeApply = currentBeforeApply;
       this.render =
         renderSuggestion ||
-        Object.defineProperty(
-          function (text, isActive) {
-            return (
-              "<li class='" +
-              (isActive ? 'active' : '') +
-              '\' data-content="' +
-              text.replace(/[']/g, '&quot;') +
-              '" > ' +
-              text +
-              '</span></li>'
-            );
-          },
-          'name',
-          { value: 'o', configurable: true },
-        );
+        function (text, isActive) {
+          return (
+            "<li class='" +
+            (isActive ? 'active' : '') +
+            '\' data-content="' +
+            text.replace(/[']/g, '&quot;') +
+            '" > ' +
+            text +
+            '</span></li>'
+          );
+        };
       this.search = searchSuggestions || this.defaultSearchFunc;
       this.$container.css('max-height', 'none');
       this.state.anchor = domNode;

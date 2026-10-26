@@ -4,15 +4,8 @@ export default function installLibrariesFastdom(engineModules, vendorScope) {
   // Vendor adapter; version and local behavior are preserved.
   (function (windowGlobal) {
     'use strict';
-    Object.defineProperty(FastDom, 'name', { value: 'i', configurable: true });
-    Object.defineProperty(scheduleFlush, 'name', { value: 'r', configurable: true });
-    Object.defineProperty(runTasks, 'name', { value: 'o', configurable: true });
-    Object.defineProperty(removeTask, 'name', { value: 'a', configurable: true });
 
-    var debugLog = Object.defineProperty(function () {}, 'name', {
-        value: 't',
-        configurable: true,
-      }),
+    var debugLog = function () {},
       requestFrame =
         windowGlobal.requestAnimationFrame ||
         windowGlobal.webkitRequestAnimationFrame ||

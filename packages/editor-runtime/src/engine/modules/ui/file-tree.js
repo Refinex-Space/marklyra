@@ -1,10 +1,6 @@
 // ui/file-tree.
 export default function initializeUiFileTree(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(morphTreeNode, 'name', { value: 'h', configurable: true });
-  Object.defineProperty(loadDirectoryEntry, 'name', { value: 'f', configurable: true });
-  Object.defineProperty(loadDirectoryByNativeBridge, 'name', { value: 'm', configurable: true });
-  Object.defineProperty(loadDirectoryByNode, 'name', { value: 'g', configurable: true });
 
   if (!this) {
     self;
@@ -371,55 +367,51 @@ export default function initializeUiFileTree(requireModule, moduleExports, modul
           scrollContainer = File.isMac ? jquery('.sidebar-content') : jquery('#file-library'),
           scrollOffset = scrollContainer.scrollTop();
         if (0 === text.indexOf(searchValue)) {
-          Object.defineProperty(
-            function expandPathSegments(currentPath, pathSegments) {
-              if (0 != pathSegments.length) {
-                if (1 == pathSegments.length) {
-                  var fileElement = skipMarkActive
-                    ? receiver.findElemFromPath(text)
-                    : receiver.markOpenedFile(text);
-                  !(function (itemElement) {
-                    if (itemElement.length) {
-                      var offsetTop = itemElement[0].offsetTop;
-                      if (offsetTop < scrollOffset) {
-                        scrollOffset = offsetTop;
+          (function expandPathSegments(currentPath, pathSegments) {
+            if (0 != pathSegments.length) {
+              if (1 == pathSegments.length) {
+                var fileElement = skipMarkActive
+                  ? receiver.findElemFromPath(text)
+                  : receiver.markOpenedFile(text);
+                !(function (itemElement) {
+                  if (itemElement.length) {
+                    var offsetTop = itemElement[0].offsetTop;
+                    if (offsetTop < scrollOffset) {
+                      scrollOffset = offsetTop;
+                      scrollContainer.scrollTop(scrollOffset);
+                    } else {
+                      if (offsetTop - scrollOffset > innerHeight - 200) {
+                        scrollOffset = offsetTop - innerHeight + 300;
                         scrollContainer.scrollTop(scrollOffset);
-                      } else {
-                        if (offsetTop - scrollOffset > innerHeight - 200) {
-                          scrollOffset = offsetTop - innerHeight + 300;
-                          scrollContainer.scrollTop(scrollOffset);
-                        }
                       }
                     }
-                  })(fileElement);
-                  if (0 == scrollContainer.scrollTop()) {
-                    setTimeout(function () {
-                      if (!(0 != scrollContainer.scrollTop() || scrollOffset)) {
-                        scrollContainer.scrollTop(scrollOffset);
-                      }
-                    }, 200);
                   }
-                  if (onFocused) {
-                    onFocused(fileElement);
-                  }
-                } else {
-                  currentPath = (currentPath + pathSeparator + pathSegments.shift()).replace(
-                    /[\\]+/,
-                    '\\',
-                  );
-                  receiver.expandNode(
-                    receiver.findElemFromPath(currentPath),
-                    currentPath,
-                    function () {
-                      expandPathSegments(currentPath, pathSegments);
-                    },
-                  );
+                })(fileElement);
+                if (0 == scrollContainer.scrollTop()) {
+                  setTimeout(function () {
+                    if (!(0 != scrollContainer.scrollTop() || scrollOffset)) {
+                      scrollContainer.scrollTop(scrollOffset);
+                    }
+                  }, 200);
                 }
+                if (onFocused) {
+                  onFocused(fileElement);
+                }
+              } else {
+                currentPath = (currentPath + pathSeparator + pathSegments.shift()).replace(
+                  /[\\]+/,
+                  '\\',
+                );
+                receiver.expandNode(
+                  receiver.findElemFromPath(currentPath),
+                  currentPath,
+                  function () {
+                    expandPathSegments(currentPath, pathSegments);
+                  },
+                );
               }
-            },
-            'name',
-            { value: 't', configurable: true },
-          )(
+            }
+          })(
             searchValue,
             text
               .substr(searchValue.length)
@@ -450,38 +442,34 @@ export default function initializeUiFileTree(requireModule, moduleExports, modul
     findNodeFromPath(filePath, items) {
       if (filePath && this.getRoot()) {
         items = items || [];
-        return Object.defineProperty(
-          function findEntryWithAncestors(entry, targetPath) {
-            if (entry) {
-              if (utilities.isSamePath(entry.path, targetPath)) {
-                return entry;
-              }
-              items.push(entry);
-              for (var itemIndex = 0; itemIndex < (entry.subdir || []).length; itemIndex++) {
-                var childEntry = entry.subdir[itemIndex];
-                if (childEntry) {
-                  if (utilities.isSamePath(childEntry.path, targetPath)) {
-                    childEntry.folderPath = entry.path;
-                    return childEntry;
-                  }
-                  if (utilities.isAncestorPathOf(childEntry.path, targetPath)) {
-                    return findEntryWithAncestors(childEntry, targetPath);
-                  }
+        return (function findEntryWithAncestors(entry, targetPath) {
+          if (entry) {
+            if (utilities.isSamePath(entry.path, targetPath)) {
+              return entry;
+            }
+            items.push(entry);
+            for (var itemIndex = 0; itemIndex < (entry.subdir || []).length; itemIndex++) {
+              var childEntry = entry.subdir[itemIndex];
+              if (childEntry) {
+                if (utilities.isSamePath(childEntry.path, targetPath)) {
+                  childEntry.folderPath = entry.path;
+                  return childEntry;
+                }
+                if (utilities.isAncestorPathOf(childEntry.path, targetPath)) {
+                  return findEntryWithAncestors(childEntry, targetPath);
                 }
               }
-              var elements = entry.content.find(function (item) {
-                return utilities.isSamePath(item.path, targetPath);
-              });
-              if (elements) {
-                elements.folderPath = entry.path;
-              }
-              return elements;
             }
-            return null;
-          },
-          'name',
-          { value: 'e', configurable: true },
-        )(this.getRoot(), filePath);
+            var elements = entry.content.find(function (item) {
+              return utilities.isSamePath(item.path, targetPath);
+            });
+            if (elements) {
+              elements.folderPath = entry.path;
+            }
+            return elements;
+          }
+          return null;
+        })(this.getRoot(), filePath);
       }
     }
     expand(filePath, elementOverride, onExpanded) {
@@ -560,11 +548,6 @@ export default function initializeUiFileTree(requireModule, moduleExports, modul
       }
     }
     onChangeForMac(items) {
-      Object.defineProperty(refreshTreeEntry, 'name', { value: 'u', configurable: true });
-      Object.defineProperty(highlightChangedEntry, 'name', { value: 'p', configurable: true });
-      Object.defineProperty(removeTreeEntry, 'name', { value: 'f', configurable: true });
-      Object.defineProperty(addDiscoveredEntry, 'name', { value: 'g', configurable: true });
-
       if (renderState) {
         var changedEntry,
           ancestors = [],
@@ -723,8 +706,6 @@ export default function initializeUiFileTree(requireModule, moduleExports, modul
       );
     }
     onChangeForWin(searchValue, items, eventType) {
-      Object.defineProperty(removeMissingEntry, 'name', { value: 's', configurable: true });
-
       if (
         renderState &&
         !this.parent.isSuppressOnChange() &&
@@ -863,9 +844,6 @@ export default function initializeUiFileTree(requireModule, moduleExports, modul
       this.newFileCommand(targetElement, true);
     }
     newFileCommand(targetElement, createDirectory) {
-      Object.defineProperty(appendCreatedEntry, 'name', { value: 'c', configurable: true });
-      Object.defineProperty(createEntryInFolder, 'name', { value: 'd', configurable: true });
-
       var element = this.editor.getJQueryElem(targetElement).closest('.file-library-node'),
         folderPath = element.attr('data-path'),
         targetIsDirectory = 'true' == element.attr('data-is-directory'),
@@ -1006,9 +984,6 @@ export default function initializeUiFileTree(requireModule, moduleExports, modul
       }
     }
     renameFileCommand(targetElement, newlyCreated, renameCompatibilityFlag) {
-      Object.defineProperty(finishInlineRename, 'name', { value: 'g', configurable: true });
-      Object.defineProperty(applyEntryRename, 'name', { value: 'v', configurable: true });
-
       jquery('.file-node-on-edit').removeClass('file-node-on-edit');
       var element = this.editor
           .getJQueryElem(targetElement)
@@ -1070,11 +1045,6 @@ export default function initializeUiFileTree(requireModule, moduleExports, modul
               })(inputElement);
             } else {
               (function (inputElement) {
-                Object.defineProperty(reportRenameFailure, 'name', {
-                  value: 'f',
-                  configurable: true,
-                });
-
                 var currentTrimmedText = inputElement.val().trim();
                 if (
                   (currentTrimmedText = File.isWin
@@ -1178,19 +1148,15 @@ export default function initializeUiFileTree(requireModule, moduleExports, modul
       function applyEntryRename(entry, newPath, name) {
         var path = entry.path;
         receiver.onRemoveFile(entry);
-        Object.defineProperty(
-          function rewriteDescendantPaths(childEntry, newPrefix) {
-            childEntry.path = childEntry.path.replace(path, newPrefix);
-            (childEntry.content || []).forEach((item) => {
-              item.path = item.path.replace(path, newPrefix);
-            });
-            (childEntry.subdir || []).forEach((item) => {
-              rewriteDescendantPaths(item, newPrefix);
-            });
-          },
-          'name',
-          { value: 'e', configurable: true },
-        )(entry, newPath);
+        (function rewriteDescendantPaths(childEntry, newPrefix) {
+          childEntry.path = childEntry.path.replace(path, newPrefix);
+          (childEntry.content || []).forEach((item) => {
+            item.path = item.path.replace(path, newPrefix);
+          });
+          (childEntry.subdir || []).forEach((item) => {
+            rewriteDescendantPaths(item, newPrefix);
+          });
+        })(entry, newPath);
         entry.name = name;
         receiver.onAddFile(entry);
       }

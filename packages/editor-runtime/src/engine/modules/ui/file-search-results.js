@@ -26,8 +26,6 @@ export default function initializeUiFileSearchResults(requireModule, moduleExpor
       }
     }
     bindEvents() {
-      Object.defineProperty(scrollResultIntoView, 'name', { value: 'd', configurable: true });
-
       var receiver = this;
       File.isWin;
       if (File.isNode) {
@@ -490,36 +488,32 @@ export default function initializeUiFileSearchResults(requireModule, moduleExpor
         element.innerHTML = '';
       }
       var searchPattern = void 0,
-        getSearchPattern = Object.defineProperty(
-          function () {
-            if (void 0 == searchPattern) {
-              var patternFlags = receiver.caseSensitive ? 'g' : 'gi',
-                text = currentText;
-              if (receiver.useRegexp) {
-                try {
-                  if (receiver.wholeWord) {
-                    text = `\\b${text.replace(/^\\b|\\b$/g, '')}\\b`;
-                  }
-                  searchPattern = new RegExp(text, patternFlags);
-                } catch (error) {
-                  searchPattern = null;
-                }
-              } else {
-                text = utilities.escapeRegExp(currentText.trim());
+        getSearchPattern = function () {
+          if (void 0 == searchPattern) {
+            var patternFlags = receiver.caseSensitive ? 'g' : 'gi',
+              text = currentText;
+            if (receiver.useRegexp) {
+              try {
                 if (receiver.wholeWord) {
-                  text = '\\b' + text + '\\b';
+                  text = `\\b${text.replace(/^\\b|\\b$/g, '')}\\b`;
                 }
                 searchPattern = new RegExp(text, patternFlags);
+              } catch (error) {
+                searchPattern = null;
               }
+            } else {
+              text = utilities.escapeRegExp(currentText.trim());
+              if (receiver.wholeWord) {
+                text = '\\b' + text + '\\b';
+              }
+              searchPattern = new RegExp(text, patternFlags);
             }
-            if (searchPattern) {
-              searchPattern.lastIndex = 0;
-            }
-            return searchPattern;
-          },
-          'name',
-          { value: 'h', configurable: true },
-        ),
+          }
+          if (searchPattern) {
+            searchPattern.lastIndex = 0;
+          }
+          return searchPattern;
+        },
         streamIndex = fileNameOnly ? 1 : 0,
         isMac = File.getMountFolder(),
         streamHandlers = {
@@ -557,208 +551,184 @@ export default function initializeUiFileSearchResults(requireModule, moduleExpor
             });
           },
         },
-        appendHighlightedText = Object.defineProperty(
-          function (innerText, targetElement) {
-            if (innerText.trim() && !receiver.useRegexp) {
-              var match = getSearchPattern().exec(innerText);
-              if (match) {
-                [
-                  innerText.substring(0, match.index),
-                  match[0],
-                  innerText.substring(match.index + match[0].length),
-                ].forEach(function (inputInnerText, itemIndex) {
-                  var currentElement =
-                    1 == itemIndex
-                      ? document.createElement('span')
-                      : document.createTextNode(inputInnerText);
-                  if (1 == itemIndex) {
-                    currentElement.innerText = inputInnerText;
-                    currentElement.classList.add('marklyra-file-search-match-text');
-                  }
-                  targetElement.appendChild(currentElement);
-                });
-              } else {
-                targetElement.innerText = innerText;
-              }
+        appendHighlightedText = function (innerText, targetElement) {
+          if (innerText.trim() && !receiver.useRegexp) {
+            var match = getSearchPattern().exec(innerText);
+            if (match) {
+              [
+                innerText.substring(0, match.index),
+                match[0],
+                innerText.substring(match.index + match[0].length),
+              ].forEach(function (inputInnerText, itemIndex) {
+                var currentElement =
+                  1 == itemIndex
+                    ? document.createElement('span')
+                    : document.createTextNode(inputInnerText);
+                if (1 == itemIndex) {
+                  currentElement.innerText = inputInnerText;
+                  currentElement.classList.add('marklyra-file-search-match-text');
+                }
+                targetElement.appendChild(currentElement);
+              });
             } else {
               targetElement.innerText = innerText;
             }
-          },
-          'name',
-          { value: 'g', configurable: true },
-        ),
-        renderFileResult = Object.defineProperty(
-          function (fileResult) {
-            Object.defineProperty(appendResultContext, 'name', { value: 'm', configurable: true });
-
-            if (fileResult && fileResult.path) {
-              var clonedNode = this.templateDom.cloneNode(true);
-              clonedNode.dataset.path = File.getMountFolder() + pathSeparator + fileResult.path;
-              var pathParts = (function (text) {
-                var endOffset = text.replace(/\\/g, '/').replace(/\/$/, '').lastIndexOf('/'),
-                  textSlice = text.substring(endOffset + 1),
-                  currentTextSlice = text.substring(0, endOffset);
-                endOffset = textSlice.lastIndexOf('.');
-                var localTextSlice = textSlice.substring(endOffset);
-                return [
-                  currentTextSlice,
-                  (textSlice = textSlice.substring(0, endOffset)),
-                  localTextSlice,
-                ];
-              })(fileResult.path);
-              appendHighlightedText(
-                pathParts[1],
-                clonedNode.querySelector('.file-list-item-file-name-part'),
-              );
-              appendHighlightedText(
-                pathParts[2],
-                clonedNode.querySelector('.file-list-item-file-ext-part'),
-              );
-              var innerText = pathParts[0]
-                ? (pathParts[0] + pathSeparator).replace(/[\\\/]/g, ' / ')
-                : '';
-              clonedNode.querySelector('.file-list-item-parent-loc').innerText = innerText;
-              var matchCount = fileNameOnly ? 0 : fileResult.total;
-              clonedNode.querySelector('.file-list-item-count').innerText =
-                matchCount > 20 ? '20+' : matchCount;
-              var previewLimit = 6;
-              if (receiver.matchedLines < matchedLines && matchCount > previewLimit) {
-                clonedNode.classList.add('marklyra-search-item-expand');
-              }
-              var currentElement = clonedNode.querySelector('.marklyra-search-item-matches');
-              if (fileNameOnly) {
-                (function () {
-                  receiver.matchedLines++;
-                  if (fileResult.matches.length) {
-                    var divElement = document.createElement('div');
-                    divElement.classList.add('marklyra-search-item-line');
-                    var lineText = (fileResult.matches[0] || ['']).text.replace(/[\r\n]/g, '');
-                    divElement.dataset.line = 0;
-                    divElement.dataset.lineText = lineText;
-                    if (lineText) {
-                      appendResultContext(lineText, 0, lineText.length, divElement);
-                    }
-                    currentElement.appendChild(divElement);
+          } else {
+            targetElement.innerText = innerText;
+          }
+        },
+        renderFileResult = function (fileResult) {
+          if (fileResult && fileResult.path) {
+            var clonedNode = this.templateDom.cloneNode(true);
+            clonedNode.dataset.path = File.getMountFolder() + pathSeparator + fileResult.path;
+            var pathParts = (function (text) {
+              var endOffset = text.replace(/\\/g, '/').replace(/\/$/, '').lastIndexOf('/'),
+                textSlice = text.substring(endOffset + 1),
+                currentTextSlice = text.substring(0, endOffset);
+              endOffset = textSlice.lastIndexOf('.');
+              var localTextSlice = textSlice.substring(endOffset);
+              return [
+                currentTextSlice,
+                (textSlice = textSlice.substring(0, endOffset)),
+                localTextSlice,
+              ];
+            })(fileResult.path);
+            appendHighlightedText(
+              pathParts[1],
+              clonedNode.querySelector('.file-list-item-file-name-part'),
+            );
+            appendHighlightedText(
+              pathParts[2],
+              clonedNode.querySelector('.file-list-item-file-ext-part'),
+            );
+            var innerText = pathParts[0]
+              ? (pathParts[0] + pathSeparator).replace(/[\\\/]/g, ' / ')
+              : '';
+            clonedNode.querySelector('.file-list-item-parent-loc').innerText = innerText;
+            var matchCount = fileNameOnly ? 0 : fileResult.total;
+            clonedNode.querySelector('.file-list-item-count').innerText =
+              matchCount > 20 ? '20+' : matchCount;
+            var previewLimit = 6;
+            if (receiver.matchedLines < matchedLines && matchCount > previewLimit) {
+              clonedNode.classList.add('marklyra-search-item-expand');
+            }
+            var currentElement = clonedNode.querySelector('.marklyra-search-item-matches');
+            if (fileNameOnly) {
+              (function () {
+                receiver.matchedLines++;
+                if (fileResult.matches.length) {
+                  var divElement = document.createElement('div');
+                  divElement.classList.add('marklyra-search-item-line');
+                  var lineText = (fileResult.matches[0] || ['']).text.replace(/[\r\n]/g, '');
+                  divElement.dataset.line = 0;
+                  divElement.dataset.lineText = lineText;
+                  if (lineText) {
+                    appendResultContext(lineText, 0, lineText.length, divElement);
                   }
-                })();
-              } else {
-                fileResult.matches.forEach(function (item, itemIndex) {
-                  receiver.matchedLines++;
-                  if (!(itemIndex > 20)) {
-                    var divElement = document.createElement('div');
-                    divElement.classList.add('marklyra-search-item-line');
-                    if (itemIndex > previewLimit - 2) {
-                      if (
-                        itemIndex == previewLimit - 1 &&
-                        fileResult.matches.length > previewLimit
-                      ) {
-                        currentElement.appendChild(
-                          (function (hiddenMatchCount) {
-                            var currentDivElement = document.createElement('div');
-                            currentDivElement.classList.add('marklyra-search-item-line');
-                            currentDivElement.classList.add('marklyra-search-item-line-expand');
-                            currentDivElement.innerText =
-                              'show ' + hiddenMatchCount + ' more matches';
-                            return currentDivElement;
-                          })(fileResult.matches.length - itemIndex),
-                        );
-                      }
-                      divElement.classList.add('marklyra-search-item-line-more');
-                    }
-                    item.text = item.text || '';
-                    var lineText = item.text.replace(/[\r\n]/g, '');
-                    divElement.dataset.line = item.line - 1;
-                    divElement.dataset.lineText = lineText;
-                    if (item.submatches.length) {
-                      divElement.dataset.match = item.submatches[0].match.text;
-                    }
-                    for (
-                      var match, consumedOffset = 0, linePattern = getSearchPattern();
-                      (match = linePattern.exec(lineText));
-                    ) {
-                      if (consumedOffset < match.index) {
-                        appendResultContext(
-                          lineText,
-                          0,
-                          match.index,
-                          divElement,
-                          '',
-                          0 == itemIndex,
-                        );
-                      }
-                      consumedOffset = match.index + match[0].length;
-                      appendResultContext(
-                        lineText,
-                        match.index,
-                        consumedOffset,
-                        divElement,
-                        'marklyra-file-search-match-text',
-                        true,
+                  currentElement.appendChild(divElement);
+                }
+              })();
+            } else {
+              fileResult.matches.forEach(function (item, itemIndex) {
+                receiver.matchedLines++;
+                if (!(itemIndex > 20)) {
+                  var divElement = document.createElement('div');
+                  divElement.classList.add('marklyra-search-item-line');
+                  if (itemIndex > previewLimit - 2) {
+                    if (itemIndex == previewLimit - 1 && fileResult.matches.length > previewLimit) {
+                      currentElement.appendChild(
+                        (function (hiddenMatchCount) {
+                          var currentDivElement = document.createElement('div');
+                          currentDivElement.classList.add('marklyra-search-item-line');
+                          currentDivElement.classList.add('marklyra-search-item-line-expand');
+                          currentDivElement.innerText =
+                            'show ' + hiddenMatchCount + ' more matches';
+                          return currentDivElement;
+                        })(fileResult.matches.length - itemIndex),
                       );
                     }
-                    if (consumedOffset < lineText.length) {
-                      appendResultContext(lineText, consumedOffset, lineText.length, divElement);
-                    }
-                    currentElement.appendChild(divElement);
+                    divElement.classList.add('marklyra-search-item-line-more');
                   }
-                });
-              }
-              var localElement = element.querySelector(
-                "[data-path='" +
-                  utilities.escapeSelector(
-                    File.getMountFolder() + pathSeparator + fileResult.path,
-                  ) +
-                  "']",
-              );
-              if (fileNameOnly) {
-                if (!localElement) {
-                  element.appendChild(clonedNode);
+                  item.text = item.text || '';
+                  var lineText = item.text.replace(/[\r\n]/g, '');
+                  divElement.dataset.line = item.line - 1;
+                  divElement.dataset.lineText = lineText;
+                  if (item.submatches.length) {
+                    divElement.dataset.match = item.submatches[0].match.text;
+                  }
+                  for (
+                    var match, consumedOffset = 0, linePattern = getSearchPattern();
+                    (match = linePattern.exec(lineText));
+                  ) {
+                    if (consumedOffset < match.index) {
+                      appendResultContext(lineText, 0, match.index, divElement, '', 0 == itemIndex);
+                    }
+                    consumedOffset = match.index + match[0].length;
+                    appendResultContext(
+                      lineText,
+                      match.index,
+                      consumedOffset,
+                      divElement,
+                      'marklyra-file-search-match-text',
+                      true,
+                    );
+                  }
+                  if (consumedOffset < lineText.length) {
+                    appendResultContext(lineText, consumedOffset, lineText.length, divElement);
+                  }
+                  currentElement.appendChild(divElement);
                 }
-              } else {
-                if (localElement) {
-                  localElement.remove();
-                }
+              });
+            }
+            var localElement = element.querySelector(
+              "[data-path='" +
+                utilities.escapeSelector(File.getMountFolder() + pathSeparator + fileResult.path) +
+                "']",
+            );
+            if (fileNameOnly) {
+              if (!localElement) {
                 element.appendChild(clonedNode);
               }
+            } else {
+              if (localElement) {
+                localElement.remove();
+              }
+              element.appendChild(clonedNode);
             }
-            function appendResultContext(
-              inputInnerText,
-              startOffset,
-              endOffset,
-              lineContainer,
-              highlightClass,
-              trimLeadingContext,
+          }
+          function appendResultContext(
+            inputInnerText,
+            startOffset,
+            endOffset,
+            lineContainer,
+            highlightClass,
+            trimLeadingContext,
+          ) {
+            var spanElement = document.createElement('span');
+            if (highlightClass) {
+              spanElement.classList.add(highlightClass);
+            }
+            inputInnerText = inputInnerText.substring(startOffset, endOffset).replace(/\r*\n/, '');
+            if (trimLeadingContext && 0 == startOffset) {
+              inputInnerText = inputInnerText.replace(/^\s+/, '').replace(/\s+$/, ' ');
+            }
+            if (
+              !fileNameOnly &&
+              !highlightClass &&
+              inputInnerText.length > 20 &&
+              trimLeadingContext
             ) {
-              var spanElement = document.createElement('span');
-              if (highlightClass) {
-                spanElement.classList.add(highlightClass);
-              }
-              inputInnerText = inputInnerText
-                .substring(startOffset, endOffset)
-                .replace(/\r*\n/, '');
-              if (trimLeadingContext && 0 == startOffset) {
-                inputInnerText = inputInnerText.replace(/^\s+/, '').replace(/\s+$/, ' ');
-              }
-              if (
-                !fileNameOnly &&
-                !highlightClass &&
-                inputInnerText.length > 20 &&
-                trimLeadingContext
-              ) {
-                inputInnerText =
-                  '...' +
-                  ((inputInnerText = inputInnerText.substring(
-                    inputInnerText.length - 20,
-                    inputInnerText.length,
-                  )).replace(/^.+?\b/, '') || inputInnerText);
-              }
-              spanElement.innerText = inputInnerText;
-              lineContainer.appendChild(spanElement);
+              inputInnerText =
+                '...' +
+                ((inputInnerText = inputInnerText.substring(
+                  inputInnerText.length - 20,
+                  inputInnerText.length,
+                )).replace(/^.+?\b/, '') || inputInnerText);
             }
-          },
-          'name',
-          { value: 'v', configurable: true },
-        );
+            spanElement.innerText = inputInnerText;
+            lineContainer.appendChild(spanElement);
+          }
+        };
       if (fileResult) {
         if (!fileIntegration.isSupportedFile(inputText)) {
           return;
@@ -914,8 +884,6 @@ export default function initializeUiFileSearchResults(requireModule, moduleExpor
       return ripgrepArguments;
     }
     searchByNode(inputNormalizedPath, unusedParameter2) {
-      Object.defineProperty(spawnRipgrep, 'name', { value: 's', configurable: true });
-
       var receiver = this;
       if (receiver.rpTask1) {
         receiver.rpTask1.kill();

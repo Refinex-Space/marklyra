@@ -110,7 +110,7 @@ export class RuntimeFocus {
     );
   }
 
-  /** Only the hash-verified delayed brush call sites use this hook. */
+  /** Only delayed brush call sites use this hook. */
   restoreBrushCursor(
     editor: LegacyEditor,
     bookmark: CursorBookmark,
@@ -138,7 +138,7 @@ export class RuntimeFocus {
       return restore(bookmark);
     }
     // Keep the remapped logical cursor while the parser and its history complete.
-    // Cursor bookmarks are JSON data; never retain the mutable original history object.
+    // Cursor bookmarks are JSON data; never retain the mutable history object.
     this.deferred = {
       editor,
       generation: this.generation(),
@@ -264,7 +264,7 @@ export class RuntimeFocus {
 
   /** WebKit can ignore a cold programmatic contenteditable focus. Complete only
    * this explicit handoff in the first real editing key's user-gesture scope;
-   * its original default action performs the input on the existing selection. */
+   * its default action performs the input on the existing selection. */
   private armInputHandoff(editor: LegacyEditor): void {
     const area = editor.writingArea;
     const owner = area.ownerDocument;

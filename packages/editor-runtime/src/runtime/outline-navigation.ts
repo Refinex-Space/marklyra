@@ -68,7 +68,7 @@ export class RuntimeOutlineNavigation {
       this.dirty = false;
     }
     editor.library.outline.highlightVisibleHeader();
-    // The original marks both the current heading and its collapsed ancestor.
+    // The outline controller marks both the current heading and its collapsed ancestor.
     // DOM order leaves the actual descendant last; the host maps its own folds.
     const active = document.querySelectorAll('#outline-content .outline-active[data-ref]');
     this.publish(active.item(active.length - 1)?.getAttribute('data-ref') ?? null);

@@ -12,346 +12,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
       }
       moduleRecord.exports = (function () {
         'use strict';
-        Object.defineProperty(classTest, 'name', { value: 'S', configurable: true });
-        Object.defineProperty(removeChildren, 'name', { value: 'T', configurable: true });
-        Object.defineProperty(removeChildrenAndAdd, 'name', { value: '_', configurable: true });
-        Object.defineProperty(createElement, 'name', { value: 'A', configurable: true });
-        Object.defineProperty(eltP, 'name', { value: 'M', configurable: true });
-        Object.defineProperty(contains, 'name', { value: 'L', configurable: true });
-        Object.defineProperty(activeElt, 'name', { value: 'N', configurable: true });
-        Object.defineProperty(addClass, 'name', { value: 'D', configurable: true });
-        Object.defineProperty(joinClasses, 'name', { value: 'R', configurable: true });
-        Object.defineProperty(bind, 'name', { value: 'P', configurable: true });
-        Object.defineProperty(copyObj, 'name', { value: 'I', configurable: true });
-        Object.defineProperty(countColumn, 'name', { value: 'O', configurable: true });
-        Object.defineProperty(indexOf, 'name', { value: 'H', configurable: true });
-        Object.defineProperty(findColumn, 'name', { value: 'V', configurable: true });
-        Object.defineProperty(spaceStr, 'name', { value: 'K', configurable: true });
-        Object.defineProperty(lst, 'name', { value: 'Y', configurable: true });
-        Object.defineProperty(map, 'name', { value: 'G', configurable: true });
-        Object.defineProperty(nothing, 'name', { value: 'Q', configurable: true });
-        Object.defineProperty(createObj, 'name', { value: 'X', configurable: true });
-        Object.defineProperty(isWordCharBasic, 'name', { value: 'ee', configurable: true });
-        Object.defineProperty(isWordChar, 'name', { value: 'te', configurable: true });
-        Object.defineProperty(isEmpty, 'name', { value: 'ne', configurable: true });
-        Object.defineProperty(isExtendingChar, 'name', { value: 're', configurable: true });
-        Object.defineProperty(skipExtendingChars, 'name', { value: 'oe', configurable: true });
-        Object.defineProperty(findFirst, 'name', { value: 'ae', configurable: true });
-        Object.defineProperty(getLine, 'name', { value: 'se', configurable: true });
-        Object.defineProperty(getBetween, 'name', { value: 'le', configurable: true });
-        Object.defineProperty(getLines, 'name', { value: 'ce', configurable: true });
-        Object.defineProperty(updateLineHeight, 'name', { value: 'de', configurable: true });
-        Object.defineProperty(lineNo, 'name', { value: 'ue', configurable: true });
-        Object.defineProperty(lineAtHeight, 'name', { value: 'he', configurable: true });
-        Object.defineProperty(isLine, 'name', { value: 'pe', configurable: true });
-        Object.defineProperty(lineNumberFor, 'name', { value: 'fe', configurable: true });
-        Object.defineProperty(Pos, 'name', { value: 'me', configurable: true });
-        Object.defineProperty(cmp, 'name', { value: 'ge', configurable: true });
-        Object.defineProperty(equalCursorPos, 'name', { value: 've', configurable: true });
-        Object.defineProperty(copyPos, 'name', { value: 'ye', configurable: true });
-        Object.defineProperty(maxPos, 'name', { value: 'be', configurable: true });
-        Object.defineProperty(minPos, 'name', { value: 'we', configurable: true });
-        Object.defineProperty(clipLine, 'name', { value: 'xe', configurable: true });
-        Object.defineProperty(clipPos, 'name', { value: 'Ce', configurable: true });
-        Object.defineProperty(clipPosArray, 'name', { value: 'Fe', configurable: true });
-        Object.defineProperty(MarkedSpan, 'name', { value: 'Ee', configurable: true });
-        Object.defineProperty(getMarkedSpanFor, 'name', { value: 'Te', configurable: true });
-        Object.defineProperty(removeMarkedSpan, 'name', { value: '_e', configurable: true });
-        Object.defineProperty(stretchSpansOverChange, 'name', { value: 'Ae', configurable: true });
-        Object.defineProperty(clearEmptySpans, 'name', { value: 'Me', configurable: true });
-        Object.defineProperty(detachMarkedSpans, 'name', { value: 'Le', configurable: true });
-        Object.defineProperty(attachMarkedSpans, 'name', { value: 'Ne', configurable: true });
-        Object.defineProperty(extraLeft, 'name', { value: 'De', configurable: true });
-        Object.defineProperty(extraRight, 'name', { value: 'Re', configurable: true });
-        Object.defineProperty(compareCollapsedMarkers, 'name', { value: 'Be', configurable: true });
-        Object.defineProperty(collapsedSpanAtSide, 'name', { value: 'Pe', configurable: true });
-        Object.defineProperty(collapsedSpanAtStart, 'name', { value: 'Ie', configurable: true });
-        Object.defineProperty(collapsedSpanAtEnd, 'name', { value: 'Oe', configurable: true });
-        Object.defineProperty(conflictingCollapsedRange, 'name', {
-          value: '$e',
-          configurable: true,
-        });
-        Object.defineProperty(visualLine, 'name', { value: 'He', configurable: true });
-        Object.defineProperty(visualLineNo, 'name', { value: 'Ue', configurable: true });
-        Object.defineProperty(visualLineEndNo, 'name', { value: 'je', configurable: true });
-        Object.defineProperty(lineIsHidden, 'name', { value: 'qe', configurable: true });
-        Object.defineProperty(lineIsHiddenInner, 'name', { value: 'We', configurable: true });
-        Object.defineProperty(heightAtLine, 'name', { value: 'ze', configurable: true });
-        Object.defineProperty(lineLength, 'name', { value: 'Ve', configurable: true });
-        Object.defineProperty(findMaxLine, 'name', { value: 'Je', configurable: true });
-        Object.defineProperty(getBidiPartAt, 'name', { value: 'Ye', configurable: true });
-        Object.defineProperty(getOrder, 'name', { value: 'Qe', configurable: true });
-        Object.defineProperty(moveCharLogically, 'name', { value: 'Xe', configurable: true });
-        Object.defineProperty(moveLogically, 'name', { value: 'Ze', configurable: true });
-        Object.defineProperty(endOfLine, 'name', { value: 'et', configurable: true });
-        Object.defineProperty(moveVisually, 'name', { value: 'tt', configurable: true });
-        Object.defineProperty(getHandlers, 'name', { value: 'rt', configurable: true });
-        Object.defineProperty(off, 'name', { value: 'ot', configurable: true });
-        Object.defineProperty(signal, 'name', { value: 'at', configurable: true });
-        Object.defineProperty(signalDOMEvent, 'name', { value: 'st', configurable: true });
-        Object.defineProperty(signalCursorActivity, 'name', { value: 'lt', configurable: true });
-        Object.defineProperty(hasHandler, 'name', { value: 'ct', configurable: true });
-        Object.defineProperty(eventMixin, 'name', { value: 'dt', configurable: true });
-        Object.defineProperty(e_preventDefault, 'name', { value: 'ut', configurable: true });
-        Object.defineProperty(e_stopPropagation, 'name', { value: 'ht', configurable: true });
-        Object.defineProperty(e_defaultPrevented, 'name', { value: 'pt', configurable: true });
-        Object.defineProperty(e_stop, 'name', { value: 'ft', configurable: true });
-        Object.defineProperty(e_target, 'name', { value: 'mt', configurable: true });
-        Object.defineProperty(e_button, 'name', { value: 'gt', configurable: true });
-        Object.defineProperty(zeroWidthElement, 'name', { value: 'wt', configurable: true });
-        Object.defineProperty(hasBadBidiRects, 'name', { value: 'xt', configurable: true });
-        Object.defineProperty(resolveMode, 'name', { value: 'At', configurable: true });
-        Object.defineProperty(getMode, 'name', { value: 'Mt', configurable: true });
-        Object.defineProperty(extendMode, 'name', { value: 'Nt', configurable: true });
-        Object.defineProperty(copyState, 'name', { value: 'Dt', configurable: true });
-        Object.defineProperty(innerMode, 'name', { value: 'Rt', configurable: true });
-        Object.defineProperty(startState, 'name', { value: 'Bt', configurable: true });
-        Object.defineProperty(highlightLine, 'name', { value: 'It', configurable: true });
-        Object.defineProperty(getLineStyles, 'name', { value: 'Ot', configurable: true });
-        Object.defineProperty(getStateBefore, 'name', { value: '$t', configurable: true });
-        Object.defineProperty(processLine, 'name', { value: 'Ht', configurable: true });
-        Object.defineProperty(callBlankLine, 'name', { value: 'Ut', configurable: true });
-        Object.defineProperty(readToken, 'name', { value: 'jt', configurable: true });
-        Object.defineProperty(readTokenAtPosition, 'name', { value: 'qt', configurable: true });
-        Object.defineProperty(extractLineClasses, 'name', { value: 'Wt', configurable: true });
-        Object.defineProperty(highlightLineTokens, 'name', { value: 'zt', configurable: true });
-        Object.defineProperty(cleanUpLine, 'name', { value: 'Jt', configurable: true });
-        Object.defineProperty(interpretTokenStyle, 'name', { value: 'Gt', configurable: true });
-        Object.defineProperty(buildLineContent, 'name', { value: 'Qt', configurable: true });
-        Object.defineProperty(defaultSpecialCharPlaceholder, 'name', {
-          value: 'Xt',
-          configurable: true,
-        });
-        Object.defineProperty(buildToken, 'name', { value: 'Zt', configurable: true });
-        Object.defineProperty(buildTokenBadBidi, 'name', { value: 'en', configurable: true });
-        Object.defineProperty(buildCollapsedSpan, 'name', { value: 'tn', configurable: true });
-        Object.defineProperty(insertLineContent, 'name', { value: 'nn', configurable: true });
-        Object.defineProperty(LineView, 'name', { value: 'rn', configurable: true });
-        Object.defineProperty(buildViewArray, 'name', { value: 'on', configurable: true });
-        Object.defineProperty(signalLater, 'name', { value: 'ln', configurable: true });
-        Object.defineProperty(fireOrphanDelayed, 'name', { value: 'cn', configurable: true });
-        Object.defineProperty(updateLineForChanges, 'name', { value: 'dn', configurable: true });
-        Object.defineProperty(ensureLineWrapped, 'name', { value: 'un', configurable: true });
-        Object.defineProperty(getLineContent, 'name', { value: 'hn', configurable: true });
-        Object.defineProperty(updateLineText, 'name', { value: 'pn', configurable: true });
-        Object.defineProperty(updateLineClasses, 'name', { value: 'fn', configurable: true });
-        Object.defineProperty(updateLineGutter, 'name', { value: 'mn', configurable: true });
-        Object.defineProperty(updateLineWidgets, 'name', { value: 'gn', configurable: true });
-        Object.defineProperty(buildLineElement, 'name', { value: 'vn', configurable: true });
-        Object.defineProperty(insertLineWidgets, 'name', { value: 'yn', configurable: true });
-        Object.defineProperty(insertLineWidgetsFor, 'name', { value: 'bn', configurable: true });
-        Object.defineProperty(positionLineWidget, 'name', { value: 'wn', configurable: true });
-        Object.defineProperty(widgetHeight, 'name', { value: 'xn', configurable: true });
-        Object.defineProperty(eventInWidget, 'name', { value: 'Cn', configurable: true });
-        Object.defineProperty(paddingTop, 'name', { value: 'Fn', configurable: true });
-        Object.defineProperty(paddingVert, 'name', { value: 'Sn', configurable: true });
-        Object.defineProperty(paddingH, 'name', { value: 'kn', configurable: true });
-        Object.defineProperty(scrollGap, 'name', { value: 'En', configurable: true });
-        Object.defineProperty(displayWidth, 'name', { value: 'Tn', configurable: true });
-        Object.defineProperty(displayHeight, 'name', { value: '_n', configurable: true });
-        Object.defineProperty(mapFromLineView, 'name', { value: 'An', configurable: true });
-        Object.defineProperty(measureChar, 'name', { value: 'Mn', configurable: true });
-        Object.defineProperty(findViewForLine, 'name', { value: 'Ln', configurable: true });
-        Object.defineProperty(prepareMeasureForLine, 'name', { value: 'Nn', configurable: true });
-        Object.defineProperty(measureCharPrepared, 'name', { value: 'Dn', configurable: true });
-        Object.defineProperty(nodeAndOffsetInLineMap, 'name', { value: 'Pn', configurable: true });
-        Object.defineProperty(getUsefulRect, 'name', { value: 'In', configurable: true });
-        Object.defineProperty(clearLineMeasurementCacheFor, 'name', {
-          value: 'On',
-          configurable: true,
-        });
-        Object.defineProperty(clearLineMeasurementCache, 'name', {
-          value: '$n',
-          configurable: true,
-        });
-        Object.defineProperty(clearCaches, 'name', { value: 'Hn', configurable: true });
-        Object.defineProperty(pageScrollX, 'name', { value: 'Un', configurable: true });
-        Object.defineProperty(pageScrollY, 'name', { value: 'jn', configurable: true });
-        Object.defineProperty(intoCoordSystem, 'name', { value: 'qn', configurable: true });
-        Object.defineProperty(fromCoordSystem, 'name', { value: 'Wn', configurable: true });
-        Object.defineProperty(charCoords, 'name', { value: 'zn', configurable: true });
-        Object.defineProperty(cursorCoords, 'name', { value: 'Vn', configurable: true });
-        Object.defineProperty(estimateCoords, 'name', { value: 'Jn', configurable: true });
-        Object.defineProperty(PosWithInfo, 'name', { value: 'Kn', configurable: true });
-        Object.defineProperty(coordsChar, 'name', { value: 'Yn', configurable: true });
-        Object.defineProperty(wrappedLineExtent, 'name', { value: 'Gn', configurable: true });
-        Object.defineProperty(wrappedLineExtentChar, 'name', { value: 'Qn', configurable: true });
-        Object.defineProperty(coordsCharInner, 'name', { value: 'Xn', configurable: true });
-        Object.defineProperty(textHeight, 'name', { value: 'Zn', configurable: true });
-        Object.defineProperty(charWidth, 'name', { value: 'ei', configurable: true });
-        Object.defineProperty(getDimensions, 'name', { value: 'ti', configurable: true });
-        Object.defineProperty(compensateForHScroll, 'name', { value: 'ni', configurable: true });
-        Object.defineProperty(estimateHeight, 'name', { value: 'ii', configurable: true });
-        Object.defineProperty(estimateLineHeights, 'name', { value: 'ri', configurable: true });
-        Object.defineProperty(posFromMouse, 'name', { value: 'oi', configurable: true });
-        Object.defineProperty(findViewIndex, 'name', { value: 'ai', configurable: true });
-        Object.defineProperty(updateSelection, 'name', { value: 'si', configurable: true });
-        Object.defineProperty(prepareSelection, 'name', { value: 'li', configurable: true });
-        Object.defineProperty(drawSelectionCursor, 'name', { value: 'ci', configurable: true });
-        Object.defineProperty(drawSelectionRange, 'name', { value: 'di', configurable: true });
-        Object.defineProperty(restartBlink, 'name', { value: 'ui', configurable: true });
-        Object.defineProperty(ensureFocus, 'name', { value: 'hi', configurable: true });
-        Object.defineProperty(delayBlurEvent, 'name', { value: 'pi', configurable: true });
-        Object.defineProperty(onFocus, 'name', { value: 'fi', configurable: true });
-        Object.defineProperty(onBlur, 'name', { value: 'mi', configurable: true });
-        Object.defineProperty(updateHeightsInViewport, 'name', { value: 'gi', configurable: true });
-        Object.defineProperty(updateWidgetHeight, 'name', { value: 'vi', configurable: true });
-        Object.defineProperty(visibleLines, 'name', { value: 'yi', configurable: true });
-        Object.defineProperty(alignHorizontally, 'name', { value: 'bi', configurable: true });
-        Object.defineProperty(maybeUpdateLineNumberWidth, 'name', {
-          value: 'wi',
-          configurable: true,
-        });
-        Object.defineProperty(calculateScrollPos, 'name', { value: 'xi', configurable: true });
-        Object.defineProperty(addToScrollTop, 'name', { value: 'Ci', configurable: true });
-        Object.defineProperty(ensureCursorVisible, 'name', { value: 'Fi', configurable: true });
-        Object.defineProperty(scrollToCoords, 'name', { value: 'Si', configurable: true });
-        Object.defineProperty(resolveScrollToPos, 'name', { value: 'ki', configurable: true });
-        Object.defineProperty(scrollToCoordsRange, 'name', { value: 'Ei', configurable: true });
-        Object.defineProperty(updateScrollTop, 'name', { value: 'Ti', configurable: true });
-        Object.defineProperty(setScrollTop, 'name', { value: '_i', configurable: true });
-        Object.defineProperty(setScrollLeft, 'name', { value: 'Ai', configurable: true });
-        Object.defineProperty(measureForScrollbars, 'name', { value: 'Mi', configurable: true });
-        Object.defineProperty(updateScrollbars, 'name', { value: 'Di', configurable: true });
-        Object.defineProperty(updateScrollbarsInner, 'name', { value: 'Ri', configurable: true });
-        Object.defineProperty(initScrollbars, 'name', { value: 'Pi', configurable: true });
-        Object.defineProperty(startOperation, 'name', { value: 'Oi', configurable: true });
-        Object.defineProperty(endOperation, 'name', { value: '$i', configurable: true });
-        Object.defineProperty(endOperation_R1, 'name', { value: 'Hi', configurable: true });
-        Object.defineProperty(endOperation_R2, 'name', { value: 'Ui', configurable: true });
-        Object.defineProperty(endOperation_W2, 'name', { value: 'ji', configurable: true });
-        Object.defineProperty(endOperation_finish, 'name', { value: 'qi', configurable: true });
-        Object.defineProperty(runInOp, 'name', { value: 'Wi', configurable: true });
-        Object.defineProperty(operation, 'name', { value: 'zi', configurable: true });
-        Object.defineProperty(methodOp, 'name', { value: 'Vi', configurable: true });
-        Object.defineProperty(docMethodOp, 'name', { value: 'Ji', configurable: true });
-        Object.defineProperty(regChange, 'name', { value: 'Ki', configurable: true });
-        Object.defineProperty(regLineChange, 'name', { value: 'Yi', configurable: true });
-        Object.defineProperty(resetView, 'name', { value: 'Gi', configurable: true });
-        Object.defineProperty(viewCuttingPoint, 'name', { value: 'Qi', configurable: true });
-        Object.defineProperty(countDirtyView, 'name', { value: 'Xi', configurable: true });
-        Object.defineProperty(startWorker, 'name', { value: 'Zi', configurable: true });
-        Object.defineProperty(highlightWorker, 'name', { value: 'er', configurable: true });
-        Object.defineProperty(updateDisplayIfNeeded, 'name', { value: 'nr', configurable: true });
-        Object.defineProperty(postUpdateDisplay, 'name', { value: 'ir', configurable: true });
-        Object.defineProperty(updateDisplaySimple, 'name', { value: 'rr', configurable: true });
-        Object.defineProperty(updateGutterSpace, 'name', { value: 'or', configurable: true });
-        Object.defineProperty(setDocumentHeight, 'name', { value: 'ar', configurable: true });
-        Object.defineProperty(updateGutters, 'name', { value: 'sr', configurable: true });
-        Object.defineProperty(setGuttersForLineNumbers, 'name', {
-          value: 'lr',
-          configurable: true,
-        });
-        Object.defineProperty(wheelEventDelta, 'name', { value: 'ur', configurable: true });
-        Object.defineProperty(wheelEventPixels, 'name', { value: 'hr', configurable: true });
-        Object.defineProperty(onScrollWheel, 'name', { value: 'pr', configurable: true });
-        Object.defineProperty(normalizeSelection, 'name', { value: 'gr', configurable: true });
-        Object.defineProperty(simpleSelection, 'name', { value: 'vr', configurable: true });
-        Object.defineProperty(changeEnd, 'name', { value: 'yr', configurable: true });
-        Object.defineProperty(adjustForChange, 'name', { value: 'br', configurable: true });
-        Object.defineProperty(computeSelAfterChange, 'name', { value: 'wr', configurable: true });
-        Object.defineProperty(offsetPos, 'name', { value: 'xr', configurable: true });
-        Object.defineProperty(loadMode, 'name', { value: 'Cr', configurable: true });
-        Object.defineProperty(resetModeState, 'name', { value: 'Fr', configurable: true });
-        Object.defineProperty(isWholeLineUpdate, 'name', { value: 'Sr', configurable: true });
-        Object.defineProperty(updateDoc, 'name', { value: 'kr', configurable: true });
-        Object.defineProperty(linkedDocs, 'name', { value: 'Er', configurable: true });
-        Object.defineProperty(attachDoc, 'name', { value: 'Tr', configurable: true });
-        Object.defineProperty(setDirectionClass, 'name', { value: '_r', configurable: true });
-        Object.defineProperty(History, 'name', { value: 'Ar', configurable: true });
-        Object.defineProperty(historyChangeFromChange, 'name', { value: 'Mr', configurable: true });
-        Object.defineProperty(clearSelectionEvents, 'name', { value: 'Lr', configurable: true });
-        Object.defineProperty(copyEditorHistoryChange, 'name', { value: 'Nr', configurable: true });
-        Object.defineProperty(buildEditorHistoryCommand, 'name', {
-          value: 'Dr',
-          configurable: true,
-        });
-        Object.defineProperty(addChangeToHistory, 'name', { value: 'Rr', configurable: true });
-        Object.defineProperty(addSelectionToHistory, 'name', { value: 'Br', configurable: true });
-        Object.defineProperty(pushSelectionToHistory, 'name', { value: 'Pr', configurable: true });
-        Object.defineProperty(attachLocalSpans, 'name', { value: 'Ir', configurable: true });
-        Object.defineProperty(removeClearedSpans, 'name', { value: 'Or', configurable: true });
-        Object.defineProperty(mergeOldSpans, 'name', { value: '$r', configurable: true });
-        Object.defineProperty(copyHistoryArray, 'name', { value: 'Hr', configurable: true });
-        Object.defineProperty(extendRange, 'name', { value: 'Ur', configurable: true });
-        Object.defineProperty(extendSelection, 'name', { value: 'jr', configurable: true });
-        Object.defineProperty(extendSelections, 'name', { value: 'qr', configurable: true });
-        Object.defineProperty(replaceOneSelection, 'name', { value: 'Wr', configurable: true });
-        Object.defineProperty(setSimpleSelection, 'name', { value: 'zr', configurable: true });
-        Object.defineProperty(setSelectionReplaceHistory, 'name', {
-          value: 'Vr',
-          configurable: true,
-        });
-        Object.defineProperty(setSelection, 'name', { value: 'Jr', configurable: true });
-        Object.defineProperty(setSelectionNoUndo, 'name', { value: 'Kr', configurable: true });
-        Object.defineProperty(setSelectionInner, 'name', { value: 'Yr', configurable: true });
-        Object.defineProperty(reCheckSelection, 'name', { value: 'Gr', configurable: true });
-        Object.defineProperty(skipAtomicInSelection, 'name', { value: 'Qr', configurable: true });
-        Object.defineProperty(skipAtomicInner, 'name', { value: 'Xr', configurable: true });
-        Object.defineProperty(skipAtomic, 'name', { value: 'Zr', configurable: true });
-        Object.defineProperty(movePos, 'name', { value: 'eo', configurable: true });
-        Object.defineProperty(selectAll, 'name', { value: 'to', configurable: true });
-        Object.defineProperty(filterChange, 'name', { value: 'no', configurable: true });
-        Object.defineProperty(makeChange, 'name', { value: 'io', configurable: true });
-        Object.defineProperty(makeChangeInner, 'name', { value: 'ro', configurable: true });
-        Object.defineProperty(makeChangeFromHistory, 'name', { value: 'oo', configurable: true });
-        Object.defineProperty(shiftDoc, 'name', { value: 'ao', configurable: true });
-        Object.defineProperty(makeChangeSingleDoc, 'name', { value: 'so', configurable: true });
-        Object.defineProperty(replaceRange, 'name', { value: 'lo', configurable: true });
-        Object.defineProperty(rebaseHistSelSingle, 'name', { value: 'co', configurable: true });
-        Object.defineProperty(rebaseHistArray, 'name', { value: 'uo', configurable: true });
-        Object.defineProperty(rebaseHist, 'name', { value: 'ho', configurable: true });
-        Object.defineProperty(changeLine, 'name', { value: 'po', configurable: true });
-        Object.defineProperty(adjustScrollWhenAboveVisible, 'name', {
-          value: 'vo',
-          configurable: true,
-        });
-        Object.defineProperty(markText, 'name', { value: 'wo', configurable: true });
-        Object.defineProperty(findSharedMarkers, 'name', { value: 'Co', configurable: true });
-        Object.defineProperty(detachSharedMarkers, 'name', { value: 'Fo', configurable: true });
-        Object.defineProperty(onDrop, 'name', { value: 'To', configurable: true });
-        Object.defineProperty(clearDragCursor, 'name', { value: '_o', configurable: true });
-        Object.defineProperty(forEachCodeMirror, 'name', { value: 'Ao', configurable: true });
-        Object.defineProperty(registerGlobalHandlers, 'name', { value: 'Lo', configurable: true });
-        Object.defineProperty(onResize, 'name', { value: 'No', configurable: true });
-        Object.defineProperty(normalizeKeyName, 'name', { value: 'Oo', configurable: true });
-        Object.defineProperty(normalizeKeyMap, 'name', { value: '$o', configurable: true });
-        Object.defineProperty(lookupKey, 'name', { value: 'Ho', configurable: true });
-        Object.defineProperty(isModifierKey, 'name', { value: 'Uo', configurable: true });
-        Object.defineProperty(keyName, 'name', { value: 'jo', configurable: true });
-        Object.defineProperty(getKeyMap, 'name', { value: 'qo', configurable: true });
-        Object.defineProperty(deleteNearSelection, 'name', { value: 'Wo', configurable: true });
-        Object.defineProperty(lineStart, 'name', { value: 'Vo', configurable: true });
-        Object.defineProperty(lineStartSmart, 'name', { value: 'Jo', configurable: true });
-        Object.defineProperty(doHandleBinding, 'name', { value: 'Ko', configurable: true });
-        Object.defineProperty(dispatchKey, 'name', { value: 'Go', configurable: true });
-        Object.defineProperty(handleKeyBinding, 'name', { value: 'Qo', configurable: true });
-        Object.defineProperty(onKeyDown, 'name', { value: 'ta', configurable: true });
-        Object.defineProperty(onKeyUp, 'name', { value: 'na', configurable: true });
-        Object.defineProperty(onKeyPress, 'name', { value: 'ia', configurable: true });
-        Object.defineProperty(onMouseDown, 'name', { value: 'ra', configurable: true });
-        Object.defineProperty(gutterEvent, 'name', { value: 'oa', configurable: true });
-        Object.defineProperty(clickInGutter, 'name', { value: 'aa', configurable: true });
-        Object.defineProperty(onContextMenu, 'name', { value: 'sa', configurable: true });
-        Object.defineProperty(themeChanged, 'name', { value: 'la', configurable: true });
-        Object.defineProperty(updateGutterGeometry, 'name', { value: 'ha', configurable: true });
-        Object.defineProperty(dragDropChanged, 'name', { value: 'pa', configurable: true });
-        Object.defineProperty(wrappingChanged, 'name', { value: 'fa', configurable: true });
-        Object.defineProperty(CodeMirror, 'name', { value: 'ma', configurable: true });
-        Object.defineProperty(indentLine, 'name', { value: 'va', configurable: true });
-        Object.defineProperty(setLastCopied, 'name', { value: 'ba', configurable: true });
-        Object.defineProperty(applyTextInput, 'name', { value: 'wa', configurable: true });
-        Object.defineProperty(handlePaste, 'name', { value: 'xa', configurable: true });
-        Object.defineProperty(triggerElectric, 'name', { value: 'Ca', configurable: true });
-        Object.defineProperty(copyableRanges, 'name', { value: 'Fa', configurable: true });
-        Object.defineProperty(disableBrowserMagic, 'name', { value: 'Sa', configurable: true });
-        Object.defineProperty(hiddenTextarea, 'name', { value: 'ka', configurable: true });
-        Object.defineProperty(findPosH, 'name', { value: 'Ea', configurable: true });
-        Object.defineProperty(findPosV, 'name', { value: 'Ta', configurable: true });
-        Object.defineProperty(posToDOM, 'name', { value: 'Aa', configurable: true });
-        Object.defineProperty(markBadPosition, 'name', { value: 'Ma', configurable: true });
-        Object.defineProperty(domToPos, 'name', { value: 'La', configurable: true });
-        Object.defineProperty(domToPosInLine, 'name', { value: 'Na', configurable: true });
 
         var userAgent = navigator.userAgent,
           platform = navigator.platform,
@@ -391,18 +51,14 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           return new RegExp('(^|\\s)' + cls + '(?:$|\\s)\\s*');
         }
         var range,
-          rmClass = Object.defineProperty(
-            function (node, cls) {
-              var current = node.className,
-                match = classTest(cls).exec(current);
-              if (match) {
-                var after = current.slice(match.index + match[0].length);
-                node.className = current.slice(0, match.index) + (after ? match[1] + after : '');
-              }
-            },
-            'name',
-            { value: 'E', configurable: true },
-          );
+          rmClass = function (node, cls) {
+            var current = node.className,
+              match = classTest(cls).exec(current);
+            if (match) {
+              var after = current.slice(match.index + match[0].length);
+              node.className = current.slice(0, match.index) + (after ? match[1] + after : '');
+            }
+          };
         function removeChildren(element) {
           for (var count = element.childNodes.length; count > 0; --count) {
             element.removeChild(element.firstChild);
@@ -504,13 +160,9 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
               textRange.moveStart('character', startOffset);
               return textRange;
             };
-        var selectInput = Object.defineProperty(
-          function (node) {
-            node.select();
-          },
-          'name',
-          { value: 'B', configurable: true },
-        );
+        var selectInput = function (node) {
+          node.select();
+        };
         function bind(callback) {
           var args = Array.prototype.slice.call(arguments, 1);
           return function () {
@@ -545,34 +197,22 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
         }
         if (ios) {
-          selectInput = Object.defineProperty(
-            function (inputElement) {
-              inputElement.selectionStart = 0;
-              inputElement.selectionEnd = inputElement.value.length;
-            },
-            'name',
-            { value: 'B', configurable: true },
-          );
+          selectInput = function (inputElement) {
+            inputElement.selectionStart = 0;
+            inputElement.selectionEnd = inputElement.value.length;
+          };
         } else {
           if (isInternetExplorer) {
-            selectInput = Object.defineProperty(
-              function (inputElement) {
-                try {
-                  inputElement.select();
-                } catch (selectionError) {}
-              },
-              'name',
-              { value: 'B', configurable: true },
-            );
+            selectInput = function (inputElement) {
+              try {
+                inputElement.select();
+              } catch (selectionError) {}
+            };
           }
         }
-        var Delayed = Object.defineProperty(
-          function () {
-            this.id = null;
-          },
-          'name',
-          { value: '$', configurable: true },
-        );
+        var Delayed = function () {
+          this.id = null;
+        };
         function indexOf(array, element) {
           for (var itemIndex = 0; itemIndex < array.length; ++itemIndex) {
             if (array[itemIndex] == element) {
@@ -1302,8 +942,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
         }
         var bidiOrdering = (function () {
-          Object.defineProperty(BidiSpan, 'name', { value: 's', configurable: true });
-
           var lowTypes =
               'bbbbbbbbbtstwsbbbbbbbbbbbbbbssstwNN%%%NNNNNN,N,N1111111111NNNNNNNLLLLLLLLLLLLLLLLLLLLLLLLLLNNNNNNLLLLLLLLLLLLLLLLLLLLLLLLLLNNNNbbbbbbsbbbbbbbbbbbbbbbbbbbbbbbbbb,N%%%%NNNNLNNNNN%%11NLNNN1LNNNNNLLLLLLLLLLLLLLLLLLLLLLLNLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLN',
             arabicTypes =
@@ -1554,29 +1192,17 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             return moveLogically(line, start, dir);
           }
           var prep,
-            moveCharacter = Object.defineProperty(
-              function (position, dir) {
-                return moveCharLogically(
-                  line,
-                  position instanceof Pos ? position.ch : position,
-                  dir,
-                );
-              },
-              'name',
-              { value: 'l', configurable: true },
-            ),
-            getWrappedLineExtent = Object.defineProperty(
-              function (characterOffset) {
-                if (editor.options.lineWrapping) {
-                  prep = prep || prepareMeasureForLine(editor, line);
-                  return wrappedLineExtentChar(editor, line, prep, characterOffset);
-                } else {
-                  return { begin: 0, end: line.text.length };
-                }
-              },
-              'name',
-              { value: 'c', configurable: true },
-            ),
+            moveCharacter = function (position, dir) {
+              return moveCharLogically(line, position instanceof Pos ? position.ch : position, dir);
+            },
+            getWrappedLineExtent = function (characterOffset) {
+              if (editor.options.lineWrapping) {
+                prep = prep || prepareMeasureForLine(editor, line);
+                return wrappedLineExtentChar(editor, line, prep, characterOffset);
+              } else {
+                return { begin: 0, end: line.text.length };
+              }
+            },
             wrappedLineExtent = getWrappedLineExtent(
               'before' == start.sticky ? moveCharacter(start, -1) : start.ch,
             );
@@ -1594,43 +1220,35 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
               return new Pos(start.line, nextCharacterOffset, sticky);
             }
           }
-          var searchInVisualLine = Object.defineProperty(
-              function (partPos, dir, wrappedLineExtent) {
-                for (
-                  var getRes = Object.defineProperty(
-                    function (characterOffset, moveInStorageOrder) {
-                      if (moveInStorageOrder) {
-                        return new Pos(start.line, moveCharacter(characterOffset, 1), 'before');
-                      } else {
-                        return new Pos(start.line, characterOffset, 'after');
-                      }
-                    },
-                    'name',
-                    { value: 'o', configurable: true },
-                  );
-                  partPos >= 0 && partPos < bidi.length;
-                  partPos += dir
-                ) {
-                  var part = bidi[partPos],
-                    moveInStorageOrder = dir > 0 == (1 != part.level),
-                    characterOffset = moveInStorageOrder
-                      ? wrappedLineExtent.begin
-                      : moveCharacter(wrappedLineExtent.end, -1);
-                  if (part.from <= characterOffset && characterOffset < part.to) {
-                    return getRes(characterOffset, moveInStorageOrder);
+          var searchInVisualLine = function (partPos, dir, wrappedLineExtent) {
+              for (
+                var getRes = function (characterOffset, moveInStorageOrder) {
+                  if (moveInStorageOrder) {
+                    return new Pos(start.line, moveCharacter(characterOffset, 1), 'before');
+                  } else {
+                    return new Pos(start.line, characterOffset, 'after');
                   }
-                  characterOffset = moveInStorageOrder ? part.from : moveCharacter(part.to, -1);
-                  if (
-                    wrappedLineExtent.begin <= characterOffset &&
-                    characterOffset < wrappedLineExtent.end
-                  ) {
-                    return getRes(characterOffset, moveInStorageOrder);
-                  }
+                };
+                partPos >= 0 && partPos < bidi.length;
+                partPos += dir
+              ) {
+                var part = bidi[partPos],
+                  moveInStorageOrder = dir > 0 == (1 != part.level),
+                  characterOffset = moveInStorageOrder
+                    ? wrappedLineExtent.begin
+                    : moveCharacter(wrappedLineExtent.end, -1);
+                if (part.from <= characterOffset && characterOffset < part.to) {
+                  return getRes(characterOffset, moveInStorageOrder);
                 }
-              },
-              'name',
-              { value: 'f', configurable: true },
-            ),
+                characterOffset = moveInStorageOrder ? part.from : moveCharacter(part.to, -1);
+                if (
+                  wrappedLineExtent.begin <= characterOffset &&
+                  characterOffset < wrappedLineExtent.end
+                ) {
+                  return getRes(characterOffset, moveInStorageOrder);
+                }
+              }
+            },
             res = searchInVisualLine(partPos + dir, dir, wrappedLineExtent);
           if (res) {
             return res;
@@ -1651,29 +1269,25 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
         }
         var noHandlers = [],
-          addEventHandler = Object.defineProperty(
-            function (emitter, type, handler) {
-              if (emitter.addEventListener) {
-                var eventOptions =
-                  File.option.passiveEvents &&
-                  ('scroll' == type || 'mousewheel' == type || 'DOMMouseScroll' == type);
-                emitter.addEventListener(
-                  type,
-                  handler,
-                  !!eventOptions && { passive: true, capture: false },
-                );
+          addEventHandler = function (emitter, type, handler) {
+            if (emitter.addEventListener) {
+              var eventOptions =
+                File.option.passiveEvents &&
+                ('scroll' == type || 'mousewheel' == type || 'DOMMouseScroll' == type);
+              emitter.addEventListener(
+                type,
+                handler,
+                !!eventOptions && { passive: true, capture: false },
+              );
+            } else {
+              if (emitter.attachEvent) {
+                emitter.attachEvent('on' + type, handler);
               } else {
-                if (emitter.attachEvent) {
-                  emitter.attachEvent('on' + type, handler);
-                } else {
-                  var map$$1 = emitter._handlers || (emitter._handlers = {});
-                  map$$1[type] = (map$$1[type] || noHandlers).concat(handler);
-                }
+                var map$$1 = emitter._handlers || (emitter._handlers = {});
+                map$$1[type] = (map$$1[type] || noHandlers).concat(handler);
               }
-            },
-            'name',
-            { value: 'it', configurable: true },
-          );
+            }
+          };
         function getHandlers(emitter, type) {
           return (emitter._handlers && emitter._handlers[type]) || noHandlers;
         }
@@ -1993,17 +1607,13 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         function startState(mode, firstArgument, secondArgument) {
           return !mode.startState || mode.startState(firstArgument, secondArgument);
         }
-        var StringStream = Object.defineProperty(
-          function (string, tabSize) {
-            this.pos = this.start = 0;
-            this.string = string;
-            this.tabSize = tabSize || 8;
-            this.lastColumnPos = this.lastColumnValue = 0;
-            this.lineStart = 0;
-          },
-          'name',
-          { value: 'Pt', configurable: true },
-        );
+        var StringStream = function (string, tabSize) {
+          this.pos = this.start = 0;
+          this.string = string;
+          this.tabSize = tabSize || 8;
+          this.lastColumnPos = this.lastColumnValue = 0;
+          this.lineStart = 0;
+        };
         function highlightLine(editor, line, state, forceToEnd) {
           var styles = [editor.state.modeGen],
             lineClasses = {},
@@ -2024,43 +1634,39 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             forceToEnd,
           );
           for (
-            var loop = Object.defineProperty(
-                function (overlayIndex) {
-                  var overlay = editor.state.overlays[overlayIndex],
-                    styleOffset = 1,
-                    characterOffset = 0;
-                  highlightLineTokens(
-                    editor,
-                    line.text,
-                    overlay.mode,
-                    'visiblespace' !== overlay.mode.name || state,
-                    function (end, style) {
-                      for (var start = styleOffset; characterOffset < end; ) {
-                        var i_end = styles[styleOffset];
-                        if (i_end > end) {
-                          styles.splice(styleOffset, 1, end, styles[styleOffset + 1], i_end);
-                        }
-                        styleOffset += 2;
-                        characterOffset = Math.min(end, i_end);
+            var loop = function (overlayIndex) {
+                var overlay = editor.state.overlays[overlayIndex],
+                  styleOffset = 1,
+                  characterOffset = 0;
+                highlightLineTokens(
+                  editor,
+                  line.text,
+                  overlay.mode,
+                  'visiblespace' !== overlay.mode.name || state,
+                  function (end, style) {
+                    for (var start = styleOffset; characterOffset < end; ) {
+                      var i_end = styles[styleOffset];
+                      if (i_end > end) {
+                        styles.splice(styleOffset, 1, end, styles[styleOffset + 1], i_end);
                       }
-                      if (style) {
-                        if (overlay.opaque) {
-                          styles.splice(start, styleOffset - start, end, 'overlay ' + style);
-                          styleOffset = start + 2;
-                        } else {
-                          for (; start < styleOffset; start += 2) {
-                            var cur = styles[start + 1];
-                            styles[start + 1] = (cur ? cur + ' ' : '') + 'overlay ' + style;
-                          }
+                      styleOffset += 2;
+                      characterOffset = Math.min(end, i_end);
+                    }
+                    if (style) {
+                      if (overlay.opaque) {
+                        styles.splice(start, styleOffset - start, end, 'overlay ' + style);
+                        styleOffset = start + 2;
+                      } else {
+                        for (; start < styleOffset; start += 2) {
+                          var cur = styles[start + 1];
+                          styles[start + 1] = (cur ? cur + ' ' : '') + 'overlay ' + style;
                         }
                       }
-                    },
-                    lineClasses,
-                  );
-                },
-                'name',
-                { value: 's', configurable: true },
-              ),
+                    }
+                  },
+                  lineClasses,
+                );
+              },
               overlayIndex = 0;
             overlayIndex < editor.state.overlays.length;
             ++overlayIndex
@@ -2194,19 +1800,15 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         }
         function readTokenAtPosition(editor, position, precise, asArray) {
           var style,
-            getObj = Object.defineProperty(
-              function (copy) {
-                return {
-                  start: stream.start,
-                  end: stream.pos,
-                  string: stream.current(),
-                  type: style || null,
-                  state: copy ? copyState(documentModel.mode, state) : state,
-                };
-              },
-              'name',
-              { value: 'o', configurable: true },
-            ),
+            getObj = function (copy) {
+              return {
+                start: stream.start,
+                end: stream.pos,
+                string: stream.current(),
+                type: style || null,
+                state: copy ? copyState(documentModel.mode, state) : state,
+              };
+            },
             documentModel = editor.doc,
             mode = documentModel.mode;
           position = clipPos(documentModel, position);
@@ -2382,17 +1984,13 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
               return match;
             }
           }
-          var foldCase = Object.defineProperty(
-            function (str) {
-              if (caseInsensitive) {
-                return str.toLowerCase();
-              } else {
-                return str;
-              }
-            },
-            'name',
-            { value: 'r', configurable: true },
-          );
+          var foldCase = function (str) {
+            if (caseInsensitive) {
+              return str.toLowerCase();
+            } else {
+              return str;
+            }
+          };
           if (foldCase(this.string.substr(this.pos, pattern.length)) == foldCase(pattern)) {
             if (false !== consume) {
               this.pos += pattern.length;
@@ -2411,15 +2009,11 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             this.lineStart -= characterCount;
           }
         };
-        var Line = Object.defineProperty(
-          function (text, markedSpans, estimateHeight) {
-            this.text = text;
-            attachMarkedSpans(this, markedSpans);
-            this.height = estimateHeight ? estimateHeight(this) : 1;
-          },
-          'name',
-          { value: 'Vt', configurable: true },
-        );
+        var Line = function (text, markedSpans, estimateHeight) {
+          this.text = text;
+          attachMarkedSpans(this, markedSpans);
+          this.height = estimateHeight ? estimateHeight(this) : 1;
+        };
         function cleanUpLine(line) {
           line.parent = null;
           detachMarkedSpans(line);
@@ -2855,15 +2449,11 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
               }
             }
             for (
-              var loop = Object.defineProperty(
-                  function (handlerIndex) {
-                    list.push(function () {
-                      return items[handlerIndex].apply(null, args);
-                    });
-                  },
-                  'name',
-                  { value: 'o', configurable: true },
-                ),
+              var loop = function (handlerIndex) {
+                  list.push(function () {
+                    return items[handlerIndex].apply(null, args);
+                  });
+                },
                 handlerIndex = 0;
               handlerIndex < items.length;
               ++handlerIndex
@@ -3656,9 +3246,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           );
         }
         function cursorCoords(editor, position, context, lineObj, preparedMeasure, varHeight) {
-          Object.defineProperty(get, 'name', { value: 'a', configurable: true });
-          Object.defineProperty(getBidi, 'name', { value: 'd', configurable: true });
-
           function get(characterOffset, right) {
             var characterBounds = measureCharPrepared(
               editor,
@@ -3759,18 +3346,14 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
         }
         function wrappedLineExtent(editor, lineObj, preparedMeasure, y) {
-          var measure = Object.defineProperty(
-              function (characterOffset) {
-                return intoCoordSystem(
-                  editor,
-                  lineObj,
-                  measureCharPrepared(editor, preparedMeasure, characterOffset),
-                  'line',
-                );
-              },
-              'name',
-              { value: 'r', configurable: true },
-            ),
+          var measure = function (characterOffset) {
+              return intoCoordSystem(
+                editor,
+                lineObj,
+                measureCharPrepared(editor, preparedMeasure, characterOffset),
+                'line',
+              );
+            },
             end = lineObj.text.length,
             begin = findFirst(
               function (characterOffset) {
@@ -4083,9 +3666,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
         }
         function drawSelectionRange(editor, range$$1, output) {
-          Object.defineProperty(add, 'name', { value: 'c', configurable: true });
-          Object.defineProperty(drawForLine, 'name', { value: 'd', configurable: true });
-
           var display = editor.display,
             documentModel = editor.doc,
             fragment = document.createDocumentFragment(),
@@ -4120,8 +3700,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             );
           }
           function drawForLine(line, fromArg, toArg) {
-            Object.defineProperty(coords, 'name', { value: 'h', configurable: true });
-
             var start,
               end,
               lineObj = getLine(documentModel, line),
@@ -4614,39 +4192,35 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           };
         }
         CodeMirror.posFromMouse = posFromMouse;
-        var NativeScrollbars = Object.defineProperty(
-          function (place, scroll, editor) {
-            this.cm = editor;
-            var vert = (this.vert = createElement(
-                'div',
-                [createElement('div', null, null, 'min-width: 1px')],
-                'CodeMirror-vscrollbar',
-              )),
-              horiz = (this.horiz = createElement(
-                'div',
-                [createElement('div', null, null, 'height: 100%; min-height: 1px')],
-                'CodeMirror-hscrollbar',
-              ));
-            place(vert);
-            place(horiz);
-            addEventHandler(vert, 'scroll', function () {
-              if (vert.clientHeight) {
-                scroll(vert.scrollTop, 'vertical');
-              }
-            });
-            addEventHandler(horiz, 'scroll', function () {
-              if (horiz.clientWidth) {
-                scroll(horiz.scrollLeft, 'horizontal');
-              }
-            });
-            this.checkedZeroWidth = false;
-            if (isInternetExplorer && ie_version < 8) {
-              this.horiz.style.minHeight = this.vert.style.minWidth = '18px';
+        var NativeScrollbars = function (place, scroll, editor) {
+          this.cm = editor;
+          var vert = (this.vert = createElement(
+              'div',
+              [createElement('div', null, null, 'min-width: 1px')],
+              'CodeMirror-vscrollbar',
+            )),
+            horiz = (this.horiz = createElement(
+              'div',
+              [createElement('div', null, null, 'height: 100%; min-height: 1px')],
+              'CodeMirror-hscrollbar',
+            ));
+          place(vert);
+          place(horiz);
+          addEventHandler(vert, 'scroll', function () {
+            if (vert.clientHeight) {
+              scroll(vert.scrollTop, 'vertical');
             }
-          },
-          'name',
-          { value: 'Li', configurable: true },
-        );
+          });
+          addEventHandler(horiz, 'scroll', function () {
+            if (horiz.clientWidth) {
+              scroll(horiz.scrollLeft, 'horizontal');
+            }
+          });
+          this.checkedZeroWidth = false;
+          if (isInternetExplorer && ie_version < 8) {
+            this.horiz.style.minHeight = this.vert.style.minWidth = '18px';
+          }
+        };
         NativeScrollbars.prototype.update = function (measure) {
           var needsH = measure.scrollWidth > measure.clientWidth + 1,
             needsV = measure.scrollHeight > measure.clientHeight + 1,
@@ -4697,35 +4271,25 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         };
         NativeScrollbars.prototype.enableZeroWidthBar = function (bar, delay, type) {
           bar.style.pointerEvents = 'auto';
-          delay.set(
-            1e3,
-            Object.defineProperty(
-              function maybeDisable() {
-                var box = bar.getBoundingClientRect();
-                if (
-                  ('vert' == type
-                    ? document.elementFromPoint(box.right - 1, (box.top + box.bottom) / 2)
-                    : document.elementFromPoint((box.right + box.left) / 2, box.bottom - 1)) != bar
-                ) {
-                  bar.style.pointerEvents = 'none';
-                } else {
-                  delay.set(1e3, maybeDisable);
-                }
-              },
-              'name',
-              { value: 'i', configurable: true },
-            ),
-          );
+          delay.set(1e3, function maybeDisable() {
+            var box = bar.getBoundingClientRect();
+            if (
+              ('vert' == type
+                ? document.elementFromPoint(box.right - 1, (box.top + box.bottom) / 2)
+                : document.elementFromPoint((box.right + box.left) / 2, box.bottom - 1)) != bar
+            ) {
+              bar.style.pointerEvents = 'none';
+            } else {
+              delay.set(1e3, maybeDisable);
+            }
+          });
         };
         NativeScrollbars.prototype.clear = function () {
           var parent = this.horiz.parentNode;
           parent.removeChild(this.horiz);
           parent.removeChild(this.vert);
         };
-        var NullScrollbars = Object.defineProperty(function () {}, 'name', {
-          value: 'Ni',
-          configurable: true,
-        });
+        var NullScrollbars = function () {};
         function updateScrollbars(editor, measure) {
           if (!measure) {
             measure = measureForScrollbars(editor);
@@ -5441,22 +5005,18 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             }
           }
         }
-        var DisplayUpdate = Object.defineProperty(
-          function (editor, viewport, force) {
-            var display = editor.display;
-            this.viewport = viewport;
-            this.visible = visibleLines(display, editor.doc, viewport);
-            this.editorIsHidden = !display.wrapper.offsetWidth;
-            this.wrapperHeight = display.wrapper.clientHeight;
-            this.wrapperWidth = display.wrapper.clientWidth;
-            this.oldDisplayWidth = displayWidth(editor);
-            this.force = force;
-            this.dims = getDimensions(editor);
-            this.events = [];
-          },
-          'name',
-          { value: 'tr', configurable: true },
-        );
+        var DisplayUpdate = function (editor, viewport, force) {
+          var display = editor.display;
+          this.viewport = viewport;
+          this.visible = visibleLines(display, editor.doc, viewport);
+          this.editorIsHidden = !display.wrapper.offsetWidth;
+          this.wrapperHeight = display.wrapper.clientHeight;
+          this.wrapperWidth = display.wrapper.clientWidth;
+          this.oldDisplayWidth = displayWidth(editor);
+          this.force = force;
+          this.dims = getDimensions(editor);
+          this.events = [];
+        };
         function updateDisplayIfNeeded(editor, update) {
           var display = editor.display,
             documentModel = editor.doc;
@@ -5563,8 +5123,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             display.lineDiv.style.display = 'none';
           }
           (function (editor, updateNumbersFrom, dims) {
-            Object.defineProperty(removeLineNode, 'name', { value: 's', configurable: true });
-
             var display = editor.display,
               lineNumbers = editor.options.lineNumbers,
               container = display.lineDiv,
@@ -5864,14 +5422,10 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             }
           }
         }
-        var Selection = Object.defineProperty(
-          function (ranges, primIndex) {
-            this.ranges = ranges;
-            this.primIndex = primIndex;
-          },
-          'name',
-          { value: 'fr', configurable: true },
-        );
+        var Selection = function (ranges, primIndex) {
+          this.ranges = ranges;
+          this.primIndex = primIndex;
+        };
         Selection.prototype.primary = function () {
           return this.ranges[this.primIndex];
         };
@@ -5923,14 +5477,10 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
           return -1;
         };
-        var Range = Object.defineProperty(
-          function (anchor, head) {
-            this.anchor = anchor;
-            this.head = head;
-          },
-          'name',
-          { value: 'mr', configurable: true },
-        );
+        var Range = function (anchor, head) {
+          this.anchor = anchor;
+          this.head = head;
+        };
         function normalizeSelection(ranges, primIndex) {
           var prim = ranges[primIndex];
           ranges.sort(function (leftRange, rightRange) {
@@ -6041,10 +5591,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           );
         }
         function updateDoc(documentModel, change, markedSpans, estimateHeight$$1) {
-          Object.defineProperty(spansFor, 'name', { value: 'r', configurable: true });
-          Object.defineProperty(update, 'name', { value: 'o', configurable: true });
-          Object.defineProperty(linesFor, 'name', { value: 'a', configurable: true });
-
           function spansFor(lineNumber) {
             if (markedSpans) {
               return markedSpans[lineNumber];
@@ -6145,24 +5691,20 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           signalLater(documentModel, 'change', documentModel, change);
         }
         function linkedDocs(documentModel, visitLinkedDocument, sharedHistOnly) {
-          !Object.defineProperty(
-            function propagate(documentModel, skip, sharedHist) {
-              if (documentModel.linked) {
-                for (var linkIndex = 0; linkIndex < documentModel.linked.length; ++linkIndex) {
-                  var rel = documentModel.linked[linkIndex];
-                  if (rel.doc != skip) {
-                    var shared = sharedHist && rel.sharedHist;
-                    if (!(sharedHistOnly && !shared)) {
-                      visitLinkedDocument(rel.doc, shared);
-                      propagate(rel.doc, documentModel, shared);
-                    }
+          !(function propagate(documentModel, skip, sharedHist) {
+            if (documentModel.linked) {
+              for (var linkIndex = 0; linkIndex < documentModel.linked.length; ++linkIndex) {
+                var rel = documentModel.linked[linkIndex];
+                if (rel.doc != skip) {
+                  var shared = sharedHist && rel.sharedHist;
+                  if (!(sharedHistOnly && !shared)) {
+                    visitLinkedDocument(rel.doc, shared);
+                    propagate(rel.doc, documentModel, shared);
                   }
                 }
               }
-            },
-            'name',
-            { value: 'e', configurable: true },
-          )(documentModel, null, true);
+            }
+          })(documentModel, null, true);
         }
         function attachDoc(editor, documentModel) {
           if (documentModel.cm) {
@@ -6959,47 +6501,43 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
                 var filter =
                     hasHandler(documentModel, 'beforeChange') ||
                     (documentModel.cm && hasHandler(documentModel.cm, 'beforeChange')),
-                  loop = Object.defineProperty(
-                    function (changeIndex) {
-                      var change = event.changes[changeIndex];
-                      change.origin = type;
-                      if (filter && !filterChange(documentModel, change, false)) {
-                        source.length = 0;
-                        return {};
+                  loop = function (changeIndex) {
+                    var change = event.changes[changeIndex];
+                    change.origin = type;
+                    if (filter && !filterChange(documentModel, change, false)) {
+                      source.length = 0;
+                      return {};
+                    }
+                    antiChanges.push(historyChangeFromChange(documentModel, change));
+                    var after = changeIndex
+                      ? computeSelAfterChange(documentModel, change)
+                      : lst(source);
+                    makeChangeSingleDoc(
+                      documentModel,
+                      change,
+                      after,
+                      mergeOldSpans(documentModel, change),
+                    );
+                    if (!changeIndex && documentModel.cm) {
+                      documentModel.cm.scrollIntoView({
+                        from: change.from,
+                        to: changeEnd(change),
+                      });
+                    }
+                    var rebased = [];
+                    linkedDocs(documentModel, function (documentModel, sharedHist) {
+                      if (!(sharedHist || -1 != indexOf(rebased, documentModel.history))) {
+                        rebaseHist(documentModel.history, change);
+                        rebased.push(documentModel.history);
                       }
-                      antiChanges.push(historyChangeFromChange(documentModel, change));
-                      var after = changeIndex
-                        ? computeSelAfterChange(documentModel, change)
-                        : lst(source);
                       makeChangeSingleDoc(
                         documentModel,
                         change,
-                        after,
+                        null,
                         mergeOldSpans(documentModel, change),
                       );
-                      if (!changeIndex && documentModel.cm) {
-                        documentModel.cm.scrollIntoView({
-                          from: change.from,
-                          to: changeEnd(change),
-                        });
-                      }
-                      var rebased = [];
-                      linkedDocs(documentModel, function (documentModel, sharedHist) {
-                        if (!(sharedHist || -1 != indexOf(rebased, documentModel.history))) {
-                          rebaseHist(documentModel.history, change);
-                          rebased.push(documentModel.history);
-                        }
-                        makeChangeSingleDoc(
-                          documentModel,
-                          change,
-                          null,
-                          mergeOldSpans(documentModel, change),
-                        );
-                      });
-                    },
-                    'name',
-                    { value: 'u', configurable: true },
-                  ),
+                    });
+                  },
                   i$1 = event.changes.length - 1;
                 i$1 >= 0;
                 --i$1
@@ -7248,19 +6786,15 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         Range.prototype.empty = function () {
           return this.head.line == this.anchor.line && this.head.ch == this.anchor.ch;
         };
-        var LeafChunk = Object.defineProperty(
-          function (lines) {
-            this.lines = lines;
-            this.parent = null;
-            for (var height = 0, lineIndex = 0; lineIndex < lines.length; ++lineIndex) {
-              lines[lineIndex].parent = this;
-              height += lines[lineIndex].height;
-            }
-            this.height = height;
-          },
-          'name',
-          { value: 'fo', configurable: true },
-        );
+        var LeafChunk = function (lines) {
+          this.lines = lines;
+          this.parent = null;
+          for (var height = 0, lineIndex = 0; lineIndex < lines.length; ++lineIndex) {
+            lines[lineIndex].parent = this;
+            height += lines[lineIndex].height;
+          }
+          this.height = height;
+        };
         LeafChunk.prototype.chunkSize = function () {
           return this.lines.length;
         };
@@ -7297,26 +6831,22 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             }
           }
         };
-        var BranchChunk = Object.defineProperty(
-          function (children) {
-            this.children = children;
-            for (
-              var size = 0, height = 0, childIndex = 0;
-              childIndex < children.length;
-              ++childIndex
-            ) {
-              var child = children[childIndex];
-              size += child.chunkSize();
-              height += child.height;
-              child.parent = this;
-            }
-            this.size = size;
-            this.height = height;
-            this.parent = null;
-          },
-          'name',
-          { value: 'mo', configurable: true },
-        );
+        var BranchChunk = function (children) {
+          this.children = children;
+          for (
+            var size = 0, height = 0, childIndex = 0;
+            childIndex < children.length;
+            ++childIndex
+          ) {
+            var child = children[childIndex];
+            size += child.chunkSize();
+            height += child.height;
+            child.parent = this;
+          }
+          this.size = size;
+          this.height = height;
+          this.parent = null;
+        };
         BranchChunk.prototype.chunkSize = function () {
           return this.size;
         };
@@ -7423,21 +6953,17 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             }
           }
         };
-        var LineWidget = Object.defineProperty(
-          function (documentModel, node, options) {
-            if (options) {
-              for (var opt in options) {
-                if (options.hasOwnProperty(opt)) {
-                  this[opt] = options[opt];
-                }
+        var LineWidget = function (documentModel, node, options) {
+          if (options) {
+            for (var opt in options) {
+              if (options.hasOwnProperty(opt)) {
+                this[opt] = options[opt];
               }
             }
-            this.doc = documentModel;
-            this.node = node;
-          },
-          'name',
-          { value: 'go', configurable: true },
-        );
+          }
+          this.doc = documentModel;
+          this.node = node;
+        };
         function adjustScrollWhenAboveVisible(editor, line, diff) {
           if (
             heightAtLine(line) < ((editor.curOp && editor.curOp.scrollTop) || editor.doc.scrollTop)
@@ -7490,16 +7016,12 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         };
         eventMixin(LineWidget);
         var nextMarkerId = 0,
-          TextMarker = Object.defineProperty(
-            function (documentModel, type) {
-              this.lines = [];
-              this.type = type;
-              this.doc = documentModel;
-              this.id = ++nextMarkerId;
-            },
-            'name',
-            { value: 'bo', configurable: true },
-          );
+          TextMarker = function (documentModel, type) {
+            this.lines = [];
+            this.type = type;
+            this.doc = documentModel;
+            this.id = ++nextMarkerId;
+          };
         function markText(documentModel, from, rangeEnd, options, type) {
           if (options && options.shared) {
             return (function (documentModel, from, rangeEnd, options, type) {
@@ -7790,17 +7312,13 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
         };
         eventMixin(TextMarker);
-        var SharedTextMarker = Object.defineProperty(
-          function (markers, primary) {
-            this.markers = markers;
-            this.primary = primary;
-            for (var markerIndex = 0; markerIndex < markers.length; ++markerIndex) {
-              markers[markerIndex].parent = this;
-            }
-          },
-          'name',
-          { value: 'xo', configurable: true },
-        );
+        var SharedTextMarker = function (markers, primary) {
+          this.markers = markers;
+          this.primary = primary;
+          for (var markerIndex = 0; markerIndex < markers.length; ++markerIndex) {
+            markers[markerIndex].parent = this;
+          }
+        };
         function findSharedMarkers(documentModel) {
           return documentModel.findMarks(
             Pos(documentModel.first, 0),
@@ -7812,28 +7330,24 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         }
         function detachSharedMarkers(markers) {
           for (
-            var loop = Object.defineProperty(
-                function (markerIndex) {
-                  var marker = markers[markerIndex],
-                    linked = [marker.primary.doc];
-                  linkedDocs(marker.primary.doc, function (linkedDocument) {
-                    return linked.push(linkedDocument);
-                  });
-                  for (
-                    var sharedMarkerIndex = 0;
-                    sharedMarkerIndex < marker.markers.length;
-                    sharedMarkerIndex++
-                  ) {
-                    var subMarker = marker.markers[sharedMarkerIndex];
-                    if (-1 == indexOf(linked, subMarker.doc)) {
-                      subMarker.parent = null;
-                      marker.markers.splice(sharedMarkerIndex--, 1);
-                    }
+            var loop = function (markerIndex) {
+                var marker = markers[markerIndex],
+                  linked = [marker.primary.doc];
+                linkedDocs(marker.primary.doc, function (linkedDocument) {
+                  return linked.push(linkedDocument);
+                });
+                for (
+                  var sharedMarkerIndex = 0;
+                  sharedMarkerIndex < marker.markers.length;
+                  sharedMarkerIndex++
+                ) {
+                  var subMarker = marker.markers[sharedMarkerIndex];
+                  if (-1 == indexOf(linked, subMarker.doc)) {
+                    subMarker.parent = null;
+                    marker.markers.splice(sharedMarkerIndex--, 1);
                   }
-                },
-                'name',
-                { value: 't', configurable: true },
-              ),
+                }
+              },
               documentIndex = 0;
             documentIndex < markers.length;
             documentIndex++
@@ -7855,37 +7369,33 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         };
         eventMixin(SharedTextMarker);
         var nextDocId = 0,
-          Doc = Object.defineProperty(
-            function (text, mode, firstLine, lineSep, direction) {
-              if (!(this instanceof Doc)) {
-                return new Doc(text, mode, firstLine, lineSep, direction);
-              }
-              if (null == firstLine) {
-                firstLine = 0;
-              }
-              BranchChunk.call(this, [new LeafChunk([new Line('', null)])]);
-              this.first = firstLine;
-              this.scrollTop = this.scrollLeft = 0;
-              this.cantEdit = false;
-              this.cleanGeneration = 1;
-              this.frontier = firstLine;
-              var start = Pos(firstLine, 0);
-              this.sel = simpleSelection(start);
-              this.history = new History(null);
-              this.id = ++nextDocId;
-              this.modeOption = mode;
-              this.lineSep = lineSep;
-              this.direction = 'rtl' == direction ? 'rtl' : 'ltr';
-              this.extend = false;
-              if ('string' == typeof text) {
-                text = this.splitLines(text);
-              }
-              updateDoc(this, { from: start, to: start, text: text });
-              setSelection(this, simpleSelection(start), sel_dontScroll);
-            },
-            'name',
-            { value: 'ko', configurable: true },
-          );
+          Doc = function (text, mode, firstLine, lineSep, direction) {
+            if (!(this instanceof Doc)) {
+              return new Doc(text, mode, firstLine, lineSep, direction);
+            }
+            if (null == firstLine) {
+              firstLine = 0;
+            }
+            BranchChunk.call(this, [new LeafChunk([new Line('', null)])]);
+            this.first = firstLine;
+            this.scrollTop = this.scrollLeft = 0;
+            this.cantEdit = false;
+            this.cleanGeneration = 1;
+            this.frontier = firstLine;
+            var start = Pos(firstLine, 0);
+            this.sel = simpleSelection(start);
+            this.history = new History(null);
+            this.id = ++nextDocId;
+            this.modeOption = mode;
+            this.lineSep = lineSep;
+            this.direction = 'rtl' == direction ? 'rtl' : 'ltr';
+            this.extend = false;
+            if ('string' == typeof text) {
+              text = this.splitLines(text);
+            }
+            updateDoc(this, { from: start, to: start, text: text });
+            setSelection(this, simpleSelection(start), sel_dontScroll);
+          };
         Doc.prototype = createObj(BranchChunk.prototype, {
           constructor: Doc,
           iter: function (from, endLine, visitLine) {
@@ -8610,39 +8120,35 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
                   var fileCount = files.length,
                     text = Array(fileCount),
                     read = 0,
-                    loadFile = Object.defineProperty(
-                      function (file, fileIndex) {
-                        if (
-                          !editor.options.allowDropFileTypes ||
-                          -1 != indexOf(editor.options.allowDropFileTypes, file.type)
-                        ) {
-                          var reader = new FileReader();
-                          reader.onload = operation(editor, function () {
-                            var content = reader.result;
-                            if (/[\x00-\x08\x0e-\x1f]{2}/.test(content)) {
-                              content = '';
-                            }
-                            text[fileIndex] = content;
-                            if (++read == fileCount) {
-                              var change = {
-                                from: (position = clipPos(editor.doc, position)),
-                                to: position,
-                                text: editor.doc.splitLines(text.join(editor.doc.lineSeparator())),
-                                origin: 'paste',
-                              };
-                              makeChange(editor.doc, change);
-                              setSelectionReplaceHistory(
-                                editor.doc,
-                                simpleSelection(position, changeEnd(change)),
-                              );
-                            }
-                          });
-                          reader.readAsText(file);
-                        }
-                      },
-                      'name',
-                      { value: 'l', configurable: true },
-                    ),
+                    loadFile = function (file, fileIndex) {
+                      if (
+                        !editor.options.allowDropFileTypes ||
+                        -1 != indexOf(editor.options.allowDropFileTypes, file.type)
+                      ) {
+                        var reader = new FileReader();
+                        reader.onload = operation(editor, function () {
+                          var content = reader.result;
+                          if (/[\x00-\x08\x0e-\x1f]{2}/.test(content)) {
+                            content = '';
+                          }
+                          text[fileIndex] = content;
+                          if (++read == fileCount) {
+                            var change = {
+                              from: (position = clipPos(editor.doc, position)),
+                              to: position,
+                              text: editor.doc.splitLines(text.join(editor.doc.lineSeparator())),
+                              origin: 'paste',
+                            };
+                            makeChange(editor.doc, change);
+                            setSelectionReplaceHistory(
+                              editor.doc,
+                              simpleSelection(position, changeEnd(change)),
+                            );
+                          }
+                        });
+                        reader.readAsText(file);
+                      }
+                    },
                     fileIndex = 0;
                   fileIndex < fileCount;
                   ++fileIndex
@@ -9469,8 +8975,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
               !(18 != code || /\bCodeMirror-crosshair\b/.test(editor.display.lineDiv.className))
             ) {
               (function (editor) {
-                Object.defineProperty(clearCrosshair, 'name', { value: 'n', configurable: true });
-
                 var lineDiv = editor.display.lineDiv;
                 function clearCrosshair(event) {
                   if (!(18 != event.keyCode && event.altKey)) {
@@ -9622,24 +9126,16 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
                                     }
                                   }
                                 }),
-                                mouseMove = Object.defineProperty(
-                                  function (moveEvent) {
-                                    moved =
-                                      moved ||
-                                      Math.abs(dragStartEvent.clientX - moveEvent.clientX) +
-                                        Math.abs(dragStartEvent.clientY - moveEvent.clientY) >=
-                                        10;
-                                  },
-                                  'name',
-                                  { value: 'd', configurable: true },
-                                ),
-                                markDragging = Object.defineProperty(
-                                  function () {
-                                    return (moved = true);
-                                  },
-                                  'name',
-                                  { value: 'u', configurable: true },
-                                );
+                                mouseMove = function (moveEvent) {
+                                  moved =
+                                    moved ||
+                                    Math.abs(dragStartEvent.clientX - moveEvent.clientX) +
+                                      Math.abs(dragStartEvent.clientY - moveEvent.clientY) >=
+                                      10;
+                                },
+                                markDragging = function () {
+                                  return (moved = true);
+                                };
                               if (webkit) {
                                 display.scroller.draggable = true;
                               }
@@ -9659,15 +9155,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
                             })(editor, event, start, modifier);
                           } else {
                             (function (editor, event, start, type, addNew) {
-                              Object.defineProperty(extend, 'name', {
-                                value: 'g',
-                                configurable: true,
-                              });
-                              Object.defineProperty(done, 'name', {
-                                value: 'v',
-                                configurable: true,
-                              });
-
                               var display = editor.display,
                                 documentModel = editor.doc;
                               e_preventDefault(event);
@@ -10212,9 +9699,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
               return this$1.display.input.reset(true);
             }, 20),
           (function (editor) {
-            Object.defineProperty(finishTouch, 'name', { value: 'r', configurable: true });
-            Object.defineProperty(farAway, 'name', { value: 'o', configurable: true });
-
             var display = editor.display;
             addEventHandler(display.scroller, 'mousedown', operation(editor, onMouseDown));
             addEventHandler(
@@ -10731,8 +10215,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           return div;
         }
         function findPosH(documentModel, position, dir, unit, visually) {
-          Object.defineProperty(moveOnce, 'name', { value: 'l', configurable: true });
-
           var oldPos = position,
             origDir = dir,
             lineObj = getLine(documentModel, position.line);
@@ -10835,22 +10317,18 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
           return target;
         }
-        var ContentEditableInput = Object.defineProperty(
-          function (editor) {
-            this.cm = editor;
-            this.lastAnchorNode =
-              this.lastAnchorOffset =
-              this.lastFocusNode =
-              this.lastFocusOffset =
-                null;
-            this.polling = new Delayed();
-            this.composing = null;
-            this.gracePeriod = false;
-            this.readDOMTimeout = null;
-          },
-          'name',
-          { value: '_a', configurable: true },
-        );
+        var ContentEditableInput = function (editor) {
+          this.cm = editor;
+          this.lastAnchorNode =
+            this.lastAnchorOffset =
+            this.lastFocusNode =
+            this.lastFocusOffset =
+              null;
+          this.polling = new Delayed();
+          this.composing = null;
+          this.gracePeriod = false;
+          this.readDOMTimeout = null;
+        };
         function posToDOM(editor, position) {
           var view = findViewForLine(editor, position.line);
           if (!view || view.hidden) {
@@ -10899,8 +10377,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
         }
         function domToPosInLine(lineView, node, offset) {
-          Object.defineProperty(find, 'name', { value: 'd', configurable: true });
-
           var wrapper = lineView.text.firstChild,
             bad = false;
           if (!node || !contains(wrapper, node)) {
@@ -10972,8 +10448,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           }
         }
         ContentEditableInput.prototype.init = function (display) {
-          Object.defineProperty(onCopyCut, 'name', { value: 'o', configurable: true });
-
           var this$1 = this,
             input = this,
             editor = input.cm,
@@ -11200,19 +10674,12 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
               return (input.cm.curOp.selectionChanged = true);
             });
           }
-          this.polling.set(
-            this.cm.options.pollInterval,
-            Object.defineProperty(
-              function poll() {
-                if (input.cm.state.focused) {
-                  input.pollSelection();
-                  input.polling.set(input.cm.options.pollInterval, poll);
-                }
-              },
-              'name',
-              { value: 't', configurable: true },
-            ),
-          );
+          this.polling.set(this.cm.options.pollInterval, function poll() {
+            if (input.cm.state.focused) {
+              input.pollSelection();
+              input.polling.set(input.cm.options.pollInterval, poll);
+            }
+          });
         };
         ContentEditableInput.prototype.selectionChanged = function () {
           var selection = window.getSelection();
@@ -11310,10 +10777,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           for (
             var newText = editor.doc.splitLines(
                 (function (editor, from, previousLine, fromLine, toLine) {
-                  Object.defineProperty(close, 'name', { value: 'l', configurable: true });
-                  Object.defineProperty(addText, 'name', { value: 'c', configurable: true });
-                  Object.defineProperty(walk, 'name', { value: 'd', configurable: true });
-
                   var text = '',
                     closing = false,
                     lineSep = editor.doc.lineSeparator();
@@ -11505,22 +10968,16 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         ContentEditableInput.prototype.onContextMenu = function () {};
         ContentEditableInput.prototype.resetPosition = function () {};
         ContentEditableInput.prototype.needsContentAttribute = true;
-        var TextareaInput = Object.defineProperty(
-          function (editor) {
-            this.cm = editor;
-            this.prevInput = '';
-            this.pollingFast = false;
-            this.polling = new Delayed();
-            this.inaccurateSelection = false;
-            this.hasSelection = false;
-            this.composing = null;
-          },
-          'name',
-          { value: 'Da', configurable: true },
-        );
+        var TextareaInput = function (editor) {
+          this.cm = editor;
+          this.prevInput = '';
+          this.pollingFast = false;
+          this.polling = new Delayed();
+          this.inaccurateSelection = false;
+          this.hasSelection = false;
+          this.composing = null;
+        };
         TextareaInput.prototype.init = function (display) {
-          Object.defineProperty(prepareCopyCut, 'name', { value: 'l', configurable: true });
-
           var this$1 = this,
             input = this,
             editor = this.cm,
@@ -11732,22 +11189,15 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           var missed = false,
             input = this;
           input.pollingFast = true;
-          input.polling.set(
-            20,
-            Object.defineProperty(
-              function fastPollStep() {
-                if (input.poll() || missed) {
-                  input.pollingFast = false;
-                  input.slowPoll();
-                } else {
-                  missed = true;
-                  input.polling.set(60, fastPollStep);
-                }
-              },
-              'name',
-              { value: 'n', configurable: true },
-            ),
-          );
+          input.polling.set(20, function fastPollStep() {
+            if (input.poll() || missed) {
+              input.pollingFast = false;
+              input.slowPoll();
+            } else {
+              missed = true;
+              input.polling.set(60, fastPollStep);
+            }
+          });
         };
         TextareaInput.prototype.poll = function () {
           var this$1 = this,
@@ -11829,9 +11279,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           this.fastPoll();
         };
         TextareaInput.prototype.onContextMenu = function (event) {
-          Object.defineProperty(prepareSelectAllHack, 'name', { value: 'y', configurable: true });
-          Object.defineProperty(rehide, 'name', { value: 'b', configurable: true });
-
           var input = this,
             editor = input.cm,
             display = editor.display,
@@ -11893,14 +11340,10 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             }
             if (captureRightClick) {
               e_stop(event);
-              var mouseup = Object.defineProperty(
-                function () {
-                  off(window, 'mouseup', mouseup);
-                  setTimeout(rehide, 20);
-                },
-                'name',
-                { value: 'v', configurable: true },
-              );
+              var mouseup = function () {
+                off(window, 'mouseup', mouseup);
+                setTimeout(rehide, 20);
+              };
               addEventHandler(window, 'mouseup', mouseup);
             } else {
               setTimeout(rehide, 50);
@@ -11930,27 +11373,23 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
                 prepareSelectAllHack();
               }
               var pollCount = 0,
-                poll = Object.defineProperty(
-                  function () {
-                    if (
-                      display.selForContextMenu == editor.doc.sel &&
-                      0 == textarea.selectionStart &&
-                      textarea.selectionEnd > 0 &&
-                      '​' == input.prevInput
-                    ) {
-                      operation(editor, selectAll)(editor);
+                poll = function () {
+                  if (
+                    display.selForContextMenu == editor.doc.sel &&
+                    0 == textarea.selectionStart &&
+                    textarea.selectionEnd > 0 &&
+                    '​' == input.prevInput
+                  ) {
+                    operation(editor, selectAll)(editor);
+                  } else {
+                    if (pollCount++ < 10) {
+                      display.detectingSelectAll = setTimeout(poll, 500);
                     } else {
-                      if (pollCount++ < 10) {
-                        display.detectingSelectAll = setTimeout(poll, 500);
-                      } else {
-                        display.selForContextMenu = null;
-                        display.input.reset();
-                      }
+                      display.selForContextMenu = null;
+                      display.input.reset();
                     }
-                  },
-                  'name',
-                  { value: 'o', configurable: true },
-                );
+                  }
+                };
               display.detectingSelectAll = setTimeout(poll, 200);
             }
           }
@@ -11963,8 +11402,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
         TextareaInput.prototype.setUneditable = function () {};
         TextareaInput.prototype.needsContentAttribute = false;
         (function (CodeMirror) {
-          Object.defineProperty(defineOption, 'name', { value: 'n', configurable: true });
-
           var optionHandlers = CodeMirror.optionHandlers;
           function defineOption(optionName, defaultValue, changeHandler, skipInitialization) {
             CodeMirror.defaults[optionName] = defaultValue;
@@ -12805,17 +12242,13 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
             }),
             setSize: methodOp(function (width, height) {
               var this$1 = this,
-                interpret = Object.defineProperty(
-                  function (val) {
-                    if ('number' == typeof val || /^\d+$/.test(String(val))) {
-                      return val + 'px';
-                    } else {
-                      return val;
-                    }
-                  },
-                  'name',
-                  { value: 'i', configurable: true },
-                );
+                interpret = function (val) {
+                  if ('number' == typeof val || /^\d+$/.test(String(val))) {
+                    return val + 'px';
+                  } else {
+                    return val;
+                  }
+                };
               if (null != width) {
                 this.display.wrapper.style.width = interpret(width);
               }
@@ -12933,8 +12366,6 @@ export default function installLibrariesCodemirror(engineModules, vendorScope) {
           Doc.prototype[name] = func;
         };
         CodeMirror.fromTextArea = function (textarea, options, hostEditor, nodeId) {
-          Object.defineProperty(save, 'name', { value: 'o', configurable: true });
-
           (options = options ? copyObj(options) : {}).value = textarea.value;
           if (!options.tabindex && textarea.tabIndex) {
             options.tabindex = textarea.tabIndex;

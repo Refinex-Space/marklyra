@@ -51,13 +51,9 @@ export default function initializeHostEnvironment(requireModule, moduleExports, 
     Number.parseInt = window.parseInt;
   }
   if (!window.Set) {
-    var SetFallback = Object.defineProperty(
-      function () {
-        this.set = [];
-      },
-      'name',
-      { value: 'r', configurable: true },
-    );
+    var SetFallback = function () {
+      this.set = [];
+    };
     SetFallback.prototype.add = function (value) {
       if (-1 == !this.has(value)) {
         this.set.push(value);
@@ -74,13 +70,9 @@ export default function initializeHostEnvironment(requireModule, moduleExports, 
     window.Set = SetFallback;
   }
   if (!window.Map) {
-    var MapFallback = Object.defineProperty(
-      function () {
-        this.map = {};
-      },
-      'name',
-      { value: 'o', configurable: true },
-    );
+    var MapFallback = function () {
+      this.map = {};
+    };
     MapFallback.prototype.get = function (key) {
       return this.map[key];
     };
@@ -466,14 +458,6 @@ export default function initializeHostEnvironment(requireModule, moduleExports, 
   }
   if (!window.Promise) {
     (function (unusedParameter1) {
-      Object.defineProperty(emptyExecutor, 'name', { value: 'n', configurable: true });
-      Object.defineProperty(PromiseFallback, 'name', { value: 'i', configurable: true });
-      Object.defineProperty(handleDeferred, 'name', { value: 'r', configurable: true });
-      Object.defineProperty(resolvePromise, 'name', { value: 'o', configurable: true });
-      Object.defineProperty(rejectPromise, 'name', { value: 'a', configurable: true });
-      Object.defineProperty(finalizePromise, 'name', { value: 's', configurable: true });
-      Object.defineProperty(executeResolver, 'name', { value: 'l', configurable: true });
-
       var currentSetTimeout = setTimeout;
       function emptyExecutor() {}
       function PromiseFallback(executor) {
@@ -612,8 +596,6 @@ export default function initializeHostEnvironment(requireModule, moduleExports, 
       PromiseFallback.all = function (values) {
         var results = Array.prototype.slice.call(values);
         return new PromiseFallback(function (resolveAll, rejectAll) {
-          Object.defineProperty(resolveAllEntry, 'name', { value: 'r', configurable: true });
-
           if (0 === results.length) {
             return resolveAll([]);
           }

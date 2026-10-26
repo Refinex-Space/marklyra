@@ -61,7 +61,7 @@ for (const [engine, launcher] of [
     };
     await start();
     await load();
-    // Simulate persisted initial options arriving after the original constructors.
+    // Simulate persisted initial options arriving after the constructors.
     const initial = await page.evaluate(() => {
       const cm = Object.values(editor.fences.queue)[0];
       const field = cm.getInputField();

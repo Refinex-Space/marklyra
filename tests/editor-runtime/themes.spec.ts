@@ -133,7 +133,7 @@ async function mount(page: Page): Promise<Frame> {
   }, source);
   const frame = page.frames().find((entry) => entry.url().startsWith('http://127.0.0.1:4174/'));
   if (!frame) throw new Error('Missing runtime');
-  // Original Editor.reset owns an 80ms refresh after ready. Its completion is
+  // Editor.reset owns an 80ms refresh after ready. Its completion is
   // observed so that a test caret is not replaced by the initial load callback.
   await frame.waitForFunction(() => {
     const probe = Reflect.get(window, 'themeLoadTimers') as {
@@ -181,8 +181,8 @@ async function focusEnd(frame: Frame) {
       end.textContent?.length ?? 0,
     );
   });
-  // The original engine consumes selectionchange asynchronously. Establish a
-  // coherent original bookmark before comparing the effect of a style update.
+  // The engine consumes selectionchange asynchronously. Establish a
+  // coherent bookmark before comparing the effect of a style update.
   await expect
     .poll(() => frame.evaluate(() => (window as unknown as Child).editor.selection.buildUndo()))
     .toMatchObject({ type: 'cursor', start: 14, end: 14 });

@@ -217,7 +217,7 @@ extern "C-unwind" fn entered(this: &AnyObject, _selector: Sel, sender: &AnyObjec
     if ours(this) && paths(sender).map_or(true, |paths| !paths.is_empty()) {
         return 1; // NSDragOperationCopy; never move/delete a source file.
     }
-    // SAFETY: Exact original destination method on this object's superclass.
+    // SAFETY: Exact destination method on this object's superclass.
     original_entered(this, _selector, sender)
 }
 extern "C-unwind" fn updated(this: &AnyObject, _selector: Sel, sender: &AnyObject) -> usize {

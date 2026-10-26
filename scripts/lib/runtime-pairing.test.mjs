@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createContext, Script } from 'node:vm';
 import { capability, engineModule, sourceOf } from './runtime-test-source.mjs';
 
-const module = engineModule('56');
+const module = engineModule('editing/character-pairs');
 const moduleSource = sourceOf(module);
 test('pairing module contains one cache-reset capability and executable source', () => {
   capability('__MARKLYRA_RESET_PAIRING__', module);

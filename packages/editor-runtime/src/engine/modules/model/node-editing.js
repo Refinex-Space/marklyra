@@ -80,9 +80,6 @@ export default function initializeModelNodeEditing(requireModule, moduleExports,
     };
   };
   DocumentNode.prototype.breakOn = function (keepListItem, editor, softBreak) {
-    Object.defineProperty(splitNodeContent, 'name', { value: 'h', configurable: true });
-    Object.defineProperty(restoreSplitCursor, 'name', { value: 'p', configurable: true });
-
     var splitOffset, currentTextLength;
     if (
       DocumentNode.isType(
@@ -508,39 +505,35 @@ export default function initializeModelNodeEditing(requireModule, moduleExports,
       localElements = sourceElement[0].querySelectorAll('.md-pair-s, .md-meta-i-c');
     }
     for (
-      var createOppositeSyntaxMarker = Object.defineProperty(
-          (inlineElement, closingSide) => {
-            var SPANElement = document.createElement('SPAN'),
-              text = inlineElement.children(closingSide ? '.md-after' : '.md-before').rawText();
-            if (closingSide) {
-              SPANElement.classList.add('md-before');
+      var createOppositeSyntaxMarker = (inlineElement, closingSide) => {
+          var SPANElement = document.createElement('SPAN'),
+            text = inlineElement.children(closingSide ? '.md-after' : '.md-before').rawText();
+          if (closingSide) {
+            SPANElement.classList.add('md-before');
+          } else {
+            SPANElement.classList.add('md-after');
+          }
+          if ('<u>' == text) {
+            text = '</u>';
+          } else {
+            if ('</u>' == text) {
+              text = '<u>';
             } else {
-              SPANElement.classList.add('md-after');
-            }
-            if ('<u>' == text) {
-              text = '</u>';
-            } else {
-              if ('</u>' == text) {
-                text = '<u>';
+              if ('<' == text) {
+                text = '>';
               } else {
-                if ('<' == text) {
-                  text = '>';
-                } else {
-                  if ('>' == text) {
-                    text = '<';
-                  }
+                if ('>' == text) {
+                  text = '<';
                 }
               }
             }
-            SPANElement.textContent = text;
-            if (closingSide) {
-              cursorAdjustment += text.length;
-            }
-            return SPANElement;
-          },
-          'name',
-          { value: 'c', configurable: true },
-        ),
+          }
+          SPANElement.textContent = text;
+          if (closingSide) {
+            cursorAdjustment += text.length;
+          }
+          return SPANElement;
+        },
         items = [],
         itemIndex = 0;
       itemIndex < currentElements.length;
@@ -819,8 +812,6 @@ export default function initializeModelNodeEditing(requireModule, moduleExports,
     return items;
   };
   DocumentNode.getTreePosition = function (documentNode, inputDocumentNode) {
-    Object.defineProperty(getNodeDepth, 'name', { value: 'n', configurable: true });
-
     function getNodeDepth(callbackDocumentNode) {
       if (callbackDocumentNode.get('parent')) {
         return 1 + getNodeDepth(callbackDocumentNode.get('parent'));
@@ -845,24 +836,20 @@ export default function initializeModelNodeEditing(requireModule, moduleExports,
         }
       }
     }
-    return Object.defineProperty(
-      function findSharedAncestor(callbackDocumentNode, otherNode) {
-        if (callbackDocumentNode == otherNode) {
-          return [callbackDocumentNode, callbackDocumentNode, otherNode];
+    return (function findSharedAncestor(callbackDocumentNode, otherNode) {
+      if (callbackDocumentNode == otherNode) {
+        return [callbackDocumentNode, callbackDocumentNode, otherNode];
+      } else {
+        if (
+          callbackDocumentNode.get('parent') == otherNode.get('parent') ||
+          (!callbackDocumentNode.get('parent') && !callbackDocumentNode.get('parent'))
+        ) {
+          return [callbackDocumentNode.get('parent'), callbackDocumentNode, otherNode];
         } else {
-          if (
-            callbackDocumentNode.get('parent') == otherNode.get('parent') ||
-            (!callbackDocumentNode.get('parent') && !callbackDocumentNode.get('parent'))
-          ) {
-            return [callbackDocumentNode.get('parent'), callbackDocumentNode, otherNode];
-          } else {
-            return findSharedAncestor(callbackDocumentNode.get('parent'), otherNode.get('parent'));
-          }
+          return findSharedAncestor(callbackDocumentNode.get('parent'), otherNode.get('parent'));
         }
-      },
-      'name',
-      { value: 'e', configurable: true },
-    )(documentNode, inputDocumentNode);
+      }
+    })(documentNode, inputDocumentNode);
   };
   DocumentNode.prototype.copyContentFrom = function (sourceNode, propertyNames) {
     var receiver = this;
@@ -1040,8 +1027,6 @@ export default function initializeModelNodeEditing(requireModule, moduleExports,
     }
   };
   DocumentNode.reverse = function (sourceElement, documentMap, stripMetadata, preserveDomIdentity) {
-    Object.defineProperty(appendReversedChild, 'name', { value: 'l', configurable: true });
-
     if (sourceElement.length && sourceElement[0].hasAttribute('mdtype')) {
       var documentNode,
         currentDocumentNode = new DocumentNode({ in: documentMap });
@@ -1075,8 +1060,6 @@ export default function initializeModelNodeEditing(requireModule, moduleExports,
     }
   };
   DocumentNode.prototype.attr = function (key, lastCodeLang, editor, replayingHistory) {
-    Object.defineProperty(createAttributeCommand, 'name', { value: 'a', configurable: true });
-
     function createAttributeCommand(targetNode, previousValue) {
       var attributeCommand = editor.undo.UndoManager.makeEmptyCommand();
       attributeCommand.undo.push({

@@ -135,7 +135,7 @@ for (const named of [true, false]) {
       });
     await page.keyboard.type('X');
     await expect(write(page)).toHaveText(named ? 'AlphaX' : 'X');
-    // End the original typing group before taking an exact history baseline.
+    // End the typing group before taking an exact history baseline.
     // prepareCreatedDocument legitimately flushes/endSnap before creation.
     await write(page).evaluate(() => {
       (Reflect.get(window, 'editor') as { undo: { endSnap(): void } }).undo.endSnap();

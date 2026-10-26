@@ -1,4 +1,4 @@
-// Original JSON-only transport for the Tauri public invoke_system hook.
+// JSON-only transport for the Tauri public invoke_system hook.
 // Tauri substitutes the invoke-key placeholder; native key/ACL checks stay intact.
 (() => {
   const location = window.location;

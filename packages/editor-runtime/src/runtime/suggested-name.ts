@@ -2,7 +2,7 @@ import { VIRTUAL_DOCUMENT_PATH } from '../images/contracts.js';
 import type { LegacyFile } from './legacy-types.js';
 
 /** The image sandbox's synthetic document.md is not a host-provided filename.
- * Shadow only this proven virtual metadata during the synchronous original read. */
+ * Shadow only this proven virtual metadata during the synchronous read. */
 export function originalSuggestedName(file: LegacyFile): string {
   const bundle = file.bundle;
   let name: string;
@@ -22,7 +22,7 @@ export function originalSuggestedName(file: LegacyFile): string {
       Object.defineProperty(bundle, 'fileName', descriptor);
     }
   }
-  // The original UTF-16 length cap can cut an emoji in half. A filename crossing
+  // The UTF-16 length cap can cut an emoji in half. A filename crossing
   // a JSON/native boundary must remain Unicode; the document itself is untouched.
   const last = name.charCodeAt(name.length - 1);
   if (last >= 0xd800 && last <= 0xdbff) name = name.slice(0, -1);

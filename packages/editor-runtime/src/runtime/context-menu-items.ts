@@ -35,7 +35,7 @@ export interface ContextMenuFacts {
     actions: readonly ImageHostAction[];
     preview?: boolean;
   };
-  /** Original style facts read at capture time; absent outside ordinary rich text. */
+  /** Style facts read at capture time; absent outside ordinary rich text. */
   editing?: MarkLyraMenuState;
 }
 /** Context actions that run one shared editing command at the restored menu selection. */

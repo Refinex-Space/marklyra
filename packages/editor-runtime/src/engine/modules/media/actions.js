@@ -1,16 +1,6 @@
 // media/actions.
 export default function initializeMediaActions(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(cloneSvgForExport, 'name', { value: 'c', configurable: true });
-  Object.defineProperty(serializeSvgForExport, 'name', { value: 'd', configurable: true });
-  Object.defineProperty(resolveSvgThemeColors, 'name', { value: 'u', configurable: true });
-  Object.defineProperty(normalizeSvgNamespaces, 'name', { value: 'h', configurable: true });
-  Object.defineProperty(createDiagramHtml, 'name', { value: 'f', configurable: true });
-  Object.defineProperty(rasterizeSvg, 'name', { value: 'm', configurable: true });
-  Object.defineProperty(copyPngToClipboard, 'name', { value: 'g', configurable: true });
-  Object.defineProperty(exportMediaElement, 'name', { value: 'v', configurable: true });
-  Object.defineProperty(insertAudioOrVideo, 'name', { value: 'b', configurable: true });
-  Object.defineProperty(insertResourceUrl, 'name', { value: 'w', configurable: true });
 
   if (!this) {
     self;
@@ -35,48 +25,42 @@ export default function initializeMediaActions(requireModule, moduleExports, mod
         .appendChild(document.querySelector('path#raphael-marker-block').cloneNode());
     }
     if (inlineStyles) {
-      Object.defineProperty(
-        function copyInlineStyles(sourceElement, destinationElement) {
-          Object.defineProperty(copyCollectionToArray, 'name', { value: 'i', configurable: true });
-
-          function copyCollectionToArray(collection) {
-            for (
-              var items = [], length = collection.length, itemIndex = 0;
-              itemIndex < length;
-              itemIndex++
-            ) {
-              items.push(collection[itemIndex]);
-            }
-            return items;
+      (function copyInlineStyles(sourceElement, destinationElement) {
+        function copyCollectionToArray(collection) {
+          for (
+            var items = [], length = collection.length, itemIndex = 0;
+            itemIndex < length;
+            itemIndex++
+          ) {
+            items.push(collection[itemIndex]);
           }
-          var currentComputedStyle = window.getComputedStyle(sourceElement);
-          [
-            'backgroundColor',
-            'color',
-            'fill',
-            'stroke',
-            'strokeWidth',
-            'opacity',
-            'stroke-dasharray',
-            'fontSize',
-            'fontFamily',
-            'textAnchor',
-            'textSize',
-            'padding',
-            'margin',
-          ].forEach(function (item) {
-            destinationElement.style[item] = currentComputedStyle[item];
+          return items;
+        }
+        var currentComputedStyle = window.getComputedStyle(sourceElement);
+        [
+          'backgroundColor',
+          'color',
+          'fill',
+          'stroke',
+          'strokeWidth',
+          'opacity',
+          'stroke-dasharray',
+          'fontSize',
+          'fontFamily',
+          'textAnchor',
+          'textSize',
+          'padding',
+          'margin',
+        ].forEach(function (item) {
+          destinationElement.style[item] = currentComputedStyle[item];
+        });
+        var clonedChildren = copyCollectionToArray(destinationElement.children || []);
+        if (clonedChildren.length) {
+          copyCollectionToArray(sourceElement.children || []).forEach(function (item, itemIndex) {
+            copyInlineStyles(item, clonedChildren[itemIndex]);
           });
-          var clonedChildren = copyCollectionToArray(destinationElement.children || []);
-          if (clonedChildren.length) {
-            copyCollectionToArray(sourceElement.children || []).forEach(function (item, itemIndex) {
-              copyInlineStyles(item, clonedChildren[itemIndex]);
-            });
-          }
-        },
-        'name',
-        { value: 'e', configurable: true },
-      )(domNode, clonedNode);
+        }
+      })(domNode, clonedNode);
     }
     if (domNode.parentElement && 'MJX-CONTAINER' == domNode.parentElement.tagName) {
       var bounds = domNode.getBoundingClientRect();

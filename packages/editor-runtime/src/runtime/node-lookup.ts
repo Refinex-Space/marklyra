@@ -41,7 +41,7 @@ export class RuntimeNodeLookup {
       )
         return Reflect.apply(original, this, args);
       const area = editor.writingArea;
-      // Preserve the original error/coercion behavior if the native ABI changes.
+      // Preserve the error/coercion behavior if the native ABI changes.
       if (!area || area.nodeType !== 1 || typeof area.querySelector !== 'function')
         return Reflect.apply(original, this, args);
       return Reflect.apply(lookup.jquery, undefined, [lookup.read(area, id)]);

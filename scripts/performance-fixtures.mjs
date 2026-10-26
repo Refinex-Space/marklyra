@@ -1,4 +1,4 @@
-/** Original benchmark inputs; no runtime program source or user documents. */
+/** Benchmark inputs; no runtime program source or user documents. */
 export function createPerformanceFixture(
   bytes,
   kind = 'mixed',

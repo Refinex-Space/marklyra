@@ -13,7 +13,7 @@ import {
 
 test('the complete internal engine is valid JavaScript with one native serialization capability', () => {
   assert.doesNotThrow(() => new Script(engineSource));
-  capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('12'));
+  capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('model/markdown-serializer'));
 });
 
 test('the native serialization capability exposes the actual bindings as an immutable value', () => {
@@ -28,7 +28,10 @@ test('the native serialization capability exposes the actual bindings as an immu
     }
   }
   const lines = () => 'lines';
-  const declaration = capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('12'));
+  const declaration = capability(
+    '__MARKLYRA_NATIVE_SERIALIZATION__',
+    engineModule('model/markdown-serializer'),
+  );
   const binding = (key) =>
     identifierRoot(
       unique(
@@ -42,7 +45,9 @@ test('the native serialization capability exposes the actual bindings as an immu
     [binding('lines')]: lines,
   });
   new Script(
-    expressionOf(capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('12'))),
+    expressionOf(
+      capability('__MARKLYRA_NATIVE_SERIALIZATION__', engineModule('model/markdown-serializer')),
+    ),
   ).runInContext(context);
   const value = context.__MARKLYRA_NATIVE_SERIALIZATION__;
   assert.equal(value.version, 1);

@@ -78,9 +78,9 @@ test('the real HTML message guard rejects an unowned event before continuing', (
 });
 
 for (const [id, methodName] of [
-  ['1c', 'updateDiagram'],
-  ['1c', 'startEditing'],
-  ['15', 'updateDiagram'],
+  ['render/math-blocks', 'updateDiagram'],
+  ['render/math-blocks', 'startEditing'],
+  ['render/diagrams', 'updateDiagram'],
 ]) {
   const method = unique(
     nodes(

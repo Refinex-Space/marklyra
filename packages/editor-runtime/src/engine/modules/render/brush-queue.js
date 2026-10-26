@@ -1,7 +1,6 @@
 // render/brush-queue.
 export default function initializeRenderBrushQueue(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(outermostInlineElement, 'name', { value: 'm', configurable: true });
 
   if (!this) {
     self;
@@ -96,8 +95,6 @@ export default function initializeRenderBrushQueue(requireModule, moduleExports,
       }
     },
     brushQueue: async function () {
-      Object.defineProperty(closestElement, 'name', { value: 'a', configurable: true });
-
       var receiver = this,
         processedNodes = {},
         queueLength = receiver.queue.length;
@@ -326,9 +323,6 @@ export default function initializeRenderBrushQueue(requireModule, moduleExports,
       skipInlineReparse,
       preserveEndBoundary,
     ) {
-      Object.defineProperty(extendSelectionRange, 'name', { value: 'k', configurable: true });
-      Object.defineProperty(isFocusableButton, 'name', { value: 'E', configurable: true });
-
       if (!suppressSelectionWork) {
         this.editor.wordCount.updateInSelection();
       }
@@ -465,11 +459,6 @@ export default function initializeRenderBrushQueue(requireModule, moduleExports,
                   localLength > 0 &&
                   localLength < expandableElement.text().length &&
                   (function (inputRange, expansionRoot) {
-                    Object.defineProperty(hasNoVisibleFollowingSibling, 'name', {
-                      value: 'n',
-                      configurable: true,
-                    });
-
                     function hasNoVisibleFollowingSibling(domNode) {
                       for (var nextSibling = domNode.nextSibling; nextSibling; ) {
                         if (nextSibling.offsetWidth) {
@@ -604,28 +593,27 @@ export default function initializeRenderBrushQueue(requireModule, moduleExports,
                           } else {
                             blockElement = startExpansion.closest('[cid]')[0];
                             if (
-                              !(startExpansion = Object.defineProperty(
-                                function expandRangeStart(candidateElement, blockBoundary) {
-                                  if (
-                                    !candidateElement.prevAll(':not(.md-meta, .md-content)').text()
-                                      .length
-                                  ) {
-                                    var element = candidateElement.parent();
-                                    if (element.attr('mdtype')) {
-                                      return candidateElement;
+                              !(startExpansion = (function expandRangeStart(
+                                candidateElement,
+                                blockBoundary,
+                              ) {
+                                if (
+                                  !candidateElement.prevAll(':not(.md-meta, .md-content)').text()
+                                    .length
+                                ) {
+                                  var element = candidateElement.parent();
+                                  if (element.attr('mdtype')) {
+                                    return candidateElement;
+                                  } else {
+                                    if (blockBoundary.contains(element[0]) || crossBoundary) {
+                                      return expandRangeStart(element, blockBoundary);
                                     } else {
-                                      if (blockBoundary.contains(element[0]) || crossBoundary) {
-                                        return expandRangeStart(element, blockBoundary);
-                                      } else {
-                                        return outermostInlineElement(candidateElement);
-                                      }
+                                      return outermostInlineElement(candidateElement);
                                     }
                                   }
-                                  return outermostInlineElement(candidateElement);
-                                },
-                                'name',
-                                { value: 't', configurable: true },
-                              )(
+                                }
+                                return outermostInlineElement(candidateElement);
+                              })(
                                 startExpansion,
                                 commonAncestorContainer.contains &&
                                   commonAncestorContainer.contains(blockElement)
@@ -673,28 +661,26 @@ export default function initializeRenderBrushQueue(requireModule, moduleExports,
                             } else {
                               blockElement = currentElement.closest('[cid]')[0];
                               if (
-                                !(currentElement = Object.defineProperty(
-                                  function expandRangeEnd(candidateElement, endBoundary) {
+                                !(currentElement = (function expandRangeEnd(
+                                  candidateElement,
+                                  endBoundary,
+                                ) {
+                                  if (
+                                    !candidateElement.nextAll(':not(.md-meta, .md-content)').text()
+                                      .length
+                                  ) {
+                                    var element = candidateElement.parent();
                                     if (
-                                      !candidateElement
-                                        .nextAll(':not(.md-meta, .md-content)')
-                                        .text().length
+                                      element.hasClass('[mdtype]') ||
+                                      element[0].contains(endBoundary)
                                     ) {
-                                      var element = candidateElement.parent();
-                                      if (
-                                        element.hasClass('[mdtype]') ||
-                                        element[0].contains(endBoundary)
-                                      ) {
-                                        return outermostInlineElement(candidateElement);
-                                      } else {
-                                        return expandRangeEnd(element, endBoundary);
-                                      }
+                                      return outermostInlineElement(candidateElement);
+                                    } else {
+                                      return expandRangeEnd(element, endBoundary);
                                     }
-                                    return outermostInlineElement(candidateElement);
-                                  },
-                                  'name',
-                                  { value: 'e', configurable: true },
-                                )(
+                                  }
+                                  return outermostInlineElement(candidateElement);
+                                })(
                                   currentElement,
                                   commonAncestorContainer.contains &&
                                     commonAncestorContainer.contains(blockElement)
@@ -802,41 +788,33 @@ export default function initializeRenderBrushQueue(requireModule, moduleExports,
       markExpandedAncestors.call(this, container);
     },
   };
-  var markExpandedAncestors = Object.defineProperty(
-      function (inputElement) {
-        var element = inputElement.closest('tr.md-end-block, li[cid]')[0],
-          domNode = inputElement[0];
-        if (element && domNode) {
-          for (; element !== domNode && element.contains(domNode); ) {
-            if (
-              domNode.previousSibling &&
-              domNode.previousSibling.hasAttribute &&
-              domNode.previousSibling.hasAttribute('cid')
-            ) {
-              return false;
-            }
-            domNode = domNode.parentElement;
+  var markExpandedAncestors = function (inputElement) {
+      var element = inputElement.closest('tr.md-end-block, li[cid]')[0],
+        domNode = inputElement[0];
+      if (element && domNode) {
+        for (; element !== domNode && element.contains(domNode); ) {
+          if (
+            domNode.previousSibling &&
+            domNode.previousSibling.hasAttribute &&
+            domNode.previousSibling.hasAttribute('cid')
+          ) {
+            return false;
           }
-          element.classList.add('md-focus-container');
+          domNode = domNode.parentElement;
         }
-      },
-      'name',
-      { value: 'p', configurable: true },
-    ),
-    expandInlineElement = Object.defineProperty(
-      function (element, keepFocusContainer) {
-        if (!keepFocusContainer) {
-          $('.md-focus-container').removeClass('md-focus-container');
-        }
-        if (element.length) {
-          markExpandedAncestors(
-            element.addClass('md-expand').trigger('expand').closest('[cid]').addClass('md-focus'),
-          );
-        }
-      },
-      'name',
-      { value: 'f', configurable: true },
-    );
+        element.classList.add('md-focus-container');
+      }
+    },
+    expandInlineElement = function (element, keepFocusContainer) {
+      if (!keepFocusContainer) {
+        $('.md-focus-container').removeClass('md-focus-container');
+      }
+      if (element.length) {
+        markExpandedAncestors(
+          element.addClass('md-expand').trigger('expand').closest('[cid]').addClass('md-focus'),
+        );
+      }
+    };
   function outermostInlineElement(inputElement) {
     var element = inputElement.parent().closest('[md-inline]');
     if (element.length) {
@@ -845,317 +823,310 @@ export default function initializeRenderBrushQueue(requireModule, moduleExports,
       return inputElement.closest('[md-inline]');
     }
   }
-  var brushDocumentNode = Object.defineProperty(
-    async function (inputNodeId, processedNodes, selectionBookmark, inlineOnly, awaitInlineMath) {
-      Object.defineProperty(stripClonedIdentityAttributes, 'name', {
-        value: 'v',
-        configurable: true,
-      });
-      Object.defineProperty(stripClonedSubtreeIdentity, 'name', { value: 'y', configurable: true });
-      Object.defineProperty(updateInlineDom, 'name', { value: 'b', configurable: true });
-      Object.defineProperty(applyRenderedNode, 'name', { value: 'w', configurable: true });
-      Object.defineProperty(correctSourceOffset, 'name', { value: 'x', configurable: true });
-
-      var nodeElement,
-        sourceText,
-        parseResult,
-        documentNode = inputNodeId,
-        nodeId = inputNodeId,
-        start = 0;
-      function stripClonedIdentityAttributes(element) {
-        for (var itemIndex = 0; itemIndex < element.attributes.length; itemIndex++) {
-          if (
-            DocumentNode.isType(
-              element.attributes[itemIndex].name,
-              'cid',
-              'contenteditable',
-              'id',
-              'for',
-              'onerror',
-              'onload',
-            )
-          ) {
-            element.removeAttributeNode(element.attributes[itemIndex]);
-          }
-        }
-        element.classList.remove('md-img-loaded');
-        element.classList.remove('md-img-error');
-      }
-      function stripClonedSubtreeIdentity(container) {
-        for (
-          var elements = container.querySelectorAll('*'), itemIndex = 0;
-          itemIndex < elements.length;
-          itemIndex++
+  var brushDocumentNode = async function (
+    inputNodeId,
+    processedNodes,
+    selectionBookmark,
+    inlineOnly,
+    awaitInlineMath,
+  ) {
+    var nodeElement,
+      sourceText,
+      parseResult,
+      documentNode = inputNodeId,
+      nodeId = inputNodeId,
+      start = 0;
+    function stripClonedIdentityAttributes(element) {
+      for (var itemIndex = 0; itemIndex < element.attributes.length; itemIndex++) {
+        if (
+          DocumentNode.isType(
+            element.attributes[itemIndex].name,
+            'cid',
+            'contenteditable',
+            'id',
+            'for',
+            'onerror',
+            'onload',
+          )
         ) {
-          stripClonedIdentityAttributes(elements[itemIndex]);
+          element.removeAttributeNode(element.attributes[itemIndex]);
         }
-        stripClonedIdentityAttributes(container);
       }
-      async function updateInlineDom(
-        inputElement,
-        documentNode,
-        parseResult,
-        selectionBookmark,
-        editor,
-        cursorDiff,
+      element.classList.remove('md-img-loaded');
+      element.classList.remove('md-img-error');
+    }
+    function stripClonedSubtreeIdentity(container) {
+      for (
+        var elements = container.querySelectorAll('*'), itemIndex = 0;
+        itemIndex < elements.length;
+        itemIndex++
       ) {
-        if (inputElement.length) {
-          var domChanged,
-            innerHtml = parseResult.innerHtml,
-            clonedNode = inputElement[0].cloneNode(true),
-            divElement = document.createElement('div'),
-            elementsLength =
-              ((cursorDiff = parseResult.cursorDiff), inputElement.find('.md-footnote').length);
-          divElement.innerHTML = innerHtml;
-          var expandedMathText = null;
-          clonedNode.querySelectorAll('.md-expand').forEach(function (element) {
-            if (element.classList.contains('md-inline-math')) {
-              if (
-                (element.querySelector('.md-before') || {}).textContent !==
-                (element.querySelector('.md-after') || {}).textContent
-              ) {
-                element.textContent = '';
-              } else {
-                expandedMathText = element.rawText(true);
-              }
-            }
-            element.classList.remove('md-expand');
-          });
-          clonedNode.querySelectorAll('.md-inline-math').forEach(function (element) {
-            element.textContent = element.rawText(true);
-            element.setAttribute('id', '');
-            if (expandedMathText == element.textContent) {
-              element.setAttribute('class', '');
-            }
-          });
-          divElement.querySelectorAll('.md-inline-math').forEach(function (element) {
-            element.textContent = element.rawText(true);
-            element.setAttribute('id', '');
-            if (expandedMathText == element.textContent) {
-              element.setAttribute('class', '');
-            }
-          });
-          stripClonedSubtreeIdentity(clonedNode);
-          stripClonedSubtreeIdentity(divElement);
-          if (
-            clonedNode.innerHTML.replace(/\s*class=\"\"/gi, '') !=
-            divElement.innerHTML.replace(/\s*class=\"\"/gi, '')
-          ) {
-            inputElement.html(innerHtml);
-            if (parseResult.mdlike) {
-              if (inputElement.attr('mdlike') != parseResult.mdlike) {
-                inputElement.attr('mdlike', parseResult.mdlike);
-              }
-            } else {
-              if (inputElement.attr('mdlike')) {
-                inputElement.removeAttr('mdlike');
-              }
-            }
-            editor.selection.clearGlobalColumn();
-            if (awaitInlineMath) {
-              await editor.mathInline.brush(inputElement[0], selectionBookmark, true);
-            } else {
-              editor.mathInline.brush(inputElement[0], selectionBookmark, true);
-            }
-            domChanged = true;
-          } else {
-            if (inputElement.hasClass('unholdable')) {
-              inputElement.removeClass('unholdable');
-            }
-            if (inputElement.find('.math-jax-preprocess').length) {
-              editor.mathInline.brush(inputElement[0], selectionBookmark, true);
-            }
-          }
-          if ((inputElement.find('.md-footnote').length || elementsLength) && editor.docMenu) {
-            editor.docMenu.refreshFootnoteReverseLink();
-          }
-          if (editor.focusCid === documentNode.cid) {
-            (function (
-              selectionBookmark,
-              cursorOffsets,
-              historyEntry,
-              unusedParameter4,
-              editor,
-              domChanged,
+        stripClonedIdentityAttributes(elements[itemIndex]);
+      }
+      stripClonedIdentityAttributes(container);
+    }
+    async function updateInlineDom(
+      inputElement,
+      documentNode,
+      parseResult,
+      selectionBookmark,
+      editor,
+      cursorDiff,
+    ) {
+      if (inputElement.length) {
+        var domChanged,
+          innerHtml = parseResult.innerHtml,
+          clonedNode = inputElement[0].cloneNode(true),
+          divElement = document.createElement('div'),
+          elementsLength =
+            ((cursorDiff = parseResult.cursorDiff), inputElement.find('.md-footnote').length);
+        divElement.innerHTML = innerHtml;
+        var expandedMathText = null;
+        clonedNode.querySelectorAll('.md-expand').forEach(function (element) {
+          if (element.classList.contains('md-inline-math')) {
+            if (
+              (element.querySelector('.md-before') || {}).textContent !==
+              (element.querySelector('.md-after') || {}).textContent
             ) {
-              if (domChanged || cursorOffsets.length) {
-                if (selectionBookmark) {
-                  if (historyEntry) {
-                    historyEntry.undo.unshift(Object.clone(selectionBookmark));
-                  }
-                  selectionBookmark.start = correctSourceOffset(
-                    cursorOffsets,
-                    selectionBookmark.start - start,
-                  );
-                  selectionBookmark.end = correctSourceOffset(
-                    cursorOffsets,
-                    selectionBookmark.end - start,
-                  );
-                  if (historyEntry) {
-                    historyEntry.redo.push(selectionBookmark);
-                  }
-                  if (editor.undo) {
-                    (function (__marklyraBrushEditor) {
-                      const __marklyraBrushUndo = __marklyraBrushEditor.undo;
-                      return (function (__marklyraBrushCommand, __marklyraBrushBookmark) {
-                        const __marklyraBrushRestore = window.__MARKLYRA_RESTORE_BRUSH_CURSOR__;
-                        if (typeof __marklyraBrushRestore === 'function') {
-                          return __marklyraBrushRestore(
-                            __marklyraBrushEditor,
-                            __marklyraBrushBookmark,
-                            (__marklyraBrushNext) =>
-                              Reflect.apply(__marklyraBrushCommand, __marklyraBrushUndo, [
-                                __marklyraBrushNext,
-                              ]),
-                          );
-                        } else {
-                          return Reflect.apply(__marklyraBrushCommand, __marklyraBrushUndo, [
-                            __marklyraBrushBookmark,
-                          ]);
-                        }
-                      })(__marklyraBrushUndo.exeCommand, selectionBookmark);
-                    })(editor);
-                  }
-                }
-                return true;
-              }
-            })(selectionBookmark, cursorDiff, parseResult.command, 0, editor, domChanged);
-            return false;
-          } else {
-            return domChanged;
-          }
-        }
-      }
-      async function applyRenderedNode(
-        nodeElement,
-        documentNode,
-        parseResult,
-        selectionBookmark,
-        editor,
-      ) {
-        if (parseResult.blockChanged) {
-          return (function (element, documentNode, parseResult, selectionBookmark, editor) {
-            var cursorOffsets = parseResult.cursorDiff || [];
-            editor.selection.clearGlobalColumn();
-            if (parseResult.replaceCid) {
-              editor.findElemById(parseResult.replaceCid).replaceWith(parseResult.html);
-              editor.refreshUnder(editor.findElemById(parseResult.replaceCid)[0]);
+              element.textContent = '';
             } else {
-              element.closest('p').replaceWith(parseResult.html);
+              expandedMathText = element.rawText(true);
             }
-            if (parseResult.toRemove) {
-              parseResult.toRemove.forEach(function (callbackNodeId) {
-                editor.findElemById(callbackNodeId).remove();
-              });
+          }
+          element.classList.remove('md-expand');
+        });
+        clonedNode.querySelectorAll('.md-inline-math').forEach(function (element) {
+          element.textContent = element.rawText(true);
+          element.setAttribute('id', '');
+          if (expandedMathText == element.textContent) {
+            element.setAttribute('class', '');
+          }
+        });
+        divElement.querySelectorAll('.md-inline-math').forEach(function (element) {
+          element.textContent = element.rawText(true);
+          element.setAttribute('id', '');
+          if (expandedMathText == element.textContent) {
+            element.setAttribute('class', '');
+          }
+        });
+        stripClonedSubtreeIdentity(clonedNode);
+        stripClonedSubtreeIdentity(divElement);
+        if (
+          clonedNode.innerHTML.replace(/\s*class=\"\"/gi, '') !=
+          divElement.innerHTML.replace(/\s*class=\"\"/gi, '')
+        ) {
+          inputElement.html(innerHtml);
+          if (parseResult.mdlike) {
+            if (inputElement.attr('mdlike') != parseResult.mdlike) {
+              inputElement.attr('mdlike', parseResult.mdlike);
             }
-            if (!(editor.focusCid && editor.focusCid !== documentNode.cid)) {
-              editor.focusCid = parseResult.focus;
-              if (editor.focusCid) {
-                markExpandedAncestors(editor.findElemById(editor.focusCid));
-              }
-              if (selectionBookmark) {
-                parseResult.command.undo.unshift(Object.clone(selectionBookmark));
-                if (cursorOffsets.length) {
-                  selectionBookmark.start = correctSourceOffset(
-                    cursorOffsets,
-                    selectionBookmark.start,
-                  );
-                  selectionBookmark.end = correctSourceOffset(cursorOffsets, selectionBookmark.end);
-                }
-                selectionBookmark.id = parseResult.focus;
-                selectionBookmark.startId = parseResult.focus;
-                selectionBookmark.endId = parseResult.focus;
-                selectionBookmark.start -= parseResult.offset;
-                selectionBookmark.end -= parseResult.offset;
-                parseResult.command.redo.push(Object.clone(selectionBookmark));
-              }
-              editor.undo.register(parseResult.command);
+          } else {
+            if (inputElement.attr('mdlike')) {
+              inputElement.removeAttr('mdlike');
             }
-            return true;
-          })(nodeElement, documentNode, parseResult, selectionBookmark, editor);
+          }
+          editor.selection.clearGlobalColumn();
+          if (awaitInlineMath) {
+            await editor.mathInline.brush(inputElement[0], selectionBookmark, true);
+          } else {
+            editor.mathInline.brush(inputElement[0], selectionBookmark, true);
+          }
+          domChanged = true;
         } else {
-          return await updateInlineDom(
-            nodeElement,
-            documentNode,
-            parseResult,
-            selectionBookmark,
-            editor,
-          );
-        }
-      }
-      function correctSourceOffset(offsetCorrections, sourceOffset) {
-        var correctedOffset = sourceOffset;
-        for (var correctionIndex in offsetCorrections) {
-          if (void 0 !== correctionIndex && correctionIndex <= sourceOffset) {
-            correctedOffset += offsetCorrections[correctionIndex];
+          if (inputElement.hasClass('unholdable')) {
+            inputElement.removeClass('unholdable');
+          }
+          if (inputElement.find('.math-jax-preprocess').length) {
+            editor.mathInline.brush(inputElement[0], selectionBookmark, true);
           }
         }
-        return correctedOffset;
-      }
-      try {
-        if ('string' == typeof inputNodeId) {
-          documentNode = this.editor.getNode(inputNodeId);
-        } else {
-          nodeId = documentNode.id;
+        if ((inputElement.find('.md-footnote').length || elementsLength) && editor.docMenu) {
+          editor.docMenu.refreshFootnoteReverseLink();
         }
-        if (!documentNode) {
-          return;
-        }
-        if (DocumentNode.isType(documentNode, NodeType.meta_block)) {
-          return;
-        }
-        if (formatting.CONST.NoInline.indexOf(documentNode.get('type')) > -1) {
-          return;
-        }
-        if (documentNode.get('children').length) {
-          documentNode
-            .get('children')
-            .toArray()
-            .map(function (item) {
-              if (processedNodes) {
-                processedNodes[item.id] = 1;
-              }
-              brushDocumentNode.call(this, item, processedNodes, selectionBookmark, inlineOnly);
-            }, this);
-          return true;
-        }
-        nodeElement = this.editor.findElemById(nodeId);
-        if (documentNode.get('type') == NodeType.def_footnote) {
-          var currentElements = nodeElement.find('.md-def-content');
-          sourceText = currentElements.rawText(false);
-          start = 0;
-          parseResult = markdownParser.quickParse(sourceText, this, documentNode, true);
-          return await applyRenderedNode(
-            currentElements,
-            documentNode,
-            parseResult,
+        if (editor.focusCid === documentNode.cid) {
+          (function (
             selectionBookmark,
-            this.editor,
-          );
+            cursorOffsets,
+            historyEntry,
+            unusedParameter4,
+            editor,
+            domChanged,
+          ) {
+            if (domChanged || cursorOffsets.length) {
+              if (selectionBookmark) {
+                if (historyEntry) {
+                  historyEntry.undo.unshift(Object.clone(selectionBookmark));
+                }
+                selectionBookmark.start = correctSourceOffset(
+                  cursorOffsets,
+                  selectionBookmark.start - start,
+                );
+                selectionBookmark.end = correctSourceOffset(
+                  cursorOffsets,
+                  selectionBookmark.end - start,
+                );
+                if (historyEntry) {
+                  historyEntry.redo.push(selectionBookmark);
+                }
+                if (editor.undo) {
+                  (function (__marklyraBrushEditor) {
+                    const __marklyraBrushUndo = __marklyraBrushEditor.undo;
+                    return (function (__marklyraBrushCommand, __marklyraBrushBookmark) {
+                      const __marklyraBrushRestore = window.__MARKLYRA_RESTORE_BRUSH_CURSOR__;
+                      if (typeof __marklyraBrushRestore === 'function') {
+                        return __marklyraBrushRestore(
+                          __marklyraBrushEditor,
+                          __marklyraBrushBookmark,
+                          (__marklyraBrushNext) =>
+                            Reflect.apply(__marklyraBrushCommand, __marklyraBrushUndo, [
+                              __marklyraBrushNext,
+                            ]),
+                        );
+                      } else {
+                        return Reflect.apply(__marklyraBrushCommand, __marklyraBrushUndo, [
+                          __marklyraBrushBookmark,
+                        ]);
+                      }
+                    })(__marklyraBrushUndo.exeCommand, selectionBookmark);
+                  })(editor);
+                }
+              }
+              return true;
+            }
+          })(selectionBookmark, cursorDiff, parseResult.command, 0, editor, domChanged);
+          return false;
+        } else {
+          return domChanged;
         }
-        sourceText = nodeElement.rawText('emoji');
-        start = 0;
-        parseResult = markdownParser.quickParse(
-          sourceText,
-          this,
-          documentNode,
-          inlineOnly || !DocumentNode.isType(documentNode, NodeType.paragraph),
-          null,
-          selectionBookmark,
-        );
-        return await applyRenderedNode(
+      }
+    }
+    async function applyRenderedNode(
+      nodeElement,
+      documentNode,
+      parseResult,
+      selectionBookmark,
+      editor,
+    ) {
+      if (parseResult.blockChanged) {
+        return (function (element, documentNode, parseResult, selectionBookmark, editor) {
+          var cursorOffsets = parseResult.cursorDiff || [];
+          editor.selection.clearGlobalColumn();
+          if (parseResult.replaceCid) {
+            editor.findElemById(parseResult.replaceCid).replaceWith(parseResult.html);
+            editor.refreshUnder(editor.findElemById(parseResult.replaceCid)[0]);
+          } else {
+            element.closest('p').replaceWith(parseResult.html);
+          }
+          if (parseResult.toRemove) {
+            parseResult.toRemove.forEach(function (callbackNodeId) {
+              editor.findElemById(callbackNodeId).remove();
+            });
+          }
+          if (!(editor.focusCid && editor.focusCid !== documentNode.cid)) {
+            editor.focusCid = parseResult.focus;
+            if (editor.focusCid) {
+              markExpandedAncestors(editor.findElemById(editor.focusCid));
+            }
+            if (selectionBookmark) {
+              parseResult.command.undo.unshift(Object.clone(selectionBookmark));
+              if (cursorOffsets.length) {
+                selectionBookmark.start = correctSourceOffset(
+                  cursorOffsets,
+                  selectionBookmark.start,
+                );
+                selectionBookmark.end = correctSourceOffset(cursorOffsets, selectionBookmark.end);
+              }
+              selectionBookmark.id = parseResult.focus;
+              selectionBookmark.startId = parseResult.focus;
+              selectionBookmark.endId = parseResult.focus;
+              selectionBookmark.start -= parseResult.offset;
+              selectionBookmark.end -= parseResult.offset;
+              parseResult.command.redo.push(Object.clone(selectionBookmark));
+            }
+            editor.undo.register(parseResult.command);
+          }
+          return true;
+        })(nodeElement, documentNode, parseResult, selectionBookmark, editor);
+      } else {
+        return await updateInlineDom(
           nodeElement,
+          documentNode,
+          parseResult,
+          selectionBookmark,
+          editor,
+        );
+      }
+    }
+    function correctSourceOffset(offsetCorrections, sourceOffset) {
+      var correctedOffset = sourceOffset;
+      for (var correctionIndex in offsetCorrections) {
+        if (void 0 !== correctionIndex && correctionIndex <= sourceOffset) {
+          correctedOffset += offsetCorrections[correctionIndex];
+        }
+      }
+      return correctedOffset;
+    }
+    try {
+      if ('string' == typeof inputNodeId) {
+        documentNode = this.editor.getNode(inputNodeId);
+      } else {
+        nodeId = documentNode.id;
+      }
+      if (!documentNode) {
+        return;
+      }
+      if (DocumentNode.isType(documentNode, NodeType.meta_block)) {
+        return;
+      }
+      if (formatting.CONST.NoInline.indexOf(documentNode.get('type')) > -1) {
+        return;
+      }
+      if (documentNode.get('children').length) {
+        documentNode
+          .get('children')
+          .toArray()
+          .map(function (item) {
+            if (processedNodes) {
+              processedNodes[item.id] = 1;
+            }
+            brushDocumentNode.call(this, item, processedNodes, selectionBookmark, inlineOnly);
+          }, this);
+        return true;
+      }
+      nodeElement = this.editor.findElemById(nodeId);
+      if (documentNode.get('type') == NodeType.def_footnote) {
+        var currentElements = nodeElement.find('.md-def-content');
+        sourceText = currentElements.rawText(false);
+        start = 0;
+        parseResult = markdownParser.quickParse(sourceText, this, documentNode, true);
+        return await applyRenderedNode(
+          currentElements,
           documentNode,
           parseResult,
           selectionBookmark,
           this.editor,
         );
-      } catch (error) {
-        console.debug(error.stack);
       }
-    },
-    'name',
-    { value: 'g', configurable: true },
-  );
+      sourceText = nodeElement.rawText('emoji');
+      start = 0;
+      parseResult = markdownParser.quickParse(
+        sourceText,
+        this,
+        documentNode,
+        inlineOnly || !DocumentNode.isType(documentNode, NodeType.paragraph),
+        null,
+        selectionBookmark,
+      );
+      return await applyRenderedNode(
+        nodeElement,
+        documentNode,
+        parseResult,
+        selectionBookmark,
+        this.editor,
+      );
+    } catch (error) {
+      console.debug(error.stack);
+    }
+  };
   moduleRecord.exports = BrushQueue;
 }

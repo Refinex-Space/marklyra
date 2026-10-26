@@ -74,7 +74,7 @@ pub struct TrashPlacement {
 impl TrashPlacement {
     /// Only a document-service publication pin can replace a retained source
     /// after this application's own atomic save. No renderer path or byte
-    /// equality can mint this proof; the original system endpoint stays intact.
+    /// equality can mint this proof; the captured system endpoint stays intact.
     pub fn refresh_file_source(
         &self,
         operation_key: uuid::Uuid,

@@ -44,7 +44,7 @@ const flush = (page: Page) =>
 const command = (page: Page, type: 'undo' | 'redo' | 'toggleSource') =>
   page.evaluate((type) => (window as unknown as Host).marklyraEditor.execute({ type }), type);
 async function select(frame: Frame, anchor: [number, number], head = anchor) {
-  // Establish this precise DOM fixture only after the original load callbacks
+  // Establish this precise DOM fixture only after the load callbacks
   // already queued for the old initial caret have actually completed.
   await drain(frame);
   await frame.evaluate(

@@ -1,8 +1,6 @@
 // host/file-integration.
 export default function initializeHostFileIntegration(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(captureResizeSelection, 'name', { value: 'x', configurable: true });
-  Object.defineProperty(restoreResizeSelection, 'name', { value: 'C', configurable: true });
 
   if (!this) {
     self;
@@ -20,16 +18,12 @@ export default function initializeHostFileIntegration(requireModule, moduleExpor
       NSChangeRedone: 5,
       NodeSaveFailed: -1,
     },
-    DocumentChangeCounter = Object.defineProperty(
-      function () {
-        this.doneStack = [];
-        this.undoneStack = [];
-        this.curState = [ChangeType.NSChangeAutoSaved, new Date() - 0];
-        this.lastSaved = this.curState[1];
-      },
-      'name',
-      { value: 'l', configurable: true },
-    );
+    DocumentChangeCounter = function () {
+      this.doneStack = [];
+      this.undoneStack = [];
+      this.curState = [ChangeType.NSChangeAutoSaved, new Date() - 0];
+      this.lastSaved = this.curState[1];
+    };
   DocumentChangeCounter.prototype.isDocumentEdited = function () {
     return !this.curState;
   };
@@ -156,33 +150,27 @@ export default function initializeHostFileIntegration(requireModule, moduleExpor
       scheduleAutoSave();
     }
   };
-  var scheduleAutoSave = Object.defineProperty(
-    function () {
-      const restoredUntitled =
-        !File.bundle.filePath && (File.bundle.fileName || File.bundle.originalPath);
-      if (File.changeCounter) {
-        if (restoredUntitled || !File.changeCounter.curState || File.inSavingProcess) {
-          if (
-            !(File.bundle.filePath && File.option.enableAutoSave && File.changeCounter.lastSaved)
-          ) {
-            document.querySelector('#title-text').classList.add('title-modified');
-            if (File.isNode) {
-              JSBridge.invoke('window.setTitle', void 0, true);
-            }
-            document.querySelector('#m-saved').parentElement.classList.remove('saved');
+  var scheduleAutoSave = function () {
+    const restoredUntitled =
+      !File.bundle.filePath && (File.bundle.fileName || File.bundle.originalPath);
+    if (File.changeCounter) {
+      if (restoredUntitled || !File.changeCounter.curState || File.inSavingProcess) {
+        if (!(File.bundle.filePath && File.option.enableAutoSave && File.changeCounter.lastSaved)) {
+          document.querySelector('#title-text').classList.add('title-modified');
+          if (File.isNode) {
+            JSBridge.invoke('window.setTitle', void 0, true);
           }
-        } else {
-          if ((File.bundle.filePath || File.bundle.fileName) && File.isNode) {
-            JSBridge.invoke('window.setTitle', void 0, false);
-          }
-          document.querySelector('#title-text').classList.remove('title-modified');
-          document.querySelector('#m-saved').parentElement.classList.add('saved');
+          document.querySelector('#m-saved').parentElement.classList.remove('saved');
         }
+      } else {
+        if ((File.bundle.filePath || File.bundle.fileName) && File.isNode) {
+          JSBridge.invoke('window.setTitle', void 0, false);
+        }
+        document.querySelector('#title-text').classList.remove('title-modified');
+        document.querySelector('#m-saved').parentElement.classList.add('saved');
       }
-    },
-    'name',
-    { value: 'c', configurable: true },
-  );
+    }
+  };
   moduleExports.showExportDialog = async function (exportFormat, exportOptions, customFilters) {
     if ((exportOptions = exportOptions || {}).path && exportOptions.overwrite) {
       if (File.option.noWarningForExportOverwrite) {
@@ -270,174 +258,158 @@ export default function initializeHostFileIntegration(requireModule, moduleExpor
       })(exportFormat, resolvePromise, exportOptions, customFilters);
     });
   };
-  var getDefaultExportPath = Object.defineProperty(
-      function (extension, exportOptions, onDefaultFileName) {
-        var lastSaveLocation = File.isWin ? '\\' : '/',
-          suggestedFileName = (extension =
-            null === extension || void 0 === extension
-              ? File.FileOption.getDefaultExtension()
-              : extension)
-            ? File.getSuggestedFileName() + '.' + extension
-            : File.getSuggestedFileName();
-        if ((exportOptions = exportOptions || {}).path) {
-          if (!File.option.lastExport || File.option.lastExportNoOverwrite) {
-            return (
-              utilities.pathByDeleteLastComponent(exportOptions.path) +
-              lastSaveLocation +
-              suggestedFileName
-            );
-          } else {
-            return exportOptions.path;
-          }
+  var getDefaultExportPath = function (extension, exportOptions, onDefaultFileName) {
+      var lastSaveLocation = File.isWin ? '\\' : '/',
+        suggestedFileName = (extension =
+          null === extension || void 0 === extension
+            ? File.FileOption.getDefaultExtension()
+            : extension)
+          ? File.getSuggestedFileName() + '.' + extension
+          : File.getSuggestedFileName();
+      if ((exportOptions = exportOptions || {}).path) {
+        if (!File.option.lastExport || File.option.lastExportNoOverwrite) {
+          return (
+            utilities.pathByDeleteLastComponent(exportOptions.path) +
+            lastSaveLocation +
+            suggestedFileName
+          );
         } else {
-          if (File.option.lastSaveLocation) {
-            return File.option.lastSaveLocation + lastSaveLocation + suggestedFileName;
+          return exportOptions.path;
+        }
+      } else {
+        if (File.option.lastSaveLocation) {
+          return File.option.lastSaveLocation + lastSaveLocation + suggestedFileName;
+        } else {
+          if ('same' === exportOptions.exportFolder) {
+            return getCurrentFileFolderPath() + lastSaveLocation + suggestedFileName;
           } else {
-            if ('same' === exportOptions.exportFolder) {
-              return getCurrentFileFolderPath() + lastSaveLocation + suggestedFileName;
+            if ('custom' === exportOptions.exportFolder) {
+              exportOptions.customExportPath =
+                exportOptions.customExportPath || window._options.documentsPath;
+              return exportOptions.customExportPath + lastSaveLocation + suggestedFileName;
             } else {
-              if ('custom' === exportOptions.exportFolder) {
-                exportOptions.customExportPath =
-                  exportOptions.customExportPath || window._options.documentsPath;
-                return exportOptions.customExportPath + lastSaveLocation + suggestedFileName;
+              if (File.mountFolder_) {
+                return File.mountFolder_ + lastSaveLocation + suggestedFileName;
               } else {
-                if (File.mountFolder_) {
-                  return File.mountFolder_ + lastSaveLocation + suggestedFileName;
-                } else {
-                  if (onDefaultFileName) {
-                    onDefaultFileName(suggestedFileName);
-                  }
-                  return suggestedFileName;
+                if (onDefaultFileName) {
+                  onDefaultFileName(suggestedFileName);
                 }
+                return suggestedFileName;
               }
             }
           }
         }
-      },
-      'name',
-      { value: 'd', configurable: true },
-    ),
-    getCurrentFileFolderPath = Object.defineProperty(
-      function () {
-        if (File.isMac) {
-          return File.bundle.currentFolderPath;
-        } else {
-          if (File.isNode && File.bundle.filePath) {
-            return reqnode('path').dirname(File.bundle.filePath || File.bundle.originalPath);
-          } else {
-            return '';
-          }
-        }
-      },
-      'name',
-      { value: 'u', configurable: true },
-    ),
-    getCurrentFilePath = Object.defineProperty(
-      function () {
-        return File.bundle.filePath || '';
-      },
-      'name',
-      { value: 'h', configurable: true },
-    );
-  var saveBeforeClosing = Object.defineProperty(
-    async (allowAutoSave, retryCount) => {
-      if (File._onInitParse) {
-        return Promise.reject('init parse');
-      }
-      File.editor.searchPanel.closePanel(true, true);
-      if (File.inSavingProcess) {
-        retryCount = retryCount || 1;
-        await ((delay) =>
-          new Promise((resolvePromise) => {
-            setTimeout(resolvePromise, delay);
-          }))(100 * retryCount);
-        if (File.inSavingProcess) {
-          if (retryCount > 5) {
-            File.inSavingProcess = false;
-            File.updateChangeCount(File.ChangeType.NodeSaveFailed);
-            return Promise.reject('save parse');
-          } else {
-            return await saveBeforeClosing(allowAutoSave, retryCount + 1);
-          }
-        } else {
-          return await saveBeforeClosing(allowAutoSave);
-        }
-      }
-      if (
-        !File.bundle.unsupported &&
-        (File.bundle.hasModified ||
-          1 != File.draftsRecoverList.length ||
-          reqnode('fs').unlink(File.draftsRecoverList[0], () => {}),
-        File.bundle.hasModified &&
-          File.changeCounter.isDocumentEdited() &&
-          (await JSBridge.invoke('document.noOtherWindow')))
-      ) {
-        if (
-          allowAutoSave &&
-          (File.option.enableAutoSave || File.option.saveFileOnSwitch) &&
-          File.bundle.filePath &&
-          reqnode('fs').existsSync(File.bundle.filePath)
-        ) {
-          if (false === (await File.saveUseNode(false, false, true))) {
-            throw new Error('save failed');
-          }
-          return;
-        }
-        await File.backupWindow(true);
-        return new Promise((resolvePromise, rejectPromise) => {
-          dialogs.showDialog({
-            title: $.localize.getString('Save', 'Menu'),
-            html: $.localize.getString(
-              "Do you want to save the changes made to this document ?<br> Your changes will be lost if you don't save them.",
-              'Panel',
-            ),
-            buttons: [
-              $.localize.getString('Save', 'Menu'),
-              $.localize.getString(File.bundle.filePath ? 'Discard Changes' : 'Discard', 'Panel'),
-              $.localize.getString('Cancel'),
-            ],
-            backdrop: false,
-            keyboard: true,
-            callback: async function (buttonIndex) {
-              if (0 == buttonIndex) {
-                File._needsUpdateSnap = new Date();
-                var saved = await File.saveUseNode(false, false, true);
-                if (saved) {
-                  try {
-                    File.updateChangeCount(File.ChangeType.NSChangeAutoSaved);
-                    await File.buildDocumentSnapForNode(true);
-                  } catch (error) {
-                    console.sendError(error);
-                    File.updateChangeCount(File.ChangeType.NodeSaveFailed);
-                    saved = false;
-                  }
-                }
-                if (saved) {
-                  resolvePromise();
-                } else {
-                  rejectPromise(null);
-                }
-              } else {
-                if (1 == buttonIndex) {
-                  File.buildDocumentSnapForNode();
-                  JSBridge.invoke('document.setLastSync', -1);
-                  await mediaActions.onSaveDiscard();
-                  resolvePromise();
-                  File._needsUpdateSnap = false;
-                } else {
-                  JSBridge.invoke('app.cancelQuit');
-                  File._onFileSwitching = false;
-                  rejectPromise(null);
-                }
-              }
-            },
-          });
-        });
       }
     },
-    'name',
-    { value: 'p', configurable: true },
-  );
+    getCurrentFileFolderPath = function () {
+      if (File.isMac) {
+        return File.bundle.currentFolderPath;
+      } else {
+        if (File.isNode && File.bundle.filePath) {
+          return reqnode('path').dirname(File.bundle.filePath || File.bundle.originalPath);
+        } else {
+          return '';
+        }
+      }
+    },
+    getCurrentFilePath = function () {
+      return File.bundle.filePath || '';
+    };
+  var saveBeforeClosing = async (allowAutoSave, retryCount) => {
+    if (File._onInitParse) {
+      return Promise.reject('init parse');
+    }
+    File.editor.searchPanel.closePanel(true, true);
+    if (File.inSavingProcess) {
+      retryCount = retryCount || 1;
+      await ((delay) =>
+        new Promise((resolvePromise) => {
+          setTimeout(resolvePromise, delay);
+        }))(100 * retryCount);
+      if (File.inSavingProcess) {
+        if (retryCount > 5) {
+          File.inSavingProcess = false;
+          File.updateChangeCount(File.ChangeType.NodeSaveFailed);
+          return Promise.reject('save parse');
+        } else {
+          return await saveBeforeClosing(allowAutoSave, retryCount + 1);
+        }
+      } else {
+        return await saveBeforeClosing(allowAutoSave);
+      }
+    }
+    if (
+      !File.bundle.unsupported &&
+      (File.bundle.hasModified ||
+        1 != File.draftsRecoverList.length ||
+        reqnode('fs').unlink(File.draftsRecoverList[0], () => {}),
+      File.bundle.hasModified &&
+        File.changeCounter.isDocumentEdited() &&
+        (await JSBridge.invoke('document.noOtherWindow')))
+    ) {
+      if (
+        allowAutoSave &&
+        (File.option.enableAutoSave || File.option.saveFileOnSwitch) &&
+        File.bundle.filePath &&
+        reqnode('fs').existsSync(File.bundle.filePath)
+      ) {
+        if (false === (await File.saveUseNode(false, false, true))) {
+          throw new Error('save failed');
+        }
+        return;
+      }
+      await File.backupWindow(true);
+      return new Promise((resolvePromise, rejectPromise) => {
+        dialogs.showDialog({
+          title: $.localize.getString('Save', 'Menu'),
+          html: $.localize.getString(
+            "Do you want to save the changes made to this document ?<br> Your changes will be lost if you don't save them.",
+            'Panel',
+          ),
+          buttons: [
+            $.localize.getString('Save', 'Menu'),
+            $.localize.getString(File.bundle.filePath ? 'Discard Changes' : 'Discard', 'Panel'),
+            $.localize.getString('Cancel'),
+          ],
+          backdrop: false,
+          keyboard: true,
+          callback: async function (buttonIndex) {
+            if (0 == buttonIndex) {
+              File._needsUpdateSnap = new Date();
+              var saved = await File.saveUseNode(false, false, true);
+              if (saved) {
+                try {
+                  File.updateChangeCount(File.ChangeType.NSChangeAutoSaved);
+                  await File.buildDocumentSnapForNode(true);
+                } catch (error) {
+                  console.sendError(error);
+                  File.updateChangeCount(File.ChangeType.NodeSaveFailed);
+                  saved = false;
+                }
+              }
+              if (saved) {
+                resolvePromise();
+              } else {
+                rejectPromise(null);
+              }
+            } else {
+              if (1 == buttonIndex) {
+                File.buildDocumentSnapForNode();
+                JSBridge.invoke('document.setLastSync', -1);
+                await mediaActions.onSaveDiscard();
+                resolvePromise();
+                File._needsUpdateSnap = false;
+              } else {
+                JSBridge.invoke('app.cancelQuit');
+                File._onFileSwitching = false;
+                rejectPromise(null);
+              }
+            }
+          },
+        });
+      });
+    }
+  };
   moduleExports.tryLeaveDocument = function (onComplete, allowAutoSave) {
     saveBeforeClosing(allowAutoSave)
       .then(onComplete)
@@ -447,36 +419,26 @@ export default function initializeHostFileIntegration(requireModule, moduleExpor
         }
       });
   };
-  var isSupportedFile = Object.defineProperty(
-      function (fileName, requireExtension) {
-        if (fileName && '.' != fileName[0]) {
-          var normalizedText = getFileExtension(fileName).toLowerCase();
-          if (normalizedText) {
-            return ~File.SupportedFiles.indexOf(normalizedText);
-          } else {
-            return !requireExtension;
-          }
+  var isSupportedFile = function (fileName, requireExtension) {
+      if (fileName && '.' != fileName[0]) {
+        var normalizedText = getFileExtension(fileName).toLowerCase();
+        if (normalizedText) {
+          return ~File.SupportedFiles.indexOf(normalizedText);
+        } else {
+          return !requireExtension;
         }
-        return false;
-      },
-      'name',
-      { value: 'f', configurable: true },
-    ),
-    getFileExtension = Object.defineProperty(
-      function (text) {
-        return (
-          (text
-            .split(/[\/\\]/)
-            .last()
-            .match(/\.([^.]+)$/) || [])[1] || ''
-        );
-      },
-      'name',
-      { value: 'm', configurable: true },
-    );
+      }
+      return false;
+    },
+    getFileExtension = function (text) {
+      return (
+        (text
+          .split(/[\/\\]/)
+          .last()
+          .match(/\.([^.]+)$/) || [])[1] || ''
+      );
+    };
   !(function () {
-    Object.defineProperty(copyDocumentMarkdown, 'name', { value: 'e', configurable: true });
-
     function copyDocumentMarkdown() {
       File.option.copyMarkdownByDefault = true;
       window.ClientCommand.selectAll();
@@ -515,17 +477,11 @@ export default function initializeHostFileIntegration(requireModule, moduleExpor
         $('#save-error-banner').hide();
       });
   })();
-  const loadNativeMainModule = Object.defineProperty(
-    function () {
-      return reqnode(
-        window.debugMode
-          ? '../../launch/app/main.node'
-          : `${window.dirname}/node_modules/main.node`,
-      );
-    },
-    'name',
-    { value: 'g', configurable: true },
-  );
+  const loadNativeMainModule = function () {
+    return reqnode(
+      window.debugMode ? '../../launch/app/main.node' : `${window.dirname}/node_modules/main.node`,
+    );
+  };
   moduleExports.winShell = loadNativeMainModule;
   var element,
     isLinux = false,
@@ -554,18 +510,14 @@ export default function initializeHostFileIntegration(requireModule, moduleExpor
       coalescedEventName,
       eventTarget,
       framePending,
-      scheduleResizeSelectionRelease = Object.defineProperty(
-        function () {
-          if (timerId) {
-            clearTimeout(timerId);
-          }
-          timerId = setTimeout(function () {
-            resizeSelection = null;
-          }, 500);
-        },
-        'name',
-        { value: 'r', configurable: true },
-      );
+      scheduleResizeSelectionRelease = function () {
+        if (timerId) {
+          clearTimeout(timerId);
+        }
+        timerId = setTimeout(function () {
+          resizeSelection = null;
+        }, 500);
+      };
     window.addEventListener('beforeResize', function () {
       if (File && File.editor && !File._onInitParse) {
         captureResizeSelection();

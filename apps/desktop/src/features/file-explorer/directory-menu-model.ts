@@ -4,7 +4,7 @@ import type {
 } from '../../services/directory-history.js';
 import type { WorkspaceFolder } from '../../services/workspaces.js';
 
-/** Original display budget excludes the selected current location. */
+/** Display budget excludes the selected current location. */
 export function directoryMenuLimit(
   contentHeight: number,
   baseHeight: number,

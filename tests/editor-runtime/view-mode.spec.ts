@@ -166,7 +166,7 @@ test('failed replacement and throwing view/diagnostic observers cannot invent a 
   expect(error).toMatch(/normalization|surrogate/);
   expect(await modes(page)).toEqual(['wysiwyg', 'source']);
   expect(await flush(page)).toBe(edited);
-  // Original rollback may seed an equal-text WYS reload entry when its stack
+  // Rollback may seed an equal-text WYS reload entry when its stack
   // was empty. The existing document-lifecycle contract checks Source history
   // by real Undo/Redo, rather than imposing an unchanged empty WYS stack.
   await page.evaluate(() =>

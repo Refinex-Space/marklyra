@@ -437,9 +437,9 @@ function respond(name: string, data: unknown): unknown {
     if (contextEvent) contextMenu.offer(data, contextEvent);
     return null;
   }
-  // Original HTML export falls back to already-loaded CSSOM. No arbitrary native file read.
+  // HTML export falls back to already-loaded CSSOM. No arbitrary native file read.
   if (name === 'path.readText') return null;
-  // No OS text replacements are granted; the original callback requires an object.
+  // No OS text replacements are granted; the callback requires an object.
   if (name === 'word.getTextReplacement') return {};
   if (name === 'document.loadData') return [content, null, images.documentState()];
   if (name === 'document.getContent') return content;
@@ -488,7 +488,7 @@ function respond(name: string, data: unknown): unknown {
   if (name === 'path.currentFilePath' || name === 'document.currentFilePath') return '';
   // A local document link carries no authority of its own: the shell resolves it against the
   // current document and the open folder, and reports a refusal itself. Answering true keeps the
-  // original "cannot open location, create file?" prompt for links that really are unknown.
+  // "cannot open location, create file?" prompt for links that really are unknown.
   if (name === 'path.openFile') {
     const link = data as { url?: unknown; anchor?: unknown } | null;
     if (!link || typeof link.url !== 'string' || !link.url || link.url.length > 4096) return false;
@@ -730,7 +730,7 @@ function command(value: MarkLyraCommand) {
           document.querySelectorAll<HTMLElement>('#outline-content .outline-label[data-ref]'),
         ).find((item) => item.getAttribute('data-ref') === value.id);
         if (!label) throw new Error('大纲标题已变化，请重试');
-        // The original outline handler restores its saved editing range and
+        // The outline handler restores its saved editing range and
         // scrolls to the heading. Generic jumps below deliberately move caret.
         label.click();
         break;
@@ -1200,7 +1200,7 @@ document.addEventListener(
     contextEvent = event;
     event.preventDefault();
     // Trusted browser events run microtask checkpoints between listeners.
-    // Keep the event available through the original delegated bridge handler.
+    // Keep the event available through the delegated bridge handler.
     setTimeout(() => {
       if (contextEvent === event) contextEvent = null;
     }, 0);
@@ -1294,9 +1294,9 @@ for (const name of ['copy', 'cut', 'paste'] as const)
         selected.rangeCount
       ) {
         // Browser clipboard writes must happen before the event returns; the
-        // original native bridge finishes its copy work on a later timer.
+        // native bridge finishes its copy work on a later timer.
         // Claim cut before any projection can fail: neither the browser's
-        // default action nor the original listener may delete an unwritten copy.
+        // default action nor the listener may delete an unwritten copy.
         event.preventDefault();
         event.stopImmediatePropagation();
         try {

@@ -8,7 +8,7 @@ interface OutlinePopoverHost {
   onError?(error: Error): void;
 }
 
-/** Owns only the host boundary around the original page outline UI.
+/** Owns only the host boundary around the page outline UI.
  * No Markdown read, transaction, selection reconstruction, or renderer copy. */
 export class RuntimeOutlinePopover {
   private popup: HTMLElement | null = null;

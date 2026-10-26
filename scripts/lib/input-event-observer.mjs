@@ -1,5 +1,5 @@
 /** Opt-in observer for an isolated input-test artifact. No model, parser,
- * clipboard, storage, host bridge or original editor methods are invoked. */
+ * clipboard, storage, host bridge or editor methods are invoked. */
 export function installInputEventObserver() {
   if (window.__MARKLYRA_INPUT_OBSERVER__) throw Error('Input observer already installed');
   const records = [],

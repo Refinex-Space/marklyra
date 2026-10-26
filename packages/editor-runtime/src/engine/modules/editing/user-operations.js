@@ -25,28 +25,24 @@ export default function initializeEditingUserOperations(
     smartQuotes = requireModule('editing/smart-quotes'),
     tableRowMove = requireModule('editing/table-row-move'),
     clipboard = requireModule('editing/clipboard'),
-    findEditableSibling = Object.defineProperty(
-      function (documentNode, stopAncestor, siblingDirection, decorateSibling) {
-        var nextSibling,
-          currentDocumentNode = documentNode;
-        if (documentNode == stopAncestor) {
-          return null;
-        }
-        for (nextSibling = documentNode.get(siblingDirection); nextSibling; ) {
-          decorateSibling(nextSibling, currentDocumentNode);
-          nextSibling = (currentDocumentNode = nextSibling).get(siblingDirection);
-        }
-        findEditableSibling(
-          documentNode.get('parent'),
-          stopAncestor,
-          siblingDirection,
-          decorateSibling,
-        );
-        return currentDocumentNode;
-      },
-      'name',
-      { value: 'g', configurable: true },
-    );
+    findEditableSibling = function (documentNode, stopAncestor, siblingDirection, decorateSibling) {
+      var nextSibling,
+        currentDocumentNode = documentNode;
+      if (documentNode == stopAncestor) {
+        return null;
+      }
+      for (nextSibling = documentNode.get(siblingDirection); nextSibling; ) {
+        decorateSibling(nextSibling, currentDocumentNode);
+        nextSibling = (currentDocumentNode = nextSibling).get(siblingDirection);
+      }
+      findEditableSibling(
+        documentNode.get('parent'),
+        stopAncestor,
+        siblingDirection,
+        decorateSibling,
+      );
+      return currentDocumentNode;
+    };
   moduleExports.getDisplayText = function (sourceElements) {
     var displayElements = sourceElements.clone();
     displayElements.find('.md-meta, .md-blockmeta, .md-content, sub, sup').remove();

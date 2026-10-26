@@ -78,114 +78,90 @@ export default function initializeEditingSmartQuotes(requireModule, moduleExport
         inputRange,
       ) {
         var unescapedPrefix,
-          shouldUseOpeningQuote = Object.defineProperty(
-            function (textBeforeCaret, isSingleQuote) {
-              var previousCharacter = textBeforeCaret[textBeforeCaret.length - 1] || '';
+          shouldUseOpeningQuote = function (textBeforeCaret, isSingleQuote) {
+            var previousCharacter = textBeforeCaret[textBeforeCaret.length - 1] || '';
+            return (
+              !(
+                !/(^|[\(\{\[\s\-/\u2018])$/.exec(previousCharacter) &&
+                !/(^|\s)[*`~+^$_]$/.exec(textBeforeCaret)
+              ) ||
+              !(!isSingleQuote || smartQuotes.userQuote(0) != previousCharacter) ||
+              (!isSingleQuote && smartQuotes.userQuote(2) == previousCharacter)
+            );
+          },
+          getUnescapedPrefix = function () {
+            if (void 0 !== unescapedPrefix) {
+              return unescapedPrefix;
+            } else {
+              return (unescapedPrefix = getTextBeforeCaret().replace(/\\[-."']/g, ''));
+            }
+          },
+          getTextBeforeCaret = function () {
+            try {
+              var localRange = rangy.createRange();
+              localRange.setEnd(inputRange.startContainer, inputRange.startOffset);
+              localRange.setStart($(inputRange.startContainer).closest('[md-inline], [cid]')[0], 0);
+              return localRange.toString();
+            } catch (error) {}
+            return '';
+          },
+          replacePrecedingCharacters = function (precedingCharacterCount, replacementText) {
+            var insertionSelection = (function () {
+              var selectionSnapshot = editor.selection.buildUndo(inputRange),
+                textNode = document.createTextNode(typedCharacter);
+              inputRange.insertNode(textNode);
+              inputRange.setStart(textNode, typedCharacter.length);
+              inputRange.setEnd(textNode, typedCharacter.length);
+              inputRange.select();
+              editor.undo.addSnap(targetNode.cid, SnapFlag.ADD);
+              selectionSnapshot.end = selectionSnapshot.start + 1;
+              selectionSnapshot.start = selectionSnapshot.end;
+              return selectionSnapshot;
+            })();
+            insertionSelection.start -= 1 + precedingCharacterCount;
+            editor.selection.restoreSelection(editor.findElemById(targetNode.cid)[0], {
+              start: insertionSelection.end,
+              end: insertionSelection.end,
+            });
+            var replacementRange = editor.selection.restoreSelection(
+              editor.findElemById(targetNode.cid)[0],
+              {
+                start: insertionSelection.start,
+                end: insertionSelection.end,
+              },
+            );
+            if (replacementRange) {
+              var currentTextNode = document.createTextNode(replacementText);
+              replacementRange.deleteContents();
+              replacementRange.insertNode(currentTextNode);
+              replacementRange.setStartAndEnd(currentTextNode, replacementText.length);
+              replacementRange.select();
+            }
+            editor.undo.addSnap(targetNode.cid, SnapFlag.REPLACE);
+          },
+          isClosingQuoteContext = function (callbackRange, isSingleQuote) {
+            var markElement = editor.getMarkElem(callbackRange.startContainer),
+              startOffset = editor.selection.getOffset(markElement, callbackRange);
+            if (isSingleQuote) {
               return (
                 !(
-                  !/(^|[\(\{\[\s\-/\u2018])$/.exec(previousCharacter) &&
-                  !/(^|\s)[*`~+^$_]$/.exec(textBeforeCaret)
+                  !range ||
+                  range.startContainer != markElement[0] ||
+                  range.startOffset != startOffset
+                ) || ((range = { startContainer: markElement[0], startOffset: startOffset }), false)
+              );
+            } else {
+              return (
+                !(
+                  !currentRange ||
+                  currentRange.startContainer != markElement[0] ||
+                  currentRange.startOffset != startOffset
                 ) ||
-                !(!isSingleQuote || smartQuotes.userQuote(0) != previousCharacter) ||
-                (!isSingleQuote && smartQuotes.userQuote(2) == previousCharacter)
+                ((currentRange = { startContainer: markElement[0], startOffset: startOffset }),
+                false)
               );
-            },
-            'name',
-            { value: 'h', configurable: true },
-          ),
-          getUnescapedPrefix = Object.defineProperty(
-            function () {
-              if (void 0 !== unescapedPrefix) {
-                return unescapedPrefix;
-              } else {
-                return (unescapedPrefix = getTextBeforeCaret().replace(/\\[-."']/g, ''));
-              }
-            },
-            'name',
-            { value: 'p', configurable: true },
-          ),
-          getTextBeforeCaret = Object.defineProperty(
-            function () {
-              try {
-                var localRange = rangy.createRange();
-                localRange.setEnd(inputRange.startContainer, inputRange.startOffset);
-                localRange.setStart(
-                  $(inputRange.startContainer).closest('[md-inline], [cid]')[0],
-                  0,
-                );
-                return localRange.toString();
-              } catch (error) {}
-              return '';
-            },
-            'name',
-            { value: 'f', configurable: true },
-          ),
-          replacePrecedingCharacters = Object.defineProperty(
-            function (precedingCharacterCount, replacementText) {
-              var insertionSelection = (function () {
-                var selectionSnapshot = editor.selection.buildUndo(inputRange),
-                  textNode = document.createTextNode(typedCharacter);
-                inputRange.insertNode(textNode);
-                inputRange.setStart(textNode, typedCharacter.length);
-                inputRange.setEnd(textNode, typedCharacter.length);
-                inputRange.select();
-                editor.undo.addSnap(targetNode.cid, SnapFlag.ADD);
-                selectionSnapshot.end = selectionSnapshot.start + 1;
-                selectionSnapshot.start = selectionSnapshot.end;
-                return selectionSnapshot;
-              })();
-              insertionSelection.start -= 1 + precedingCharacterCount;
-              editor.selection.restoreSelection(editor.findElemById(targetNode.cid)[0], {
-                start: insertionSelection.end,
-                end: insertionSelection.end,
-              });
-              var replacementRange = editor.selection.restoreSelection(
-                editor.findElemById(targetNode.cid)[0],
-                {
-                  start: insertionSelection.start,
-                  end: insertionSelection.end,
-                },
-              );
-              if (replacementRange) {
-                var currentTextNode = document.createTextNode(replacementText);
-                replacementRange.deleteContents();
-                replacementRange.insertNode(currentTextNode);
-                replacementRange.setStartAndEnd(currentTextNode, replacementText.length);
-                replacementRange.select();
-              }
-              editor.undo.addSnap(targetNode.cid, SnapFlag.REPLACE);
-            },
-            'name',
-            { value: 'm', configurable: true },
-          ),
-          isClosingQuoteContext = Object.defineProperty(
-            function (callbackRange, isSingleQuote) {
-              var markElement = editor.getMarkElem(callbackRange.startContainer),
-                startOffset = editor.selection.getOffset(markElement, callbackRange);
-              if (isSingleQuote) {
-                return (
-                  !(
-                    !range ||
-                    range.startContainer != markElement[0] ||
-                    range.startOffset != startOffset
-                  ) ||
-                  ((range = { startContainer: markElement[0], startOffset: startOffset }), false)
-                );
-              } else {
-                return (
-                  !(
-                    !currentRange ||
-                    currentRange.startContainer != markElement[0] ||
-                    currentRange.startOffset != startOffset
-                  ) ||
-                  ((currentRange = { startContainer: markElement[0], startOffset: startOffset }),
-                  false)
-                );
-              }
-            },
-            'name',
-            { value: 'g', configurable: true },
-          );
+            }
+          };
         if (!File.option.convertSmartOnRender) {
           if ('-' == typedCharacter && File.option.smartDash) {
             if (!smartQuotes.shouldTriggerReplace(editor, inputRange)) {

@@ -63,7 +63,7 @@ test('live Markdown pairing resets caches warmed before enabling, preserving rea
   await page.keyboard.press('Backspace');
   expect(await markdown(page)).toBe('Alpha) beta');
   // Loading resets this fixture's document/history, while Module56's private caches survive.
-  // Ordinary pairing can produce an extra original cursor snapshot, unrelated to this toggle.
+  // Ordinary pairing can produce an extra cursor snapshot, unrelated to this toggle.
   await page.evaluate(() => (window as unknown as Host).marklyraEditor.load('Alpha beta'));
   expect(await markdown(page)).toBe('Alpha beta');
 

@@ -1,7 +1,7 @@
 import type { OutlineEntry } from '../protocol.js';
 import type { LegacyGlobals } from './legacy-types.js';
 
-/** Rebuild header membership without canceling the original pending HTML update.
+/** Rebuild header membership without canceling the pending HTML update.
  * SDK document replacement can otherwise leave references to deleted models. */
 export function refreshOutlineModel(runtime: LegacyGlobals): void {
   const toc = runtime.editor?.nodeMap.toc;

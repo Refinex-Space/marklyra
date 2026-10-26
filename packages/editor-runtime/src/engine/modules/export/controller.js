@@ -1,7 +1,6 @@
 // export/controller.
 export default function initializeExportController(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(renderFootnoteLines, 'name', { value: 'S', configurable: true });
 
   if (!this) {
     self;
@@ -39,334 +38,324 @@ export default function initializeExportController(requireModule, moduleExports,
           }
         }
       }),
-    normalizeFragmentLinks = Object.defineProperty(
-      function () {
-        for (
-          var elements = document.querySelectorAll('#write a, #write [id]'),
-            fragmentPattern = /^\s*#(.+)$/,
-            escapeMap = {
-              '\b': '\\b',
-              '\t': '\\t',
-              '\n': '\\n',
-              '\f': '\\f',
-              '\r': '\\r',
-              '"': '\\"',
-              "'": "\\'",
-              '\\': '\\\\',
-            },
-            escapeFragmentSelector = Object.defineProperty(
-              function (text) {
-                return text
-                  .replace(/["\\\b\t\n\f\r]/g, function (character) {
-                    return escapeMap[character];
-                  })
-                  .replace(/\u200b/g, '');
-              },
-              'name',
-              { value: 'i', configurable: true },
-            ),
-            itemIndex = 0;
-          itemIndex < elements.length;
-          itemIndex++
-        ) {
-          var match,
-            domNode = elements[itemIndex],
-            anchorName = domNode.getAttribute('name') || domNode.getAttribute('id'),
-            linkTarget = domNode.getAttribute('href');
-          if (!domNode.classList.contains('md-print-anchor')) {
-            if (anchorName) {
-              var aElement = document.createElement('a'),
-                textNode = document.createTextNode(' ');
-              aElement.appendChild(textNode);
-              aElement.setAttribute('class', 'md-print-anchor');
-              aElement.setAttribute('href', 'uaf://' + escapeFragmentSelector(anchorName));
-              domNode.parentNode.insertBefore(aElement, domNode);
-            }
-            if (linkTarget && (match = fragmentPattern.exec(linkTarget))) {
-              linkTarget = match[1];
-              domNode.setAttribute('href', 'uat://' + escapeFragmentSelector(linkTarget));
-            }
+    normalizeFragmentLinks = function () {
+      for (
+        var elements = document.querySelectorAll('#write a, #write [id]'),
+          fragmentPattern = /^\s*#(.+)$/,
+          escapeMap = {
+            '\b': '\\b',
+            '\t': '\\t',
+            '\n': '\\n',
+            '\f': '\\f',
+            '\r': '\\r',
+            '"': '\\"',
+            "'": "\\'",
+            '\\': '\\\\',
+          },
+          escapeFragmentSelector = function (text) {
+            return text
+              .replace(/["\\\b\t\n\f\r]/g, function (character) {
+                return escapeMap[character];
+              })
+              .replace(/\u200b/g, '');
+          },
+          itemIndex = 0;
+        itemIndex < elements.length;
+        itemIndex++
+      ) {
+        var match,
+          domNode = elements[itemIndex],
+          anchorName = domNode.getAttribute('name') || domNode.getAttribute('id'),
+          linkTarget = domNode.getAttribute('href');
+        if (!domNode.classList.contains('md-print-anchor')) {
+          if (anchorName) {
+            var aElement = document.createElement('a'),
+              textNode = document.createTextNode(' ');
+            aElement.appendChild(textNode);
+            aElement.setAttribute('class', 'md-print-anchor');
+            aElement.setAttribute('href', 'uaf://' + escapeFragmentSelector(anchorName));
+            domNode.parentNode.insertBefore(aElement, domNode);
+          }
+          if (linkTarget && (match = fragmentPattern.exec(linkTarget))) {
+            linkTarget = match[1];
+            domNode.setAttribute('href', 'uat://' + escapeFragmentSelector(linkTarget));
           }
         }
-      },
-      'name',
-      { value: 'b', configurable: true },
-    );
-  var handleExportSuccess = Object.defineProperty(
-      async function (exportType, outputPath, exportOptions, text, errorText, commandArguments) {
-        if ('custom' == (exportOptions = exportOptions || {}).type) {
-          exportType = 'custom';
-        }
-        var revealLabel = jquery.localize.getString(
-            File.isMac ? 'Reveal in Finder' : 'Reveal in File Explorer',
-            'Front',
+      }
+    };
+  var handleExportSuccess = async function (
+      exportType,
+      outputPath,
+      exportOptions,
+      text,
+      errorText,
+      commandArguments,
+    ) {
+      if ('custom' == (exportOptions = exportOptions || {}).type) {
+        exportType = 'custom';
+      }
+      var revealLabel = jquery.localize.getString(
+          File.isMac ? 'Reveal in Finder' : 'Reveal in File Explorer',
+          'Front',
+        ),
+        commandFailed = false,
+        saveDialog = exportOptions.saveDialog;
+      if (exportOptions.runCommand) {
+        saveDialog = true;
+        var commandText = ExportController.processExportVariables(
+            exportOptions.runCommandStr || '',
+            {
+              outputPath: outputPath,
+            },
           ),
-          commandFailed = false,
-          saveDialog = exportOptions.saveDialog;
-        if (exportOptions.runCommand) {
-          saveDialog = true;
-          var commandText = ExportController.processExportVariables(
-              exportOptions.runCommandStr || '',
-              {
-                outputPath: outputPath,
-              },
-            ),
-            workingDirectory =
-              fileIntegration.getCurrentFileFolderPath() || window._options.documentsPath || '/',
-            commandResult = await (function (args, workingDirectory) {
-              if (File.isNode) {
-                return pandocExport.runExportCommand(args, workingDirectory);
-              } else {
-                if (File.isMac) {
-                  return new Promise((resolvePromise) => {
-                    bridge.callHandler(
-                      'controller.runCommand',
-                      { args: args, cwd: workingDirectory || '' },
-                      function (responseTuple) {
-                        resolvePromise({
-                          code: responseTuple[0] ? 0 : -1,
-                          message: responseTuple[1],
-                          error: responseTuple[2],
-                        });
-                      },
-                    );
-                  });
-                } else {
-                  return void 0;
-                }
-              }
-            })(commandText, workingDirectory);
-          text = commandResult.message || '';
-          if (0 != commandResult.code) {
-            commandFailed = true;
-            errorText = commandResult.error || '';
-          }
-        }
-        if (commandFailed || exportOptions.showOutput) {
-          var errorHtml = '',
-            outputHtml = '';
-          if (errorText) {
-            errorHtml = `<pre style='user-select: text;font-size: .9em;cursor: text;line-height: 1.4;text-align:left;'>${utilities.escape(errorText)}</pre>`;
-          }
-          if (!(!text && errorText)) {
-            outputHtml = `<pre style='user-select: text;font-size: .9em;cursor: text;line-height: 1.4;text-align:left;'>${utilities.escape(text) || '(empty)'}</pre>`;
-          }
-          var logHtml = `<pre style='user-select: text;font-size: .9em;cursor: text;line-height: 1.4;text-align:left;'>${utilities.escape(exportOptions.runCommandStr || exportOptions.args || exportOptions.command) || '(empty)'}</pre>`;
-          dialogs.showDialog({
-            leftAlign: true,
-            title: jquery.localize.getString(
-              commandFailed ? 'Run command after export failed' : 'Export Success!',
-              'Panel',
-            ),
-            html: `<div>${jquery.localize.getString('Command Arguments:', 'Panel')}</div>${logHtml}<div>${jquery.localize.getString('Console Output:', 'Panel')}</div>${errorHtml}${outputHtml}`,
-            buttons: saveDialog
-              ? [revealLabel, jquery.localize.getString('Close')]
-              : [jquery.localize.getString('Close')],
-            callback: function (buttonIndex) {
-              if (saveDialog && !buttonIndex) {
-                JSBridge.showInFinder(outputPath);
-              }
-            },
-          });
-          dialogs.hideNotification();
-        } else {
-          !(function () {
-            var notificationTitle = errorText
-              ? 'Export operation succeeded with warnings.'
-              : 'Export operation finished successfully.';
-            notificationTitle = jquery.localize.getString(notificationTitle, 'Panel');
-            if ('custom' == exportType) {
-              if (exportOptions.showOutput) {
-                notificationTitle = text.trim().split('\n').last() || notificationTitle;
-              }
-              if (!exportOptions.saveDialog) {
-                revealLabel = void 0;
-              }
+          workingDirectory =
+            fileIntegration.getCurrentFileFolderPath() || window._options.documentsPath || '/',
+          commandResult = await (function (args, workingDirectory) {
+            if (File.isNode) {
+              return pandocExport.runExportCommand(args, workingDirectory);
             } else {
-              if (exportOptions.runCommand) {
-                notificationTitle = text.trim().split('\n').last() || notificationTitle;
+              if (File.isMac) {
+                return new Promise((resolvePromise) => {
+                  bridge.callHandler(
+                    'controller.runCommand',
+                    { args: args, cwd: workingDirectory || '' },
+                    function (responseTuple) {
+                      resolvePromise({
+                        code: responseTuple[0] ? 0 : -1,
+                        message: responseTuple[1],
+                        error: responseTuple[2],
+                      });
+                    },
+                  );
+                });
+              } else {
+                return void 0;
               }
             }
-            var notificationDetail = [
-              errorText || '',
-              'custom' == exportType && commandArguments
-                ? jquery.localize.getString('Command Arguments:', 'Panel') +
-                  ' ' +
-                  commandArguments.join('')
-                : '',
-            ]
-              .join('\n----------\n')
-              .replace(/^\n\-+\n/, '');
-            dialogs.showNotificationWithTitle(
-              notificationTitle,
-              notificationDetail,
-              revealLabel,
-              function () {
-                JSBridge.showInFinder(outputPath);
-              },
-              { checkFocus: true },
-            );
-          })();
+          })(commandText, workingDirectory);
+        text = commandResult.message || '';
+        if (0 != commandResult.code) {
+          commandFailed = true;
+          errorText = commandResult.error || '';
         }
-        if (exportOptions.openExportLocation) {
-          JSBridge.showInFinder(outputPath);
-          if (!errorText) {
-            setTimeout(dialogs.hideNotification, 2e3);
-          }
+      }
+      if (commandFailed || exportOptions.showOutput) {
+        var errorHtml = '',
+          outputHtml = '';
+        if (errorText) {
+          errorHtml = `<pre style='user-select: text;font-size: .9em;cursor: text;line-height: 1.4;text-align:left;'>${utilities.escape(errorText)}</pre>`;
         }
-        if (exportOptions.openExportFile) {
-          JSBridge.openFile(outputPath);
-          if (!errorText) {
-            setTimeout(dialogs.hideNotification, 2e3);
-          }
+        if (!(!text && errorText)) {
+          outputHtml = `<pre style='user-select: text;font-size: .9em;cursor: text;line-height: 1.4;text-align:left;'>${utilities.escape(text) || '(empty)'}</pre>`;
         }
-        if (File.isMac) {
-          File.editor.export.cleanUpTempFiles();
-        }
-      },
-      'name',
-      { value: 'w', configurable: true },
-    ),
-    processExportVariables = Object.defineProperty(
-      function (text, exportVariables, variableOverrides, quoteArguments, missingValue) {
-        Object.defineProperty(normalizeVariableValue, 'name', { value: 's', configurable: true });
-        Object.defineProperty(firstDefinedValue, 'name', { value: 'l', configurable: true });
-
-        exportVariables = exportVariables || {};
-        variableOverrides = variableOverrides || {};
-        var outputPath = exportVariables.outputPath || variableOverrides.outputPath || '';
-        function normalizeVariableValue(inputText) {
-          if ('string' == typeof inputText) {
-            if ('unset' == inputText) {
-              return '';
-            } else {
-              return inputText.replace(/\n(.|\n\r)+/g, '');
+        var logHtml = `<pre style='user-select: text;font-size: .9em;cursor: text;line-height: 1.4;text-align:left;'>${utilities.escape(exportOptions.runCommandStr || exportOptions.args || exportOptions.command) || '(empty)'}</pre>`;
+        dialogs.showDialog({
+          leftAlign: true,
+          title: jquery.localize.getString(
+            commandFailed ? 'Run command after export failed' : 'Export Success!',
+            'Panel',
+          ),
+          html: `<div>${jquery.localize.getString('Command Arguments:', 'Panel')}</div>${logHtml}<div>${jquery.localize.getString('Console Output:', 'Panel')}</div>${errorHtml}${outputHtml}`,
+          buttons: saveDialog
+            ? [revealLabel, jquery.localize.getString('Close')]
+            : [jquery.localize.getString('Close')],
+          callback: function (buttonIndex) {
+            if (saveDialog && !buttonIndex) {
+              JSBridge.showInFinder(outputPath);
+            }
+          },
+        });
+        dialogs.hideNotification();
+      } else {
+        !(function () {
+          var notificationTitle = errorText
+            ? 'Export operation succeeded with warnings.'
+            : 'Export operation finished successfully.';
+          notificationTitle = jquery.localize.getString(notificationTitle, 'Panel');
+          if ('custom' == exportType) {
+            if (exportOptions.showOutput) {
+              notificationTitle = text.trim().split('\n').last() || notificationTitle;
+            }
+            if (!exportOptions.saveDialog) {
+              revealLabel = void 0;
             }
           } else {
-            if (inputText instanceof Array) {
-              return inputText.join(', ');
-            } else {
-              if (void 0 === inputText || null === inputText) {
-                return inputText;
-              } else {
-                return inputText + '';
-              }
+            if (exportOptions.runCommand) {
+              notificationTitle = text.trim().split('\n').last() || notificationTitle;
             }
           }
+          var notificationDetail = [
+            errorText || '',
+            'custom' == exportType && commandArguments
+              ? jquery.localize.getString('Command Arguments:', 'Panel') +
+                ' ' +
+                commandArguments.join('')
+              : '',
+          ]
+            .join('\n----------\n')
+            .replace(/^\n\-+\n/, '');
+          dialogs.showNotificationWithTitle(
+            notificationTitle,
+            notificationDetail,
+            revealLabel,
+            function () {
+              JSBridge.showInFinder(outputPath);
+            },
+            { checkFocus: true },
+          );
+        })();
+      }
+      if (exportOptions.openExportLocation) {
+        JSBridge.showInFinder(outputPath);
+        if (!errorText) {
+          setTimeout(dialogs.hideNotification, 2e3);
         }
-        function firstDefinedValue(...values) {
-          for (var value of values) {
-            if (void 0 !== value) {
-              return value;
-            }
-          }
+      }
+      if (exportOptions.openExportFile) {
+        JSBridge.openFile(outputPath);
+        if (!errorText) {
+          setTimeout(dialogs.hideNotification, 2e3);
         }
-        return text
-          .replace(/\${([^\r\n}]+)}/gi, function (unusedParameter1, variableName) {
-            var normalizedText = (variableName || '').toLowerCase();
-            if ('today' == normalizedText) {
-              return new Date().toISOString().substring(0, 10);
-            }
-            if ('outputpath' == normalizedText) {
-              return outputPath;
-            }
-            if ('outputfolder' == normalizedText || 'outputfolderpath' == normalizedText) {
-              return utilities.pathByDeleteLastComponent(outputPath);
-            }
-            if ('outputfoldername' == normalizedText) {
-              return utilities.getFolder(outputPath);
-            }
-            if ('outputfilename' == normalizedText) {
-              return fileIntegration.getFileNameFromPath(outputPath).replace(/\..+$/, '');
-            }
-            if ('outputfilefullname' == normalizedText) {
-              return fileIntegration.getFileNameFromPath(outputPath);
-            }
-            if ('currentpath' == normalizedText) {
-              return File.bundle.filePath || '';
-            }
-            if ('currentfolder' == normalizedText) {
-              return fileIntegration.getCurrentFileFolderPath() || '';
-            }
-            if ('currentfilename' == normalizedText) {
-              return fileIntegration
-                .getFileNameFromPath(File.bundle.filePath || '')
-                .replace(/\..+$/, '');
-            }
-            if ('currentfilefullname' == normalizedText) {
-              return fileIntegration.getFileNameFromPath(File.bundle.filePath || '');
-            }
-            if ('openedFolder' == normalizedText) {
-              return File.getMountFolder();
-            }
-            var localSettingBridge = File.editor.localSettingBridge,
-              resolvedValue = normalizeVariableValue(
-                firstDefinedValue(
-                  variableOverrides[variableName],
-                  variableOverrides[normalizedText],
-                  localSettingBridge.getSetting(variableName),
-                  localSettingBridge.getSetting(normalizedText),
-                  exportVariables[variableName],
-                  exportVariables[normalizedText],
-                ),
-              );
-            if (void 0 == resolvedValue && normalizedText.indexOf('.') > 0) {
-              let parts = normalizedText.split(/\./);
-              var nestedValue;
-              for (var currentText of parts) {
-                if (
-                  !(nestedValue = nestedValue
-                    ? nestedValue[currentText]
-                    : localSettingBridge.getSetting(currentText) ||
-                      localSettingBridge.getSetting(currentText.toLowerCase()))
-                ) {
-                  break;
-                }
-              }
-              if (void 0 != nestedValue) {
-                return (function (inputText) {
-                  if (quoteArguments && /['";&|><\s]/.exec(inputText)) {
-                    return '' + inputText.replace(/['"]/g, '') + '';
-                  } else {
-                    return inputText;
-                  }
-                })(normalizeVariableValue(nestedValue));
-              }
-            }
-            return firstDefinedValue(resolvedValue, missingValue, '${' + variableName + '}');
-          })
-          .replace(/(['"])(.*?)\1/g, function (unusedParameter1, quoteCharacter, inputText) {
-            return quoteCharacter + inputText.replace(/\uE033|\uE034/g, '') + quoteCharacter;
-          })
-          .replace(/\uE033(.*?)\uE034/g, function (unusedParameter1, quotedValue) {
-            return '"' + quotedValue + '"';
-          });
-      },
-      'name',
-      { value: 'x', configurable: true },
-    );
-  const renderHeaderFooterSpan = Object.defineProperty(
-    (text, exportOptions) => {
-      if (
-        text &&
-        (text = printAndImageExport.renderHeaderFooterText(
-          text,
-          exportOptions,
-          '${pageNo}',
-          '${totalPages}',
-        )).trim().length
-      ) {
-        var SPANElement = document.createElement('SPAN');
-        SPANElement.textContent = text;
-        SPANElement.style.color = jquery('p').css('color');
-        SPANElement.style.fontFamily = '-apple-system';
-        SPANElement.style.fontSize = '6pt';
-        return SPANElement.outerHTML;
+      }
+      if (File.isMac) {
+        File.editor.export.cleanUpTempFiles();
       }
     },
-    'name',
-    { value: 'C', configurable: true },
-  );
+    processExportVariables = function (
+      text,
+      exportVariables,
+      variableOverrides,
+      quoteArguments,
+      missingValue,
+    ) {
+      exportVariables = exportVariables || {};
+      variableOverrides = variableOverrides || {};
+      var outputPath = exportVariables.outputPath || variableOverrides.outputPath || '';
+      function normalizeVariableValue(inputText) {
+        if ('string' == typeof inputText) {
+          if ('unset' == inputText) {
+            return '';
+          } else {
+            return inputText.replace(/\n(.|\n\r)+/g, '');
+          }
+        } else {
+          if (inputText instanceof Array) {
+            return inputText.join(', ');
+          } else {
+            if (void 0 === inputText || null === inputText) {
+              return inputText;
+            } else {
+              return inputText + '';
+            }
+          }
+        }
+      }
+      function firstDefinedValue(...values) {
+        for (var value of values) {
+          if (void 0 !== value) {
+            return value;
+          }
+        }
+      }
+      return text
+        .replace(/\${([^\r\n}]+)}/gi, function (unusedParameter1, variableName) {
+          var normalizedText = (variableName || '').toLowerCase();
+          if ('today' == normalizedText) {
+            return new Date().toISOString().substring(0, 10);
+          }
+          if ('outputpath' == normalizedText) {
+            return outputPath;
+          }
+          if ('outputfolder' == normalizedText || 'outputfolderpath' == normalizedText) {
+            return utilities.pathByDeleteLastComponent(outputPath);
+          }
+          if ('outputfoldername' == normalizedText) {
+            return utilities.getFolder(outputPath);
+          }
+          if ('outputfilename' == normalizedText) {
+            return fileIntegration.getFileNameFromPath(outputPath).replace(/\..+$/, '');
+          }
+          if ('outputfilefullname' == normalizedText) {
+            return fileIntegration.getFileNameFromPath(outputPath);
+          }
+          if ('currentpath' == normalizedText) {
+            return File.bundle.filePath || '';
+          }
+          if ('currentfolder' == normalizedText) {
+            return fileIntegration.getCurrentFileFolderPath() || '';
+          }
+          if ('currentfilename' == normalizedText) {
+            return fileIntegration
+              .getFileNameFromPath(File.bundle.filePath || '')
+              .replace(/\..+$/, '');
+          }
+          if ('currentfilefullname' == normalizedText) {
+            return fileIntegration.getFileNameFromPath(File.bundle.filePath || '');
+          }
+          if ('openedFolder' == normalizedText) {
+            return File.getMountFolder();
+          }
+          var localSettingBridge = File.editor.localSettingBridge,
+            resolvedValue = normalizeVariableValue(
+              firstDefinedValue(
+                variableOverrides[variableName],
+                variableOverrides[normalizedText],
+                localSettingBridge.getSetting(variableName),
+                localSettingBridge.getSetting(normalizedText),
+                exportVariables[variableName],
+                exportVariables[normalizedText],
+              ),
+            );
+          if (void 0 == resolvedValue && normalizedText.indexOf('.') > 0) {
+            let parts = normalizedText.split(/\./);
+            var nestedValue;
+            for (var currentText of parts) {
+              if (
+                !(nestedValue = nestedValue
+                  ? nestedValue[currentText]
+                  : localSettingBridge.getSetting(currentText) ||
+                    localSettingBridge.getSetting(currentText.toLowerCase()))
+              ) {
+                break;
+              }
+            }
+            if (void 0 != nestedValue) {
+              return (function (inputText) {
+                if (quoteArguments && /['";&|><\s]/.exec(inputText)) {
+                  return '' + inputText.replace(/['"]/g, '') + '';
+                } else {
+                  return inputText;
+                }
+              })(normalizeVariableValue(nestedValue));
+            }
+          }
+          return firstDefinedValue(resolvedValue, missingValue, '${' + variableName + '}');
+        })
+        .replace(/(['"])(.*?)\1/g, function (unusedParameter1, quoteCharacter, inputText) {
+          return quoteCharacter + inputText.replace(/\uE033|\uE034/g, '') + quoteCharacter;
+        })
+        .replace(/\uE033(.*?)\uE034/g, function (unusedParameter1, quotedValue) {
+          return '"' + quotedValue + '"';
+        });
+    };
+  const renderHeaderFooterSpan = (text, exportOptions) => {
+    if (
+      text &&
+      (text = printAndImageExport.renderHeaderFooterText(
+        text,
+        exportOptions,
+        '${pageNo}',
+        '${totalPages}',
+      )).trim().length
+    ) {
+      var SPANElement = document.createElement('SPAN');
+      SPANElement.textContent = text;
+      SPANElement.style.color = jquery('p').css('color');
+      SPANElement.style.fontFamily = '-apple-system';
+      SPANElement.style.fontSize = '6pt';
+      return SPANElement.outerHTML;
+    }
+  };
   class ExportController {
     constructor(editor) {
       this.editor = editor;
@@ -578,10 +567,6 @@ export default function initializeExportController(requireModule, moduleExports,
       }
     }
     exportCollection(collection, footnotes, exportOptions) {
-      Object.defineProperty(renderChildrenForExport, 'name', { value: '_', configurable: true });
-      Object.defineProperty(renderTableOfContents, 'name', { value: 'M', configurable: true });
-      Object.defineProperty(renderExportBlock, 'name', { value: 'L', configurable: true });
-
       var currentText = exportOptions || {},
         forPrint = currentText.forPrint,
         noStyle = currentText.noStyle,
@@ -708,8 +693,6 @@ export default function initializeExportController(requireModule, moduleExports,
         return tocHtml;
       }
       function renderExportBlock(documentNode) {
-        Object.defineProperty(findHeadingIndex, 'name', { value: 't', configurable: true });
-
         function findHeadingIndex(nodeId) {
           if (nodeId) {
             return documentMap.toc.headers.findIndex(function (item) {
@@ -1042,37 +1025,33 @@ export default function initializeExportController(requireModule, moduleExports,
                 window.getComputedStyle(File.editor.writingArea).fontFamily || 'initial';
               fontFamily = fontFamily.replace(/'/g, "\\'");
               renderedElement.find('.CodeMirror-line > span').each(function () {
-                !Object.defineProperty(
-                  function wrapFontSensitiveCharacters(domNode, fontFamily) {
-                    if (domNode.nodeType == document.TEXT_NODE) {
-                      var text = domNode.textContent;
-                      if (
-                        (text = text
-                          .split(/(;|-)/)
-                          .map(function (item) {
-                            if (';' == item || '-' == item) {
-                              return (
-                                "<span style='font-family:" + fontFamily + "'>" + item + '</span>'
-                              );
-                            } else {
-                              return utilities.escape(item);
-                            }
-                          })
-                          .join('')) != domNode.textContent
-                      ) {
-                        domNode.innerHTML = text;
-                      }
-                    } else {
-                      if (1 == domNode.nodeType) {
-                        domNode.childNodes.forEach(function (item) {
-                          wrapFontSensitiveCharacters(item, fontFamily);
-                        });
-                      }
+                !(function wrapFontSensitiveCharacters(domNode, fontFamily) {
+                  if (domNode.nodeType == document.TEXT_NODE) {
+                    var text = domNode.textContent;
+                    if (
+                      (text = text
+                        .split(/(;|-)/)
+                        .map(function (item) {
+                          if (';' == item || '-' == item) {
+                            return (
+                              "<span style='font-family:" + fontFamily + "'>" + item + '</span>'
+                            );
+                          } else {
+                            return utilities.escape(item);
+                          }
+                        })
+                        .join('')) != domNode.textContent
+                    ) {
+                      domNode.innerHTML = text;
                     }
-                  },
-                  'name',
-                  { value: 'e', configurable: true },
-                )(this, fontFamily);
+                  } else {
+                    if (1 == domNode.nodeType) {
+                      domNode.childNodes.forEach(function (item) {
+                        wrapFontSensitiveCharacters(item, fontFamily);
+                      });
+                    }
+                  }
+                })(this, fontFamily);
               });
             }
             return renderedElement[0].outerHTML.trim();
@@ -1228,19 +1207,6 @@ export default function initializeExportController(requireModule, moduleExports,
       }
     }
     async exportToHTML(exportOptions) {
-      Object.defineProperty(appendInlineStylesheet, 'name', { value: 'v', configurable: true });
-      Object.defineProperty(appendStylesheetLink, 'name', { value: 'w', configurable: true });
-      Object.defineProperty(valueOrFallback, 'name', { value: 'F', configurable: true });
-      Object.defineProperty(readStylesheetText, 'name', { value: 'k', configurable: true });
-      Object.defineProperty(getThemeFileUrl, 'name', { value: 'T', configurable: true });
-      Object.defineProperty(createOutlineNavigationScript, 'name', {
-        value: '_',
-        configurable: true,
-      });
-      Object.defineProperty(parseExportHeadContent, 'name', { value: 'A', configurable: true });
-      Object.defineProperty(collectExportStyleIncludes, 'name', { value: 'M', configurable: true });
-      Object.defineProperty(resolveExportResourceUrl, 'name', { value: 'L', configurable: true });
-
       var forPrint = (exportOptions = exportOptions || {}).forPrint,
         noStyle = exportOptions.noStyle,
         noBackground = exportOptions.noBackground,
@@ -1323,39 +1289,33 @@ export default function initializeExportController(requireModule, moduleExports,
       }
       function createOutlineNavigationScript() {
         return `\n<script>(${function () {
-          Object.defineProperty(getScrollTop, 'name', { value: 'o', configurable: true });
-
           var parentElement = document.body.parentElement,
             items = [],
             activeHeading = null,
             collapseOutline = document.body.classList.contains('marklyra-export-collapse-outline'),
-            delegateEvent = Object.defineProperty(
-              function (eventType, selector, listener) {
-                document.addEventListener(
-                  eventType,
-                  function (event) {
-                    if (!event.defaultPrevented) {
-                      for (
-                        var domNode = event.target;
-                        domNode && domNode != this;
-                        domNode = domNode.parentNode
-                      ) {
-                        if (domNode.matches(selector)) {
-                          if (false === listener.call(domNode, event)) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }
-                          break;
+            delegateEvent = function (eventType, selector, listener) {
+              document.addEventListener(
+                eventType,
+                function (event) {
+                  if (!event.defaultPrevented) {
+                    for (
+                      var domNode = event.target;
+                      domNode && domNode != this;
+                      domNode = domNode.parentNode
+                    ) {
+                      if (domNode.matches(selector)) {
+                        if (false === listener.call(domNode, event)) {
+                          event.preventDefault();
+                          event.stopPropagation();
                         }
+                        break;
                       }
                     }
-                  },
-                  false,
-                );
-              },
-              'name',
-              { value: 'r', configurable: true },
-            );
+                  }
+                },
+                false,
+              );
+            };
           function getScrollTop() {
             return parentElement.scrollTop;
           }
@@ -1383,72 +1343,60 @@ export default function initializeExportController(requireModule, moduleExports,
           });
           var timerId,
             currentTimerId,
-            findActiveHeading = Object.defineProperty(
-              function () {
-                var scrollPosition = getScrollTop();
-                activeHeading = null;
-                for (
-                  var itemIndex = 0;
-                  itemIndex < items.length && items[itemIndex][1] - scrollPosition < 60;
-                  itemIndex++
-                ) {
-                  activeHeading = items[itemIndex];
-                }
-              },
-              'name',
-              { value: 'l', configurable: true },
-            ),
-            clearActiveOutline = Object.defineProperty(
-              function () {
-                document
-                  .querySelectorAll('.outline-item-active')
-                  .forEach((element) => element.classList.remove('outline-item-active'));
-                document
-                  .querySelectorAll('.outline-item-single.outline-item-open')
-                  .forEach((element) => element.classList.remove('outline-item-open'));
-              },
-              'name',
-              { value: 'c', configurable: true },
-            ),
-            updateActiveOutline = Object.defineProperty(
-              function () {
-                if (activeHeading) {
-                  clearActiveOutline();
-                  var element = document.querySelector(
-                    '.outline-label[href="#' +
-                      (CSS.escape ? CSS.escape(activeHeading[0]) : activeHeading[0]) +
-                      '"]',
-                  );
-                  if (element) {
-                    if (collapseOutline) {
-                      var currentElement = element.closest(
-                        '.outline-item-open>ul>.outline-item-wrapper',
-                      );
-                      if (currentElement) {
-                        currentElement.classList.add('outline-item-active');
-                      } else {
-                        for (
-                          var localElement = (element =
-                            element.closest('.outline-item-wrapper')).parentElement.closest(
-                            '.outline-item-wrapper',
-                          );
-                          localElement;
-                        ) {
-                          localElement = (element = localElement).parentElement.closest(
-                            '.outline-item-wrapper',
-                          );
-                        }
-                        element.classList.add('outline-item-active');
-                      }
+            findActiveHeading = function () {
+              var scrollPosition = getScrollTop();
+              activeHeading = null;
+              for (
+                var itemIndex = 0;
+                itemIndex < items.length && items[itemIndex][1] - scrollPosition < 60;
+                itemIndex++
+              ) {
+                activeHeading = items[itemIndex];
+              }
+            },
+            clearActiveOutline = function () {
+              document
+                .querySelectorAll('.outline-item-active')
+                .forEach((element) => element.classList.remove('outline-item-active'));
+              document
+                .querySelectorAll('.outline-item-single.outline-item-open')
+                .forEach((element) => element.classList.remove('outline-item-open'));
+            },
+            updateActiveOutline = function () {
+              if (activeHeading) {
+                clearActiveOutline();
+                var element = document.querySelector(
+                  '.outline-label[href="#' +
+                    (CSS.escape ? CSS.escape(activeHeading[0]) : activeHeading[0]) +
+                    '"]',
+                );
+                if (element) {
+                  if (collapseOutline) {
+                    var currentElement = element.closest(
+                      '.outline-item-open>ul>.outline-item-wrapper',
+                    );
+                    if (currentElement) {
+                      currentElement.classList.add('outline-item-active');
                     } else {
-                      element.closest('.outline-item-wrapper').classList.add('outline-item-active');
+                      for (
+                        var localElement = (element =
+                          element.closest('.outline-item-wrapper')).parentElement.closest(
+                          '.outline-item-wrapper',
+                        );
+                        localElement;
+                      ) {
+                        localElement = (element = localElement).parentElement.closest(
+                          '.outline-item-wrapper',
+                        );
+                      }
+                      element.classList.add('outline-item-active');
                     }
+                  } else {
+                    element.closest('.outline-item-wrapper').classList.add('outline-item-active');
                   }
                 }
-              },
-              'name',
-              { value: 'd', configurable: true },
-            );
+              }
+            };
           window.addEventListener('scroll', function (unusedParameter1) {
             if (timerId) {
               clearTimeout(timerId);
@@ -1458,27 +1406,23 @@ export default function initializeExportController(requireModule, moduleExports,
               updateActiveOutline();
             }, 300);
           });
-          var scheduleOutlineRefresh = Object.defineProperty(
-            function () {
-              currentTimerId = setTimeout(function () {
-                !(function () {
-                  items = [];
-                  var scrollPosition = getScrollTop();
-                  document
-                    .querySelector('#write')
-                    .querySelectorAll('h1, h2, h3, h4, h5, h6')
-                    .forEach((element) => {
-                      var elementId = element.getAttribute('id');
-                      items.push([elementId, scrollPosition + element.getBoundingClientRect().y]);
-                    });
-                })();
-                findActiveHeading();
-                updateActiveOutline();
-              }, 300);
-            },
-            'name',
-            { value: 'u', configurable: true },
-          );
+          var scheduleOutlineRefresh = function () {
+            currentTimerId = setTimeout(function () {
+              !(function () {
+                items = [];
+                var scrollPosition = getScrollTop();
+                document
+                  .querySelector('#write')
+                  .querySelectorAll('h1, h2, h3, h4, h5, h6')
+                  .forEach((element) => {
+                    var elementId = element.getAttribute('id');
+                    items.push([elementId, scrollPosition + element.getBoundingClientRect().y]);
+                  });
+              })();
+              findActiveHeading();
+              updateActiveOutline();
+            }, 300);
+          };
           window.addEventListener('resize', function (unusedParameter1) {
             if (currentTimerId) {
               clearTimeout(currentTimerId);
@@ -1515,8 +1459,6 @@ export default function initializeExportController(requireModule, moduleExports,
         }
       }
       function collectExportStyleIncludes(cssText, items, stylesheetPath) {
-        Object.defineProperty(appendIncludedResource, 'name', { value: 's', configurable: true });
-
         if (!cssText) {
           return [];
         }
@@ -1570,13 +1512,6 @@ export default function initializeExportController(requireModule, moduleExports,
       }
       if (!noStyle) {
         themeCss = (function () {
-          Object.defineProperty(appendPageBreakStyles, 'name', { value: 'c', configurable: true });
-          Object.defineProperty(readStylesheetRules, 'name', { value: 'u', configurable: true });
-          Object.defineProperty(shouldIncludeStylesheet, 'name', {
-            value: 'b',
-            configurable: true,
-          });
-
           var stylesheet,
             regex,
             themeCss,
@@ -1690,63 +1625,52 @@ export default function initializeExportController(requireModule, moduleExports,
                 }
               });
               appendInlineStylesheet(
-                (stylesheetText = Object.defineProperty(
-                  function collectCssResources(cssText, stylesheetPath) {
-                    Object.defineProperty(resolveCssResource, 'name', {
-                      value: 'o',
-                      configurable: true,
-                    });
-
-                    var quotePattern = /^["']/,
-                      localTextParts = [];
-                    function resolveCssResource(text) {
-                      var quoteCharacter = (text.match(quotePattern) || [''])[0];
-                      text = decodeURI(
-                        quoteCharacter.length ? text.substring(1, text.length - 1) : text,
-                      );
-                      if (
-                        (text = utilities.getAbsolutePath(stylesheetPath, text)).match(/\.css$/)
-                      ) {
-                        console.debug('fetch CSS from @import: ' + text);
-                        localTextParts.push(collectCssResources(readStylesheetText(text), text));
-                        text = '';
-                      } else {
-                        text = (File.isMac ? 'file://' : 'file:///') + text;
-                      }
-                      return quoteCharacter + encodeURI(text) + quoteCharacter;
-                    }
-                    stylesheetPath = resolveExportResourceUrl(stylesheetPath).replace(
-                      /^file:\/\/?/,
-                      '',
+                (stylesheetText = (function collectCssResources(cssText, stylesheetPath) {
+                  var quotePattern = /^["']/,
+                    localTextParts = [];
+                  function resolveCssResource(text) {
+                    var quoteCharacter = (text.match(quotePattern) || [''])[0];
+                    text = decodeURI(
+                      quoteCharacter.length ? text.substring(1, text.length - 1) : text,
                     );
-                    cssText = (cssText || '')
-                      .replace(/@charset[^;\n]+;?/g, '')
-                      .replace(/@font\-face\s*{[^}]+}\s*\n/g, '')
-                      .replace(
-                        /(^|;|\n)[\s]*@import([^;\n]+)(;|$|\n)/g,
-                        function (text, unusedParameter2) {
-                          var quotedUrl = (/['"]([^"']+)['"]/.exec(text) || [])[0];
-                          if (quotedUrl) {
-                            return text.replace(quotedUrl, resolveCssResource(quotedUrl));
-                          } else {
-                            return text;
-                          }
-                        },
-                      )
-                      .replace(/url\([^:)]+\)/gi, function (textSlice) {
-                        return (
-                          'url(' +
-                          resolveCssResource(
-                            (textSlice = textSlice.substring(4, textSlice.length - 1)),
-                          ) +
-                          ')'
-                        );
-                      });
-                    return (cssText = localTextParts.join('\n') + cssText);
-                  },
-                  'name',
-                  { value: 'e', configurable: true },
-                )(stylesheetText, stylesheetPath)),
+                    if ((text = utilities.getAbsolutePath(stylesheetPath, text)).match(/\.css$/)) {
+                      console.debug('fetch CSS from @import: ' + text);
+                      localTextParts.push(collectCssResources(readStylesheetText(text), text));
+                      text = '';
+                    } else {
+                      text = (File.isMac ? 'file://' : 'file:///') + text;
+                    }
+                    return quoteCharacter + encodeURI(text) + quoteCharacter;
+                  }
+                  stylesheetPath = resolveExportResourceUrl(stylesheetPath).replace(
+                    /^file:\/\/?/,
+                    '',
+                  );
+                  cssText = (cssText || '')
+                    .replace(/@charset[^;\n]+;?/g, '')
+                    .replace(/@font\-face\s*{[^}]+}\s*\n/g, '')
+                    .replace(
+                      /(^|;|\n)[\s]*@import([^;\n]+)(;|$|\n)/g,
+                      function (text, unusedParameter2) {
+                        var quotedUrl = (/['"]([^"']+)['"]/.exec(text) || [])[0];
+                        if (quotedUrl) {
+                          return text.replace(quotedUrl, resolveCssResource(quotedUrl));
+                        } else {
+                          return text;
+                        }
+                      },
+                    )
+                    .replace(/url\([^:)]+\)/gi, function (textSlice) {
+                      return (
+                        'url(' +
+                        resolveCssResource(
+                          (textSlice = textSlice.substring(4, textSlice.length - 1)),
+                        ) +
+                        ')'
+                      );
+                    });
+                  return (cssText = localTextParts.join('\n') + cssText);
+                })(stylesheetText, stylesheetPath)),
                 item,
                 linkedStyles,
               );
@@ -1798,26 +1722,22 @@ export default function initializeExportController(requireModule, moduleExports,
         if (!exportThemeCss) {
           [`${exportOptions.exportTheme}.css`, `${exportOptions.exportTheme}.user.css`].map(
             (item) => {
-              exportThemeCss += Object.defineProperty(
-                function readStylesheetWithImports(stylesheetPath) {
-                  importCount++;
-                  var stylesheetText = readStylesheetText(stylesheetPath);
-                  if (importCount > 10) {
-                    return stylesheetText;
-                  }
-                  var items = [];
-                  collectExportStyleIncludes(stylesheetText, items, stylesheetPath);
-                  items.forEach(function (text) {
-                    if (/^file:\/\//.exec(text)) {
-                      stylesheetText =
-                        readStylesheetWithImports(text.replace(/^file:\/\//, '')) + stylesheetText;
-                    }
-                  });
+              exportThemeCss += (function readStylesheetWithImports(stylesheetPath) {
+                importCount++;
+                var stylesheetText = readStylesheetText(stylesheetPath);
+                if (importCount > 10) {
                   return stylesheetText;
-                },
-                'name',
-                { value: 'e', configurable: true },
-              )(getThemeFileUrl(item).replace('file://', ''));
+                }
+                var items = [];
+                collectExportStyleIncludes(stylesheetText, items, stylesheetPath);
+                items.forEach(function (text) {
+                  if (/^file:\/\//.exec(text)) {
+                    stylesheetText =
+                      readStylesheetWithImports(text.replace(/^file:\/\//, '')) + stylesheetText;
+                  }
+                });
+                return stylesheetText;
+              })(getThemeFileUrl(item).replace('file://', ''));
             },
           );
         }
@@ -2049,7 +1969,7 @@ export default function initializeExportController(requireModule, moduleExports,
       return { output: outputPath, args: commandText || '', cwd: cwd, option: option };
     }
   }
-  Object.defineProperty(ExportController, 'name', { value: 'F', configurable: true });
+
   function renderFootnoteLines(items) {
     return items
       .map(function (item) {

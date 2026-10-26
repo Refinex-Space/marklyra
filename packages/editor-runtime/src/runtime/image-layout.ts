@@ -95,7 +95,7 @@ export class RuntimeImageLayout {
         adapter.#schedule(originalAfter);
         return undefined;
       }
-      // A newly inserted image keeps its original synchronous behavior. Drain
+      // A newly inserted image keeps its synchronous behavior. Drain
       // older initial-image calls first to preserve callback order.
       adapter.#flush(originalAfter);
       return originalAfter.apply(this, args);

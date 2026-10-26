@@ -7,7 +7,7 @@ interface StyleFacts {
   canContainInline?: boolean;
   cannotContainInline?: boolean;
 }
-/** Read original mode/history/style facts without putBookmark, sync, focus or commands. */
+/** Read mode/history/style facts without putBookmark, sync, focus or commands. */
 export function readRuntimeMenuState(runtime: LegacyGlobals): MarkLyraMenuState {
   const editor = runtime.editor,
     file = runtime.File;

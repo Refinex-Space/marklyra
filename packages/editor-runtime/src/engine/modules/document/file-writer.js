@@ -6,32 +6,19 @@ export default function initializeDocumentFileWriter(requireModule, moduleExport
     var fileSystem = reqnode('fs'),
       pathUtilities = reqnode('path'),
       pendingWriters = {},
-      getTemporaryWritePath = Object.defineProperty(
-        function (filePath) {
-          return pathUtilities.join(
-            pathUtilities.dirname(filePath),
-            '.~' + pathUtilities.basename(filePath),
-          );
-        },
-        'name',
-        { value: 's', configurable: true },
-      ),
-      FileWriter = Object.defineProperty(
-        function (file) {
-          this.file = file;
-          this.callbacks = [];
-          this.nextData = null;
-          this.nextCallbacks = [];
-        },
-        'name',
-        { value: 'l', configurable: true },
-      );
+      getTemporaryWritePath = function (filePath) {
+        return pathUtilities.join(
+          pathUtilities.dirname(filePath),
+          '.~' + pathUtilities.basename(filePath),
+        );
+      },
+      FileWriter = function (file) {
+        this.file = file;
+        this.callbacks = [];
+        this.nextData = null;
+        this.nextCallbacks = [];
+      };
     FileWriter.prototype.write = function (inputNextData, onComplete) {
-      Object.defineProperty(finishFailedWrite, 'name', { value: 'o', configurable: true });
-      Object.defineProperty(startNextWrite, 'name', { value: 'a', configurable: true });
-      Object.defineProperty(finishSuccessfulWrite, 'name', { value: 'l', configurable: true });
-      Object.defineProperty(verifyWrittenBytes, 'name', { value: 'c', configurable: true });
-
       var receiver = this;
       function finishFailedWrite(writeError) {
         for (; this.callbacks.length; ) {

@@ -734,7 +734,7 @@ fn restore_aliases_at(
         return Ok(());
     };
     // Targets are native-persisted scope-relative paths, already expanded from
-    // their original YAML root by SaveAs. Current renderer YAML is not a grant.
+    // their captured YAML root by SaveAs. Current renderer YAML is not a grant.
     for aliases in binding.aliases.chunks(image_assets::MAX_DOCUMENT_IMAGES) {
         documents
             .attach_image_aliases(id, aliases)
@@ -957,7 +957,7 @@ fn existing_staged_owner_at(
 }
 
 /// Carry only native-captured staged permissions across our own SaveAs. The
-/// source Binding is obtained before publication while its original entity is
+/// source Binding is obtained before publication while its captured entity is
 /// still verified; neither renderer Markdown nor old relative aliases enter it.
 pub(super) fn preserve_staged_binding(
     app: &AppHandle,

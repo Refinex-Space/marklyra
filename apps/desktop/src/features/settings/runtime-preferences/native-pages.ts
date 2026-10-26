@@ -1,11 +1,11 @@
 export type NativePage = 'ai' | 'daily' | 'export' | 'git' | 'sponsorship';
 
-/** The original sidebar's fixed index of its 导出 category. */
+/** The sidebar's fixed index of its 导出 category. */
 const EXPORT_INDEX = '4';
 
 /**
  * Navigation only. Additional settings pages are drawn by the trusted host on top of this isolated page:
- * 日程、Git 同步、智能体、赞助 (extra sidebar entries added here) and 导出 (the original entry, whose own panel is
+ * 日程、Git 同步、智能体、赞助 (extra sidebar entries added here) and 导出 (the entry, whose own panel is
  * never shown). The isolated page never receives agent IPC, credentials or export settings.
  */
 export function setupNativePages(
@@ -67,7 +67,7 @@ export function setupNativePages(
         event.preventDefault();
         set('sponsorship');
       } else if (event.target.closest(`.nav-group-item[data-index="${EXPORT_INDEX}"]`)) {
-        // The original click still runs, so the original panel keeps tracking the selection.
+        // The click still runs, so the panel keeps tracking the selection.
         set('export');
       } else if (event.target.closest('.nav-group-item,.settings-back')) set(null);
     },
@@ -77,7 +77,7 @@ export function setupNativePages(
     if (event.target instanceof Element && event.target.matches('.search-input')) set(null);
   });
   const style = document.createElement('style');
-  // The original export panel is replaced by the host page, including in search results.
+  // The export panel is replaced by the host page, including in search results.
   // Standalone legacy preferences do not use the shared page stylesheet.
   style.textContent =
     '[data-ai-settings-navigation],[data-daily-settings-navigation],[data-git-settings-navigation],[data-sponsorship-navigation]{appearance:none;background:transparent;width:100%;text-align:left;cursor:pointer;border:0;box-shadow:none;font:inherit;}' +

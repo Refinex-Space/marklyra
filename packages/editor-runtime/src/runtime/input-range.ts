@@ -52,7 +52,7 @@ export interface PlainTextEvidence {
   readonly insert: string;
 }
 
-/** This proof is intentionally limited to the original paragraph serializer's
+/** This proof is intentionally limited to the paragraph serializer's
  * source-equivalent body. It never searches for the first repeated text occurrence. */
 export function plainTextPatch(evidence: PlainTextEvidence): Patch | undefined {
   const {
@@ -188,14 +188,14 @@ function modelText(model: LegacyNode, key: 'text' | 'type' | 'ahead'): unknown {
   return model.get(key);
 }
 
-/** Capture only. Original editing, DOM rendering, selection and IME remain owned
- * by the runtime runtime; the candidate must still match its actual next text. */
+/** Capture only. Editing, DOM rendering, selection and IME remain owned
+ * by the engine; the candidate must still match its actual next text. */
 export function capturePlainInput(
   context: PlainInputContext,
   event: KeyboardEvent | InputEvent,
 ): PlainInputCandidate | undefined {
   const { editor } = context;
-  // The original bundle replaces window.Node with its model constructor. Use
+  // The engine assigns window.Node with its model constructor. Use
   // DOM ownership/containment instead of that global for event target validation.
   const target = event.target as Node | null;
   if (
@@ -368,7 +368,7 @@ function captureRangeReplacement(
   };
 }
 
-/** Repair only the proven operation's recorded redo caret. The original command
+/** Repair only the proven operation's recorded redo caret. The command
  * already changed the document and owns Undo; no synthetic transaction is added. */
 export function repairPlainRedoCursor(
   context: PlainInputContext,
@@ -427,7 +427,7 @@ export function repairPlainRedoCursor(
   return true;
 }
 
-/** Original replacements can record delete and insert as two same-cid pairs.
+/** Replacements can record delete and insert as two same-cid pairs.
  * Preserve every intermediate operation; only the final proven cursor is mutable. */
 export function lastProvenRedoCursor(
   value: unknown,
@@ -513,7 +513,7 @@ export function plainUndoSelection(
 }
 
 /** Called exclusively after actual Undo. Coordinates are re-proven against the
- * original command's replacement body and the current plain DOM/serializer. */
+ * command's replacement body and the current plain DOM/serializer. */
 export function restorePlainUndoSelection(
   context: PlainInputContext,
   metadata: PlainSelection,

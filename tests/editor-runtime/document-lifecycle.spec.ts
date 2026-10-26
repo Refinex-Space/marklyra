@@ -177,7 +177,7 @@ test('fresh YAML fixture is parsed as an actual meta block before lifecycle comp
 test('consecutive SDK load keeps new YAML raw/model/DOM intact after pending Mermaid work', async ({
   page,
 }) => {
-  // Four finite scheduling offsets around original 80ms refresh / 200ms diagram
+  // Four finite scheduling offsets around 80ms refresh / 200ms diagram
   // work. These are semantic race vectors, not performance measurements.
   for (const delay of [0, 40, 100, 240]) {
     await load(page, diagram);
@@ -361,7 +361,7 @@ for (const sourceMode of [false, true])
   test(`${sourceMode ? 'source' : 'WYSIWYG'} large generated HTML followed immediately by YAML cannot commit the previous document later`, async ({
     page,
   }, testInfo) => {
-    // One long plain paragraph reaches original reset's 100k HTML scheduling
+    // One long plain paragraph reaches reset's 100k HTML scheduling
     // branch without the unrelated cost of thousands of tables/images.
     const large = `Large ${'a'.repeat(110_000)}\n\nTail\n`;
     if (sourceMode) await command(page, 'toggleSource');

@@ -150,7 +150,7 @@ export function useWorkspaceRename(options: Options) {
       retire({ ...operation, entry: receipt });
       return;
     }
-    // Keep the original display path/input until the real inner focus ACK.
+    // Keep the display path/input until the real inner focus ACK.
     operation.original = receipt;
     if (receipt.warnings.length) setMessage(receipt.warnings.join('\n'));
     await finish(operation, true);

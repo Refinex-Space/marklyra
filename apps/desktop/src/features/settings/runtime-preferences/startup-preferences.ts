@@ -13,7 +13,7 @@ export function startupMode(value: unknown): StartupMode {
   return value;
 }
 
-/** Only this original select emits numeric strings. Native actions remain strictly typed. */
+/** Only this select emits numeric strings. Native actions remain strictly typed. */
 export function startupControlMode(value: unknown): StartupMode {
   return startupMode(
     typeof value === 'string' && ['0', '1', '2', '3'].includes(value) ? Number(value) : value,

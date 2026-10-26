@@ -178,7 +178,7 @@ for (const fixture of structuralKeyboardFixtures)
       (index) => (window as ImageTestWindow).imageHostFixture.editors[index]?.destroy(),
       second,
     );
-    // The original engine owns grouping. Walk its actual entries rather than
+    // The engine owns grouping. Walk its actual entries rather than
     // pretending that one Undo must remove both Enter and an entire typed word.
     for (let count = 0; count < 12; count++) {
       const canUndo = await frame

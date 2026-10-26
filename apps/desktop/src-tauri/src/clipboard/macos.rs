@@ -204,7 +204,7 @@ pub(super) fn read_image(board: &NSPasteboard) -> Result<Option<super::NativeIma
     }
     Ok(result)
 }
-/// One native snapshot selects the same source as the original paste order:
+/// One native snapshot selects the same source as the paste priority order:
 /// rich markup, system file URLs, raster, then plain text. Companion formats
 /// are never combined across separate native items.
 pub(super) fn read_input(board: &NSPasteboard) -> Result<super::NativeClipboardInput, String> {
@@ -283,7 +283,7 @@ pub(crate) fn read_file_urls(board: &NSPasteboard) -> Result<Vec<std::path::Path
     Ok(paths)
 }
 
-/// A file-only Native destination must leave richer original editor payloads
+/// A file-only Native destination must leave richer editor payloads
 /// to WKWebView, including opaque custom WebKit markup that we cannot decode.
 pub(crate) fn drop_has_rich_content(board: &NSPasteboard) -> Result<bool, String> {
     main_thread()?;

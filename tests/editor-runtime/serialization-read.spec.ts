@@ -81,7 +81,7 @@ for (const runtime of [false, true]) {
       target.__nodeSerializationCalls = 0;
       for (const node of nodes) {
         const original = node.toMark;
-        // The original whole-map serializer calls its private u, not a root's
+        // The whole-map serializer calls its private u, not a root's
         // public toMark. A tracking snapshot replay would call these wrappers.
         node.toMark = function () {
           target.__nodeSerializationCalls++;

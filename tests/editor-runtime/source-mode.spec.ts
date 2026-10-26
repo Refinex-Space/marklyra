@@ -163,7 +163,7 @@ test('equal-text Source edit/Undo/hide follows original sync history without cre
   const hidden = await snapshot(page, frame, 'equal-text source hidden');
   expect(hidden.raw).toBe(original);
   expect(hidden.host.revision).toBe(revision);
-  // Original hide may retain an equal-text sync step; it is not a user edit.
+  // Hide may retain an equal-text sync step; it is not a user edit.
   expect(hidden.native.wysIndex).toBe(before.native.wysIndex + 1);
   await command(page, 'undo');
   expect((await snapshot(page, frame, 'equal WYS Undo')).raw).toBe(original);
@@ -171,7 +171,7 @@ test('equal-text Source edit/Undo/hide follows original sync history without cre
   const redone = await snapshot(page, frame, 'equal WYS Redo');
   expect(redone.raw).toBe(original);
   expect(redone.host.changes).toEqual(hidden.host.changes);
-  // revision is an optimistic CAS activity counter: original Undo/Redo dirty
+  // revision is an optimistic CAS activity counter: Undo/Redo dirty
   // notifications may increment it without a committed source change.
   expect(redone.host.revision).toBeGreaterThan(revision);
 });

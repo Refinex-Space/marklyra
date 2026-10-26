@@ -276,18 +276,14 @@ export default function initializeMediaAssetStorage(requireModule, moduleExports
         basePath = File.bundle.filePath.replace(/\.[^.]+$/, ''),
         newPath = basePath + '.textbundle',
         fileSystem = reqnode('fs');
-      !Object.defineProperty(
-        function findAvailableBundlePath(collisionIndex) {
-          if (collisionIndex > 0) {
-            newPath = basePath + '-' + collisionIndex + '.textbundle';
-          }
-          if (fileSystem.existsSync(newPath)) {
-            return findAvailableBundlePath(collisionIndex + 1);
-          }
-        },
-        'name',
-        { value: 'e', configurable: true },
-      )(0);
+      !(function findAvailableBundlePath(collisionIndex) {
+        if (collisionIndex > 0) {
+          newPath = basePath + '-' + collisionIndex + '.textbundle';
+        }
+        if (fileSystem.existsSync(newPath)) {
+          return findAvailableBundlePath(collisionIndex + 1);
+        }
+      })(0);
       assetStorage.makeTextBundleSkeleton(newPath);
       File.bundle.textFile = 'text.md';
       JSBridge.invoke('app.sendEvent', 'willRename', { oldPath: filePath });

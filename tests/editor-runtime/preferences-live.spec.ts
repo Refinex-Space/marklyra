@@ -86,7 +86,7 @@ async function font(frame: Frame) {
     const ancestors: Element[] = [];
     for (let node: Element | null = paragraph; node; node = node.parentElement)
       ancestors.push(node);
-    // The original runtime can animate font-size on <content> for 400ms.
+    // The runtime can animate font-size on <content> for 400ms.
     // Await its actual transition rather than sampling an inherited intermediate
     // size, changing the expected pixels, or delaying the document with a sleep.
     for (;;) {

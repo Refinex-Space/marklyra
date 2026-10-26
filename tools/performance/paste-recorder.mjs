@@ -160,7 +160,7 @@ export function installPasteRecorder({ origin }) {
           if (result instanceof Promise) {
             call.status = 'async-pending';
             state.brushInFlight.set(call.id, call);
-            // Return the exact original Promise. Native callers still await it
+            // Return the exact Promise. Native callers still await it
             // and propagate its rejection. The observer also makes any rejection
             // fail drain, including callers that otherwise ignore the Promise.
             Promise.prototype.then.call(

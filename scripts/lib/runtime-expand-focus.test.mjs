@@ -11,7 +11,10 @@ import {
 } from './runtime-test-source.mjs';
 
 const expand = unique(
-  walk(engineModule('2b'), (node) => node.type === 'Property' && node.key.name === 'expand'),
+  walk(
+    engineModule('render/brush-queue'),
+    (node) => node.type === 'Property' && node.key.name === 'expand',
+  ),
   'expand method',
 ).value;
 

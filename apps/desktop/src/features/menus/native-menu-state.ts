@@ -31,7 +31,7 @@ export interface NativeMenuPresentation {
   /** The open folder is a usable Git repository. */
   gitRepository?: boolean;
 }
-/** Same state rules as the original menus and Rust; a stale native check is no authority. */
+/** Same state rules as the menus and Rust; a stale native check is no authority. */
 export function nativeMenuCommandAllowed(
   state: MarkLyraMenuState | null,
   command: MarkLyraCommand,

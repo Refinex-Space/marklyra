@@ -257,7 +257,7 @@ async function check(browser, name) {
       line: '18px',
       font: '13px',
     });
-    // Original oversize recovery switches the view; it does not replace the workspace or report.
+    // Oversize recovery switches the view; it does not replace the workspace or report.
     const retainedCard = await page.locator('[data-article-path="B/b2.md"]').elementHandle();
     const articlesBeforeOversize = await page.evaluate(
       () => window.probe.calls.filter((c) => c.command === 'list_workspace_documents').length,

@@ -170,7 +170,7 @@ function chunks(value: string): string[] {
   if (current) result.push(current);
   return result;
 }
-/** Text order follows the person's language, as the original helpers did through localeCompare. */
+/** Text order follows the person's language, as the localeCompare helpers do. */
 export type TextCompare = (left: string, right: string) => number;
 const localeText: TextCompare = (left, right) => left.localeCompare(right);
 export function naturalFileCompare(

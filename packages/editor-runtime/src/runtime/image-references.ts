@@ -31,8 +31,8 @@ interface Dependencies {
   snapshot(): RuntimeDocumentSnapshot;
   restore(snapshot: RuntimeDocumentSnapshot, source: string): Promise<RuntimeState>;
 }
-/** Source destinations are proved separately from original model transactions.
- * Successful updates touch only native CM ranges or original image nodes. */
+/** Source destinations are proved separately from model transactions.
+ * Successful updates touch only native CM ranges or image nodes. */
 export class RuntimeImageReferences {
   constructor(private readonly deps: Dependencies) {}
   list(): string[] {
@@ -166,7 +166,7 @@ export class RuntimeImageReferences {
     const nativeSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
     if (!nativeSrc?.set || !nativeSrc.get) throw Error('无法绑定原图片显示属性');
     try {
-      // Original buildImageMap indexes loaded wrappers by display paths. Supply
+      // The buildImageMap method indexes loaded wrappers by display paths. Supply
       // private synchronous keys for these exact model nodes; no path is opened.
       editor.imgEdit.getRealSrc = (source: string, ...options: unknown[]) => {
         const key = keys.get(source);
@@ -188,7 +188,7 @@ export class RuntimeImageReferences {
         if (!image) throw Error('真实图片节点缺少显示元素');
         const descriptor = Object.getOwnPropertyDescriptor(image, 'src');
         descriptors.push({ image, descriptor });
-        // The original transaction writes target directly to img.src. Route that
+        // The transaction writes target directly to img.src. Route that
         // synchronous write through the controlled resolver, never HTTP/file IO.
         Object.defineProperty(image, 'src', {
           configurable: true,

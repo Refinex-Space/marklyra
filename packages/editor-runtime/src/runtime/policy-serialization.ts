@@ -131,7 +131,7 @@ function shape(runtime: LegacyGlobals, map: object): Shape {
 }
 
 /** Closed graph copy, never a native constructor, restore, set or remove call.
- * The original collection's own length accessor is projected over the copied array.
+ * The collection's own length accessor is projected over the copied array.
  * The toc controller and the active map's tracking wrapper never enter the copy. */
 function copyGraph(root: object, abi: Shape): { model: object; observations: Observation[] } {
   const copies = new Map<object, object>();

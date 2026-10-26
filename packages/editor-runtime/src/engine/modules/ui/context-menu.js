@@ -1,13 +1,6 @@
 // ui/context-menu.
 export default function initializeUiContextMenu(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(hideContextMenu, 'name', { value: 'p', configurable: true });
-  Object.defineProperty(inspectPointerTarget, 'name', { value: 'f', configurable: true });
-  Object.defineProperty(initializeSearchServices, 'name', { value: 'y', configurable: true });
-  Object.defineProperty(setMenuGroupVisible, 'name', { value: 'b', configurable: true });
-  Object.defineProperty(getCurrentSpellchecker, 'name', { value: 'w', configurable: true });
-  Object.defineProperty(restoreContextWordRange, 'name', { value: 'x', configurable: true });
-  Object.defineProperty(loadKeyboardShortcuts, 'name', { value: 'C', configurable: true });
 
   if (!this) {
     self;
@@ -122,34 +115,26 @@ export default function initializeUiContextMenu(requireModule, moduleExports, mo
           Image: 'Insert Image',
         },
         keySymbols = { Backspace: '⌫' },
-        formatKeyBinding = Object.defineProperty(
-          function (text) {
-            return text
-              .trim()
-              .split(/\s*\+\s*/g)
-              .map(function (item) {
-                return utilities.capitalize($.localize.getString(keySymbols[item] || item, 'Menu'));
-              })
-              .join('+');
-          },
-          'name',
-          { value: 'i', configurable: true },
-        ),
-        findKeyBinding = Object.defineProperty(
-          function (text, inputText) {
-            var keyBinding =
-              keyBindings[text] ||
-              keyBindings[inputText] ||
-              keyBindings[text.replace(/\.\.\.|…/, '')] ||
-              keyBindings[inputText.replace(/\.\.\.|…/, '')];
-            if (!keyBinding && commandAliases[text]) {
-              keyBinding = keyBindings[commandAliases[text]];
-            }
-            return keyBinding;
-          },
-          'name',
-          { value: 'r', configurable: true },
-        );
+        formatKeyBinding = function (text) {
+          return text
+            .trim()
+            .split(/\s*\+\s*/g)
+            .map(function (item) {
+              return utilities.capitalize($.localize.getString(keySymbols[item] || item, 'Menu'));
+            })
+            .join('+');
+        },
+        findKeyBinding = function (text, inputText) {
+          var keyBinding =
+            keyBindings[text] ||
+            keyBindings[inputText] ||
+            keyBindings[text.replace(/\.\.\.|…/, '')] ||
+            keyBindings[inputText.replace(/\.\.\.|…/, '')];
+          if (!keyBinding && commandAliases[text]) {
+            keyBinding = keyBindings[commandAliases[text]];
+          }
+          return keyBinding;
+        };
       document.querySelectorAll('#context-menu .menu-style-btn').forEach((element) => {
         var label = element.dataset.label,
           attributeValue = $.localize.getString(label, 'Menu'),
@@ -181,558 +166,499 @@ export default function initializeUiContextMenu(requireModule, moduleExports, mo
       });
     }
   }
-  var ContextMenu = Object.defineProperty(
-      function (sessionStr) {
-        this.sessionStr = sessionStr;
-        $(bindContextMenuEvents.bind(this));
-      },
-      'name',
-      { value: 'F', configurable: true },
-    ),
-    repositionVisibleMenu = Object.defineProperty(
-      function () {
-        if (!!document.querySelector('#user-context-menu.show')) {
-          this.showCustom(items, activeCustomOwner);
-        } else {
-          hideContextMenu();
+  var ContextMenu = function (sessionStr) {
+      this.sessionStr = sessionStr;
+      $(bindContextMenuEvents.bind(this));
+    },
+    repositionVisibleMenu = function () {
+      if (!!document.querySelector('#user-context-menu.show')) {
+        this.showCustom(items, activeCustomOwner);
+      } else {
+        hideContextMenu();
+      }
+    },
+    bindContextMenuEvents = function () {
+      $('content').on('post-wheel', repositionVisibleMenu.bind(this));
+      $(window).on('resize', repositionVisibleMenu.bind(this));
+      bindTableActions.call(this);
+      bindMenuHoverAndKeys.call(this);
+      bindImageActions.call(this);
+      if (!File.isMac) {
+        bindNavigationActions.call(this);
+        bindInlineStyleActions.call(this);
+        bindIndentAndHeadingActions.call(this);
+        bindMathExportActions.call(this);
+        if (window.reqnode) {
+          setTimeout(bindSpellingActions.bind(this), 1e3);
+          setTimeout(loadKeyboardShortcuts, 1e3);
         }
-      },
-      'name',
-      { value: 'S', configurable: true },
-    ),
-    bindContextMenuEvents = Object.defineProperty(
-      function () {
-        $('content').on('post-wheel', repositionVisibleMenu.bind(this));
-        $(window).on('resize', repositionVisibleMenu.bind(this));
-        bindTableActions.call(this);
-        bindMenuHoverAndKeys.call(this);
-        bindImageActions.call(this);
-        if (!File.isMac) {
-          bindNavigationActions.call(this);
-          bindInlineStyleActions.call(this);
-          bindIndentAndHeadingActions.call(this);
-          bindMathExportActions.call(this);
-          if (window.reqnode) {
-            setTimeout(bindSpellingActions.bind(this), 1e3);
-            setTimeout(loadKeyboardShortcuts, 1e3);
-          }
-        }
-      },
-      'name',
-      { value: 'k', configurable: true },
-    ),
-    bindInlineStyleActions = Object.defineProperty(
-      function () {
-        $('[data-style]').click(function () {
-          hideContextMenu();
-          restoreContextWordRange();
-          File.editor.refocus();
-          File.editor.stylize.toggleStyle(this.getAttribute('data-style'));
-        });
-      },
-      'name',
-      { value: 'E', configurable: true },
-    ),
-    updateTableDeleteActions = Object.defineProperty(
-      function () {
-        var element = File.editor.getMarkElem(),
-          hasDeleteAction = false;
-        if (element.closest('tbody').children().length) {
-          $("[data-key='delete_table_row']").removeClass('hide');
-          hasDeleteAction = true;
-        } else {
-          $("[data-key='delete_table_row']").addClass('hide');
-        }
-        if (element.closest('tr').children().length >= 2) {
-          $("[data-key='delete_table_col']").removeClass('hide');
-          hasDeleteAction = true;
-        } else {
-          $("[data-key='delete_table_col']").addClass('hide');
-        }
-        if (hasDeleteAction) {
-          $("[data-key='delete_table_col']").next('.divider').removeClass('hide');
-        } else {
-          $("[data-key='delete_table_col']").next('.divider').addClass('hide');
-        }
-      },
-      'name',
-      { value: 'T', configurable: true },
-    );
+      }
+    },
+    bindInlineStyleActions = function () {
+      $('[data-style]').click(function () {
+        hideContextMenu();
+        restoreContextWordRange();
+        File.editor.refocus();
+        File.editor.stylize.toggleStyle(this.getAttribute('data-style'));
+      });
+    },
+    updateTableDeleteActions = function () {
+      var element = File.editor.getMarkElem(),
+        hasDeleteAction = false;
+      if (element.closest('tbody').children().length) {
+        $("[data-key='delete_table_row']").removeClass('hide');
+        hasDeleteAction = true;
+      } else {
+        $("[data-key='delete_table_row']").addClass('hide');
+      }
+      if (element.closest('tr').children().length >= 2) {
+        $("[data-key='delete_table_col']").removeClass('hide');
+        hasDeleteAction = true;
+      } else {
+        $("[data-key='delete_table_col']").addClass('hide');
+      }
+      if (hasDeleteAction) {
+        $("[data-key='delete_table_col']").next('.divider').removeClass('hide');
+      } else {
+        $("[data-key='delete_table_col']").next('.divider').addClass('hide');
+      }
+    };
   ContextMenu.prototype.updateTableVisibility = updateTableDeleteActions;
   var targetBlockElement,
     contextTarget,
-    bindMenuHoverAndKeys = Object.defineProperty(
-      function () {
-        $('body')
-          .on('mouseenter', '.context-menu [data-key]', function () {
-            var element = $(this);
-            element.closest('.context-menu').find('.active').removeClass('active');
-            element.addClass('active');
-          })
-          .on('mouseleave', '.context-menu', function (unusedParameter1) {
-            $(this).find('.active:not(.has-extra-menu)').removeClass('active');
-          });
-        $('#context-menu, #user-context-menu').on('mouseenter', '[data-key]', function () {
+    bindMenuHoverAndKeys = function () {
+      $('body')
+        .on('mouseenter', '.context-menu [data-key]', function () {
           var element = $(this);
-          if ('block-style' == element.attr('data-key')) {
-            positionSubmenu('#block-style-menu', element);
-            element.addClass('active');
-          } else {
-            document.querySelector('#block-style-menu').classList.remove('show');
-            document.querySelector("[data-key='block-style']").classList.remove('active');
-          }
-          if ('insert' == element.attr('data-key')) {
-            positionSubmenu('#insert-menu', element);
-            element.addClass('active');
-          } else {
-            document.querySelector('#insert-menu').classList.remove('show');
-            document.querySelector("[data-key='insert']").classList.remove('active');
-          }
-          if ('copy-as' == element.attr('data-key')) {
-            positionSubmenu('#edit-menu', element);
-            element.addClass('active');
-          } else {
-            document.querySelector("[data-key='copy-as']").classList.remove('active');
-            document.querySelector('#edit-menu').classList.remove('show');
-          }
-          if ('zoom-img' == element.attr('data-key')) {
-            positionSubmenu('#zoom-img-menu', element);
-            element.addClass('active');
-          } else {
-            document.querySelector("[data-key='zoom-img']").classList.remove('active');
-            document.querySelector('#zoom-img-menu').classList.remove('show');
-          }
-          if ('switch-img-syntax' == element.attr('data-key')) {
-            positionSubmenu('#switch-img-syntax-menu', element);
-            element.addClass('active');
-          } else {
-            document.querySelector("[data-key='switch-img-syntax']").classList.remove('active');
-            document.querySelector('#switch-img-syntax-menu').classList.remove('show');
-          }
-          if ('search-with' == element.attr('data-key')) {
-            positionSubmenu('#search-menu', element);
-            element.addClass('active');
-          } else {
-            document.querySelector('#search-menu').classList.remove('show');
-            $("[data-key='search-with']").removeClass('active');
-          }
-          if ('table' == element.attr('data-key')) {
-            updateTableDeleteActions();
-            positionSubmenu('#table-menu', element);
-            element.addClass('active');
-          } else {
-            document.querySelector('#table-menu').classList.remove('show');
-            document.querySelector("[data-key='table']").classList.remove('active');
-          }
+          element.closest('.context-menu').find('.active').removeClass('active');
+          element.addClass('active');
+        })
+        .on('mouseleave', '.context-menu', function (unusedParameter1) {
+          $(this).find('.active:not(.has-extra-menu)').removeClass('active');
         });
-      },
-      'name',
-      { value: 'M', configurable: true },
-    ),
-    bindIndentAndHeadingActions = Object.defineProperty(
-      function () {
-        $('#context-menu')
-          .on('click', '[data-indent]', function () {
-            var attributeValue = this.getAttribute('data-indent');
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.refocus();
-            File.editor.stylize.toggleIndent(attributeValue);
-          })
-          .on('click', '[data-tab]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.refocus();
-            if ('left' == this.getAttribute('data-tab')) {
-              userOperations.lessIndent(File.editor);
-            } else {
-              userOperations.moreIndent(File.editor);
-            }
-          });
-        $('#block-style-menu').on('click', '[data-block]', function () {
-          var attributeValue = this.getAttribute('data-block');
+      $('#context-menu, #user-context-menu').on('mouseenter', '[data-key]', function () {
+        var element = $(this);
+        if ('block-style' == element.attr('data-key')) {
+          positionSubmenu('#block-style-menu', element);
+          element.addClass('active');
+        } else {
+          document.querySelector('#block-style-menu').classList.remove('show');
+          document.querySelector("[data-key='block-style']").classList.remove('active');
+        }
+        if ('insert' == element.attr('data-key')) {
+          positionSubmenu('#insert-menu', element);
+          element.addClass('active');
+        } else {
+          document.querySelector('#insert-menu').classList.remove('show');
+          document.querySelector("[data-key='insert']").classList.remove('active');
+        }
+        if ('copy-as' == element.attr('data-key')) {
+          positionSubmenu('#edit-menu', element);
+          element.addClass('active');
+        } else {
+          document.querySelector("[data-key='copy-as']").classList.remove('active');
+          document.querySelector('#edit-menu').classList.remove('show');
+        }
+        if ('zoom-img' == element.attr('data-key')) {
+          positionSubmenu('#zoom-img-menu', element);
+          element.addClass('active');
+        } else {
+          document.querySelector("[data-key='zoom-img']").classList.remove('active');
+          document.querySelector('#zoom-img-menu').classList.remove('show');
+        }
+        if ('switch-img-syntax' == element.attr('data-key')) {
+          positionSubmenu('#switch-img-syntax-menu', element);
+          element.addClass('active');
+        } else {
+          document.querySelector("[data-key='switch-img-syntax']").classList.remove('active');
+          document.querySelector('#switch-img-syntax-menu').classList.remove('show');
+        }
+        if ('search-with' == element.attr('data-key')) {
+          positionSubmenu('#search-menu', element);
+          element.addClass('active');
+        } else {
+          document.querySelector('#search-menu').classList.remove('show');
+          $("[data-key='search-with']").removeClass('active');
+        }
+        if ('table' == element.attr('data-key')) {
+          updateTableDeleteActions();
+          positionSubmenu('#table-menu', element);
+          element.addClass('active');
+        } else {
+          document.querySelector('#table-menu').classList.remove('show');
+          document.querySelector("[data-key='table']").classList.remove('active');
+        }
+      });
+    },
+    bindIndentAndHeadingActions = function () {
+      $('#context-menu')
+        .on('click', '[data-indent]', function () {
+          var attributeValue = this.getAttribute('data-indent');
           hideContextMenu();
           restoreContextWordRange();
           File.editor.refocus();
-          File.editor.stylize.changeBlock(attributeValue);
-        });
-        $('#insert-menu')
-          .on('click', '[data-insert]', function () {
-            var attributeValue = this.getAttribute('data-insert');
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.refocus();
-            if (attributeValue === NodeType.table) {
-              File.editor.tableEdit.insertTable();
-            } else {
-              if (attributeValue === NodeType.meta_block) {
-                File.editor.stylize.insertMetaBlock();
-              } else {
-                File.editor.stylize.insertBlock(attributeValue);
-              }
-            }
-          })
-          .on('click', '[data-insert-p]', function () {
-            var insertBefore = 'before' == this.getAttribute('data-insert-p');
-            hideContextMenu();
-            File.editor.refocus(targetBlockElement.attr('cid'));
-            File.editor.UserOp.insertParagraph(insertBefore, File.editor, targetBlockElement);
-          });
-      },
-      'name',
-      { value: 'L', configurable: true },
-    ),
-    bindMathExportActions = Object.defineProperty(
-      function () {
-        $('#edit-menu')
-          .on('click', '[data-key="copy_as_mathml"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            if (File.editor.styleBookmark.style.block.indexOf(NodeType.math_block) > -1) {
-              File.editor.mathBlock.copyAsMathML(targetBlockElement[0]);
-            } else {
-              File.editor.mathInline.copyAsMathML();
-            }
-          })
-          .on('click', '[data-key="copy_as_word"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            if (File.editor.styleBookmark.style.block.indexOf(NodeType.math_block) > -1) {
-              File.editor.mathBlock.copyAsMathML(targetBlockElement[0], true);
-            } else {
-              File.editor.mathInline.copyAsMathML(true);
-            }
-          })
-          .on('click', '[data-key="copy_as_math_tex"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            if (File.editor.styleBookmark.style.block.indexOf(NodeType.math_block) > -1) {
-              File.editor.mathBlock.copyAsTex(targetBlockElement[0]);
-            } else {
-              File.editor.mathInline.copyAsTex();
-            }
-          })
-          .on('click', '[data-key="copy_as_math_image"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            if (File.editor.styleBookmark.style.block.indexOf(NodeType.math_block) > -1) {
-              File.editor.mathBlock.copyAsImage(targetBlockElement[0]);
-            } else {
-              File.editor.mathInline.copyAsImage();
-            }
-          });
-        if (!File.isWin) {
-          $('#math-menu [menu-for-win]').addClass('hide');
-        }
-      },
-      'name',
-      { value: 'N', configurable: true },
-    ),
-    bindTableActions = Object.defineProperty(
-      function () {
-        $('#table-menu')
-          .on('click', '[data-key="insert_row_before"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.addRow(true);
-          })
-          .on('click', '[data-key="insert_row_after"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.addRow(false);
-          })
-          .on('click', '[data-key="delete_table_row"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.deleteRow(false);
-          })
-          .on('click', '[data-key="insert_col_before"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.addCol(true);
-          })
-          .on('click', '[data-key="insert_col_after"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.addCol(false);
-          })
-          .on('click', '[data-key="delete_table_col"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.deleteCol();
-          })
-          .on('click', '[data-key="delete_table"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.deleteTable();
-          })
-          .on('click', '[data-key="copy_table"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.copyTable();
-          })
-          .on('click', '[data-key="reformat_table"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.reformatTable();
-          })
-          .on('click', '[data-key="move_row_up"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.moveRowUpOrDown(true);
-          })
-          .on('click', '[data-key="move_row_down"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.moveRowUpOrDown(false);
-          })
-          .on('click', '[data-key="move_col_left"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.moveColLeftOrRight(true);
-          })
-          .on('click', '[data-key="move_col_right"]', function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.tableEdit.moveColLeftOrRight(false);
-          });
-      },
-      'name',
-      { value: 'D', configurable: true },
-    ),
-    bindSpellingActions = Object.defineProperty(
-      function () {
-        $('#context-menu')
-          .on('click', "[data-key='learn']", function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            getCurrentSpellchecker().add(trimmedText);
-          })
-          .on('click', "[data-key='unlearn']", function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            getCurrentSpellchecker().remove(trimmedText);
-          })
-          .on('click', "[data-key='correct']", function (clickEvent) {
-            hideContextMenu();
-            var correctionText = $(clickEvent.target).text();
-            restoreContextWordRange(true, !!/\.$/.exec(correctionText));
-            userOperations.pasteHandler(File.editor, correctionText, true);
-          });
-      },
-      'name',
-      { value: 'R', configurable: true },
-    ),
-    bindImageActions = Object.defineProperty(
-      function () {
-        $('#zoom-img-menu').on('click', "[data-key='zoom-img-to-factor']", function () {
+          File.editor.stylize.toggleIndent(attributeValue);
+        })
+        .on('click', '[data-tab]', function () {
           hideContextMenu();
           restoreContextWordRange();
-          File.editor.imgEdit.zoomAction(null, this.dataset.factor);
-        });
-        $('#switch-img-syntax-menu').on(
-          'click',
-          "[data-key='switch-img-syntax-markdown']",
-          function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.imgEdit.switchPattern(null, false);
-          },
-        );
-        $('#switch-img-syntax-menu').on(
-          'click',
-          "[data-key='switch-img-syntax-html']",
-          function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.imgEdit.switchPattern(null, true);
-          },
-        );
-      },
-      'name',
-      { value: 'B', configurable: true },
-    ),
-    bindNavigationActions = Object.defineProperty(
-      function () {
-        $('#context-menu, #context-menu-for-source')
-          .on('click', "[data-key='jumpto']", function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            var currentElement = File.editor.getJQueryElem(window.getSelection().anchorNode),
-              element = currentElement.closest('a');
-            if (!element.length) {
-              element = currentElement.closest('[md-inline]').find('a');
-            }
-            File.editor.tryOpenLink(element);
-          })
-          .on('click', "[data-key='copy_link']", function () {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.copyCurrentLink();
-          })
-          .on('click', "[data-key='dev-tool']", inspectPointerTarget)
-          .on('click', "[data-key='edit']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.undo.prepCursorSnap();
-            $(contextTarget).closest('.md-rawblock-container').trigger('startedit');
-            File.editor.undo.endSnap();
-            return false;
-          })
-          .on('click', "[data-key='cut']", function (unusedParameter1) {
-            var element;
-            hideContextMenu();
-            restoreContextWordRange();
-            ClientCommand.cut();
-            if (
-              document.activeElement &&
-              (element = document.activeElement.closest('.CodeMirror'))
-            ) {
-              setTimeout(function () {
-                element.CodeMirror.replaceSelection('', 'start');
-              }, 30);
-            }
-          })
-          .on('click', "[data-key='backspace']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            if (File.editor.selection.getRangy()) {
-              File.delete();
-            } else {
-              File.deleteActive(contextTarget);
-            }
-          })
-          .on('click', "[data-key='copy']", function (unusedParameter1) {
-            hideContextMenu();
-            if (!targetBlockElement.find('.md-rawblock-container').focus().length) {
-              restoreContextWordRange();
-            }
-            ClientCommand.copy();
-          })
-          .on('click', "[data-key='delete-block']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            if (targetBlockElement.length) {
-              File.editor.refocus(targetBlockElement.attr('cid'));
-              File.editor.UserOp.deleteBlock(File.editor);
-            }
-          })
-          .on('click', "[data-key='paste']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            ClientCommand.paste();
-          })
-          .on('click', "[data-key='copy-emoji']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            var emojiText = $('.md-emoji.md-expand [data-emoji]').attr('data-emoji');
-            File.editor.UserOp.setClipboard('', '', emojiText, true);
-          })
-          .on('click', "[data-key='download-as']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            var diagramElement = targetBlockElement.find(
-              '.md-fences-adv-panel svg, .md-math-container svg, .md-mathjax-preview svg',
-            )[0];
-            mediaActions.downloadAs(diagramElement || contextTarget.closest('svg, img, video'));
-          })
-          .on('click', "[data-key='copy-all-code']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            File.editor.fences.copyContent();
-          })
-          .on('click', "[data-key='format-all-code']", function (unusedParameter1) {
-            hideContextMenu();
-            File.editor.refocus(targetBlockElement.attr('cid'));
-            File.editor.fences.formatContent();
-          })
-          .on('click', "[data-key='format-selected-code']", function (unusedParameter1) {
-            hideContextMenu();
-            File.editor.refocus(targetBlockElement.attr('cid'));
-            File.editor.fences.formatContent(true);
-          });
-        $('.context-menu').on('mousedown', function (pointerEvent) {
-          if (!$(pointerEvent.target).closest('a').length) {
-            return false;
-          }
-        });
-        if (File.isNode) {
-          if (File.option.debug) {
-            $("[data-group='dev-tool']").removeClass('hide');
+          File.editor.refocus();
+          if ('left' == this.getAttribute('data-tab')) {
+            userOperations.lessIndent(File.editor);
           } else {
-            $("[data-group='dev-tool']").addClass('hide');
+            userOperations.moreIndent(File.editor);
           }
-        }
-        $('#edit-menu')
-          .on('click', "[data-key='copy_as_image']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            var diagramElement = targetBlockElement.find(
-              '.md-fences-adv-panel svg, .md-math-container svg, .md-mathjax-preview svg',
-            )[0];
-            mediaActions.copyImage(diagramElement || contextTarget.closest('svg, img, video'));
-          })
-          .on('click', "[data-key='copy_as_markdown']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            ClientCommand.copyAsMarkdown();
-          })
-          .on('click', "[data-key='copy_as_html_source']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            var diagramElement = targetBlockElement.find(
-              '.md-fences-adv-panel svg, .md-math-container svg, .md-mathjax-preview svg',
-            )[0];
-            if (diagramElement) {
-              mediaActions.copyAsHtml(diagramElement);
+        });
+      $('#block-style-menu').on('click', '[data-block]', function () {
+        var attributeValue = this.getAttribute('data-block');
+        hideContextMenu();
+        restoreContextWordRange();
+        File.editor.refocus();
+        File.editor.stylize.changeBlock(attributeValue);
+      });
+      $('#insert-menu')
+        .on('click', '[data-insert]', function () {
+          var attributeValue = this.getAttribute('data-insert');
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.refocus();
+          if (attributeValue === NodeType.table) {
+            File.editor.tableEdit.insertTable();
+          } else {
+            if (attributeValue === NodeType.meta_block) {
+              File.editor.stylize.insertMetaBlock();
             } else {
-              ClientCommand.copyAsHTMLSource();
+              File.editor.stylize.insertBlock(attributeValue);
             }
-          })
-          .on('click', "[data-key='copy_as_simple_html']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            ClientCommand.copyAsSemanticHTML();
-          })
-          .on('click', "[data-key='paste_as_plain']", function (unusedParameter1) {
-            hideContextMenu();
-            restoreContextWordRange();
-            ClientCommand.pasteAsPlain();
-          });
-        $("[data-key='play']").click(function (unusedParameter1) {
+          }
+        })
+        .on('click', '[data-insert-p]', function () {
+          var insertBefore = 'before' == this.getAttribute('data-insert-p');
           hideContextMenu();
-          try {
-            $(contextTarget).closest('video')[0].play();
-          } catch (error) {}
+          File.editor.refocus(targetBlockElement.attr('cid'));
+          File.editor.UserOp.insertParagraph(insertBefore, File.editor, targetBlockElement);
         });
-        $("[data-key='pause']").click(function (unusedParameter1) {
+    },
+    bindMathExportActions = function () {
+      $('#edit-menu')
+        .on('click', '[data-key="copy_as_mathml"]', function () {
           hideContextMenu();
-          try {
-            $(contextTarget).closest('video')[0].pause();
-          } catch (error) {}
+          restoreContextWordRange();
+          if (File.editor.styleBookmark.style.block.indexOf(NodeType.math_block) > -1) {
+            File.editor.mathBlock.copyAsMathML(targetBlockElement[0]);
+          } else {
+            File.editor.mathInline.copyAsMathML();
+          }
+        })
+        .on('click', '[data-key="copy_as_word"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          if (File.editor.styleBookmark.style.block.indexOf(NodeType.math_block) > -1) {
+            File.editor.mathBlock.copyAsMathML(targetBlockElement[0], true);
+          } else {
+            File.editor.mathInline.copyAsMathML(true);
+          }
+        })
+        .on('click', '[data-key="copy_as_math_tex"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          if (File.editor.styleBookmark.style.block.indexOf(NodeType.math_block) > -1) {
+            File.editor.mathBlock.copyAsTex(targetBlockElement[0]);
+          } else {
+            File.editor.mathInline.copyAsTex();
+          }
+        })
+        .on('click', '[data-key="copy_as_math_image"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          if (File.editor.styleBookmark.style.block.indexOf(NodeType.math_block) > -1) {
+            File.editor.mathBlock.copyAsImage(targetBlockElement[0]);
+          } else {
+            File.editor.mathInline.copyAsImage();
+          }
         });
-      },
-      'name',
-      { value: 'P', configurable: true },
-    ),
-    positionPointerMenu = Object.defineProperty(
-      function (element, pointerEvent) {
-        element.addClass('show');
-        var innerWidth = element.width() + 20,
-          innerHeight = element.height() + 48,
-          menuLeft =
-            pointerEvent.clientX > window.innerWidth - innerWidth
-              ? window.innerWidth - innerWidth
-              : pointerEvent.clientX,
-          menuTop =
-            pointerEvent.clientY > window.innerHeight - innerHeight
-              ? window.innerHeight - innerHeight
-              : pointerEvent.clientY - $('#top-titlebar').height() + 8;
-        element.css({ top: menuTop + 'px', left: menuLeft + 'px' });
-      },
-      'name',
-      { value: 'I', configurable: true },
-    );
+      if (!File.isWin) {
+        $('#math-menu [menu-for-win]').addClass('hide');
+      }
+    },
+    bindTableActions = function () {
+      $('#table-menu')
+        .on('click', '[data-key="insert_row_before"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.addRow(true);
+        })
+        .on('click', '[data-key="insert_row_after"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.addRow(false);
+        })
+        .on('click', '[data-key="delete_table_row"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.deleteRow(false);
+        })
+        .on('click', '[data-key="insert_col_before"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.addCol(true);
+        })
+        .on('click', '[data-key="insert_col_after"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.addCol(false);
+        })
+        .on('click', '[data-key="delete_table_col"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.deleteCol();
+        })
+        .on('click', '[data-key="delete_table"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.deleteTable();
+        })
+        .on('click', '[data-key="copy_table"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.copyTable();
+        })
+        .on('click', '[data-key="reformat_table"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.reformatTable();
+        })
+        .on('click', '[data-key="move_row_up"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.moveRowUpOrDown(true);
+        })
+        .on('click', '[data-key="move_row_down"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.moveRowUpOrDown(false);
+        })
+        .on('click', '[data-key="move_col_left"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.moveColLeftOrRight(true);
+        })
+        .on('click', '[data-key="move_col_right"]', function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.tableEdit.moveColLeftOrRight(false);
+        });
+    },
+    bindSpellingActions = function () {
+      $('#context-menu')
+        .on('click', "[data-key='learn']", function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          getCurrentSpellchecker().add(trimmedText);
+        })
+        .on('click', "[data-key='unlearn']", function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          getCurrentSpellchecker().remove(trimmedText);
+        })
+        .on('click', "[data-key='correct']", function (clickEvent) {
+          hideContextMenu();
+          var correctionText = $(clickEvent.target).text();
+          restoreContextWordRange(true, !!/\.$/.exec(correctionText));
+          userOperations.pasteHandler(File.editor, correctionText, true);
+        });
+    },
+    bindImageActions = function () {
+      $('#zoom-img-menu').on('click', "[data-key='zoom-img-to-factor']", function () {
+        hideContextMenu();
+        restoreContextWordRange();
+        File.editor.imgEdit.zoomAction(null, this.dataset.factor);
+      });
+      $('#switch-img-syntax-menu').on(
+        'click',
+        "[data-key='switch-img-syntax-markdown']",
+        function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.imgEdit.switchPattern(null, false);
+        },
+      );
+      $('#switch-img-syntax-menu').on('click', "[data-key='switch-img-syntax-html']", function () {
+        hideContextMenu();
+        restoreContextWordRange();
+        File.editor.imgEdit.switchPattern(null, true);
+      });
+    },
+    bindNavigationActions = function () {
+      $('#context-menu, #context-menu-for-source')
+        .on('click', "[data-key='jumpto']", function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          var currentElement = File.editor.getJQueryElem(window.getSelection().anchorNode),
+            element = currentElement.closest('a');
+          if (!element.length) {
+            element = currentElement.closest('[md-inline]').find('a');
+          }
+          File.editor.tryOpenLink(element);
+        })
+        .on('click', "[data-key='copy_link']", function () {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.copyCurrentLink();
+        })
+        .on('click', "[data-key='dev-tool']", inspectPointerTarget)
+        .on('click', "[data-key='edit']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.undo.prepCursorSnap();
+          $(contextTarget).closest('.md-rawblock-container').trigger('startedit');
+          File.editor.undo.endSnap();
+          return false;
+        })
+        .on('click', "[data-key='cut']", function (unusedParameter1) {
+          var element;
+          hideContextMenu();
+          restoreContextWordRange();
+          ClientCommand.cut();
+          if (document.activeElement && (element = document.activeElement.closest('.CodeMirror'))) {
+            setTimeout(function () {
+              element.CodeMirror.replaceSelection('', 'start');
+            }, 30);
+          }
+        })
+        .on('click', "[data-key='backspace']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          if (File.editor.selection.getRangy()) {
+            File.delete();
+          } else {
+            File.deleteActive(contextTarget);
+          }
+        })
+        .on('click', "[data-key='copy']", function (unusedParameter1) {
+          hideContextMenu();
+          if (!targetBlockElement.find('.md-rawblock-container').focus().length) {
+            restoreContextWordRange();
+          }
+          ClientCommand.copy();
+        })
+        .on('click', "[data-key='delete-block']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          if (targetBlockElement.length) {
+            File.editor.refocus(targetBlockElement.attr('cid'));
+            File.editor.UserOp.deleteBlock(File.editor);
+          }
+        })
+        .on('click', "[data-key='paste']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          ClientCommand.paste();
+        })
+        .on('click', "[data-key='copy-emoji']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          var emojiText = $('.md-emoji.md-expand [data-emoji]').attr('data-emoji');
+          File.editor.UserOp.setClipboard('', '', emojiText, true);
+        })
+        .on('click', "[data-key='download-as']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          var diagramElement = targetBlockElement.find(
+            '.md-fences-adv-panel svg, .md-math-container svg, .md-mathjax-preview svg',
+          )[0];
+          mediaActions.downloadAs(diagramElement || contextTarget.closest('svg, img, video'));
+        })
+        .on('click', "[data-key='copy-all-code']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          File.editor.fences.copyContent();
+        })
+        .on('click', "[data-key='format-all-code']", function (unusedParameter1) {
+          hideContextMenu();
+          File.editor.refocus(targetBlockElement.attr('cid'));
+          File.editor.fences.formatContent();
+        })
+        .on('click', "[data-key='format-selected-code']", function (unusedParameter1) {
+          hideContextMenu();
+          File.editor.refocus(targetBlockElement.attr('cid'));
+          File.editor.fences.formatContent(true);
+        });
+      $('.context-menu').on('mousedown', function (pointerEvent) {
+        if (!$(pointerEvent.target).closest('a').length) {
+          return false;
+        }
+      });
+      if (File.isNode) {
+        if (File.option.debug) {
+          $("[data-group='dev-tool']").removeClass('hide');
+        } else {
+          $("[data-group='dev-tool']").addClass('hide');
+        }
+      }
+      $('#edit-menu')
+        .on('click', "[data-key='copy_as_image']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          var diagramElement = targetBlockElement.find(
+            '.md-fences-adv-panel svg, .md-math-container svg, .md-mathjax-preview svg',
+          )[0];
+          mediaActions.copyImage(diagramElement || contextTarget.closest('svg, img, video'));
+        })
+        .on('click', "[data-key='copy_as_markdown']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          ClientCommand.copyAsMarkdown();
+        })
+        .on('click', "[data-key='copy_as_html_source']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          var diagramElement = targetBlockElement.find(
+            '.md-fences-adv-panel svg, .md-math-container svg, .md-mathjax-preview svg',
+          )[0];
+          if (diagramElement) {
+            mediaActions.copyAsHtml(diagramElement);
+          } else {
+            ClientCommand.copyAsHTMLSource();
+          }
+        })
+        .on('click', "[data-key='copy_as_simple_html']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          ClientCommand.copyAsSemanticHTML();
+        })
+        .on('click', "[data-key='paste_as_plain']", function (unusedParameter1) {
+          hideContextMenu();
+          restoreContextWordRange();
+          ClientCommand.pasteAsPlain();
+        });
+      $("[data-key='play']").click(function (unusedParameter1) {
+        hideContextMenu();
+        try {
+          $(contextTarget).closest('video')[0].play();
+        } catch (error) {}
+      });
+      $("[data-key='pause']").click(function (unusedParameter1) {
+        hideContextMenu();
+        try {
+          $(contextTarget).closest('video')[0].pause();
+        } catch (error) {}
+      });
+    },
+    positionPointerMenu = function (element, pointerEvent) {
+      element.addClass('show');
+      var innerWidth = element.width() + 20,
+        innerHeight = element.height() + 48,
+        menuLeft =
+          pointerEvent.clientX > window.innerWidth - innerWidth
+            ? window.innerWidth - innerWidth
+            : pointerEvent.clientX,
+        menuTop =
+          pointerEvent.clientY > window.innerHeight - innerHeight
+            ? window.innerHeight - innerHeight
+            : pointerEvent.clientY - $('#top-titlebar').height() + 8;
+      element.css({ top: menuTop + 'px', left: menuLeft + 'px' });
+    };
   ContextMenu.prototype.show = function (event, targetOverride) {
     if (!searchServicesInitialized && window.reqnode) {
       initializeSearchServices.call(this);
@@ -1172,131 +1098,123 @@ export default function initializeUiContextMenu(requireModule, moduleExports, mo
     event.stopPropagation();
   };
   ContextMenu.prototype.hide = hideContextMenu;
-  var positionSubmenu = Object.defineProperty(
-    function (menuSelector, anchorElement) {
-      var anchorWidth = anchorElement.width(),
-        submenu = $(menuSelector).addClass('show'),
-        submenuWidth = submenu.width(),
-        innerHeight = submenu.height() + 48,
-        offset = anchorElement.offset(),
-        left = offset.left,
-        anchorRight = left + anchorWidth,
-        preferredTop = offset.top - 30,
-        submenuLeft =
-          anchorRight + submenuWidth > window.innerWidth
-            ? Math.max(0, left - submenuWidth - 6)
-            : anchorRight + 6,
-        submenuTop =
-          preferredTop + innerHeight > window.innerHeight
-            ? window.innerHeight - innerHeight
-            : preferredTop;
-      submenu.css({ top: submenuTop + 'px', left: submenuLeft + 'px' });
-      return false;
-    },
-    'name',
-    { value: 'O', configurable: true },
-  );
+  var positionSubmenu = function (menuSelector, anchorElement) {
+    var anchorWidth = anchorElement.width(),
+      submenu = $(menuSelector).addClass('show'),
+      submenuWidth = submenu.width(),
+      innerHeight = submenu.height() + 48,
+      offset = anchorElement.offset(),
+      left = offset.left,
+      anchorRight = left + anchorWidth,
+      preferredTop = offset.top - 30,
+      submenuLeft =
+        anchorRight + submenuWidth > window.innerWidth
+          ? Math.max(0, left - submenuWidth - 6)
+          : anchorRight + 6,
+      submenuTop =
+        preferredTop + innerHeight > window.innerHeight
+          ? window.innerHeight - innerHeight
+          : preferredTop;
+    submenu.css({ top: submenuTop + 'px', left: submenuLeft + 'px' });
+    return false;
+  };
   ContextMenu.prototype.showExtMenu = positionSubmenu;
   var customFocusElement,
     activeCustomOwner,
     items,
-    navigateContextMenu = Object.defineProperty(
-      function (activeElement, navigationKey) {
-        var element,
-          submenuItemIndex,
-          currentElement = $(activeElement);
-        if ('Enter' == navigationKey) {
-          if (!currentElement.hasClass('has-extra-menu')) {
-            var elements = currentElement.find('a');
-            if (elements.length) {
-              elements.trigger('click');
-            } else {
-              currentElement.trigger('click');
-            }
-            return true;
-          }
-          navigationKey = 'OpenSubmenu';
-        }
-        if ('Up' == navigationKey || 'Down' == navigationKey) {
-          currentElement.trigger('mouseleave');
-          currentElement = currentElement.closest('li');
-          if (
-            0 ==
-            (element = 'Up' == navigationKey ? currentElement.prev() : currentElement.next()).length
-          ) {
-            if (currentElement.closest('#user-context-menu').length) {
-              hideContextMenu();
-              return true;
-            }
-            element =
-              'Up' == navigationKey
-                ? currentElement.parent().children().last()
-                : currentElement.parent().children().first();
-          }
-          if (element.hasClass('hide') || element.hasClass('divider')) {
-            return navigateContextMenu(element[0], navigationKey);
+    navigateContextMenu = function (activeElement, navigationKey) {
+      var element,
+        submenuItemIndex,
+        currentElement = $(activeElement);
+      if ('Enter' == navigationKey) {
+        if (!currentElement.hasClass('has-extra-menu')) {
+          var elements = currentElement.find('a');
+          if (elements.length) {
+            elements.trigger('click');
           } else {
-            currentElement = currentElement.closest('.context-menu').find('.active');
-            if (element.hasClass('has-btn-submenu')) {
-              submenuItemIndex =
-                (currentElement.prevAll('a').length /
-                  (currentElement.closest('.has-btn-submenu').find('a').length || 1)) *
-                element.find('a').length;
-              (element = $(element.find('[data-key]')[Math.floor(submenuItemIndex)])).trigger(
-                'mouseenter',
-              );
-              return true;
-            } else {
-              currentElement.removeClass('active');
-              element.addClass('active');
-              return true;
-            }
+            currentElement.trigger('click');
           }
+          return true;
         }
+        navigationKey = 'OpenSubmenu';
+      }
+      if ('Up' == navigationKey || 'Down' == navigationKey) {
+        currentElement.trigger('mouseleave');
+        currentElement = currentElement.closest('li');
         if (
-          ('Left' == navigationKey || 'Right' == navigationKey) &&
-          'A' == currentElement[0].tagName
+          0 ==
+          (element = 'Up' == navigationKey ? currentElement.prev() : currentElement.next()).length
         ) {
-          currentElement.trigger('mouseleave');
-          if (
-            !(element = 'Left' == navigationKey ? currentElement.prev() : currentElement.next())
-              .length
-          ) {
-            element =
-              'Up' == navigationKey
-                ? currentElement.parent().children().last('')
-                : currentElement.parent().children().first();
-          }
-          element.trigger('mouseenter');
-          currentElement.removeClass('active');
-          element.addClass('active');
-          return true;
-        }
-        if ('Left' == navigationKey || 'Esc' == navigationKey) {
-          if (
-            (currentElement = currentElement.closest('.context-menu')).hasClass('ext-context-menu')
-          ) {
-            currentElement.find('.active').removeClass('active');
-            currentElement.removeClass('show');
+          if (currentElement.closest('#user-context-menu').length) {
+            hideContextMenu();
             return true;
           }
-          if ('Left' == navigationKey) {
-            return true;
-          }
+          element =
+            'Up' == navigationKey
+              ? currentElement.parent().children().last()
+              : currentElement.parent().children().first();
         }
-        if ('Right' == navigationKey || 'OpenSubmenu' == navigationKey) {
-          if (currentElement.hasClass('has-extra-menu')) {
-            currentElement.trigger('mouseenter');
-            $('.ext-context-menu:visible [data-key]:visible').first().trigger('mouseenter');
-          }
-          return true;
+        if (element.hasClass('hide') || element.hasClass('divider')) {
+          return navigateContextMenu(element[0], navigationKey);
         } else {
-          return void 0;
+          currentElement = currentElement.closest('.context-menu').find('.active');
+          if (element.hasClass('has-btn-submenu')) {
+            submenuItemIndex =
+              (currentElement.prevAll('a').length /
+                (currentElement.closest('.has-btn-submenu').find('a').length || 1)) *
+              element.find('a').length;
+            (element = $(element.find('[data-key]')[Math.floor(submenuItemIndex)])).trigger(
+              'mouseenter',
+            );
+            return true;
+          } else {
+            currentElement.removeClass('active');
+            element.addClass('active');
+            return true;
+          }
         }
-      },
-      'name',
-      { value: 'q', configurable: true },
-    );
+      }
+      if (
+        ('Left' == navigationKey || 'Right' == navigationKey) &&
+        'A' == currentElement[0].tagName
+      ) {
+        currentElement.trigger('mouseleave');
+        if (
+          !(element = 'Left' == navigationKey ? currentElement.prev() : currentElement.next())
+            .length
+        ) {
+          element =
+            'Up' == navigationKey
+              ? currentElement.parent().children().last('')
+              : currentElement.parent().children().first();
+        }
+        element.trigger('mouseenter');
+        currentElement.removeClass('active');
+        element.addClass('active');
+        return true;
+      }
+      if ('Left' == navigationKey || 'Esc' == navigationKey) {
+        if (
+          (currentElement = currentElement.closest('.context-menu')).hasClass('ext-context-menu')
+        ) {
+          currentElement.find('.active').removeClass('active');
+          currentElement.removeClass('show');
+          return true;
+        }
+        if ('Left' == navigationKey) {
+          return true;
+        }
+      }
+      if ('Right' == navigationKey || 'OpenSubmenu' == navigationKey) {
+        if (currentElement.hasClass('has-extra-menu')) {
+          currentElement.trigger('mouseenter');
+          $('.ext-context-menu:visible [data-key]:visible').first().trigger('mouseenter');
+        }
+        return true;
+      } else {
+        return void 0;
+      }
+    };
   ContextMenu.prototype.handleKeyEvent = function (keyboardEvent) {
     var keyName = map[keyboardEvent.keyCode || keyboardEvent.which];
     if (DocumentNode.isType(keyName, 'Esc', 'Right', 'Left', 'Up', 'Down', 'Return', 'Enter')) {
@@ -1399,21 +1317,17 @@ export default function initializeUiContextMenu(requireModule, moduleExports, mo
     if (
       void (
         inputElement.ownerDocument.defaultView != window &&
-        (inputElement = Object.defineProperty(
-          function findOwningFrameElement(frameWindow) {
-            if (frameWindow.parent == window) {
-              return frameWindow.frameElement;
+        (inputElement = (function findOwningFrameElement(frameWindow) {
+          if (frameWindow.parent == window) {
+            return frameWindow.frameElement;
+          } else {
+            if (frameWindow && frameWindow.parent) {
+              return findOwningFrameElement(frameWindow.parent);
             } else {
-              if (frameWindow && frameWindow.parent) {
-                return findOwningFrameElement(frameWindow.parent);
-              } else {
-                return null;
-              }
+              return null;
             }
-          },
-          'name',
-          { value: 'e', configurable: true },
-        )(inputElement.ownerDocument.defaultView))
+          }
+        })(inputElement.ownerDocument.defaultView))
       ) ||
       document.querySelector('#write').contains(inputElement)
     ) {

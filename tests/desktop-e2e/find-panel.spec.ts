@@ -249,7 +249,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
         fontSize: '12px',
         padding: '5px 8px 0px 16px',
       });
-      // Night's original row line-height and browser subpixel rounding differ.
+      // Night's row line-height and browser subpixel rounding differ.
       expect(Math.abs(state.inputTop - 7)).toBeLessThan(2);
       expect(state.background).toBe(state.bodyBackground);
       expect(Math.abs(state.contentTop - state.originalContentTop)).toBeLessThan(1);

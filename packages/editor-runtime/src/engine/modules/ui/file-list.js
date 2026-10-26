@@ -1,7 +1,6 @@
 // ui/file-list.
 export default function initializeUiFileList(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(trackUniquePath, 'name', { value: 'x', configurable: true });
 
   if (!this) {
     self;
@@ -23,98 +22,76 @@ export default function initializeUiFileList(requireModule, moduleExports, modul
     jquery = requireModule('libraries/jquery'),
     currentElement = jquery('#file-library-list-children'),
     localElement = jquery('#file-library-list'),
-    stripMarkdownForPreview = Object.defineProperty(
-      function (text) {
-        if (File.option.strictMarkdown) {
-          return text
-            .replace(/^\s*(([\n>]+)|([-=*`\s]{3,}))/gm, '')
-            .replace(/^\s*#+\s+/gm, '')
-            .replace(/\s*[*_`$=]+\s*/gm, ' ')
-            .replace(/\[([^\]]+)\]\([^)]*\)/gm, '$1');
-        } else {
-          return text
-            .replace(/^\s*(([\n#>]+)|([-=*`\s]{3,}))/gm, '')
-            .replace(/\s*[*_`$=]+\s*/gm, ' ')
-            .replace(/\[([^\]]+)\]\([^)]*\)/gm, '$1');
+    stripMarkdownForPreview = function (text) {
+      if (File.option.strictMarkdown) {
+        return text
+          .replace(/^\s*(([\n>]+)|([-=*`\s]{3,}))/gm, '')
+          .replace(/^\s*#+\s+/gm, '')
+          .replace(/\s*[*_`$=]+\s*/gm, ' ')
+          .replace(/\[([^\]]+)\]\([^)]*\)/gm, '$1');
+      } else {
+        return text
+          .replace(/^\s*(([\n#>]+)|([-=*`\s]{3,}))/gm, '')
+          .replace(/\s*[*_`$=]+\s*/gm, ' ')
+          .replace(/\[([^\]]+)\]\([^)]*\)/gm, '$1');
+      }
+    },
+    readMultilineMetadata = function (metadataLines, startLine, metadataValue, lineLimit) {
+      for (var itemIndex = startLine + 1; itemIndex < lineLimit; itemIndex++) {
+        if (metadataLines[itemIndex].indexOf(':') >= 0) {
+          return metadataValue;
         }
-      },
-      'name',
-      { value: 'g', configurable: true },
-    ),
-    readMultilineMetadata = Object.defineProperty(
-      function (metadataLines, startLine, metadataValue, lineLimit) {
-        for (var itemIndex = startLine + 1; itemIndex < lineLimit; itemIndex++) {
-          if (metadataLines[itemIndex].indexOf(':') >= 0) {
-            return metadataValue;
-          }
-          metadataValue += '\n' + metadataLines[itemIndex];
-        }
-        return metadataValue;
-      },
-      'name',
-      { value: 'v', configurable: true },
-    ),
-    updateFileNameLabel = Object.defineProperty(
-      function (itemElement, text) {
-        var substringLength = text.lastIndexOf('.');
-        if (substringLength < 0) {
-          substringLength = text.length;
-        }
-        itemElement.find('.file-list-item-file-name-part').text(text.substr(0, substringLength));
-        itemElement.find('.file-list-item-file-ext-part').text(text.substr(substringLength));
-      },
-      'name',
-      { value: 'y', configurable: true },
-    ),
-    buildFilePreview = Object.defineProperty(
-      function (text, unusedParameter2) {
-        var match,
-          parts = text.split(/\r*\n+/),
-          partsLength = parts.length;
-        if ('---' == parts[0]) {
-          for (
-            var currentText, textParts = [], itemIndex = 1;
-            itemIndex < partsLength;
-            itemIndex++
-          ) {
-            if ('---' == parts[itemIndex]) {
-              if (textParts.length < 3) {
-                textParts.push(
-                  stripMarkdownForPreview(parts.slice(itemIndex + 1).join('\n') || text),
-                );
-              }
-              return textParts.join('\n');
+        metadataValue += '\n' + metadataLines[itemIndex];
+      }
+      return metadataValue;
+    },
+    updateFileNameLabel = function (itemElement, text) {
+      var substringLength = text.lastIndexOf('.');
+      if (substringLength < 0) {
+        substringLength = text.length;
+      }
+      itemElement.find('.file-list-item-file-name-part').text(text.substr(0, substringLength));
+      itemElement.find('.file-list-item-file-ext-part').text(text.substr(substringLength));
+    },
+    buildFilePreview = function (text, unusedParameter2) {
+      var match,
+        parts = text.split(/\r*\n+/),
+        partsLength = parts.length;
+      if ('---' == parts[0]) {
+        for (var currentText, textParts = [], itemIndex = 1; itemIndex < partsLength; itemIndex++) {
+          if ('---' == parts[itemIndex]) {
+            if (textParts.length < 3) {
+              textParts.push(
+                stripMarkdownForPreview(parts.slice(itemIndex + 1).join('\n') || text),
+              );
             }
-            if ((match = /^\s*(title)\s*:(.+)$/.exec(parts[itemIndex]))) {
+            return textParts.join('\n');
+          }
+          if ((match = /^\s*(title)\s*:(.+)$/.exec(parts[itemIndex]))) {
+            if ((currentText = readMultilineMetadata(parts, itemIndex, match[2], partsLength))) {
+              textParts.push(currentText.trim());
+            }
+          } else {
+            if ((match = /^\s*(subtitle)\s*:(.+)$/.exec(parts[itemIndex]))) {
               if ((currentText = readMultilineMetadata(parts, itemIndex, match[2], partsLength))) {
                 textParts.push(currentText.trim());
               }
             } else {
-              if ((match = /^\s*(subtitle)\s*:(.+)$/.exec(parts[itemIndex]))) {
-                if (
-                  (currentText = readMultilineMetadata(parts, itemIndex, match[2], partsLength))
-                ) {
-                  textParts.push(currentText.trim());
-                }
-              } else {
-                if (
-                  (match = /^\s*(overview|summary|description|excerpt)\s*:(.+)$/.exec(
-                    parts[itemIndex],
-                  )) &&
-                  (currentText = readMultilineMetadata(parts, itemIndex, match[2], partsLength))
-                ) {
-                  textParts.push(currentText.trim());
-                }
+              if (
+                (match = /^\s*(overview|summary|description|excerpt)\s*:(.+)$/.exec(
+                  parts[itemIndex],
+                )) &&
+                (currentText = readMultilineMetadata(parts, itemIndex, match[2], partsLength))
+              ) {
+                textParts.push(currentText.trim());
               }
             }
           }
-          return stripMarkdownForPreview(text);
         }
         return stripMarkdownForPreview(text);
-      },
-      'name',
-      { value: 'b', configurable: true },
-    ),
+      }
+      return stripMarkdownForPreview(text);
+    },
     statWrapper = fileIntegration.statWrapper;
   function trackUniquePath(filePath, items, checkOnly) {
     var pathSeparator = File.isWin ? '\\' : '/';
@@ -198,131 +175,107 @@ export default function initializeUiFileList(requireModule, moduleExports, modul
       element = element || localElement;
       var items = [],
         pendingIo = 0,
-        clearFilesystemQueue = Object.defineProperty(
-          function () {
-            items = [];
-          },
-          'name',
-          { value: 'p', configurable: true },
-        ),
-        drainFilesystemQueue = Object.defineProperty(
-          function () {
-            if ('oversize' != renderState) {
-              for (var batchCount = 0; batchCount < 20 && items.length; ) {
-                batchCount++;
-                var queuedTask = items.shift();
-                if (queuedTask[1]) {
-                  readDirectory(queuedTask[0], queuedTask[2]);
-                } else {
-                  readFileStats(queuedTask[0], queuedTask[2]);
-                }
-              }
-            } else {
-              clearFilesystemQueue();
-            }
-          },
-          'name',
-          { value: 'f', configurable: true },
-        ),
-        readDirectory = Object.defineProperty(
-          function (directoryPath, onRead) {
-            pendingIo++;
-            fileSystemPlus.readdir(directoryPath, function (error, fileNames) {
-              pendingIo--;
-              if (useFsQueue && pendingIo < 50) {
-                drainFilesystemQueue();
-              }
-              onRead(error, fileNames);
-            });
-          },
-          'name',
-          { value: 'g', configurable: true },
-        ),
-        readFileStats = Object.defineProperty(
-          function (filePath, onStat) {
-            pendingIo++;
-            statWrapper(filePath, function (fileInfo) {
-              pendingIo--;
-              if (useFsQueue && pendingIo < 50) {
-                drainFilesystemQueue();
-              }
-              onStat(fileInfo);
-            });
-          },
-          'name',
-          { value: 'v', configurable: true },
-        ),
-        walkDirectory = Object.defineProperty(
-          function (separator, onFile, onDirectory, onComplete) {
-            if (!separator) {
-              return onComplete();
-            }
-            !(function (directoryPath, onRead) {
-              if (useFsQueue && pendingIo >= 50) {
-                items.push([directoryPath, true, onRead]);
+        clearFilesystemQueue = function () {
+          items = [];
+        },
+        drainFilesystemQueue = function () {
+          if ('oversize' != renderState) {
+            for (var batchCount = 0; batchCount < 20 && items.length; ) {
+              batchCount++;
+              var queuedTask = items.shift();
+              if (queuedTask[1]) {
+                readDirectory(queuedTask[0], queuedTask[2]);
               } else {
-                readDirectory(directoryPath, onRead);
+                readFileStats(queuedTask[0], queuedTask[2]);
               }
-            })(separator, function (readError, inputItems) {
-              if (readError) {
-                return onComplete(void 0, readError);
-              }
-              var itemsLength = inputItems.length;
-              if (!itemsLength) {
+            }
+          } else {
+            clearFilesystemQueue();
+          }
+        },
+        readDirectory = function (directoryPath, onRead) {
+          pendingIo++;
+          fileSystemPlus.readdir(directoryPath, function (error, fileNames) {
+            pendingIo--;
+            if (useFsQueue && pendingIo < 50) {
+              drainFilesystemQueue();
+            }
+            onRead(error, fileNames);
+          });
+        },
+        readFileStats = function (filePath, onStat) {
+          pendingIo++;
+          statWrapper(filePath, function (fileInfo) {
+            pendingIo--;
+            if (useFsQueue && pendingIo < 50) {
+              drainFilesystemQueue();
+            }
+            onStat(fileInfo);
+          });
+        },
+        walkDirectory = function (separator, onFile, onDirectory, onComplete) {
+          if (!separator) {
+            return onComplete();
+          }
+          !(function (directoryPath, onRead) {
+            if (useFsQueue && pendingIo >= 50) {
+              items.push([directoryPath, true, onRead]);
+            } else {
+              readDirectory(directoryPath, onRead);
+            }
+          })(separator, function (readError, inputItems) {
+            if (readError) {
+              return onComplete(void 0, readError);
+            }
+            var itemsLength = inputItems.length;
+            if (!itemsLength) {
+              onComplete();
+            }
+            var completeDirectoryEntry = function () {
+              if (--itemsLength <= 0) {
                 onComplete();
               }
-              var completeDirectoryEntry = Object.defineProperty(
-                function () {
-                  if (--itemsLength <= 0) {
-                    onComplete();
+            };
+            inputItems.forEach(function (item) {
+              var entryPath = pathUtilities.join(separator, item);
+              !(function (filePath, onStat) {
+                if (useFsQueue && pendingIo >= 50) {
+                  items.push([filePath, false, onStat]);
+                } else {
+                  readFileStats(filePath, onStat);
+                }
+              })(entryPath, function (fileInfo) {
+                if (renderState) {
+                  if (!fileInfo || fileInfo.shouldIgnore) {
+                    return completeDirectoryEntry();
                   }
-                },
-                'name',
-                { value: 'g', configurable: true },
-              );
-              inputItems.forEach(function (item) {
-                var entryPath = pathUtilities.join(separator, item);
-                !(function (filePath, onStat) {
-                  if (useFsQueue && pendingIo >= 50) {
-                    items.push([filePath, false, onStat]);
+                  if (
+                    50 == fetchedCount &&
+                    true === renderState &&
+                    'rendering' != element.attr('data-state')
+                  ) {
+                    element.attr('data-state', 'rendering');
+                  }
+                  if (fetchedCount > fetchLimit) {
+                    clearFilesystemQueue();
+                    return void receiver.endRender(true);
+                  }
+                  if (fileInfo.isFile) {
+                    if (onFile(fileInfo, item, separator, entryPath, completeDirectoryEntry)) {
+                      fetchedCount++;
+                    }
                   } else {
-                    readFileStats(filePath, onStat);
-                  }
-                })(entryPath, function (fileInfo) {
-                  if (renderState) {
-                    if (!fileInfo || fileInfo.shouldIgnore) {
-                      return completeDirectoryEntry();
-                    }
-                    if (
-                      50 == fetchedCount &&
-                      true === renderState &&
-                      'rendering' != element.attr('data-state')
-                    ) {
-                      element.attr('data-state', 'rendering');
-                    }
-                    if (fetchedCount > fetchLimit) {
-                      clearFilesystemQueue();
-                      return void receiver.endRender(true);
-                    }
-                    if (fileInfo.isFile) {
-                      if (onFile(fileInfo, item, separator, entryPath, completeDirectoryEntry)) {
-                        fetchedCount++;
-                      }
+                    if (fileInfo.isDir && onDirectory(fileInfo, item, separator, entryPath)) {
+                      walkDirectory(entryPath, onFile, onDirectory, completeDirectoryEntry);
                     } else {
-                      if (fileInfo.isDir && onDirectory(fileInfo, item, separator, entryPath)) {
-                        walkDirectory(entryPath, onFile, onDirectory, completeDirectoryEntry);
-                      } else {
-                        completeDirectoryEntry();
-                      }
+                      completeDirectoryEntry();
                     }
                   }
-                });
+                }
               });
             });
-          },
-          'name',
-          { value: 'y', configurable: true },
-        );
+          });
+        };
       walkDirectory(
         rootPath,
         function (fileInfo, name, folderPath, path, onComplete) {
@@ -592,8 +545,6 @@ export default function initializeUiFileList(requireModule, moduleExports, modul
       ).call(this, fileEntry);
     }
     appendItemToView(fileEntry, unusedParameter2, targetContainer, renderOptions) {
-      Object.defineProperty(highlightNewFile, 'name', { value: 'C', configurable: true });
-
       if ('oversize' != renderState && renderState) {
         var resolvedOptions = renderOptions || {},
           forceMark = resolvedOptions.forceMark,
@@ -701,8 +652,6 @@ export default function initializeUiFileList(requireModule, moduleExports, modul
       }
     }
     removeFileOrFolder(inputPath, immediate) {
-      Object.defineProperty(removeFileElement, 'name', { value: 'r', configurable: true });
-
       var receiver = this,
         pathSeparator = File.isWin ? '\\' : '/';
       function removeFileElement(filePath) {
@@ -752,8 +701,6 @@ export default function initializeUiFileList(requireModule, moduleExports, modul
       }
     }
     removeItemFromView(fileEntry, keepElement, immediate) {
-      Object.defineProperty(removeMatchingEntry, 'name', { value: 'i', configurable: true });
-
       function removeMatchingEntry(entries, searchValue) {
         if (~entries.indexOf(searchValue)) {
           entries.remove(searchValue);
@@ -1077,8 +1024,6 @@ export default function initializeUiFileList(requireModule, moduleExports, modul
       }
     }
     newFile() {
-      Object.defineProperty(appendCreatedFile, 'name', { value: 'i', configurable: true });
-
       var folderPath,
         untitledIndex,
         receiver = this;
@@ -1200,8 +1145,6 @@ export default function initializeUiFileList(requireModule, moduleExports, modul
       this.newFile();
     }
     renameFileCommand(element, newlyCreated) {
-      Object.defineProperty(applyRenamedFileLabel, 'name', { value: 'c', configurable: true });
-
       element = jquery(element).closest('.file-library-node')[0];
       if (File.isMac) {
         bridge.callHandler('window.focus');
@@ -1276,11 +1219,6 @@ export default function initializeUiFileList(requireModule, moduleExports, modul
             })(inputElement);
           } else {
             return (function (inputElement) {
-              Object.defineProperty(restoreNameAfterRenameFailure, 'name', {
-                value: 'd',
-                configurable: true,
-              });
-
               var text = inputElement.val();
               if (
                 (text = (

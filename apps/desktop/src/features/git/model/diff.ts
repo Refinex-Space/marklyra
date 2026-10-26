@@ -16,7 +16,7 @@ export function splitLines(text: string): string[] {
 }
 
 export interface DiffOptions {
-  /** Compare lines with all whitespace removed; rows still show the original text. */
+  /** Compare lines with all whitespace removed; rows still show the source text. */
   ignoreWhitespace?: boolean;
 }
 

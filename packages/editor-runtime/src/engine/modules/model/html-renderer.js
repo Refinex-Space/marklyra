@@ -15,9 +15,6 @@ export default function initializeModelHtmlRenderer(requireModule, moduleExports
     markdownParser = requireModule('model/markdown-parser'),
     html = document.querySelector('#md-rawblock-tooltip-templ').innerHTML;
   DocumentNode.prototype.toHTML = function (contentOverride, searchValue, renderContext) {
-    Object.defineProperty(renderNodeContent, 'name', { value: 'p', configurable: true });
-    Object.defineProperty(buildNodeAttributes, 'name', { value: 'f', configurable: true });
-
     var documentMap;
     renderContext = renderContext || {};
     var headingTags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];

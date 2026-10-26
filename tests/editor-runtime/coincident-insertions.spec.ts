@@ -142,7 +142,7 @@ async function batchEnterAndPaste(page: Page) {
   expect(
     await frame.evaluate(() => (window as unknown as Child).notificationGate?.held.size ?? 0),
   ).toBeGreaterThan(0);
-  // The original native paste entry can execute in the same unpublished batch
+  // The native paste entry can execute in the same unpublished batch
   // as Enter. Root receipts can prove Enter before publication; the other
   // fixtures still require coincident serializer partition insertion checks.
   // Going through the SDK context menu would split that native unpublished batch.

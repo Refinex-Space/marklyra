@@ -991,7 +991,7 @@
   opacity: 1;
 }
 
-/* Directory popup rebuilt from observed geometry; original styles stay private. */
+/* Directory popup layout. */
 .workspace-sidebar-compact .workspace-footer {
   min-height: 34px;
 }

@@ -41,9 +41,6 @@ export default function initializeEditingCharacterPairs(
     pendingCommand,
     range,
   ) {
-    Object.defineProperty(advanceSelectionBookmark, 'name', { value: 'x', configurable: true });
-    Object.defineProperty(insertCharacterPair, 'name', { value: 'C', configurable: true });
-
     var text, slice, currentTextSlice, localTextSlice;
     if (
       !File.option.noPairingMatch &&
@@ -119,11 +116,6 @@ export default function initializeEditingCharacterPairs(
               text.substring(Math.max(0, selectionBookmark.start - 1), selectionBookmark.start + 1),
             ) &&
             !(function (textBeforeCaret, closingCharacter) {
-              Object.defineProperty(normalizeQuoteCharacter, 'name', {
-                value: 'i',
-                configurable: true,
-              });
-
               var configuredQuotes = File.option.userQuotesArray || ['“', '”', '‘', '’'];
               function normalizeQuoteCharacter(character, includeOpeningQuotes) {
                 if (

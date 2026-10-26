@@ -1,5 +1,5 @@
 /** Authored source preservation vectors. Container prefixes are explicit input,
- * and original-JS controls for quote/list/header semantics are indexed in . */
+ * and engine controls for quote/list/header semantics are indexed in . */
 export const tableContainers = [
   'root',
   'quote',

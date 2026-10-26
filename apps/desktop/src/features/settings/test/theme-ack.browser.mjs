@@ -1,4 +1,4 @@
-// Current PreferencesWindow + original prepared child; native requests are controlled mocks.
+// Current PreferencesWindow + prepared child; native requests are controlled mocks.
 // Run after a single immutable runtime preparation; never starts or rewrites shared servers.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';

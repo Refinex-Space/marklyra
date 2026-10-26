@@ -5,7 +5,7 @@ import { engineModule, expressionOf, hasHook, nodes, unique } from './runtime-te
 
 const handler = unique(
   nodes(
-    engineModule('49'),
+    engineModule('editing/source-mode'),
     (node) =>
       node.type === 'FunctionExpression' &&
       node.params.length === 2 &&

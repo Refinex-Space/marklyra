@@ -1,7 +1,6 @@
 // editing/selection.
 export default function initializeEditingSelection(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(cancelNativeScrollEvent, 'name', { value: 'v', configurable: true });
 
   if (!this) {
     self;
@@ -62,39 +61,35 @@ export default function initializeEditingSelection(requireModule, moduleExports,
   };
   var currentLeft,
     clientHeight,
-    SelectionController = Object.defineProperty(
-      function (inputEditor) {
-        this.rangy = rangy;
-        rangy.init();
-        this.savedSel = {};
-        this.editor = inputEditor;
-        jquery(document).on('selectionchange', function (unusedParameter1) {
-          if (inputEditor.writingArea.contains(document.activeElement)) {
-            this.selectionBeforeBlur = null;
-          }
-          if (
-            inputEditor.selection.selectWordTime &&
-            new Date() - inputEditor.selection.selectWordTime > 200
-          ) {
-            inputEditor.selection.selectWordTime = null;
-          }
-        });
-        this.updateMetrics();
-        jquery('#write')
-          .on('mouseleave', (blurEvent) => {
-            if (document.activeElement == blurEvent.currentTarget) {
-              if (!this.selectionBeforeBlur) {
-                this.selectionBeforeBlur = this.buildUndo();
-              }
+    SelectionController = function (inputEditor) {
+      this.rangy = rangy;
+      rangy.init();
+      this.savedSel = {};
+      this.editor = inputEditor;
+      jquery(document).on('selectionchange', function (unusedParameter1) {
+        if (inputEditor.writingArea.contains(document.activeElement)) {
+          this.selectionBeforeBlur = null;
+        }
+        if (
+          inputEditor.selection.selectWordTime &&
+          new Date() - inputEditor.selection.selectWordTime > 200
+        ) {
+          inputEditor.selection.selectWordTime = null;
+        }
+      });
+      this.updateMetrics();
+      jquery('#write')
+        .on('mouseleave', (blurEvent) => {
+          if (document.activeElement == blurEvent.currentTarget) {
+            if (!this.selectionBeforeBlur) {
+              this.selectionBeforeBlur = this.buildUndo();
             }
-          })
-          .on('cursorChange', () => {
-            this.selectionBeforeBlur = null;
-          });
-      },
-      'name',
-      { value: 'm', configurable: true },
-    ),
+          }
+        })
+        .on('cursorChange', () => {
+          this.selectionBeforeBlur = null;
+        });
+    },
     scrollTop = jquery.fn.scrollTop;
   function cancelNativeScrollEvent(event) {
     event.preventDefault();
@@ -197,23 +192,19 @@ export default function initializeEditingSelection(requireModule, moduleExports,
           }, 20);
         } else {
           if (!window.getSelection().anchorNode && element.length) {
-            !Object.defineProperty(
-              function collapseRangeToFirstLeaf(domNode) {
-                if (3 == domNode.nodeType) {
+            !(function collapseRangeToFirstLeaf(domNode) {
+              if (3 == domNode.nodeType) {
+                range.setStart(domNode, 0);
+                range.setEnd(domNode, 0);
+              } else {
+                if (domNode.childNodes.length) {
+                  collapseRangeToFirstLeaf(domNode.childNodes[0]);
+                } else {
                   range.setStart(domNode, 0);
                   range.setEnd(domNode, 0);
-                } else {
-                  if (domNode.childNodes.length) {
-                    collapseRangeToFirstLeaf(domNode.childNodes[0]);
-                  } else {
-                    range.setStart(domNode, 0);
-                    range.setEnd(domNode, 0);
-                  }
                 }
-              },
-              'name',
-              { value: 'e', configurable: true },
-            )(element[0]);
+              }
+            })(element[0]);
             window.getSelection().addRange(range.nativeRange);
           }
         }
@@ -1427,14 +1418,6 @@ export default function initializeEditingSelection(requireModule, moduleExports,
       }
     },
     moveUpOrDown: function (collapsed, keyboardEvent, ignoreColumn) {
-      Object.defineProperty(isBoundaryBlock, 'name', { value: 'g', configurable: true });
-      Object.defineProperty(moveToAdjacentBlock, 'name', { value: 'v', configurable: true });
-      Object.defineProperty(moveFromBlockBoundary, 'name', { value: 'x', configurable: true });
-      Object.defineProperty(moveWithinEmbeddedEditor, 'name', { value: 'k', configurable: true });
-      Object.defineProperty(focusNavigationTarget, 'name', { value: 'E', configurable: true });
-      Object.defineProperty(handleHorizontalBoundary, 'name', { value: 'T', configurable: true });
-      Object.defineProperty(restoreExtendedSelection, 'name', { value: '_', configurable: true });
-
       if (
         File.inBusyMode &&
         keyboardEvent &&
@@ -1489,39 +1472,35 @@ export default function initializeEditingSelection(requireModule, moduleExports,
         ) {
           if (!(moveUp && DocumentNode.isType(documentNode, NodeType.meta_block))) {
             adjacentBlock = receiver.addUnholdable(
-              Object.defineProperty(
-                function findNavigableBlock(documentNode, moveUp) {
-                  if (
-                    DocumentNode.isType(
-                      documentNode,
-                      NodeType.fences,
-                      NodeType.html_block,
-                      NodeType.table,
-                      NodeType.hr,
-                      NodeType.def_link,
-                      NodeType.def_footnote,
-                    )
-                  ) {
+              (function findNavigableBlock(documentNode, moveUp) {
+                if (
+                  DocumentNode.isType(
+                    documentNode,
+                    NodeType.fences,
+                    NodeType.html_block,
+                    NodeType.table,
+                    NodeType.hr,
+                    NodeType.def_link,
+                    NodeType.def_footnote,
+                  )
+                ) {
+                  return documentNode;
+                }
+                var direction = moveUp ? 'before' : 'after';
+                if (documentNode.get('parent')) {
+                  if (documentNode.get('parent').get(direction)) {
                     return documentNode;
-                  }
-                  var direction = moveUp ? 'before' : 'after';
-                  if (documentNode.get('parent')) {
-                    if (documentNode.get('parent').get(direction)) {
+                  } else {
+                    if (documentNode.get(direction)) {
                       return documentNode;
                     } else {
-                      if (documentNode.get(direction)) {
-                        return documentNode;
-                      } else {
-                        return findNavigableBlock(documentNode.get('parent'));
-                      }
+                      return findNavigableBlock(documentNode.get('parent'));
                     }
-                  } else {
-                    return documentNode;
                   }
-                },
-                'name',
-                { value: 'e', configurable: true },
-              )(documentNode),
+                } else {
+                  return documentNode;
+                }
+              })(documentNode),
               moveCommand,
               moveUp,
             );
@@ -2309,28 +2288,22 @@ export default function initializeEditingSelection(requireModule, moduleExports,
       window.addEventListener('wheel', cancelNativeScrollEvent, { passive: false });
       window.addEventListener('DOMMouseScroll', cancelNativeScrollEvent, { passive: false });
       this.nativeScrollLocked = false;
-      var waitForScrollCompletion = Object.defineProperty(
-        () => {
-          this.nativeScrollLocked = setTimeout(() => {
-            if (this.editor.isScrolling()) {
-              waitForScrollCompletion();
-            } else {
-              this.nativeScrollLocked = false;
-              window.removeEventListener('wheel', cancelNativeScrollEvent, { passive: false });
-              window.removeEventListener('DOMMouseScroll', cancelNativeScrollEvent, {
-                passive: false,
-              });
-            }
-          }, 100);
-        },
-        'name',
-        { value: 'e', configurable: true },
-      );
+      var waitForScrollCompletion = () => {
+        this.nativeScrollLocked = setTimeout(() => {
+          if (this.editor.isScrolling()) {
+            waitForScrollCompletion();
+          } else {
+            this.nativeScrollLocked = false;
+            window.removeEventListener('wheel', cancelNativeScrollEvent, { passive: false });
+            window.removeEventListener('DOMMouseScroll', cancelNativeScrollEvent, {
+              passive: false,
+            });
+          }
+        }, 100);
+      };
       waitForScrollCompletion();
     },
     typeWriterScroll: function (element, alignElement, onComplete) {
-      Object.defineProperty(centerSelectionBounds, 'name', { value: 'a', configurable: true });
-
       var currentEditor = this.editor;
       function centerSelectionBounds(bounds) {
         return (
@@ -2390,8 +2363,6 @@ export default function initializeEditingSelection(requireModule, moduleExports,
       }
     },
     scrollAdjust: function (range, padding, scrollDuration, skipTypewriter) {
-      Object.defineProperty(applyScrollPosition, 'name', { value: 'w', configurable: true });
-
       if (this.editor.sourceView && this.editor.sourceView.inSourceMode) {
         this.editor.sourceView.scrollAdjust();
       } else {
@@ -2658,9 +2629,6 @@ export default function initializeEditingSelection(requireModule, moduleExports,
       return this.getDetailPos(range.endContainer, range.endOffset)[0];
     },
     getDetailPos: function (domNode, itemIndex, preferStart) {
-      Object.defineProperty(ensureTextChild, 'name', { value: 'r', configurable: true });
-      Object.defineProperty(getNodeEndOffset, 'name', { value: 'o', configurable: true });
-
       var stopTraversal = {};
       function ensureTextChild(inputDomNode) {
         if (1 === inputDomNode.nodeType && 0 === inputDomNode.childNodes.length) {
@@ -2977,9 +2945,6 @@ export default function initializeEditingSelection(requireModule, moduleExports,
         })()
       ) {
         (function () {
-          Object.defineProperty(previousInlineSibling, 'name', { value: 's', configurable: true });
-          Object.defineProperty(lastSyntaxMarker, 'name', { value: 'l', configurable: true });
-
           if (
             range &&
             range.endContainer &&
@@ -3246,44 +3211,40 @@ export default function initializeEditingSelection(requireModule, moduleExports,
                 if (
                   (selectionContainer =
                     selectionContainer ||
-                    Object.defineProperty(
-                      function closestEditableBoundary(domNode) {
-                        if (domNode) {
-                          if (domNode.nodeType === domNode.ELEMENT_NODE) {
-                            if (
-                              domNode.hasAttribute('md-inline') &&
-                              domNode.getAttribute('md-inline') !== NodeType.plain
-                            ) {
+                    (function closestEditableBoundary(domNode) {
+                      if (domNode) {
+                        if (domNode.nodeType === domNode.ELEMENT_NODE) {
+                          if (
+                            domNode.hasAttribute('md-inline') &&
+                            domNode.getAttribute('md-inline') !== NodeType.plain
+                          ) {
+                            return domNode;
+                          } else {
+                            if (domNode.hasAttribute('mdtype')) {
                               return domNode;
                             } else {
-                              if (domNode.hasAttribute('mdtype')) {
+                              if (
+                                domNode.classList.contains('md-def-name') ||
+                                domNode.classList.contains('md-def-content') ||
+                                domNode.classList.contains('md-def-title')
+                              ) {
                                 return domNode;
                               } else {
-                                if (
-                                  domNode.classList.contains('md-def-name') ||
-                                  domNode.classList.contains('md-def-content') ||
-                                  domNode.classList.contains('md-def-title')
-                                ) {
-                                  return domNode;
-                                } else {
-                                  return closestEditableBoundary(domNode.parentElement);
-                                }
+                                return closestEditableBoundary(domNode.parentElement);
                               }
-                            }
-                          } else {
-                            if (domNode.nodeType === domNode.TEXT_NODE) {
-                              return closestEditableBoundary(domNode.parentElement);
-                            } else {
-                              return null;
                             }
                           }
                         } else {
-                          return null;
+                          if (domNode.nodeType === domNode.TEXT_NODE) {
+                            return closestEditableBoundary(domNode.parentElement);
+                          } else {
+                            return null;
+                          }
                         }
-                      },
-                      'name',
-                      { value: 'e', configurable: true },
-                    )(range.startContainer))
+                      } else {
+                        return null;
+                      }
+                    })(range.startContainer))
                 ) {
                   (function (inputElement, selectionRange, contentsOnly) {
                     if (inputElement.getAttribute('md-inline') == NodeType.image) {
@@ -3421,8 +3382,6 @@ export default function initializeEditingSelection(requireModule, moduleExports,
       return focusBlockBoundary(this.editor, moveToEnd, documentNode);
     },
     includeTrailMeta: function (range) {
-      Object.defineProperty(adjacentRangeBoundary, 'name', { value: 't', configurable: true });
-
       if (!range || range.collapsed) {
         return range;
       }
@@ -3473,216 +3432,193 @@ export default function initializeEditingSelection(requireModule, moduleExports,
       return range;
     },
   };
-  var cancelNavigationEvent = Object.defineProperty(
-      function (event) {
-        if (event) {
-          event.codemirrorIgnore = true;
-          event.preventDefault();
-          event.stopPropagation();
-        }
-      },
-      'name',
-      { value: 'y', configurable: true },
-    ),
-    isUnholdableBlock = Object.defineProperty(
-      function (documentNode, element) {
-        return (
-          DocumentNode.isType(documentNode, DocumentNode.TYPE.hr, DocumentNode.TYPE.toc) &&
-          (!element || ('write' !== element.attr('id') && element[0].hasAttribute('tabindex')))
-        );
-      },
-      'name',
-      { value: 'b', configurable: true },
-    ),
-    containsNonPlainInline = Object.defineProperty(
-      function (element) {
-        var domNode = element[0];
-        return (
-          domNode.childElementCount > 0 &&
-          (function () {
-            for (var childIndex = 0; childIndex < domNode.childElementCount; childIndex++) {
-              if (domNode.children[0].getAttribute('md-inline') !== NodeType.image) {
-                return false;
-              }
-            }
-            return true;
-          })()
-        );
-      },
-      'name',
-      { value: 'w', configurable: true },
-    ),
-    getEmbeddedCodeMirror = Object.defineProperty(
-      function (editorInstance, element, cursorPosition) {
-        var codeMirrorResult;
-        if (element.getAttribute('mdtype') === NodeType.fences) {
-          codeMirrorResult = editorInstance.fences.getCm(element.getAttribute('cid'));
-        }
-        if (element.getAttribute('mdtype') === NodeType.math_block) {
-          codeMirrorResult = editorInstance.mathBlock.startEditing(jquery(element));
-        }
-        if (element.getAttribute('mdtype') === NodeType.html_block) {
-          codeMirrorResult = editorInstance.htmlBlock.startEditing(jquery(element));
-        }
-        if (codeMirrorResult) {
-          if (codeMirrorResult.then) {
-            codeMirrorResult.then((result) => {
-              result.focus();
-              result.setCursor(cursorPosition);
-            });
-          } else {
-            codeMirrorResult.focus();
-            codeMirrorResult.setCursor(cursorPosition);
-          }
-          return true;
-        }
-      },
-      'name',
-      { value: 'x', configurable: true },
-    ),
-    alignCodeMirrorCursor = Object.defineProperty(
-      function (codeMirror, right) {
-        if (void 0 != right) {
-          var bounds = codeMirror.cursorCoords(codeMirror.getCursor());
-          bounds.left = bounds.right = right;
-          var cursorPosition = codeMirror.coordsChar(bounds);
-          codeMirror.setCursor(cursorPosition);
-        }
-      },
-      'name',
-      { value: 'C', configurable: true },
-    ),
-    focusBlockBoundary = Object.defineProperty(
-      function (editorInstance, moveToEnd, documentNode, keyboardEvent, moveCommand, targetLeft) {
-        if (!documentNode) {
-          return false;
-        }
-        var nodeElement = editorInstance.findElemById(documentNode.id);
-        editorInstance.lastCursor = editorInstance.selection.buildUndo();
-        var hasNoMoveCommand = !moveCommand;
-        if (DocumentNode.isType(documentNode, NodeType.fences)) {
-          (codeMirror = editorInstance.fences.getCm(documentNode.id)).focus();
-          if (moveToEnd) {
-            nodeElement.find('.marklyra-input-after').focus();
-            setTimeout(function () {
-              if (File.isTypeWriterMode && File.option.scrollWithCursor) {
-                editorInstance.selection.typeWriterScroll(
-                  nodeElement.find('.marklyra-input-after'),
-                );
-              }
-            }, 0);
-          } else {
-            codeMirror.execCommand('goDocStart');
-            alignCodeMirrorCursor(codeMirror, targetLeft);
-          }
-          cancelNavigationEvent(keyboardEvent);
-          return true;
-        }
-        if (DocumentNode.isType(documentNode, NodeType.math_block)) {
-          if (moveToEnd) {
-            codeMirror = editorInstance.mathBlock.startEditing(
-              nodeElement,
-              !documentNode.get('tagAfter') && 'end',
-              hasNoMoveCommand,
-            );
-            if (documentNode.get('tagAfter')) {
-              setTimeout(function () {
-                editorInstance.selection.selectAllElem(
-                  nodeElement.find('.marklyra-input-after').focus(),
-                );
-              }, 0);
-            } else {
-              alignCodeMirrorCursor(codeMirror, targetLeft);
-            }
-          } else {
-            codeMirror = editorInstance.mathBlock.startEditing(
-              nodeElement,
-              !documentNode.get('tagBefore') && 'start',
-              hasNoMoveCommand,
-            );
-            if (documentNode.get('tagBefore')) {
-              setTimeout(function () {
-                editorInstance.selection.selectAllElem(
-                  nodeElement.find('.marklyra-input-before').focus(),
-                );
-              }, 0);
-            } else {
-              alignCodeMirrorCursor(codeMirror, targetLeft);
+  var cancelNavigationEvent = function (event) {
+      if (event) {
+        event.codemirrorIgnore = true;
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    isUnholdableBlock = function (documentNode, element) {
+      return (
+        DocumentNode.isType(documentNode, DocumentNode.TYPE.hr, DocumentNode.TYPE.toc) &&
+        (!element || ('write' !== element.attr('id') && element[0].hasAttribute('tabindex')))
+      );
+    },
+    containsNonPlainInline = function (element) {
+      var domNode = element[0];
+      return (
+        domNode.childElementCount > 0 &&
+        (function () {
+          for (var childIndex = 0; childIndex < domNode.childElementCount; childIndex++) {
+            if (domNode.children[0].getAttribute('md-inline') !== NodeType.image) {
+              return false;
             }
           }
-          cancelNavigationEvent(keyboardEvent);
           return true;
+        })()
+      );
+    },
+    getEmbeddedCodeMirror = function (editorInstance, element, cursorPosition) {
+      var codeMirrorResult;
+      if (element.getAttribute('mdtype') === NodeType.fences) {
+        codeMirrorResult = editorInstance.fences.getCm(element.getAttribute('cid'));
+      }
+      if (element.getAttribute('mdtype') === NodeType.math_block) {
+        codeMirrorResult = editorInstance.mathBlock.startEditing(jquery(element));
+      }
+      if (element.getAttribute('mdtype') === NodeType.html_block) {
+        codeMirrorResult = editorInstance.htmlBlock.startEditing(jquery(element));
+      }
+      if (codeMirrorResult) {
+        if (codeMirrorResult.then) {
+          codeMirrorResult.then((result) => {
+            result.focus();
+            result.setCursor(cursorPosition);
+          });
+        } else {
+          codeMirrorResult.focus();
+          codeMirrorResult.setCursor(cursorPosition);
         }
-        if (DocumentNode.isType(documentNode, NodeType.html_block)) {
-          var codeMirror = editorInstance.htmlBlock.startEditing(
+        return true;
+      }
+    },
+    alignCodeMirrorCursor = function (codeMirror, right) {
+      if (void 0 != right) {
+        var bounds = codeMirror.cursorCoords(codeMirror.getCursor());
+        bounds.left = bounds.right = right;
+        var cursorPosition = codeMirror.coordsChar(bounds);
+        codeMirror.setCursor(cursorPosition);
+      }
+    },
+    focusBlockBoundary = function (
+      editorInstance,
+      moveToEnd,
+      documentNode,
+      keyboardEvent,
+      moveCommand,
+      targetLeft,
+    ) {
+      if (!documentNode) {
+        return false;
+      }
+      var nodeElement = editorInstance.findElemById(documentNode.id);
+      editorInstance.lastCursor = editorInstance.selection.buildUndo();
+      var hasNoMoveCommand = !moveCommand;
+      if (DocumentNode.isType(documentNode, NodeType.fences)) {
+        (codeMirror = editorInstance.fences.getCm(documentNode.id)).focus();
+        if (moveToEnd) {
+          nodeElement.find('.marklyra-input-after').focus();
+          setTimeout(function () {
+            if (File.isTypeWriterMode && File.option.scrollWithCursor) {
+              editorInstance.selection.typeWriterScroll(nodeElement.find('.marklyra-input-after'));
+            }
+          }, 0);
+        } else {
+          codeMirror.execCommand('goDocStart');
+          alignCodeMirrorCursor(codeMirror, targetLeft);
+        }
+        cancelNavigationEvent(keyboardEvent);
+        return true;
+      }
+      if (DocumentNode.isType(documentNode, NodeType.math_block)) {
+        if (moveToEnd) {
+          codeMirror = editorInstance.mathBlock.startEditing(
             nodeElement,
-            moveToEnd ? 'end' : 'start',
+            !documentNode.get('tagAfter') && 'end',
             hasNoMoveCommand,
           );
-          alignCodeMirrorCursor(codeMirror, targetLeft);
-          cancelNavigationEvent(keyboardEvent);
-          return true;
-        }
-        return (
-          !!isUnholdableBlock(documentNode) &&
-          (cancelNavigationEvent(keyboardEvent),
-          window.getSelection().removeAllRanges(),
-          editorInstance.findElemById(documentNode.id).focus(),
-          editorInstance.refocus(),
-          true)
-        );
-      },
-      'name',
-      { value: 'F', configurable: true },
-    ),
-    normalizeEmptyLineRange = Object.defineProperty(
-      function (range, skipAdjustment) {
-        if (
-          (function (inputRange) {
-            return (
-              inputRange.collapsed &&
-              inputRange.startContainer &&
-              inputRange.startContainer.nodeType == document.TEXT_NODE &&
-              '\n' == inputRange.startContainer.textContent &&
-              (inputRange.startContainer.nextSibling || {}.classList) &&
-              inputRange.startContainer.nextSibling.classList.contains('md-emptyline')
-            );
-          })(range)
-        ) {
-          return range.startContainer.nextSibling.getBoundingClientRect();
-        }
-        var element,
-          rangeRects = range.getClientRects(),
-          bounds = 1 == rangeRects.length && rangeRects[rangeRects.length - 1];
-        if (rangeRects.length > 1) {
-          if (skipAdjustment) {
-            return false;
-          }
-          bounds = range.getBoundingClientRect();
-        }
-        if (!bounds && range.collapsed) {
-          if (
-            (element =
-              range.startContainer.nodeType == document.TEXT_NODE
-                ? range.startContainer.parentElement
-                : range.startContainer) &&
-            'write' != element.getAttribute('id')
-          ) {
-            if ((bounds = element.getBoundingClientRect()).height > 150) {
-              return null;
-            } else {
-              return bounds;
-            }
+          if (documentNode.get('tagAfter')) {
+            setTimeout(function () {
+              editorInstance.selection.selectAllElem(
+                nodeElement.find('.marklyra-input-after').focus(),
+              );
+            }, 0);
           } else {
-            return null;
+            alignCodeMirrorCursor(codeMirror, targetLeft);
           }
         } else {
-          return bounds;
+          codeMirror = editorInstance.mathBlock.startEditing(
+            nodeElement,
+            !documentNode.get('tagBefore') && 'start',
+            hasNoMoveCommand,
+          );
+          if (documentNode.get('tagBefore')) {
+            setTimeout(function () {
+              editorInstance.selection.selectAllElem(
+                nodeElement.find('.marklyra-input-before').focus(),
+              );
+            }, 0);
+          } else {
+            alignCodeMirrorCursor(codeMirror, targetLeft);
+          }
         }
-      },
-      'name',
-      { value: 'S', configurable: true },
-    );
+        cancelNavigationEvent(keyboardEvent);
+        return true;
+      }
+      if (DocumentNode.isType(documentNode, NodeType.html_block)) {
+        var codeMirror = editorInstance.htmlBlock.startEditing(
+          nodeElement,
+          moveToEnd ? 'end' : 'start',
+          hasNoMoveCommand,
+        );
+        alignCodeMirrorCursor(codeMirror, targetLeft);
+        cancelNavigationEvent(keyboardEvent);
+        return true;
+      }
+      return (
+        !!isUnholdableBlock(documentNode) &&
+        (cancelNavigationEvent(keyboardEvent),
+        window.getSelection().removeAllRanges(),
+        editorInstance.findElemById(documentNode.id).focus(),
+        editorInstance.refocus(),
+        true)
+      );
+    },
+    normalizeEmptyLineRange = function (range, skipAdjustment) {
+      if (
+        (function (inputRange) {
+          return (
+            inputRange.collapsed &&
+            inputRange.startContainer &&
+            inputRange.startContainer.nodeType == document.TEXT_NODE &&
+            '\n' == inputRange.startContainer.textContent &&
+            (inputRange.startContainer.nextSibling || {}.classList) &&
+            inputRange.startContainer.nextSibling.classList.contains('md-emptyline')
+          );
+        })(range)
+      ) {
+        return range.startContainer.nextSibling.getBoundingClientRect();
+      }
+      var element,
+        rangeRects = range.getClientRects(),
+        bounds = 1 == rangeRects.length && rangeRects[rangeRects.length - 1];
+      if (rangeRects.length > 1) {
+        if (skipAdjustment) {
+          return false;
+        }
+        bounds = range.getBoundingClientRect();
+      }
+      if (!bounds && range.collapsed) {
+        if (
+          (element =
+            range.startContainer.nodeType == document.TEXT_NODE
+              ? range.startContainer.parentElement
+              : range.startContainer) &&
+          'write' != element.getAttribute('id')
+        ) {
+          if ((bounds = element.getBoundingClientRect()).height > 150) {
+            return null;
+          } else {
+            return bounds;
+          }
+        } else {
+          return null;
+        }
+      } else {
+        return bounds;
+      }
+    };
   moduleRecord.exports = SelectionController;
   moduleRecord.exports.buildRange = function (containerNode, startOffset, endOffset) {
     if (!containerNode) {
@@ -3694,32 +3630,28 @@ export default function initializeEditingSelection(requireModule, moduleExports,
       stopTraversal = {};
     range.collapseToPoint(containerNode, 0);
     try {
-      !Object.defineProperty(
-        function locateTextOffsets(domNode) {
-          if (3 == domNode.nodeType) {
-            var nextTextOffset = textOffset + domNode.textContent.length;
-            if (!foundStart && startOffset >= textOffset && startOffset <= nextTextOffset) {
-              range.setStart(domNode, startOffset - textOffset);
-              foundStart = true;
-            }
-            if (foundStart && endOffset >= textOffset && endOffset <= nextTextOffset) {
-              range.setEnd(domNode, endOffset - textOffset);
-              throw stopTraversal;
-            }
-            textOffset = nextTextOffset;
-          } else {
-            for (
-              var itemIndex = 0, childNodesLength = domNode.childNodes.length;
-              itemIndex < childNodesLength;
-              ++itemIndex
-            ) {
-              locateTextOffsets(domNode.childNodes[itemIndex]);
-            }
+      !(function locateTextOffsets(domNode) {
+        if (3 == domNode.nodeType) {
+          var nextTextOffset = textOffset + domNode.textContent.length;
+          if (!foundStart && startOffset >= textOffset && startOffset <= nextTextOffset) {
+            range.setStart(domNode, startOffset - textOffset);
+            foundStart = true;
           }
-        },
-        'name',
-        { value: 'e', configurable: true },
-      )(containerNode);
+          if (foundStart && endOffset >= textOffset && endOffset <= nextTextOffset) {
+            range.setEnd(domNode, endOffset - textOffset);
+            throw stopTraversal;
+          }
+          textOffset = nextTextOffset;
+        } else {
+          for (
+            var itemIndex = 0, childNodesLength = domNode.childNodes.length;
+            itemIndex < childNodesLength;
+            ++itemIndex
+          ) {
+            locateTextOffsets(domNode.childNodes[itemIndex]);
+          }
+        }
+      })(containerNode);
     } catch (error) {
       if (error == stopTraversal) {
         return range;

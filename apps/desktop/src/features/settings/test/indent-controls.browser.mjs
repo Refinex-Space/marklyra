@@ -54,7 +54,7 @@ try {
       const page = await browser.newPage({ viewport: { width: 720, height: 480 } });
       const errors = [];
       page.on('pageerror', (error) => errors.push(error.message));
-      // Load the new adapter over an existing immutable original UI, without rewriting its files.
+      // Load the new adapter over an existing immutable UI, without rewriting its files.
       await page.route(childUrl, (route) =>
         route.fulfill({ contentType: 'text/javascript', body: child }),
       );

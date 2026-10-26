@@ -4,8 +4,8 @@ import { expect, test } from '@playwright/test';
 type Host = Window &
   typeof globalThis & { marklyraEditor: MarkLyraEditor; historyErrors: string[] };
 
-// Editing a table cell makes the original serializer re-pad the whole table, and its own Undo
-// restores the cell inside the padded table. The journaled original is unpadded; History must keep
+// Editing a table cell makes the serializer re-pad the whole table, and its own Undo
+// restores the cell inside the padded table. The journaled source is unpadded; History must keep
 // those exact raw bytes instead of reporting "History checkpoint does not match canonical".
 const tables: Record<string, string> = {
   'spaced dashes': '| a | b |\r\n| --- | --- |\r\n| 1 | 2 |\r\n',

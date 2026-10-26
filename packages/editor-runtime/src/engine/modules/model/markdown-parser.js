@@ -1,16 +1,6 @@
 // model/markdown-parser.
 export default function initializeModelMarkdownParser(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(splitTableCells, 'name', { value: 'le', configurable: true });
-  Object.defineProperty(consumeBlockLine, 'name', { value: 'de', configurable: true });
-  Object.defineProperty(InlineLexer, 'name', { value: 'pe', configurable: true });
-  Object.defineProperty(protectCodeSpans, 'name', { value: 'xe', configurable: true });
-  Object.defineProperty(restoreCodeSpans, 'name', { value: 'Ce', configurable: true });
-  Object.defineProperty(restoreEscapedCharacters, 'name', { value: 'Fe', configurable: true });
-  Object.defineProperty(createPatternBuilder, 'name', { value: 'ke', configurable: true });
-  Object.defineProperty(EmptyRule, 'name', { value: 'Ee', configurable: true });
-  Object.defineProperty(assignOwnProperties, 'name', { value: 'Te', configurable: true });
-  Object.defineProperty(renderContentWithBlockSyntax, 'name', { value: 'Be', configurable: true });
 
   if (!this) {
     self;
@@ -94,50 +84,42 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
     listIndentCache = {},
     listContinuationCache = {},
     tabReplacement = '  ',
-    detectFixedListNumbering = Object.defineProperty(
-      function (documentNode) {
-        if (documentNode.get('style') == DocumentNode.ListType.ol) {
-          for (
-            var fixedNumbering = (function (inputDocumentNode) {
-                if (inputDocumentNode.get('style') == DocumentNode.ListType.ol) {
-                  for (
-                    var currentDocumentNode = inputDocumentNode.getFirstChild(),
-                      hasSequentialItems = false,
-                      nextNode = currentDocumentNode.get('after');
-                    nextNode && nextNode._numText;
-                  ) {
-                    if (currentDocumentNode._numText.trim() != nextNode._numText.trim()) {
-                      return false;
-                    }
-                    hasSequentialItems = true;
-                    nextNode = (currentDocumentNode = nextNode).get('after');
+    detectFixedListNumbering = function (documentNode) {
+      if (documentNode.get('style') == DocumentNode.ListType.ol) {
+        for (
+          var fixedNumbering = (function (inputDocumentNode) {
+              if (inputDocumentNode.get('style') == DocumentNode.ListType.ol) {
+                for (
+                  var currentDocumentNode = inputDocumentNode.getFirstChild(),
+                    hasSequentialItems = false,
+                    nextNode = currentDocumentNode.get('after');
+                  nextNode && nextNode._numText;
+                ) {
+                  if (currentDocumentNode._numText.trim() != nextNode._numText.trim()) {
+                    return false;
                   }
-                  return hasSequentialItems;
+                  hasSequentialItems = true;
+                  nextNode = (currentDocumentNode = nextNode).get('after');
                 }
-              })(documentNode),
-              localDocumentNode = documentNode.getFirstChild(),
-              _numText = localDocumentNode._numText;
-            localDocumentNode;
-          ) {
-            localDocumentNode._numText = void 0;
-            localDocumentNode = localDocumentNode.get('after');
-          }
-          if (fixedNumbering) {
-            documentNode.set('pattern', _numText);
-          }
-          documentNode.set('isFixed', fixedNumbering);
+                return hasSequentialItems;
+              }
+            })(documentNode),
+            localDocumentNode = documentNode.getFirstChild(),
+            _numText = localDocumentNode._numText;
+          localDocumentNode;
+        ) {
+          localDocumentNode._numText = void 0;
+          localDocumentNode = localDocumentNode.get('after');
         }
-      },
-      'name',
-      { value: 'ie', configurable: true },
-    ),
-    measureExpandedIndent = Object.defineProperty(
-      function (text) {
-        return (text || '').replace(/\t/g, tabReplacement).length;
-      },
-      'name',
-      { value: 're', configurable: true },
-    ),
+        if (fixedNumbering) {
+          documentNode.set('pattern', _numText);
+        }
+        documentNode.set('isFixed', fixedNumbering);
+      }
+    },
+    measureExpandedIndent = function (text) {
+      return (text || '').replace(/\t/g, tabReplacement).length;
+    },
     BlockCloseResult = { NOT_CLOSE: 0, CLOSE_EXCLUDE: 1, CLOSE_INCLUDE: 2, UNKNOWN: -1 },
     getHTMLTagReg = htmlBlocks.getHTMLTagReg,
     blockRules = {
@@ -363,8 +345,6 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
           }
         },
         onContinue: function (textSlice, markerText, _indent) {
-          Object.defineProperty(appendListItemLine, 'name', { value: 'v', configurable: true });
-
           var currentMatch,
             lastChild = this.cur.getLastChild(),
             markerWidth = measureExpandedIndent(markerText),
@@ -633,8 +613,6 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
       },
     };
   function splitTableCells(text, unusedParameter2, expectedColumns) {
-    Object.defineProperty(trimEmptyEdgeCells, 'name', { value: 'i', configurable: true });
-
     function trimEmptyEdgeCells(cells) {
       if (!(cells[0] || '').trim().length) {
         cells = cells.subarray(1);
@@ -742,63 +720,50 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
       var currentText;
     });
   }
-  var BlockLexer = Object.defineProperty(
-    function (inputText, parentNode, documentMap, oldNode, parseSkips) {
-      activeListMarkerPatterns = File.option.strictMarkdown
-        ? topLevelListMarkerPatterns
-        : listMarkerPatterns;
-      var text = inputText;
-      this.remap =
-        File.shouldRemapPunctuation() &&
-        (parseSkips.enableRemap || (oldNode && oldNode.cid == File.editor.focusCid));
-      if ('string' == typeof inputText) {
-        text = inputText.split(lineEndingPattern);
-        if ('\n' === inputText.charCodeAt(inputText.length - 1)) {
-          textLength -= 1;
-        }
+  var BlockLexer = function (inputText, parentNode, documentMap, oldNode, parseSkips) {
+    activeListMarkerPatterns = File.option.strictMarkdown
+      ? topLevelListMarkerPatterns
+      : listMarkerPatterns;
+    var text = inputText;
+    this.remap =
+      File.shouldRemapPunctuation() &&
+      (parseSkips.enableRemap || (oldNode && oldNode.cid == File.editor.focusCid));
+    if ('string' == typeof inputText) {
+      text = inputText.split(lineEndingPattern);
+      if ('\n' === inputText.charCodeAt(inputText.length - 1)) {
+        textLength -= 1;
       }
-      var textLength = text.length;
-      for (
-        this.lines = text,
-          (function (parserState, parent, documentMap, oldNode, skips) {
-            parserState.parent = parent;
-            parserState.cur = null;
-            parserState.skips = skips;
-            parserState.ln = 0;
-            parserState.blocks = [];
-            parserState.oldNode = oldNode;
-            parserState.nodeMap = parent || oldNode;
-            parserState.nodeMap =
-              (parserState.nodeMap ? parserState.nodeMap.get('in') : documentMap) || documentMap;
-            tabReplacement = ' '.repeat(File.option.indentSize);
-          })(this, parentNode, documentMap, oldNode, parseSkips),
-          this.skips.enableMetaBlock = this.skips.enableMetaBlock && !parentNode;
-        this.ln <= textLength;
-        this.ln++
-      ) {
-        consumeBlockLine.call(this, text[this.ln], textLength);
+    }
+    var textLength = text.length;
+    for (
+      this.lines = text,
+        (function (parserState, parent, documentMap, oldNode, skips) {
+          parserState.parent = parent;
+          parserState.cur = null;
+          parserState.skips = skips;
+          parserState.ln = 0;
+          parserState.blocks = [];
+          parserState.oldNode = oldNode;
+          parserState.nodeMap = parent || oldNode;
+          parserState.nodeMap =
+            (parserState.nodeMap ? parserState.nodeMap.get('in') : documentMap) || documentMap;
+          tabReplacement = ' '.repeat(File.option.indentSize);
+        })(this, parentNode, documentMap, oldNode, parseSkips),
+        this.skips.enableMetaBlock = this.skips.enableMetaBlock && !parentNode;
+      this.ln <= textLength;
+      this.ln++
+    ) {
+      consumeBlockLine.call(this, text[this.ln], textLength);
+    }
+    for (var documentNode = this.blocks.last(); documentNode; ) {
+      if (!(parentNode && 0 != documentNode.get('tail'))) {
+        documentNode.unset('tail');
       }
-      for (var documentNode = this.blocks.last(); documentNode; ) {
-        if (!(parentNode && 0 != documentNode.get('tail'))) {
-          documentNode.unset('tail');
-        }
-        documentNode = documentNode.getLastChild();
-      }
-      return this;
-    },
-    'name',
-    { value: 'ce', configurable: true },
-  );
+      documentNode = documentNode.getLastChild();
+    }
+    return this;
+  };
   function consumeBlockLine(text, lineCount) {
-    Object.defineProperty(adoptLeadingBlankLine, 'name', { value: 'c', configurable: true });
-    Object.defineProperty(consumeTrailingBlankLine, 'name', { value: 'u', configurable: true });
-    Object.defineProperty(appendCompletedBlock, 'name', { value: 'p', configurable: true });
-    Object.defineProperty(closeCurrentBlock, 'name', { value: 'f', configurable: true });
-    Object.defineProperty(createListBlock, 'name', { value: 'm', configurable: true });
-    Object.defineProperty(tryParseTable, 'name', { value: 'g', configurable: true });
-    Object.defineProperty(appendTableOfContents, 'name', { value: 'v', configurable: true });
-    Object.defineProperty(appendTableBlock, 'name', { value: 'y', configurable: true });
-
     var match,
       currentDocumentNode,
       blockRule,
@@ -958,8 +923,6 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
       isNonPipeTable,
       sourceText,
     ) {
-      Object.defineProperty(appendTableRow, 'name', { value: 'y', configurable: true });
-
       var before,
         pass_format = (this.skips || {}).pass_format,
         documentNodeInstance = new DocumentNode({
@@ -1506,16 +1469,12 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
       }
     }
   };
-  var lastTokenText = Object.defineProperty(
-      function (tokens) {
-        var lastToken = tokens.last();
-        if (lastToken) {
-          return lastToken.text || '';
-        }
-      },
-      'name',
-      { value: 'ue', configurable: true },
-    ),
+  var lastTokenText = function (tokens) {
+      var lastToken = tokens.last();
+      if (lastToken) {
+        return lastToken.text || '';
+      }
+    },
     rules = {
       escape: /^\\([\\:`*{}\[\]()#+\-.!_>$|<~"'&])/,
       escape2: /^[\uE013\uE014\uE018\uE020]/,
@@ -1665,39 +1624,31 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
     ).replace(/\uE031/g, '*');
   }
   InlineLexer.skipLink = { autolink: 1, url: 1, link: 1, reflink: 1 };
-  var hasOpenDoubleQuote = Object.defineProperty(
-    function (tokens) {
-      for (var itemIndex = tokens.length - 1; itemIndex >= 0; itemIndex--) {
-        if (tokens[itemIndex].type == NodeType.pants) {
-          if ('open_double' == tokens[itemIndex].desc) {
-            return true;
-          }
-          if ('close_double' == tokens[itemIndex].desc) {
-            return false;
-          }
+  var hasOpenDoubleQuote = function (tokens) {
+    for (var itemIndex = tokens.length - 1; itemIndex >= 0; itemIndex--) {
+      if (tokens[itemIndex].type == NodeType.pants) {
+        if ('open_double' == tokens[itemIndex].desc) {
+          return true;
+        }
+        if ('close_double' == tokens[itemIndex].desc) {
+          return false;
         }
       }
-      return false;
-    },
-    'name',
-    { value: 'Se', configurable: true },
-  );
+    }
+    return false;
+  };
   function createPatternBuilder(inputSource, flags) {
     inputSource = inputSource.source;
     flags = flags || '';
-    return Object.defineProperty(
-      function replacePatternPart(placeholder, source) {
-        if (placeholder) {
-          source = (source = source.source || source).replace(/(^|[^\[])\^/g, '$1');
-          inputSource = inputSource.replace(placeholder, source);
-          return replacePatternPart;
-        } else {
-          return new RegExp(inputSource, flags);
-        }
-      },
-      'name',
-      { value: 'n', configurable: true },
-    );
+    return function replacePatternPart(placeholder, source) {
+      if (placeholder) {
+        source = (source = source.source || source).replace(/(^|[^\[])\^/g, '$1');
+        inputSource = inputSource.replace(placeholder, source);
+        return replacePatternPart;
+      } else {
+        return new RegExp(inputSource, flags);
+      }
+    };
   }
   function EmptyRule() {}
   function assignOwnProperties(target) {
@@ -1717,10 +1668,6 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
     element,
     renderState,
   ) {
-    Object.defineProperty(appendPlainToken, 'name', { value: 'S', configurable: true });
-    Object.defineProperty(findClosingTagIndex, 'name', { value: 'k', configurable: true });
-    Object.defineProperty(renderInlineTokens, 'name', { value: 'E', configurable: true });
-
     decorateToken = decorateToken || this.options.decorate;
     textSlice = textSlice || '';
     (element = assignOwnProperties(element || {}, this.options.skipOp)).attr =
@@ -1747,13 +1694,9 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
         (renderState = renderState || { cursorDiff: [], openQuote: null, hasContent: false })
           .isCur || File.shouldRemapPunctuation(),
       cursorDeltas = renderState.cursorDiff || [],
-      recordCursorDelta = Object.defineProperty(
-        function (offset, delta) {
-          cursorDeltas[offset] = (cursorDeltas[offset] || 0) + delta;
-        },
-        'name',
-        { value: 'y', configurable: true },
-      ),
+      recordCursorDelta = function (offset, delta) {
+        cursorDeltas[offset] = (cursorDeltas[offset] || 0) + delta;
+      },
       itemIndex = 0,
       items = [],
       options = this.options,
@@ -2935,17 +2878,13 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
     bulletMarkerPattern = /^( *)[*+-][ \t\u00A0]+/,
     orderedListPattern = /^( *)\d+(\.|\))[ \t\u00A0]+/,
     firstOrderedItemPattern = /^( *)1(\.|\))[ \t\u00A0]+/,
-    blockquotePrefixPattern = Object.defineProperty(
-      function () {
-        if (File.shouldRemapPunctuation()) {
-          return /^ *[>〉》][^\n]+/;
-        } else {
-          return /^ *>[^\n]+/;
-        }
-      },
-      'name',
-      { value: 'Ne', configurable: true },
-    );
+    blockquotePrefixPattern = function () {
+      if (File.shouldRemapPunctuation()) {
+        return /^ *[>〉》][^\n]+/;
+      } else {
+        return /^ *>[^\n]+/;
+      }
+    };
   var inlineHeadingPattern = /^( *#{1,6}\s*)([^\n]+?)(\s+#+ *)*$/m,
     strictHeadingPattern = /^( *#{1,6}\s+)([^\n]+?)(\s+#+ *)*$/m;
   function renderContentWithBlockSyntax(
@@ -2956,8 +2895,6 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
     cursorDiff,
     items,
   ) {
-    Object.defineProperty(renderMatchedBlockSyntax, 'name', { value: 'u', configurable: true });
-
     var blockMatch = [],
       renderedPart = '',
       renderState = { cursorDiff: cursorDiff };
@@ -3172,354 +3109,339 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
     return attributesText;
   };
   parserApi.InlineLexer = InlineLexer;
-  parserApi.quickParse = Object.defineProperty(
-    function brushDocumentNode(
-      textSlice,
-      brush,
-      documentNode,
-      inlineOnly,
-      command,
-      selectionSnapshot,
-    ) {
-      Object.defineProperty(createParagraphNode, 'name', { value: 'm', configurable: true });
-      Object.defineProperty(prepareBlockConversion, 'name', { value: 'g', configurable: true });
-      Object.defineProperty(finishBlockConversion, 'name', { value: 'v', configurable: true });
-      Object.defineProperty(convertParagraphToList, 'name', { value: 'y', configurable: true });
-
-      var currentMatch,
-        consumedPrefixLength = 0,
-        localDocumentNode = documentNode,
-        cursorDiff = [];
-      function createParagraphNode(text, inputDocumentNode, nodeType) {
-        return new DocumentNode({
-          type: nodeType || NodeType.paragraph,
-          text: text,
-          parent: inputDocumentNode,
-          in: inputDocumentNode.get('in'),
+  parserApi.quickParse = function brushDocumentNode(
+    textSlice,
+    brush,
+    documentNode,
+    inlineOnly,
+    command,
+    selectionSnapshot,
+  ) {
+    var currentMatch,
+      consumedPrefixLength = 0,
+      localDocumentNode = documentNode,
+      cursorDiff = [];
+    function createParagraphNode(text, inputDocumentNode, nodeType) {
+      return new DocumentNode({
+        type: nodeType || NodeType.paragraph,
+        text: text,
+        parent: inputDocumentNode,
+        in: inputDocumentNode.get('in'),
+      });
+    }
+    function prepareBlockConversion(prefixText, editCommand, targetNode, lineInfo) {
+      brush.editor.undo.endSnap(true);
+      if (targetNode.cid == brush.editor.focusCid) {
+        brush.editor.store();
+      }
+      editCommand.undo.push(undoManager.buildReplaceUndo(targetNode));
+      var precedingParagraph = null;
+      if (lineInfo && lineInfo.start) {
+        consumedPrefixLength = consumedPrefixLength - lineInfo.start + prefixText.length;
+        precedingParagraph = new DocumentNode({
+          type: NodeType.paragraph,
+          text: textSlice.substring(0, lineInfo.start - 1),
         });
+        targetNode.addBefore(precedingParagraph);
+        undoManager.addUndoForInsert(editCommand, precedingParagraph);
+      } else {
+        consumedPrefixLength += prefixText.length;
       }
-      function prepareBlockConversion(prefixText, editCommand, targetNode, lineInfo) {
-        brush.editor.undo.endSnap(true);
-        if (targetNode.cid == brush.editor.focusCid) {
-          brush.editor.store();
-        }
-        editCommand.undo.push(undoManager.buildReplaceUndo(targetNode));
-        var precedingParagraph = null;
-        if (lineInfo && lineInfo.start) {
-          consumedPrefixLength = consumedPrefixLength - lineInfo.start + prefixText.length;
-          precedingParagraph = new DocumentNode({
-            type: NodeType.paragraph,
-            text: textSlice.substring(0, lineInfo.start - 1),
-          });
-          targetNode.addBefore(precedingParagraph);
-          undoManager.addUndoForInsert(editCommand, precedingParagraph);
-        } else {
-          consumedPrefixLength += prefixText.length;
-        }
-        textSlice = textSlice.substring((lineInfo ? lineInfo.start : 0) + prefixText.length);
-        return precedingParagraph;
-      }
-      function finishBlockConversion(
-        parsedNode,
-        inputCommand,
-        containerNode,
+      textSlice = textSlice.substring((lineInfo ? lineInfo.start : 0) + prefixText.length);
+      return precedingParagraph;
+    }
+    function finishBlockConversion(
+      parsedNode,
+      inputCommand,
+      containerNode,
+      parseResult,
+      precedingParagraph,
+    ) {
+      parseResult =
+        parseResult ||
+        brushDocumentNode(textSlice, brush, parsedNode, false, inputCommand, selectionSnapshot);
+      inputCommand.redo.push(undoManager.buildReplaceUndo(containerNode));
+      return {
+        html:
+          (precedingParagraph ? precedingParagraph.toHTML() : '') +
+          containerNode.toHTML(parseResult.html),
+        offset: consumedPrefixLength + parseResult.offset,
+        focus: parseResult.focus,
+        blockChanged: true,
+        command: inputCommand,
+      };
+    }
+    function convertParagraphToList(text, editCommand, listStyle, lineInfo) {
+      var listItem,
         parseResult,
-        precedingParagraph,
-      ) {
-        parseResult =
-          parseResult ||
-          brushDocumentNode(textSlice, brush, parsedNode, false, inputCommand, selectionSnapshot);
-        inputCommand.redo.push(undoManager.buildReplaceUndo(containerNode));
-        return {
-          html:
-            (precedingParagraph ? precedingParagraph.toHTML() : '') +
-            containerNode.toHTML(parseResult.html),
-          offset: consumedPrefixLength + parseResult.offset,
-          focus: parseResult.focus,
-          blockChanged: true,
-          command: inputCommand,
-        };
-      }
-      function convertParagraphToList(text, editCommand, listStyle, lineInfo) {
-        var listItem,
-          parseResult,
-          indentSize = File.option.indentSize,
-          precedingParagraph = prepareBlockConversion(
-            (text = text.replace('【', '[').replace('】', ']')),
-            editCommand,
-            documentNode,
-            lineInfo,
-          );
-        documentNode.set('type', NodeType.list);
-        documentNode.set('text', '');
-        documentNode.set('style', listStyle);
-        (listItem = createParagraphNode('', documentNode, NodeType.list_item)).set(
-          'checked',
-          null != /x|X/g.exec(lineInfo.line),
-        );
-        if (text.indexOf('[') > -1) {
-          listItem.set('style', DocumentNode.ListType.task);
-        }
-        if (listStyle == DocumentNode.ListType.ul) {
-          if (File.option.prettyIndent) {
-            documentNode.set(
-              'pattern',
-              text.replace(/\[[xX\s]\]\s+/, '').trim() + ' '.repeat(indentSize - 1),
-            );
-          } else {
-            documentNode.set('pattern', text.replace(/\[[xX\s]\]\s+/, '').trim() + ' ');
-          }
-        }
-        if (listStyle == DocumentNode.ListType.ol) {
-          var listStartText = text.match(/\d+/)[0].replace(/^1$/, '');
-          if ('' != listStartText) {
-            documentNode.set('start', listStartText);
-          } else {
-            documentNode.unset('start');
-          }
-          if (File.option.prettyIndent) {
-            documentNode.set(
-              'pattern',
-              text.replace(/\d+/, '{0}').trim() + ' '.repeat(indentSize - 1),
-            );
-          } else {
-            documentNode.set('pattern', text.replace(/\d+/, '{0}').trim() + ' ');
-          }
-        }
-        if (text && File.option.autoPairExtendSymbol && /\*\s$/.exec(text)) {
-          textSlice = textSlice.replace(/^\*/, '');
-        }
-        localDocumentNode = createParagraphNode(textSlice, listItem, NodeType.paragraph);
-        (parseResult = brushDocumentNode(textSlice, brush, localDocumentNode, false)).html =
-          listItem.toHTML(parseResult.html);
-        return finishBlockConversion(
-          null,
+        indentSize = File.option.indentSize,
+        precedingParagraph = prepareBlockConversion(
+          (text = text.replace('【', '[').replace('】', ']')),
           editCommand,
           documentNode,
-          parseResult,
-          precedingParagraph,
+          lineInfo,
         );
+      documentNode.set('type', NodeType.list);
+      documentNode.set('text', '');
+      documentNode.set('style', listStyle);
+      (listItem = createParagraphNode('', documentNode, NodeType.list_item)).set(
+        'checked',
+        null != /x|X/g.exec(lineInfo.line),
+      );
+      if (text.indexOf('[') > -1) {
+        listItem.set('style', DocumentNode.ListType.task);
       }
-      command = command || (!inlineOnly && undoManager.makeEmptyCommand());
-      if (File.option.strictMarkdown) {
-        taskMarkerPattern = File.shouldRemapPunctuation()
-          ? /^( {0,3})[*+-][ \t\u00A0]+([\[【](x|X)[\]】]|[\[【] [\]】]) +/
-          : /^( {0,3})[*+-][ \t\u00A0]+(\[(x|X)\]|\[ \]) +/;
-        bulletMarkerPattern = /^( {0,3})[*+-][ \t\u00A0]+/;
-        orderedListPattern = /^( {0,3})\d+(\.|\))[ \t\u00A0]+/;
-        firstOrderedItemPattern = /^( {0,3})1(\.|\))[ \t\u00A0]+/;
-      }
-      if (selectionSnapshot && void 0 === selectionSnapshot.endId) {
-        selectionSnapshot.endId = selectionSnapshot.id;
-      }
-      if (selectionSnapshot && void 0 === selectionSnapshot.startId) {
-        selectionSnapshot.startId = selectionSnapshot.id;
-      }
-      var outsideSelectionEnd = !selectionSnapshot || selectionSnapshot.endId != documentNode.cid;
-      if (!(inlineOnly = inlineOnly || (textSlice.indexOf('\n') > -1 && outsideSelectionEnd))) {
-        var cursorLine = utilities.findLine(
-          textSlice,
-          outsideSelectionEnd ? 0 : selectionSnapshot.end,
-        );
-        if (blockquotePrefixPattern().exec(cursorLine.line)) {
-          if (!/^(\s*>){10,}/.exec(cursorLine.line)) {
-            return (function (editCommand, lineInfo) {
-              var precedingParagraph = prepareBlockConversion(
-                lineInfo.line.match(/^ *[>〉》][ \u00A0]?/)[0],
-                editCommand,
-                documentNode,
-                lineInfo,
-              );
-              documentNode.set('type', NodeType.blockquote);
-              documentNode.set('text', '');
-              localDocumentNode = createParagraphNode(textSlice, documentNode);
-              editCommand.redo.push(undoManager.buildReplaceUndo(documentNode));
-              return finishBlockConversion(
-                localDocumentNode,
-                editCommand,
-                documentNode,
-                void 0,
-                precedingParagraph,
-              );
-            })(command, cursorLine);
-          }
+      if (listStyle == DocumentNode.ListType.ul) {
+        if (File.option.prettyIndent) {
+          documentNode.set(
+            'pattern',
+            text.replace(/\[[xX\s]\]\s+/, '').trim() + ' '.repeat(indentSize - 1),
+          );
         } else {
-          if ((currentMatch = taskMarkerPattern.exec(cursorLine.line))) {
-            return convertParagraphToList(
-              currentMatch[0],
-              command,
-              DocumentNode.ListType.ul,
-              cursorLine,
+          documentNode.set('pattern', text.replace(/\[[xX\s]\]\s+/, '').trim() + ' ');
+        }
+      }
+      if (listStyle == DocumentNode.ListType.ol) {
+        var listStartText = text.match(/\d+/)[0].replace(/^1$/, '');
+        if ('' != listStartText) {
+          documentNode.set('start', listStartText);
+        } else {
+          documentNode.unset('start');
+        }
+        if (File.option.prettyIndent) {
+          documentNode.set(
+            'pattern',
+            text.replace(/\d+/, '{0}').trim() + ' '.repeat(indentSize - 1),
+          );
+        } else {
+          documentNode.set('pattern', text.replace(/\d+/, '{0}').trim() + ' ');
+        }
+      }
+      if (text && File.option.autoPairExtendSymbol && /\*\s$/.exec(text)) {
+        textSlice = textSlice.replace(/^\*/, '');
+      }
+      localDocumentNode = createParagraphNode(textSlice, listItem, NodeType.paragraph);
+      (parseResult = brushDocumentNode(textSlice, brush, localDocumentNode, false)).html =
+        listItem.toHTML(parseResult.html);
+      return finishBlockConversion(
+        null,
+        editCommand,
+        documentNode,
+        parseResult,
+        precedingParagraph,
+      );
+    }
+    command = command || (!inlineOnly && undoManager.makeEmptyCommand());
+    if (File.option.strictMarkdown) {
+      taskMarkerPattern = File.shouldRemapPunctuation()
+        ? /^( {0,3})[*+-][ \t\u00A0]+([\[【](x|X)[\]】]|[\[【] [\]】]) +/
+        : /^( {0,3})[*+-][ \t\u00A0]+(\[(x|X)\]|\[ \]) +/;
+      bulletMarkerPattern = /^( {0,3})[*+-][ \t\u00A0]+/;
+      orderedListPattern = /^( {0,3})\d+(\.|\))[ \t\u00A0]+/;
+      firstOrderedItemPattern = /^( {0,3})1(\.|\))[ \t\u00A0]+/;
+    }
+    if (selectionSnapshot && void 0 === selectionSnapshot.endId) {
+      selectionSnapshot.endId = selectionSnapshot.id;
+    }
+    if (selectionSnapshot && void 0 === selectionSnapshot.startId) {
+      selectionSnapshot.startId = selectionSnapshot.id;
+    }
+    var outsideSelectionEnd = !selectionSnapshot || selectionSnapshot.endId != documentNode.cid;
+    if (!(inlineOnly = inlineOnly || (textSlice.indexOf('\n') > -1 && outsideSelectionEnd))) {
+      var cursorLine = utilities.findLine(
+        textSlice,
+        outsideSelectionEnd ? 0 : selectionSnapshot.end,
+      );
+      if (blockquotePrefixPattern().exec(cursorLine.line)) {
+        if (!/^(\s*>){10,}/.exec(cursorLine.line)) {
+          return (function (editCommand, lineInfo) {
+            var precedingParagraph = prepareBlockConversion(
+              lineInfo.line.match(/^ *[>〉》][ \u00A0]?/)[0],
+              editCommand,
+              documentNode,
+              lineInfo,
             );
-          }
-          if ((currentMatch = bulletMarkerPattern.exec(cursorLine.line))) {
-            return convertParagraphToList(
-              currentMatch[0],
-              command,
-              DocumentNode.ListType.ul,
-              cursorLine,
+            documentNode.set('type', NodeType.blockquote);
+            documentNode.set('text', '');
+            localDocumentNode = createParagraphNode(textSlice, documentNode);
+            editCommand.redo.push(undoManager.buildReplaceUndo(documentNode));
+            return finishBlockConversion(
+              localDocumentNode,
+              editCommand,
+              documentNode,
+              void 0,
+              precedingParagraph,
             );
-          }
-          if (
-            (currentMatch = (
-              File.option.strictNumberStartOnNewLine && cursorLine.start
-                ? firstOrderedItemPattern
-                : orderedListPattern
-            ).exec(cursorLine.line))
-          ) {
-            return convertParagraphToList(
-              currentMatch[0],
-              command,
-              DocumentNode.ListType.ol,
-              cursorLine,
+          })(command, cursorLine);
+        }
+      } else {
+        if ((currentMatch = taskMarkerPattern.exec(cursorLine.line))) {
+          return convertParagraphToList(
+            currentMatch[0],
+            command,
+            DocumentNode.ListType.ul,
+            cursorLine,
+          );
+        }
+        if ((currentMatch = bulletMarkerPattern.exec(cursorLine.line))) {
+          return convertParagraphToList(
+            currentMatch[0],
+            command,
+            DocumentNode.ListType.ul,
+            cursorLine,
+          );
+        }
+        if (
+          (currentMatch = (
+            File.option.strictNumberStartOnNewLine && cursorLine.start
+              ? firstOrderedItemPattern
+              : orderedListPattern
+          ).exec(cursorLine.line))
+        ) {
+          return convertParagraphToList(
+            currentMatch[0],
+            command,
+            DocumentNode.ListType.ol,
+            cursorLine,
+          );
+        }
+        if (
+          (currentMatch = (function (inputDocumentNode, lineInfo) {
+            var currentDocumentNode = inputDocumentNode.get('parent');
+            return (
+              DocumentNode.isType(inputDocumentNode, NodeType.paragraph) &&
+              !inputDocumentNode.get('before') &&
+              DocumentNode.isType(currentDocumentNode, NodeType.list_item) &&
+              currentDocumentNode.get('style') !== DocumentNode.ListType.task &&
+              currentDocumentNode.get('parent').get('style') == DocumentNode.ListType.ul &&
+              (File.shouldRemapPunctuation()
+                ? /(^ *[\[【](x|X)[\]】]( |\t)+)|((^ *[\[【] [\]】]) +)/g
+                : /(^ *\[(x|X)\]( |\t)+)|((^ *\[ \]) +)/g
+              ).exec(lineInfo)
             );
-          }
-          if (
-            (currentMatch = (function (inputDocumentNode, lineInfo) {
-              var currentDocumentNode = inputDocumentNode.get('parent');
-              return (
-                DocumentNode.isType(inputDocumentNode, NodeType.paragraph) &&
-                !inputDocumentNode.get('before') &&
-                DocumentNode.isType(currentDocumentNode, NodeType.list_item) &&
-                currentDocumentNode.get('style') !== DocumentNode.ListType.task &&
-                currentDocumentNode.get('parent').get('style') == DocumentNode.ListType.ul &&
-                (File.shouldRemapPunctuation()
-                  ? /(^ *[\[【](x|X)[\]】]( |\t)+)|((^ *[\[【] [\]】]) +)/g
-                  : /(^ *\[(x|X)\]( |\t)+)|((^ *\[ \]) +)/g
-                ).exec(lineInfo)
-              );
-            })(documentNode, textSlice))
-          ) {
-            return (function (markerText, editCommand) {
-              var parseResult,
-                childParseResult,
-                currentDocumentNode = documentNode.get('parent');
-              prepareBlockConversion(markerText, editCommand, currentDocumentNode);
-              currentDocumentNode.set('style', DocumentNode.ListType.task);
-              currentDocumentNode.set('checked', null != /x|X/g.exec(markerText));
-              documentNode.set('text', textSlice);
-              (childParseResult = brushDocumentNode(
-                textSlice,
-                brush,
-                (localDocumentNode = documentNode),
-                true,
-                editCommand,
-              )).html = void 0;
-              (parseResult = finishBlockConversion(
-                null,
-                editCommand,
-                currentDocumentNode,
-                childParseResult,
-              )).replaceCid = currentDocumentNode.cid;
-              return parseResult;
-            })(currentMatch[0], command);
-          }
-          if (
-            (function (inputDocumentNode) {
-              return (
-                !!File.option.enableAlert &&
-                DocumentNode.isType(inputDocumentNode.get('parent'), NodeType.blockquote) &&
-                DocumentNode.isType(inputDocumentNode, NodeType.paragraph) &&
-                !inputDocumentNode.get('before')
-              );
-            })(documentNode)
-          ) {
-            var alertResult = (function (prefixText, inputCommand) {
-              var parseResult,
-                currentDocumentNode = documentNode.get('parent'),
-                match = /^\s*\[\!(note|warning|important|tip|caution)\]\s*(\n|$)/gi.exec(
-                  prefixText,
-                );
-              let text = (match || [])[1] || '';
-              if (text.toLowerCase() != (currentDocumentNode.get('alert') || '')) {
-                var previousCommand = editor.undo.lastRegisteredOperationCommand();
-                if (0 === (previousCommand.source || '').indexOf(documentNode.cid + '#')) {
-                  editor.undo.removeLastRegisteredOperationCommand();
-                  undoManager.append(inputCommand, previousCommand);
-                }
-                prepareBlockConversion(documentNode.get('text'), inputCommand, currentDocumentNode);
-                consumedPrefixLength = 0;
-                currentDocumentNode.set('alert', text.toLowerCase());
-                documentNode.set('text', prefixText);
-                var nextNode = documentNode.get('after'),
-                  hasRemainingText = text && !match[0].length <= prefixText.length;
-                if (!nextNode && hasRemainingText) {
-                  nextNode = new DocumentNode({ type: NodeType.paragraph, text: '' });
-                  documentNode.addAfter(nextNode);
-                  undoManager.addUndoForInsert(inputCommand, nextNode, documentNode);
-                }
-                (parseResult = finishBlockConversion(null, inputCommand, currentDocumentNode, {
-                  offset: 0,
-                  focus: hasRemainingText ? nextNode.cid : documentNode.cid,
-                  blockChanged: true,
-                  command: inputCommand,
-                  cursorDiff: [],
-                })).replaceCid = currentDocumentNode.cid;
-                return parseResult;
+          })(documentNode, textSlice))
+        ) {
+          return (function (markerText, editCommand) {
+            var parseResult,
+              childParseResult,
+              currentDocumentNode = documentNode.get('parent');
+            prepareBlockConversion(markerText, editCommand, currentDocumentNode);
+            currentDocumentNode.set('style', DocumentNode.ListType.task);
+            currentDocumentNode.set('checked', null != /x|X/g.exec(markerText));
+            documentNode.set('text', textSlice);
+            (childParseResult = brushDocumentNode(
+              textSlice,
+              brush,
+              (localDocumentNode = documentNode),
+              true,
+              editCommand,
+            )).html = void 0;
+            (parseResult = finishBlockConversion(
+              null,
+              editCommand,
+              currentDocumentNode,
+              childParseResult,
+            )).replaceCid = currentDocumentNode.cid;
+            return parseResult;
+          })(currentMatch[0], command);
+        }
+        if (
+          (function (inputDocumentNode) {
+            return (
+              !!File.option.enableAlert &&
+              DocumentNode.isType(inputDocumentNode.get('parent'), NodeType.blockquote) &&
+              DocumentNode.isType(inputDocumentNode, NodeType.paragraph) &&
+              !inputDocumentNode.get('before')
+            );
+          })(documentNode)
+        ) {
+          var alertResult = (function (prefixText, inputCommand) {
+            var parseResult,
+              currentDocumentNode = documentNode.get('parent'),
+              match = /^\s*\[\!(note|warning|important|tip|caution)\]\s*(\n|$)/gi.exec(prefixText);
+            let text = (match || [])[1] || '';
+            if (text.toLowerCase() != (currentDocumentNode.get('alert') || '')) {
+              var previousCommand = editor.undo.lastRegisteredOperationCommand();
+              if (0 === (previousCommand.source || '').indexOf(documentNode.cid + '#')) {
+                editor.undo.removeLastRegisteredOperationCommand();
+                undoManager.append(inputCommand, previousCommand);
               }
-            })(textSlice, command);
-            if (alertResult) {
-              return alertResult;
+              prepareBlockConversion(documentNode.get('text'), inputCommand, currentDocumentNode);
+              consumedPrefixLength = 0;
+              currentDocumentNode.set('alert', text.toLowerCase());
+              documentNode.set('text', prefixText);
+              var nextNode = documentNode.get('after'),
+                hasRemainingText = text && !match[0].length <= prefixText.length;
+              if (!nextNode && hasRemainingText) {
+                nextNode = new DocumentNode({ type: NodeType.paragraph, text: '' });
+                documentNode.addAfter(nextNode);
+                undoManager.addUndoForInsert(inputCommand, nextNode, documentNode);
+              }
+              (parseResult = finishBlockConversion(null, inputCommand, currentDocumentNode, {
+                offset: 0,
+                focus: hasRemainingText ? nextNode.cid : documentNode.cid,
+                blockChanged: true,
+                command: inputCommand,
+                cursorDiff: [],
+              })).replaceCid = currentDocumentNode.cid;
+              return parseResult;
             }
+          })(textSlice, command);
+          if (alertResult) {
+            return alertResult;
           }
         }
       }
-      var blockMetadata = [],
-        renderResult = {
-          innerHtml: renderContentWithBlockSyntax(
-            textSlice,
-            brush.inline,
-            inlineOnly || DocumentNode.isType(documentNode, NodeType.heading),
-            documentNode,
-            cursorDiff,
-            blockMetadata,
-          ),
-          offset: 0,
-          focus: documentNode.cid,
-          blockChanged: false,
-          command: command,
-          cursorDiff: cursorDiff,
-          mdlike: blockMetadata[0],
-        };
-      renderResult.html =
-        documentNode && documentNode.toHTML(renderResult.innerHtml, blockMetadata[0]);
-      return renderResult;
-    },
-    'name',
-    { value: 'e', configurable: true },
-  );
+    }
+    var blockMetadata = [],
+      renderResult = {
+        innerHtml: renderContentWithBlockSyntax(
+          textSlice,
+          brush.inline,
+          inlineOnly || DocumentNode.isType(documentNode, NodeType.heading),
+          documentNode,
+          cursorDiff,
+          blockMetadata,
+        ),
+        offset: 0,
+        focus: documentNode.cid,
+        blockChanged: false,
+        command: command,
+        cursorDiff: cursorDiff,
+        mdlike: blockMetadata[0],
+      };
+    renderResult.html =
+      documentNode && documentNode.toHTML(renderResult.innerHtml, blockMetadata[0]);
+    return renderResult;
+  };
   parserApi.reDefLink = referenceDefinitionPattern;
   parserApi.reDefFootnote = footnoteDefinitionPattern;
   parserApi.reOL = listPrefixPatterns[DocumentNode.ListType.ol];
-  parserApi.renderHtmlWithBlockMeta = Object.defineProperty(
-    function renderHtmlWithBlockMetadata(documentNode, brush) {
-      if (DocumentNode.isType(documentNode, NodeType.paragraph)) {
-        var blockMetadata = [],
-          innerHtml = renderContentWithBlockSyntax(
-            documentNode.safeGetStrAttr('text'),
-            brush.inline,
-            false,
-            documentNode,
-            [],
-            blockMetadata,
-          );
-        return documentNode.toHTML(innerHtml, blockMetadata[0]);
+  parserApi.renderHtmlWithBlockMeta = function renderHtmlWithBlockMetadata(documentNode, brush) {
+    if (DocumentNode.isType(documentNode, NodeType.paragraph)) {
+      var blockMetadata = [],
+        innerHtml = renderContentWithBlockSyntax(
+          documentNode.safeGetStrAttr('text'),
+          brush.inline,
+          false,
+          documentNode,
+          [],
+          blockMetadata,
+        );
+      return documentNode.toHTML(innerHtml, blockMetadata[0]);
+    }
+    if (documentNode.get('children').length) {
+      for (
+        var currentDocumentNode = documentNode.getFirstChild(), textParts = [];
+        currentDocumentNode;
+      ) {
+        textParts.push(renderHtmlWithBlockMetadata(currentDocumentNode, brush));
+        currentDocumentNode = currentDocumentNode.get('after');
       }
-      if (documentNode.get('children').length) {
-        for (
-          var currentDocumentNode = documentNode.getFirstChild(), textParts = [];
-          currentDocumentNode;
-        ) {
-          textParts.push(renderHtmlWithBlockMetadata(currentDocumentNode, brush));
-          currentDocumentNode = currentDocumentNode.get('after');
-        }
-        return documentNode.toHTML(textParts.join(''));
-      }
-      return documentNode.toHTML(void 0, void 0, { mathCount: 0 });
-    },
-    'name',
-    { value: 'e', configurable: true },
-  );
+      return documentNode.toHTML(textParts.join(''));
+    }
+    return documentNode.toHTML(void 0, void 0, { mathCount: 0 });
+  };
   parserApi.splitTableCell = splitTableCells;
   parserApi.recoverEscape = restoreEscapedCharacters;
   parserApi.brushContent = renderContentWithBlockSyntax;

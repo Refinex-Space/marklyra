@@ -9,7 +9,7 @@ const installed = new WeakSet<object>();
 const literalModule = '713a28919e6cd278377be1590412dbecce450724015463f289d1bc7b0a1b5623';
 
 /** Only the proven native HR assignment calls this hook. The line is supplied
- * before the original trim, including the parser's own container stripping. */
+ * before the trim, including the parser's own container stripping. */
 export function literalRulePattern(line: unknown, pattern: unknown): unknown {
   return typeof line === 'string' &&
     typeof pattern === 'string' &&
@@ -40,7 +40,7 @@ function installNativeLiteral(): boolean {
 
 /** The shipped parser trims a thematic rule's pattern, including literal FEFF.
  * Preserve that exact attribute before the caller records native history. The
- * original parser still decides the node type; its HTML, selection and history
+ * parser still decides the node type; its HTML, selection and history
  * algorithms remain in charge. See BOM-SOURCE-HISTORY.md for the observed ABI. */
 export function installLiteralPrefix(editor: LegacyEditor): void {
   if (installNativeLiteral()) return;

@@ -33,7 +33,7 @@ function counts(source: string): Map<string, number> {
     result.set(item.source, (result.get(item.source) ?? 0) + (item.uses ?? 1));
   return result;
 }
-/** Observe the completed original insertion, never resume its unguarded file-copy
+/** Observe the completed insertion, never resume its unguarded file-copy
  * promise. Authorization/IO stays in the host; only a proven SDK patch may follow. */
 export class RuntimeAutomaticImages {
   private generation = 0;

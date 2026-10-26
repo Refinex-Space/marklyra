@@ -79,7 +79,7 @@ for (const mode of ['wysiwyg', 'source'] as const)
       (window as NativeCommandFenceWindow).__nativeCommandFence.issue('undo'),
     );
     expect(issued).toBe(1);
-    // This is the editor's original host-action route, not another native-menu
+    // This is the editor's host-action route, not another native-menu
     // event in the same callback queue. The menu Undo remains undelivered.
     await page.keyboard.press('Meta+s');
     await expect

@@ -184,7 +184,7 @@ pub(crate) fn url_info(value: &str) -> UrlInfo {
                 Some(port) => format!("{}:{port}", host.to_ascii_lowercase()),
                 None => host.to_ascii_lowercase(),
             });
-            // `Url` normalises the text; keep the original when nothing was removed.
+            // `Url` normalises the text; keep the input when nothing was removed.
             let display = if had_credentials {
                 url.to_string()
             } else {

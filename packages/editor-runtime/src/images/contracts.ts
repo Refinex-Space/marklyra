@@ -5,7 +5,7 @@ export const VIRTUAL_DOCUMENT_FOLDER = '/__marklyra_document__';
 export const VIRTUAL_DOCUMENT_PATH = `${VIRTUAL_DOCUMENT_FOLDER}/document.md`;
 
 export interface ImageResolveRequest {
-  /** Original Markdown destination, unchanged. */
+  /** Source Markdown destination, unchanged. */
   source: string;
   /** Percent-encoded relative path or explicit absolute/file/HTTP request. Host
    * decodes local paths once and independently checks its own authority. */

@@ -252,8 +252,8 @@ for (const next of ['input', 'document'] as const)
   test(`an accepted source cut replay cannot overwrite a newer ${next}`, async ({ page }) => {
     await mount(page);
     await openSourceMenu(page, true);
-    // The real original 180ms timer has fired; hold only this callback while
-    // exercising a later user action. Its original body is then allowed to finish.
+    // The real 180ms timer has fired; hold only this callback while
+    // exercising a later user action. Its body is then allowed to finish.
     await waitReplay(page, false);
     await page.evaluate(() => (window as unknown as Host).cmMenu.choose?.('edit.cut'));
     await expect.poll(() => flush(page)).toBe('Aa\r\nBravo\nCharlie');

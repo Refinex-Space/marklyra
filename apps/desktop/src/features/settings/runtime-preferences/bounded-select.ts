@@ -1,4 +1,4 @@
-/** Keep the original select and its save handler; only replace the native popup. */
+/** Keep the select and its save handler; only replace the native popup. */
 export function setupBoundedSelect(selector: string) {
   let owner: HTMLSelectElement | null = null;
   let popup: HTMLUListElement | null = null;

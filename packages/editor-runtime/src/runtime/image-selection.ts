@@ -9,7 +9,7 @@ interface CodeMirrorSelection {
   setSelections(ranges: { anchor: Position; head: Position }[], primary: number): void;
 }
 
-/** Original exeCommand swaps fenced CodeMirror anchor/head. A host image-only
+/** The exeCommand method swaps fenced CodeMirror anchor/head. A host image-only
  * repaint must preserve the actual focused CM's directed ranges, independently
  * of that native bookmark format. Never restore into a replaced document. */
 export function preserveImageCodeSelection(

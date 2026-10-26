@@ -1,17 +1,11 @@
 // host/local-diagnostics.
 export default function initializeHostLocalDiagnostics(requireModule, moduleExports, moduleRecord) {
-  Object.defineProperty(DiagnosticBuffer, 'name', { value: 'm', configurable: true });
-
   var hostGlobal = this || self;
-  var LocalDiagnostics = Object.defineProperty(
-    function () {
-      this.sendInterval = -1;
-      this.lastSend = 0;
-      this.initialized = false;
-    },
-    'name',
-    { value: 's', configurable: true },
-  );
+  var LocalDiagnostics = function () {
+    this.sendInterval = -1;
+    this.lastSend = 0;
+    this.initialized = false;
+  };
   LocalDiagnostics.prototype.record = function (messageOrError) {
     try {
       if (!messageOrError) {
@@ -45,9 +39,6 @@ export default function initializeHostLocalDiagnostics(requireModule, moduleExpo
     }
   };
   LocalDiagnostics.prototype.fullValidate = function (debugMode) {
-    Object.defineProperty(validateSiblingSequence, 'name', { value: 'r', configurable: true });
-    Object.defineProperty(validateNodeElementPair, 'name', { value: 'o', configurable: true });
-
     if (hostGlobal.debugMode || debugMode) {
       var firstBlock = File.editor.nodeMap.blocks.sortedFirst(),
         element = document.querySelector(`[cid="${firstBlock.cid}"]`);
@@ -138,22 +129,16 @@ export default function initializeHostLocalDiagnostics(requireModule, moduleExpo
     }
   };
   LocalDiagnostics.prototype.buildNodeSnip = function () {
-    return File.editor.nodeMap.blocks.map(
-      Object.defineProperty(
-        function serializeDiagnosticNode(documentNode) {
-          if (documentNode.isDeleted()) {
-            return '[node deleted]';
-          }
-          var children = [];
-          documentNode.get('children').sortedForEach((childNode) => {
-            children.push(serializeDiagnosticNode(childNode));
-          });
-          return { cid: documentNode.cid, type: documentNode.get('type'), children: children };
-        },
-        'name',
-        { value: 'e', configurable: true },
-      ),
-    );
+    return File.editor.nodeMap.blocks.map(function serializeDiagnosticNode(documentNode) {
+      if (documentNode.isDeleted()) {
+        return '[node deleted]';
+      }
+      var children = [];
+      documentNode.get('children').sortedForEach((childNode) => {
+        children.push(serializeDiagnosticNode(childNode));
+      });
+      return { cid: documentNode.cid, type: documentNode.get('type'), children: children };
+    });
   };
   var dateInstance = new Date();
   LocalDiagnostics.prototype.buildExtraDebugInfo = async function () {

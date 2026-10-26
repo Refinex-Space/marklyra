@@ -66,7 +66,7 @@ function observeOriginalLoadTimers() {
   Reflect.set(window, 'outlineOriginalLoadTimers', probe);
   window.setTimeout = ((handler: TimerHandler, delay?: number, ...args: unknown[]) => {
     if (delay !== 80 || typeof handler !== 'function') return schedule(handler, delay, ...args);
-    // Original Editor.reset schedules refresh(..., true) at 80ms. Observe its
+    // Editor.reset schedules refresh(..., true) at 80ms. Observe its
     // actual completion; do not fast-forward, cancel, or guess a settling delay.
     let id = 0;
     id = schedule(() => {
@@ -139,7 +139,7 @@ async function mount(page: Page, source: string, settleOriginalLoad = false): Pr
       };
       const content = query('content');
       const queued = content.queue('fx').length;
-      // Original load/selection can leave content.animate scroll work after its
+      // Load/selection can leave content.animate scroll work after its
       // 80ms refresh. Wait for that actual queue; never stop or replace it.
       await new Promise<void>((resolve) => {
         content.promise('fx').done(resolve);
@@ -315,7 +315,7 @@ test('synchronous outline reads retain the original pending 300ms TOC HTML callb
 }) => {
   const source = '[TOC]\n\n# Timer heading\n\nAlpha beta';
   const frame = await mount(page, source);
-  // Wait for actual original TOC output, not a fixed delay after document load.
+  // Wait for actual TOC output, not a fixed delay after document load.
   await expect(frame.locator('#write .md-toc-inner')).toHaveText(['Timer heading']);
   await frame.evaluate(() => {
     const runtime = window as unknown as Runtime,
@@ -444,7 +444,7 @@ test('original outline popover toggle, close, Escape and pin preserve editing st
     .toBe(false);
   expect(await invariant(frame)).toEqual(preserved);
   await toggle();
-  // Synthetic click runs the original body handler without manufacturing a new
+  // Synthetic click runs the body handler without manufacturing a new
   // browser caret. Trusted content clicks may legitimately move the selection.
   await frame.locator('#write').dispatchEvent('click');
   await expect
@@ -614,8 +614,8 @@ test('collapsed original outline reports the actual heading before the Shell map
       node.classList.remove('outline-item-open');
     });
     content.scrollTop = Math.max(0, headings[2].offsetTop - 10);
-    // Explicit original index proves the two active labels independently of the
-    // adapter's selector and of the original binary search scroll algorithm.
+    // Explicit index proves the two active labels independently of the
+    // adapter's selector and of the binary search scroll algorithm.
     Reflect.apply(original.highlightVisibleHeader, original, [headings, 2, false]);
     const actives = Array.from(
       document.querySelectorAll('#outline-content .outline-active[data-ref]'),

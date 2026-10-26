@@ -4,8 +4,8 @@ export interface TreePageControls {
 }
 
 /**
- * The file tree's own settings, as a card of the 文件 page. The row is added beside the original
- * groups; the original controls and their save handlers stay in their React-owned parents.
+ * The file tree's settings appear as a card on the 文件 page, beside the existing groups.
+ * Controls and their save handlers stay in their React-owned parents.
  */
 export function renderTreePreferences(pane: Element, controls: TreePageControls) {
   const state = controls.state();

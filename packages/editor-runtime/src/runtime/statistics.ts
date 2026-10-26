@@ -58,7 +58,7 @@ export class RuntimeStatistics {
       const pendingMath = Array.from(root.querySelectorAll('.md-math-block,.md-inline-math')).some(
         (node) => !node.querySelector('svg,.MathJax_Error,.mjx-error'),
       );
-      // Original large-document reset can commit #write in a later timer task.
+      // Large-document reset can commit #write in a later timer task.
       if (root.childElementCount && !pendingMath && Date.now() - stableSince >= 100) return;
       if (Date.now() - start > 15000) throw new Error('统计渲染未完成，请重试');
       await new Promise<void>((resolve) => setTimeout(resolve, 25));
@@ -77,7 +77,7 @@ export class RuntimeStatistics {
     const counter = this.deps.runtime.editor?.wordCount;
     if (!counter) throw new Error('原统计模块不可用');
     // Shadow the WORD discriminator only for this synchronous read. No setter,
-    // preference write, timer or original instance mutation is performed.
+    // preference write, timer or instance mutation is performed.
     const query = Object.create(counter) as typeof counter;
     query.delimiter = 0;
     let words = 0;

@@ -254,7 +254,7 @@ fn await_copy_path(
 }
 
 /// Never publishes a fixture value. The user must invoke the real application's
-/// Copy Path action after READY; the original opaque clipboard stays only in RAM.
+/// Copy Path action after READY; the captured opaque clipboard stays only in RAM.
 pub fn expect_copy_path(path: &std::path::Path) -> Result<(), String> {
     if objc2::MainThreadMarker::new().is_none() {
         return Err("MAIN_THREAD_REQUIRED_UNTOUCHED".into());
@@ -370,7 +370,7 @@ fn general_items(items: &[Retained<NSPasteboardItem>]) -> Result<(), String> {
     if board.changeCount() != backup.version {
         return Err("Clipboard changed before fixture; untouched".into());
     }
-    // Preparation is complete. The original opaque values remain only in RAM.
+    // Preparation is complete. The captured opaque values remain only in RAM.
     let expected_version = backup
         .version
         .checked_add(1)

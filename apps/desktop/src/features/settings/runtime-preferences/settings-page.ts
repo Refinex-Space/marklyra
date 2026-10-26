@@ -197,7 +197,7 @@ function adaptHostPlatform(pane: Element) {
   }
 }
 
-// Keep the original controls in their React-owned parents. Visual grouping uses
+// Keep the controls in their React-owned parents. Visual grouping uses
 // ordering and adjoining borders, so conditional controls and save handlers survive.
 function arrangeFileGroups(pane: Element) {
   const startup = pane.querySelector('[data-marklyra-preference="restoreWhenLaunch"]');
@@ -351,7 +351,7 @@ function positionHelpTooltips() {
     const description = settingsHelpText(anchor);
     if (description && tooltip.textContent !== description) tooltip.textContent = description;
     const target = anchor.getBoundingClientRect();
-    // The original tooltip writes both left and right; clear its old right edge
+    // The tooltip writes both left and right; clear its old right edge
     // before measuring, otherwise repositioning can squeeze the text to one column.
     tooltip.style.right = 'auto';
     const box = tooltip.getBoundingClientRect();

@@ -1,15 +1,5 @@
 // codemirror/lint.
 export default function initializeCodemirrorLint(requireModule, moduleExports, moduleRecord) {
-  Object.defineProperty(removeElement, 'name', { value: 'o', configurable: true });
-  Object.defineProperty(showLintTooltip, 'name', { value: 'a', configurable: true });
-  Object.defineProperty(LintState, 'name', { value: 's', configurable: true });
-  Object.defineProperty(clearLintMarkers, 'name', { value: 'l', configurable: true });
-  Object.defineProperty(createGutterMarker, 'name', { value: 'c', configurable: true });
-  Object.defineProperty(createAnnotationMessage, 'name', { value: 'd', configurable: true });
-  Object.defineProperty(startLinting, 'name', { value: 'u', configurable: true });
-  Object.defineProperty(updateLinting, 'name', { value: 'h', configurable: true });
-  Object.defineProperty(scheduleLinting, 'name', { value: 'p', configurable: true });
-
   if (!this) {
     self;
   }
@@ -21,11 +11,7 @@ export default function initializeCodemirrorLint(requireModule, moduleExports, m
     }
   }
   function showLintTooltip(mouseEvent, content, targetElement) {
-    Object.defineProperty(hideTooltip, 'name', { value: 'a', configurable: true });
-
     var tooltip = (function (mouseEvent, content) {
-      Object.defineProperty(moveTooltip, 'name', { value: 'r', configurable: true });
-
       var tooltipElement = document.createElement('div');
       function moveTooltip(mouseEvent) {
         if (!tooltipElement.parentNode) {
@@ -171,8 +157,6 @@ export default function initializeCodemirrorLint(requireModule, moduleExports, m
     if (getAnnotations) {
       if (options.async || getAnnotations.async) {
         !(function (editor, getAnnotations, lintOptions) {
-          Object.defineProperty(cancelStaleRequest, 'name', { value: 'a', configurable: true });
-
           var lintState = editor.state.lint,
             requestId = ++lintState.waitingFor;
           function cancelStaleRequest() {

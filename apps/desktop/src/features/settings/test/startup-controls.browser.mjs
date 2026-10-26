@@ -1,4 +1,4 @@
-// Real PreferencesWindow, bridge and original UI; only Native commands are controlled substitutes.
+// Real PreferencesWindow, bridge and UI; only Native commands are controlled substitutes.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';

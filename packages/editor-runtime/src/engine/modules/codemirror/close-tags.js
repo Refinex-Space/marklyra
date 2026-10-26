@@ -5,10 +5,6 @@ export default function initializeCodemirrorCloseTags(requireModule, moduleExpor
   }
   var CodeMirror = requireModule('libraries/codemirror');
   !(function () {
-    Object.defineProperty(completeClosingTag, 'name', { value: 'n', configurable: true });
-    Object.defineProperty(indexOfTag, 'name', { value: 'r', configurable: true });
-    Object.defineProperty(hasClosingTag, 'name', { value: 'o', configurable: true });
-
     CodeMirror.defineOption('autoCloseTags', false, function (editor, options, previousValue) {
       if (previousValue != CodeMirror.Init && previousValue) {
         editor.removeKeyMap('autoCloseTags');

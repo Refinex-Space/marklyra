@@ -7,11 +7,6 @@ export default function installLibrariesDomMorph(engineModules, vendorScope) {
     [],
     true,
     function (requireModule, moduleExports, moduleRecord) {
-      Object.defineProperty(sameNodeName, 'name', { value: 'l', configurable: true });
-      Object.defineProperty(syncBooleanAttribute, 'name', { value: 'c', configurable: true });
-      Object.defineProperty(noop, 'name', { value: 'f', configurable: true });
-      Object.defineProperty(defaultNodeKey, 'name', { value: 'm', configurable: true });
-
       if (!this) {
         self;
       }
@@ -105,11 +100,6 @@ export default function installLibrariesDomMorph(engineModules, vendorScope) {
       }
       var morphDom = (function (morphAttributes) {
         return function (fromNode, toNode, options) {
-          Object.defineProperty(queueKeyedRemoval, 'name', { value: '_', configurable: true });
-          Object.defineProperty(removeNode, 'name', { value: 'A', configurable: true });
-          Object.defineProperty(handleAddedNode, 'name', { value: 'M', configurable: true });
-          Object.defineProperty(morphElement, 'name', { value: 'L', configurable: true });
-
           if (!options) {
             options = {};
           }
@@ -156,26 +146,22 @@ export default function installLibrariesDomMorph(engineModules, vendorScope) {
                 parent.removeChild(node);
               }
               onNodeDiscarded(node);
-              Object.defineProperty(
-                function discardDescendants(node, skipKeyedNodes) {
-                  if (node.nodeType === ELEMENT_NODE) {
-                    for (var child = node.firstChild; child; ) {
-                      var nodeKey = void 0;
-                      if (skipKeyedNodes && (nodeKey = getNodeKey(child))) {
-                        queueKeyedRemoval(nodeKey);
-                      } else {
-                        onNodeDiscarded(child);
-                        if (child.firstChild) {
-                          discardDescendants(child, skipKeyedNodes);
-                        }
+              (function discardDescendants(node, skipKeyedNodes) {
+                if (node.nodeType === ELEMENT_NODE) {
+                  for (var child = node.firstChild; child; ) {
+                    var nodeKey = void 0;
+                    if (skipKeyedNodes && (nodeKey = getNodeKey(child))) {
+                      queueKeyedRemoval(nodeKey);
+                    } else {
+                      onNodeDiscarded(child);
+                      if (child.firstChild) {
+                        discardDescendants(child, skipKeyedNodes);
                       }
-                      child = child.nextSibling;
                     }
+                    child = child.nextSibling;
                   }
-                },
-                'name',
-                { value: 'e', configurable: true },
-              )(node, skipKeyedNodes);
+                }
+              })(node, skipKeyedNodes);
             }
           }
           function handleAddedNode(node) {
@@ -327,22 +313,18 @@ export default function installLibrariesDomMorph(engineModules, vendorScope) {
               }
             }
           }
-          !Object.defineProperty(
-            function indexKeyedNodes(node) {
-              if (node.nodeType === ELEMENT_NODE) {
-                for (var child = node.firstChild; child; ) {
-                  var nodeKey = getNodeKey(child);
-                  if (nodeKey) {
-                    keyedNodes[nodeKey] = child;
-                  }
-                  indexKeyedNodes(child);
-                  child = child.nextSibling;
+          !(function indexKeyedNodes(node) {
+            if (node.nodeType === ELEMENT_NODE) {
+              for (var child = node.firstChild; child; ) {
+                var nodeKey = getNodeKey(child);
+                if (nodeKey) {
+                  keyedNodes[nodeKey] = child;
                 }
+                indexKeyedNodes(child);
+                child = child.nextSibling;
               }
-            },
-            'name',
-            { value: 'e', configurable: true },
-          )(fromNode);
+            }
+          })(fromNode);
           var replacementTagName,
             replacementNamespace,
             morphedNode = fromNode,

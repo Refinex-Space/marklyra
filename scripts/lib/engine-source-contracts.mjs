@@ -1,11 +1,11 @@
 import ts from 'typescript';
-import { analyze } from './javascript-bindings.mjs';
+import { analyzeSource } from './source-symbols.mjs';
 
 /** A factory's dependency reader is a static import boundary. Prevent aliases,
  * reflection or forwarding from hiding a dependency from its declared graph.
  */
 export function verifyFactoryDependencies(file, text, descriptor) {
-  const analysis = analyze(file, text);
+  const analysis = analyzeSource(file, text);
   const declaration = analysis.source.statements[0];
   if (!ts.isFunctionDeclaration(declaration) || !declaration.name?.text.startsWith('initialize'))
     throw new Error(`Engine factory needs a descriptive initialize name: ${file}`);

@@ -9,7 +9,7 @@ import { RuntimeSourceTracking } from '../src/runtime/source-tracking.js';
 vi.mock('@marklyra/editor-core', () => import('../../editor-core/src/index.js'));
 
 // Structural providers are controlled substitutes here. These tests prove the
-// protocol/lifecycle boundary, never the original editor's model semantics.
+// protocol/lifecycle boundary, never the editor's model semantics.
 const providers = vi.hoisted(() => ({ structural: vi.fn(), narrow: vi.fn() }));
 vi.mock('../src/runtime/block-indent-source.js', () => ({
   captureBlockIndent: providers.structural,

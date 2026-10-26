@@ -1,7 +1,6 @@
 // editing/table-editor.
 export default function initializeEditingTableEditor(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(clearDragTrackers, 'name', { value: 'p', configurable: true });
 
   if (!this) {
     self;
@@ -17,16 +16,6 @@ export default function initializeEditingTableEditor(requireModule, moduleExport
     maxColumns = 40;
   class TableEditor {
     constructor(inputEditor) {
-      Object.defineProperty(startRowDrag, 'name', { value: 'T', configurable: true });
-      Object.defineProperty(startColumnDrag, 'name', { value: '_', configurable: true });
-      Object.defineProperty(updateDragPosition, 'name', { value: 'A', configurable: true });
-      Object.defineProperty(hideInsertionMarker, 'name', { value: 'M', configurable: true });
-      Object.defineProperty(showDragTracker, 'name', { value: 'L', configurable: true });
-      Object.defineProperty(getColumnCells, 'name', { value: 'N', configurable: true });
-      Object.defineProperty(clearDragAppearance, 'name', { value: 'D', configurable: true });
-      Object.defineProperty(finishTableDrag, 'name', { value: 'R', configurable: true });
-      Object.defineProperty(resetDragState, 'name', { value: 'B', configurable: true });
-
       var insertDialog,
         receiver = this;
       this.editor = inputEditor;
@@ -91,11 +80,6 @@ export default function initializeEditingTableEditor(requireModule, moduleExport
             }
           } else {
             (function (inputElement) {
-              Object.defineProperty(updateGridSelection, 'name', {
-                value: 'f',
-                configurable: true,
-              });
-
               var elements,
                 resizePopoverHtml =
                   '<div class="popover bottom md-table-resize-popover" style="display:block; bottom:auto; top:20px; margin-left:-10px;" contenteditable="false">\t\t\t\t<div class="arrow" style="left:20px;"></div>\t\t\t\t<div class="md-grid-board-wrap md-reset code-tooltip-content">\t\t\t\t\t<table role="grid" class="md-grid-board md-reset">\t\t\t\t\t\t<tbody>\t\t\t\t\t\t\t<tr class="md-reset" row="1">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="2">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="3">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="4">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="5">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="6">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="7">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="8">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="9">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t\t<tr class="md-reset" row="10">\t\t\t\t\t\t\t\t<td class="md-reset" col="1"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="2"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="3"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="4"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="5"><a href="#"></a></td>\t\t\t\t\t\t\t\t<td class="md-reset" col="6"><a href="#"></a></td>\t\t\t\t\t\t\t</tr>\t\t\t\t\t\t</tbody>\t\t\t\t\t</table>\t\t\t\t\t<div class="popover-title">\t\t\t\t\t\t<input id="md-grid-width" type="text"  max="20" size="2" min="1" value="0" /> x <input id="md-grid-height" maxlength="2" size="2" min="1" value="0"/><button id="md-resize-grid" class="btn btn-primary btn-xs">' +
@@ -876,8 +860,6 @@ export default function initializeEditingTableEditor(requireModule, moduleExport
       }
     }
     showTableEdit(nodeOrElement) {
-      Object.defineProperty(buildTableControls, 'name', { value: 'r', configurable: true });
-
       var tableNode = nodeOrElement,
         tableElement = nodeOrElement;
       function buildTableControls(unusedParameter1) {
@@ -1190,8 +1172,6 @@ export default function initializeEditingTableEditor(requireModule, moduleExport
       }
     }
     isTableEmpty(documentNode) {
-      Object.defineProperty(isEmptyTableRow, 'name', { value: 't', configurable: true });
-
       function isEmptyTableRow(inputDocumentNode) {
         for (
           var cellIndex = 0, childrenLength = inputDocumentNode.get('children').length;
@@ -1244,7 +1224,7 @@ export default function initializeEditingTableEditor(requireModule, moduleExport
       }
     }
   }
-  Object.defineProperty(TableEditor, 'name', { value: 'h', configurable: true });
+
   function clearDragTrackers() {
     jquery('#marklyra-table-row-tracker, #marklyra-table-col-tracker')
       .hide()
@@ -1510,8 +1490,6 @@ export default function initializeEditingTableEditor(requireModule, moduleExport
     }
   };
   TableEditor.resizeRow = function (documentNode, columnCount) {
-    Object.defineProperty(normalizeAlignment, 'name', { value: 'c', configurable: true });
-
     var before,
       firstChild = documentNode.getFirstChild(),
       itemIndex = 0,

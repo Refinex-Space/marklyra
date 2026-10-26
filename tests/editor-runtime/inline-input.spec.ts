@@ -39,7 +39,7 @@ async function select(
 ) {
   await page.locator('.marklyra-editor-frame').focus();
   await frame(page).locator('#write > p').first().click();
-  // This fixture sets a precise DOM boundary programmatically. Let the original
+  // This fixture sets a precise DOM boundary programmatically. Let the
   // real-click brush finish first so it cannot replace that independently set point.
   if (settledClick) await page.waitForTimeout(300);
   await frame(page)
@@ -239,7 +239,7 @@ for (const bodyBoundary of [false, true])
       await select(page, 2, 2, bodyBoundary, true);
       const before = await selection(page);
       expect(before.anchor.role).toContain(bodyBoundary ? 'STRONG' : 'md-before');
-      // The original WebKit delayed expansion changes Text-end to its equivalent
+      // The WebKit delayed expansion changes Text-end to its equivalent
       // parent-end even without loading. Preserve source position and marker/body
       // role, then prove actual input and history rather than DOM representation.
       const logical = (value: typeof before) => ({

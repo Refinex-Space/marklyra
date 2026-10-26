@@ -104,7 +104,7 @@ export function applicationPreferencesSnapshot(value: unknown): ApplicationPrefe
   const values: ApplicationPreferencesSnapshot['values'] = {};
   for (const [key, item] of Object.entries(input.values)) {
     const checked = applicationPreferenceChange(key, item);
-    // Native storage has canonical types; the original select's string coercion is UI-only.
+    // Native storage has canonical types; the select's string coercion is UI-only.
     if (checked.value !== item) throw Error('应用偏好响应值无效。');
     values[checked.key] = checked.value;
   }

@@ -3,7 +3,7 @@ import {
   marklyraEditorPreferences,
 } from '@marklyra/editor-runtime';
 
-/** Original UI keys map to the portable SDK's typed configuration, never executable strings. */
+/** UI keys map to the portable SDK's typed configuration, never executable strings. */
 export const editorPreferenceFields = {
   useCustomFontSize: 'useCustomFontSize',
   customFontSize: 'customFontSize',
@@ -40,7 +40,7 @@ export function updateEditorPreference(
   value: unknown,
 ): MarkLyraEditorPreferences {
   if (key === 'no_mid_caret' && typeof value === 'boolean') value = !value;
-  // The shipped select emits strings because this original control has no numeric type.
+  // The shipped select emits strings because this control has no numeric type.
   if (key === 'codeIndentSize' && typeof value === 'string' && ['2', '3', '4', '5'].includes(value))
     value = Number(value);
   return marklyraEditorPreferences({ [editorPreferenceFields[key]]: value }, base);

@@ -5,10 +5,6 @@ export default function initializeRenderInlineDecoration(
   moduleRecord,
 ) {
   'use strict';
-  Object.defineProperty(renderAlertIcon, 'name', { value: 'm', configurable: true });
-  Object.defineProperty(appendLocalImageVersion, 'name', { value: 'g', configurable: true });
-  Object.defineProperty(decorateInlineToken, 'name', { value: 'v', configurable: true });
-  Object.defineProperty(showImageTransferIndicator, 'name', { value: 'y', configurable: true });
 
   if (!this) {
     self;
@@ -28,42 +24,34 @@ export default function initializeRenderInlineDecoration(
   window.removeLastModifyQuery = function (imageUrl) {
     return (imageUrl || '').replace(/\?lastModify=(.+)$/, '');
   };
-  var escapeAttributeText = Object.defineProperty(
-      function (attributeText) {
-        return utilities.escapeForPreWrap(attributeText);
-      },
-      'name',
-      { value: 'p', configurable: true },
-    ),
-    encodeLinkUrl = Object.defineProperty(
-      function (trimmedText, preserveUrlSuffix) {
-        if (/%[0-9a-f]{2}/i.exec(trimmedText)) {
-          return trimmedText.replace(/'/g, '%27').replace(/"/g, '%22');
+  var escapeAttributeText = function (attributeText) {
+      return utilities.escapeForPreWrap(attributeText);
+    },
+    encodeLinkUrl = function (trimmedText, preserveUrlSuffix) {
+      if (/%[0-9a-f]{2}/i.exec(trimmedText)) {
+        return trimmedText.replace(/'/g, '%27').replace(/"/g, '%22');
+      }
+      var text = (trimmedText = (trimmedText || '').trim());
+      try {
+        text = decodeURI(trimmedText);
+      } catch (error) {
+        text = trimmedText;
+      }
+      try {
+        if (/^file:/.exec(text)) {
+          text = text.replace(/\\/g, '/');
         }
-        var text = (trimmedText = (trimmedText || '').trim());
-        try {
-          text = decodeURI(trimmedText);
-        } catch (error) {
-          text = trimmedText;
-        }
-        try {
-          if (/^file:/.exec(text)) {
-            text = text.replace(/\\/g, '/');
-          }
-          text = encodeURI(text).replace(/'/g, '%27').replace(/"/g, '%22');
-        } catch (currentError) {
-          console.sendError('unable to process escapeURL ' + trimmedText, 'warning');
-          text = (text || '').replace(/\\/g, '/').replace(/'/g, '%27').replace(/"/g, '%22');
-        }
-        if (preserveUrlSuffix) {
-          var urlSuffix = (/[#?][^\/\\\.]*$/.exec(text) || [''])[0];
-          return text.substr(0, text.length - urlSuffix.length).replace(/#/g, '%23') + urlSuffix;
-        }
-        return text;
-      },
-      'name',
-      { value: 'f', configurable: true },
-    );
+        text = encodeURI(text).replace(/'/g, '%27').replace(/"/g, '%22');
+      } catch (currentError) {
+        console.sendError('unable to process escapeURL ' + trimmedText, 'warning');
+        text = (text || '').replace(/\\/g, '/').replace(/'/g, '%27').replace(/"/g, '%22');
+      }
+      if (preserveUrlSuffix) {
+        var urlSuffix = (/[#?][^\/\\\.]*$/.exec(text) || [''])[0];
+        return text.substr(0, text.length - urlSuffix.length).replace(/#/g, '%23') + urlSuffix;
+      }
+      return text;
+    };
   function renderAlertIcon(alertKind) {
     switch (alertKind) {
       case 'important':
@@ -155,8 +143,6 @@ export default function initializeRenderInlineDecoration(
     return imageUrl;
   }
   function decorateInlineToken(token, sourceText, sourceOrReference, sourceMatch) {
-    Object.defineProperty(truncateSourcePreview, 'name', { value: 'C', configurable: true });
-
     var trimmedText,
       referenceId,
       outerHTML,
@@ -361,8 +347,6 @@ export default function initializeRenderInlineDecoration(
     return outerHTML;
   }
   function showImageTransferIndicator(element, imagePath, moving, deferIndicator) {
-    Object.defineProperty(appendTransferIndicator, 'name', { value: 'r', configurable: true });
-
     function appendTransferIndicator() {
       var statusClass = moving ? 'md-img-loaded md-on-moving' : 'md-img-loaded md-on-uploading';
       element.addClass(statusClass);
@@ -389,8 +373,6 @@ export default function initializeRenderInlineDecoration(
   window.addDateQuery = appendLocalImageVersion;
   moduleExports.applyUploadingStyle = showImageTransferIndicator;
   moduleExports.decorateAsExport = function (token, exportOptions, ownerNode) {
-    Object.defineProperty(resolveExportUrl, 'name', { value: 'b', configurable: true });
-
     var outerHTML, searchValue, documentNode, imageTitle, footnoteNode;
     function resolveExportUrl(trimmedText, preferWebUrl) {
       trimmedText = (trimmedText || '').trim();

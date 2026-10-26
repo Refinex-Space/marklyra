@@ -444,7 +444,7 @@ export class MarkLyraEditor {
   get isOutlinePopoverOpen() {
     return this.outlinePopoverOpen;
   }
-  /** Apply the original theme/base-user/theme-user cascade without replacing editable DOM. */
+  /** Apply the theme/base-user/theme-user cascade without replacing editable DOM. */
   async setThemeStyles(
     value: Partial<ThemeStyles>,
     theme?: RuntimeConfiguration['theme'],
@@ -921,7 +921,7 @@ export class MarkLyraEditor {
     });
   }
   /** Host files must already exist. This operation edits only proved image
-   * destinations and remains one original Undo/Redo transaction. */
+   * destinations and remains one Undo/Redo transaction. */
   async updateImageReferences(
     replacements: readonly ImageReferenceReplacement[],
     options: ReloadFromDiskOptions,
@@ -1134,7 +1134,7 @@ export class MarkLyraEditor {
       container.remove();
     }
   }
-  /** Query on demand. In source mode a disposable original renderer counts the current source. */
+  /** Query on demand. In source mode a disposable renderer counts the current source. */
   async getStatistics(options: StatisticsOptions = {}): Promise<MarkLyraStatistics> {
     const wordsPerMinute = statisticsSpeed(options);
     const generation = this.statisticsGeneration;

@@ -228,9 +228,6 @@ export default function initializeEditorController($__require, exports, module) 
       }, delayMs || 100);
     }
     tryEnterBusyMode(contentText, preserveEditable, forceBusyMode) {
-      Object.defineProperty(enterBusyMode, 'name', { value: 'o', configurable: true });
-      Object.defineProperty(leaveBusyMode, 'name', { value: 'a', configurable: true });
-
       var currentWritingArea = this.writingArea,
         receiver = this;
       function enterBusyMode() {
@@ -738,11 +735,6 @@ export default function initializeEditorController($__require, exports, module) 
       this._pasteboard[format] = content;
     }
     _bindGlobal() {
-      Object.defineProperty(refreshTableAndTypewriterLayout, 'name', {
-        value: 'n',
-        configurable: true,
-      });
-
       var timerId,
         receiver = this;
       function refreshTableAndTypewriterLayout() {
@@ -1007,8 +999,6 @@ export default function initializeEditorController($__require, exports, module) 
           }
         })
         .on('drop', function (event) {
-          Object.defineProperty(selectDroppedTextRange, 'name', { value: 'a', configurable: true });
-
           event.stopPropagation();
           event.preventDefault();
           setTimeout(function () {
@@ -1157,8 +1147,6 @@ export default function initializeEditorController($__require, exports, module) 
           }
         })
         .on('cut', this.sessionStr, function (event) {
-          Object.defineProperty(cutSelectedContent, 'name', { value: 'n', configurable: true });
-
           event.stopPropagation();
           if (File.isLocked) {
             return false;
@@ -1342,9 +1330,6 @@ export default function initializeEditorController($__require, exports, module) 
       );
     }
     _bindKeyEvents() {
-      Object.defineProperty(updateLinkPointerStyle, 'name', { value: 's', configurable: true });
-      Object.defineProperty(lockEditableNode, 'name', { value: 'm', configurable: true });
-
       var timerId,
         focusCid,
         currentTimerId,
@@ -1422,81 +1407,69 @@ export default function initializeEditorController($__require, exports, module) 
         editableSnapshot,
         localTimerId,
         compositionInputState = 0,
-        handleCompositionEnd = Object.defineProperty(
-          function (compositionEvent) {
-            if (receiver.isIME && !isInputComponent(document.activeElement)) {
-              receiver.useIMEKeyboard = true;
-              if (compositionEvent) {
-                compositionInputState = -1;
-                setTimeout(function () {
-                  compositionInputState = 0;
-                }, 0);
-              }
-              console.debug('compositionEnd');
-              var range,
-                currentElement,
-                compositionNode,
-                element = receiver.getMarkElem();
-              if (!element.length) {
-                range = receiver.selection.getRangy();
-                currentElement = $(range.startContainer).closest('[cid]');
-                if ((compositionNode = receiver.findNodeByElem(currentElement))) {
-                  currentElement.replaceWith(compositionNode.toHTML());
-                }
-              }
-              receiver.focusCid = element.attr('cid');
-              receiver.brush.addToQueue(receiver.focusCid);
-              receiver.isIME = 0;
-              setTimeout(function () {
-                receiver.brush.brushQueue();
-              }, 10);
-              receiver.undo.addSnap(receiver.focusCid, SnapFlag.ADD);
-            }
-          },
-          'name',
-          { value: 'h', configurable: true },
-        ),
-        handleCompositionStart = Object.defineProperty(
-          function (compositionEvent) {
+        handleCompositionEnd = function (compositionEvent) {
+          if (receiver.isIME && !isInputComponent(document.activeElement)) {
+            receiver.useIMEKeyboard = true;
             if (compositionEvent) {
               compositionInputState = -1;
+              setTimeout(function () {
+                compositionInputState = 0;
+              }, 0);
             }
-            if (!(isInputComponent(document.activeElement) || receiver.isIME)) {
-              console.debug('compositionStart');
-              receiver.selection.prepNode('', compositionEvent, false, true);
-              receiver.isIME = 1;
-            }
-          },
-          'name',
-          { value: 'p', configurable: true },
-        ),
-        restoreEditableSnapshot = Object.defineProperty(
-          function () {
-            if (editableSnapshot && true !== editableSnapshot) {
-              if (editableSnapshot[1]) {
-                editableSnapshot[0].attr('contenteditable', editableSnapshot[1]);
-                if (editableSnapshot[2]) {
-                  editableSnapshot[2].attr('contenteditable', editableSnapshot[3]);
-                }
-              } else {
-                editableSnapshot[0].removeAttr('contenteditable');
-                if (editableSnapshot[2]) {
-                  editableSnapshot[2].removeAttr('contenteditable');
-                }
-              }
-              if (editableSnapshot[4]) {
-                receiver.selection.setRange(editableSnapshot[4]);
+            console.debug('compositionEnd');
+            var range,
+              currentElement,
+              compositionNode,
+              element = receiver.getMarkElem();
+            if (!element.length) {
+              range = receiver.selection.getRangy();
+              currentElement = $(range.startContainer).closest('[cid]');
+              if ((compositionNode = receiver.findNodeByElem(currentElement))) {
+                currentElement.replaceWith(compositionNode.toHTML());
               }
             }
-            editableSnapshot = false;
-            if (localTimerId) {
-              clearTimeout(localTimerId);
+            receiver.focusCid = element.attr('cid');
+            receiver.brush.addToQueue(receiver.focusCid);
+            receiver.isIME = 0;
+            setTimeout(function () {
+              receiver.brush.brushQueue();
+            }, 10);
+            receiver.undo.addSnap(receiver.focusCid, SnapFlag.ADD);
+          }
+        },
+        handleCompositionStart = function (compositionEvent) {
+          if (compositionEvent) {
+            compositionInputState = -1;
+          }
+          if (!(isInputComponent(document.activeElement) || receiver.isIME)) {
+            console.debug('compositionStart');
+            receiver.selection.prepNode('', compositionEvent, false, true);
+            receiver.isIME = 1;
+          }
+        },
+        restoreEditableSnapshot = function () {
+          if (editableSnapshot && true !== editableSnapshot) {
+            if (editableSnapshot[1]) {
+              editableSnapshot[0].attr('contenteditable', editableSnapshot[1]);
+              if (editableSnapshot[2]) {
+                editableSnapshot[2].attr('contenteditable', editableSnapshot[3]);
+              }
+            } else {
+              editableSnapshot[0].removeAttr('contenteditable');
+              if (editableSnapshot[2]) {
+                editableSnapshot[2].removeAttr('contenteditable');
+              }
             }
-            localTimerId = null;
-          },
-          'name',
-          { value: 'f', configurable: true },
-        );
+            if (editableSnapshot[4]) {
+              receiver.selection.setRange(editableSnapshot[4]);
+            }
+          }
+          editableSnapshot = false;
+          if (localTimerId) {
+            clearTimeout(localTimerId);
+          }
+          localTimerId = null;
+        };
       function lockEditableNode(element) {
         if (localTimerId) {
           clearTimeout(localTimerId);
@@ -1923,8 +1896,6 @@ export default function initializeEditorController($__require, exports, module) 
         .on('compositionstart', handleCompositionStart)
         .on('compositionupdate', function () {})
         .on('beforeinput', function (event) {
-          Object.defineProperty(replaceTargetRangeText, 'name', { value: 'h', configurable: true });
-
           editableSnapshot = false;
           shortCompositionRange = false;
           receiver.lastKeydownEvent = null;
@@ -2135,8 +2106,6 @@ export default function initializeEditorController($__require, exports, module) 
           }
         })
         .on('input', function (inputEvent) {
-          Object.defineProperty(syncNodeHtml, 'name', { value: 'm', configurable: true });
-
           receiver.lastKeydownEvent = null;
           if (isInputComponent(inputEvent.target)) {
             restoreEditableSnapshot();
@@ -2406,9 +2375,6 @@ export default function initializeEditorController($__require, exports, module) 
       }
     }
     tryOpenUrl(inputText, forceWebUrl) {
-      Object.defineProperty(openLocalFileLink, 'name', { value: 's', configurable: true });
-      Object.defineProperty(openExternalLink, 'name', { value: 'l', configurable: true });
-
       var originalUrl = (inputText = inputText.trim().replace(/(^<)|(>$)/g, ''));
       inputText = StringUtils.decodeFromEscapedPath(inputText);
       const supportDomain = File.option.useMirrorInCN ? 'marklyraio.cn' : 'marklyra.io';
@@ -2513,11 +2479,6 @@ export default function initializeEditorController($__require, exports, module) 
                 } else {
                   if (
                     !(function (callbackText) {
-                      Object.defineProperty(createLinkedFileOrDirectory, 'name', {
-                        value: 'o',
-                        configurable: true,
-                      });
-
                       var currentText,
                         currentSearchValue,
                         text = callbackText;
@@ -3015,8 +2976,6 @@ export default function initializeEditorController($__require, exports, module) 
           receiver.brush.expand(void 0, void 0, true, true);
         })
         .on('mouseup', function (pointerEvent) {
-          Object.defineProperty(refocusTargetNode, 'name', { value: 'm', configurable: true });
-
           receiver.isMousePressed = false;
           receiver.isIME = false;
           if (
@@ -3110,21 +3069,14 @@ export default function initializeEditorController($__require, exports, module) 
                   }
                 } else {
                   if (clicks < 2) {
-                    clickTimer = setTimeout(
-                      Object.defineProperty(
-                        function waitForPointerRelease() {
-                          if (receiver.isMousePressed) {
-                            clickTimer = setTimeout(waitForPointerRelease, DBCLICK_DELAY);
-                          } else {
-                            clicks = 0;
-                            refocusTargetNode();
-                          }
-                        },
-                        'name',
-                        { value: 't', configurable: true },
-                      ),
-                      DBCLICK_DELAY,
-                    );
+                    clickTimer = setTimeout(function waitForPointerRelease() {
+                      if (receiver.isMousePressed) {
+                        clickTimer = setTimeout(waitForPointerRelease, DBCLICK_DELAY);
+                      } else {
+                        clicks = 0;
+                        refocusTargetNode();
+                      }
+                    }, DBCLICK_DELAY);
                     clicks++;
                   } else {
                     clicks = 0;
@@ -3249,16 +3201,12 @@ export default function initializeEditorController($__require, exports, module) 
           }
         });
       var currentTarget,
-        scheduleFocusModeExit = Object.defineProperty(
-          function () {
-            if (exitFocusModeTimer) {
-              clearTimeout(exitFocusModeTimer);
-            }
-            exitFocusModeTimer = setTimeout(exitFocusMode.bind(receiver), 100);
-          },
-          'name',
-          { value: 'o', configurable: true },
-        ),
+        scheduleFocusModeExit = function () {
+          if (exitFocusModeTimer) {
+            clearTimeout(exitFocusModeTimer);
+          }
+          exitFocusModeTimer = setTimeout(exitFocusMode.bind(receiver), 100);
+        },
         scrollContainer = document.querySelector('content');
       scrollContainer.addEventListener(
         'wheel',
@@ -3350,8 +3298,6 @@ export default function initializeEditorController($__require, exports, module) 
       return false;
     }
     forceClick(pointerEvent) {
-      Object.defineProperty(moveCursorToElementEdge, 'name', { value: 't', configurable: true });
-
       function moveCursorToElementEdge(targetElement, moveToEnd) {
         if (moveToEnd) {
           receiver.selection.jumpIntoElemEnd(targetElement);
@@ -3639,8 +3585,6 @@ export default function initializeEditorController($__require, exports, module) 
       }
     }
     syncChange(changes) {
-      Object.defineProperty(filterFenceSnapshots, 'name', { value: 't', configurable: true });
-
       function filterFenceSnapshots(items, editorInstance) {
         return items.map(function (item) {
           if (item) {

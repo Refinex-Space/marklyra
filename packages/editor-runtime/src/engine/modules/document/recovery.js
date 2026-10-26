@@ -1,9 +1,6 @@
 // document/recovery.
 export default function initializeDocumentRecovery(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(watchFileByPolling, 'name', { value: 'u', configurable: true });
-  Object.defineProperty(handleWatchedFileChange, 'name', { value: 'h', configurable: true });
-  Object.defineProperty(watchFile, 'name', { value: 'p', configurable: true });
 
   if (!this) {
     self;
@@ -15,20 +12,16 @@ export default function initializeDocumentRecovery(requireModule, moduleExports,
     dialogs = requireModule('ui/dialogs'),
     fileWatcher = null,
     polledPath = null,
-    createRecoveryFileName = Object.defineProperty(
-      function (documentName) {
-        var dateInstance = new Date();
-        return (recoveryFileName =
-          utilities.formateDateOnly(new Date()) +
-          ' ' +
-          (documentName || 'untitled').replace(/\.[^.]*$/, '') +
-          ' ' +
-          utilities.formateTimeOnly(dateInstance, true).replace(/:/g, '') +
-          '.md');
-      },
-      'name',
-      { value: 'd', configurable: true },
-    );
+    createRecoveryFileName = function (documentName) {
+      var dateInstance = new Date();
+      return (recoveryFileName =
+        utilities.formateDateOnly(new Date()) +
+        ' ' +
+        (documentName || 'untitled').replace(/\.[^.]*$/, '') +
+        ' ' +
+        utilities.formateTimeOnly(dateInstance, true).replace(/:/g, '') +
+        '.md');
+    };
   function watchFileByPolling(filePath) {
     var currentTimerId;
     try {
@@ -160,370 +153,327 @@ export default function initializeDocumentRecovery(requireModule, moduleExports,
       }
     }
   }
-  var switchDeletedFileToUntitled = Object.defineProperty(
-    function () {
-      JSBridge.invoke('document.switchToUntitled', File.bundle.filePath);
-      Reporter.record('current file is moved/deleted');
-    },
-    'name',
-    { value: 'f', configurable: true },
-  );
+  var switchDeletedFileToUntitled = function () {
+    JSBridge.invoke('document.switchToUntitled', File.bundle.filePath);
+    Reporter.record('current file is moved/deleted');
+  };
   window.clientHandlerOnPresentationMoved = function () {
     if (File.isNode && File.isActiveWindow()) {
       File.updateChangeCount(File.ChangeType.NSChangeReadOtherContents);
     }
     handleFilePathRemoved();
   };
-  var reportRecoveryError = Object.defineProperty(
-      function (recoveryError) {
-        if (recoveryError && window.debugMode) {
-          console.warn(recoveryError);
+  var reportRecoveryError = function (recoveryError) {
+      if (recoveryError && window.debugMode) {
+        console.warn(recoveryError);
+      }
+    },
+    renameRecoveryDraft = async function (documentName, bundleDirectoryName) {
+      if (recoveryFileName && documentName) {
+        var recoveryDirectory = await getRecoveryDirectory(true);
+        if (bundleDirectoryName) {
+          recoveryDirectory = recoveryDirectory + (File.isWin ? '\\' : '/') + bundleDirectoryName;
         }
-      },
-      'name',
-      { value: 'm', configurable: true },
-    ),
-    renameRecoveryDraft = Object.defineProperty(
-      async function (documentName, bundleDirectoryName) {
-        if (recoveryFileName && documentName) {
-          var recoveryDirectory = await getRecoveryDirectory(true);
+        try {
+          var fileSystem = reqnode('fs'),
+            pathUtilities = reqnode('path'),
+            pathSeparator = File.isWin ? '\\' : '/',
+            previousRecoveryPath = pathUtilities.resolve(recoveryDirectory, recoveryFileName);
           if (bundleDirectoryName) {
-            recoveryDirectory = recoveryDirectory + (File.isWin ? '\\' : '/') + bundleDirectoryName;
+            File.draftsRecoverList.push(recoveryDirectory + pathSeparator + recoveryFileName);
+            return void pruneRecoveryDrafts();
           }
-          try {
-            var fileSystem = reqnode('fs'),
-              pathUtilities = reqnode('path'),
-              pathSeparator = File.isWin ? '\\' : '/',
-              previousRecoveryPath = pathUtilities.resolve(recoveryDirectory, recoveryFileName);
-            if (bundleDirectoryName) {
-              File.draftsRecoverList.push(recoveryDirectory + pathSeparator + recoveryFileName);
-              return void pruneRecoveryDrafts();
+          fileSystem.stat(previousRecoveryPath, function (inputError, unusedParameter2) {
+            if (!inputError) {
+              var renamedRecoveryPath = pathUtilities.resolve(
+                recoveryDirectory,
+                createRecoveryFileName(documentName),
+              );
+              fileSystem.rename(previousRecoveryPath, renamedRecoveryPath, reportRecoveryError);
+              File.draftsRecoverList.push(renamedRecoveryPath);
+              pruneRecoveryDrafts();
             }
-            fileSystem.stat(previousRecoveryPath, function (inputError, unusedParameter2) {
-              if (!inputError) {
-                var renamedRecoveryPath = pathUtilities.resolve(
-                  recoveryDirectory,
-                  createRecoveryFileName(documentName),
-                );
-                fileSystem.rename(previousRecoveryPath, renamedRecoveryPath, reportRecoveryError);
-                File.draftsRecoverList.push(renamedRecoveryPath);
-                pruneRecoveryDrafts();
-              }
-            });
-          } catch (error) {
-            console.sendError(error);
-          }
+          });
+        } catch (error) {
+          console.sendError(error);
         }
-      },
-      'name',
-      { value: 'g', configurable: true },
-    ),
-    pruneRecoveryDrafts = Object.defineProperty(
-      function () {
-        if (File.draftsRecoverList.length < (File.isTextBundle() ? 6 : 10)) {
-          return;
-        }
-        const retentionInterval = File.draftsRecoverList.length > 20 ? 1e3 : 500;
-        for (
-          var currentItems = [],
-            localItems = [File.draftsRecoverList[0]],
-            timestampPattern = /(\d+)\.md$/,
-            previousTimestamp = timestampPattern.exec(File.draftsRecoverList[0])[1] - 0,
-            currentItemIndex = 2;
-          currentItemIndex < File.draftsRecoverList.length;
-          currentItemIndex++
+      }
+    },
+    pruneRecoveryDrafts = function () {
+      if (File.draftsRecoverList.length < (File.isTextBundle() ? 6 : 10)) {
+        return;
+      }
+      const retentionInterval = File.draftsRecoverList.length > 20 ? 1e3 : 500;
+      for (
+        var currentItems = [],
+          localItems = [File.draftsRecoverList[0]],
+          timestampPattern = /(\d+)\.md$/,
+          previousTimestamp = timestampPattern.exec(File.draftsRecoverList[0])[1] - 0,
+          currentItemIndex = 2;
+        currentItemIndex < File.draftsRecoverList.length;
+        currentItemIndex++
+      ) {
+        var backupPath = File.draftsRecoverList[currentItemIndex],
+          backupTimestamp = timestampPattern.exec(File.draftsRecoverList[currentItemIndex])[1] - 0;
+        if (
+          backupTimestamp - previousTimestamp > 0 &&
+          backupTimestamp - previousTimestamp < retentionInterval
         ) {
-          var backupPath = File.draftsRecoverList[currentItemIndex],
-            backupTimestamp =
-              timestampPattern.exec(File.draftsRecoverList[currentItemIndex])[1] - 0;
-          if (
-            backupTimestamp - previousTimestamp > 0 &&
-            backupTimestamp - previousTimestamp < retentionInterval
-          ) {
-            currentItems.push(backupPath);
+          currentItems.push(backupPath);
+        } else {
+          localItems.push(backupPath);
+          previousTimestamp = backupTimestamp;
+        }
+      }
+      var items = localItems;
+      if (localItems.length > 40) {
+        items = [];
+        localItems.forEach((item, itemIndex) => {
+          if (itemIndex % 2 == 0 || itemIndex == localItems.length - 1) {
+            items.push(item);
           } else {
-            localItems.push(backupPath);
-            previousTimestamp = backupTimestamp;
+            currentItems.push(item);
           }
-        }
-        var items = localItems;
-        if (localItems.length > 40) {
-          items = [];
-          localItems.forEach((item, itemIndex) => {
-            if (itemIndex % 2 == 0 || itemIndex == localItems.length - 1) {
-              items.push(item);
-            } else {
-              currentItems.push(item);
-            }
-          });
-        }
-        File.draftsRecoverList = items;
-        var fileSystem = reqnode('fs');
-        currentItems.forEach((item) => {
-          fileSystem.unlink(item, (unlinkError) => {
-            if (unlinkError) {
-              console.debug(unlinkError);
-            }
-          });
         });
-      },
-      'name',
-      { value: 'v', configurable: true },
-    ),
-    handleFilePathRemoved = Object.defineProperty(
-      function (unusedParameter1) {
-        console.log('onFilePathRemoved');
-        if (File.bundle.filePath) {
-          File.bundle.originalPath = File.bundle.filePath;
-          File.bundle.filePath = '';
-          updateRecoveryFileIdentity(File.bundle.fileName);
-        }
-      },
-      'name',
-      { value: 'y', configurable: true },
-    ),
-    updateRecoveryFileIdentity = Object.defineProperty(
-      function (fileName, previousFilePath, previousImageStorage) {
-        var filePath = File.bundle.filePath;
-        /bundle\//.exec(filePath);
-        fileName =
-          fileName || fileIntegration.getFileNameFromPath(filePath || File.bundle.originalPath);
-        File.bundle.fileName = fileName;
-        var menuPatch = {
-          'File→Open File Location': { enabled: !!filePath },
-          'File→Reveal in Sidebar': { enabled: !!filePath },
-          'File→Delete…': { enabled: !!filePath },
-        };
-        if (File.isNode && !File.isMacNode) {
-          menuPatch['File→Reopen with Encoding'] = { hidden: !filePath };
-        }
-        if (File.isWin) {
-          menuPatch['File→Properties'] = { enabled: !!filePath };
-        } else {
-          if (File.isMac) {
-            menuPatch['File→Get Info'] = { enabled: !!filePath };
+      }
+      File.draftsRecoverList = items;
+      var fileSystem = reqnode('fs');
+      currentItems.forEach((item) => {
+        fileSystem.unlink(item, (unlinkError) => {
+          if (unlinkError) {
+            console.debug(unlinkError);
           }
+        });
+      });
+    },
+    handleFilePathRemoved = function (unusedParameter1) {
+      console.log('onFilePathRemoved');
+      if (File.bundle.filePath) {
+        File.bundle.originalPath = File.bundle.filePath;
+        File.bundle.filePath = '';
+        updateRecoveryFileIdentity(File.bundle.fileName);
+      }
+    },
+    updateRecoveryFileIdentity = function (fileName, previousFilePath, previousImageStorage) {
+      var filePath = File.bundle.filePath;
+      /bundle\//.exec(filePath);
+      fileName =
+        fileName || fileIntegration.getFileNameFromPath(filePath || File.bundle.originalPath);
+      File.bundle.fileName = fileName;
+      var menuPatch = {
+        'File→Open File Location': { enabled: !!filePath },
+        'File→Reveal in Sidebar': { enabled: !!filePath },
+        'File→Delete…': { enabled: !!filePath },
+      };
+      if (File.isNode && !File.isMacNode) {
+        menuPatch['File→Reopen with Encoding'] = { hidden: !filePath };
+      }
+      if (File.isWin) {
+        menuPatch['File→Properties'] = { enabled: !!filePath };
+      } else {
+        if (File.isMac) {
+          menuPatch['File→Get Info'] = { enabled: !!filePath };
         }
-        JSBridge.menu.update(menuPatch);
-        console.log(`onFilePathUpdated ${filePath}`);
-        window.Reporter.record(`File.bundle.filePath = ${utilities.hashCode(filePath)}`);
-        File.bundle.assetsChanges = null;
-        const imageEditor = File.editor && File.editor.imgEdit,
-          fileLibrary = File.editor && File.editor.library;
-        if (imageEditor) {
-          imageEditor.cachedFileImageStorage = void 0;
-        }
-        File.setDefaultImageStorage(File.option.defaultImageStorage);
-        File.onMetaDataChanged();
-        if (fileLibrary) {
-          File.editor.library.markCurrentFile();
-        }
-        if (previousFilePath) {
-          (function (previousFilePath, previousImageStorage) {
-            if (!File.isTextBundle()) {
-              File.editor.imgEdit.onFileMoved(previousFilePath, previousImageStorage);
-            }
-          })(previousFilePath, previousImageStorage);
-        }
-        if (File.isNode) {
-          if (previousFilePath && File.isTextBundle()) {
-            (async function (previousFilePath) {
-              var pathSeparator = File.isWin ? '\\' : '/',
-                recoveryRoot = getRecoveryDirectory(true),
-                previousBundleName = getRecoveryBundleName(previousFilePath),
-                currentBundleName = getRecoveryBundleName();
-              try {
-                await reqnode('fs-extra').move(
-                  recoveryRoot + pathSeparator + previousBundleName,
-                  recoveryRoot + pathSeparator + currentBundleName,
-                );
-              } catch (error) {
-                console.info(error);
-              }
-            })(previousFilePath || '');
+      }
+      JSBridge.menu.update(menuPatch);
+      console.log(`onFilePathUpdated ${filePath}`);
+      window.Reporter.record(`File.bundle.filePath = ${utilities.hashCode(filePath)}`);
+      File.bundle.assetsChanges = null;
+      const imageEditor = File.editor && File.editor.imgEdit,
+        fileLibrary = File.editor && File.editor.library;
+      if (imageEditor) {
+        imageEditor.cachedFileImageStorage = void 0;
+      }
+      File.setDefaultImageStorage(File.option.defaultImageStorage);
+      File.onMetaDataChanged();
+      if (fileLibrary) {
+        File.editor.library.markCurrentFile();
+      }
+      if (previousFilePath) {
+        (function (previousFilePath, previousImageStorage) {
+          if (!File.isTextBundle()) {
+            File.editor.imgEdit.onFileMoved(previousFilePath, previousImageStorage);
           }
-          var titleElement = $('#title-text');
-          if (filePath) {
-            JSBridge.invoke('document.hasDuplicateName', fileName).then((result) => {
-              if (result) {
-                titleElement.text(filePath);
-                JSBridge.invoke('window.setTitle', filePath + ' - MarkLyra');
-              } else {
-                titleElement.text(fileName);
-                JSBridge.invoke('window.setTitle', fileName + ' - MarkLyra');
-              }
-              fileIntegration.refreshTitlebarText();
-            });
-            renameRecoveryDraft(fileName);
-            if (File.editor.library) {
-              File.editor.library.markCurrentFile();
-              var outsideMountFolder = !File.mountFolder_;
-              if (!outsideMountFolder) {
-                const normalize = reqnode('path').normalize;
-                outsideMountFolder =
-                  -1 ==
-                  normalize(filePath).indexOf(
-                    normalize(File.mountFolder_.replace(/[\/\\]$/, '') + (File.isWin ? '\\' : '/')),
-                  );
-              }
-              if (outsideMountFolder) {
-                File.setMountFolder(reqnode('path').dirname(filePath));
-                File.editor.library.onRootChanged(File.mountFolder_, true);
-              }
-            }
-          } else {
-            if (fileName) {
-              titleElement.text(fileName);
-              JSBridge.invoke('window.setTitle', fileName + '• - MarkLyra');
-            } else {
-              titleElement.text($.localize.getString('Untitled'));
-              JSBridge.invoke(
-                'window.setTitle',
-                $.localize.getString('Untitled') +
-                  (File.changeCounter && !File.changeCounter.curState
-                    ? '• - MarkLyra'
-                    : ' - MarkLyra'),
-              );
-            }
-          }
-          watchFile(File.getTextFile() || null);
-          if (/draftsRecover/.exec(File.bundle.filePath || '')) {
-            (function () {
-              const pathUtilities = reqnode('path'),
-                recoveryRoot = pathUtilities.join(File.option.userDataPath, 'draftsRecover');
-              if (
-                0 ==
-                pathUtilities
-                  .normalize(File.bundle.filePath)
-                  .indexOf(recoveryRoot + pathUtilities.sep)
-              ) {
-                dialogs.showHintOrWarning({
-                  key: '',
-                  title:
-                    '<strong>' +
-                    $.localize.getString(
-                      'You are not supposed to edit or save this file.',
-                      'Front',
-                    ) +
-                    '</strong>',
-                  body: $.localize
-                    .getString(
-                      'Files in this location (%@) are managed by MarkLyra, and may be deleted automatically.<br/>Please copy content to a new file for further editing.',
-                      'Front',
-                    )
-                    .replace('%@', 'draftsRecover'),
-                });
-              }
-            })();
-          }
-        }
-      },
-      'name',
-      { value: 'b', configurable: true },
-    );
-  var getRecoveryBundleName = Object.defineProperty(
-      function (pathOverride) {
-        if (!File.isTextBundle() && !File.isTextPack()) {
-          return null;
-        }
-        if (File.bundle.unzipFolder) {
-          return utilities.getFileName(File.bundle.unzipFolder);
-        }
-        var documentPath =
-            void 0 !== pathOverride
-              ? pathOverride
-              : File.bundle.filePath || File.bundle.originalPath,
-          pathHash = documentPath
-            ? (function (text) {
-                let hashValue = 0;
-                for (
-                  let characterIndex = 0, textLength = text.length;
-                  characterIndex < textLength;
-                  characterIndex++
-                ) {
-                  hashValue = (hashValue << 5) - hashValue + text.charCodeAt(characterIndex);
-                  hashValue |= 0;
-                }
-                return hashValue;
-              })(documentPath)
-            : File.bundle.untitledId;
-        documentPath =
-          documentPath + (File.isWin ? '\\' : '/') + (File.bundle.bundleFile || 'untitled');
-        return (
-          (fileIntegration.getFileNameFromPath(documentPath) || 'untitled').replace(
-            /\.textbundle$/,
-            '',
-          ) +
-          '-' +
-          pathHash
-        );
-      },
-      'name',
-      { value: 'w', configurable: true },
-    ),
-    saveRecoveryContent = Object.defineProperty(
-      async function (markdownText, assetCopyMode) {
-        var filePath = File.isWin ? '\\' : '/',
-          bundleDirectoryName = getRecoveryBundleName(),
-          searchValue = await getRecoveryDirectory(true);
-        if (0 != (File.bundle.filePath || '').indexOf(searchValue)) {
-          var bundleRecoveryPath = searchValue + filePath + bundleDirectoryName,
-            fileSystemExtra = reqnode('fs-extra');
-          await fileSystemExtra.ensureDir(bundleRecoveryPath);
-          createRecoveryFileName('text');
-          try {
-            await fileSystemExtra.writeFile(
-              bundleRecoveryPath + filePath + recoveryFileName,
-              markdownText,
-            );
-            renameRecoveryDraft(recoveryFileName, bundleDirectoryName);
-          } catch (error) {
-            console.sendError(error, 'skip');
-          }
-          if ('skip' !== assetCopyMode) {
+        })(previousFilePath, previousImageStorage);
+      }
+      if (File.isNode) {
+        if (previousFilePath && File.isTextBundle()) {
+          (async function (previousFilePath) {
+            var pathSeparator = File.isWin ? '\\' : '/',
+              recoveryRoot = getRecoveryDirectory(true),
+              previousBundleName = getRecoveryBundleName(previousFilePath),
+              currentBundleName = getRecoveryBundleName();
             try {
-              await fileSystemExtra.copy(
-                File.bundle.filePath + filePath + 'assets',
-                bundleRecoveryPath + filePath + 'assets',
-                {
-                  overwrite: 'overwrite' === assetCopyMode,
-                },
+              await reqnode('fs-extra').move(
+                recoveryRoot + pathSeparator + previousBundleName,
+                recoveryRoot + pathSeparator + currentBundleName,
               );
-            } catch (currentError) {
-              if ('ENOENT' == !currentError.code) {
-                console.sendError(currentError, 'skip');
+            } catch (error) {
+              console.info(error);
+            }
+          })(previousFilePath || '');
+        }
+        var titleElement = $('#title-text');
+        if (filePath) {
+          JSBridge.invoke('document.hasDuplicateName', fileName).then((result) => {
+            if (result) {
+              titleElement.text(filePath);
+              JSBridge.invoke('window.setTitle', filePath + ' - MarkLyra');
+            } else {
+              titleElement.text(fileName);
+              JSBridge.invoke('window.setTitle', fileName + ' - MarkLyra');
+            }
+            fileIntegration.refreshTitlebarText();
+          });
+          renameRecoveryDraft(fileName);
+          if (File.editor.library) {
+            File.editor.library.markCurrentFile();
+            var outsideMountFolder = !File.mountFolder_;
+            if (!outsideMountFolder) {
+              const normalize = reqnode('path').normalize;
+              outsideMountFolder =
+                -1 ==
+                normalize(filePath).indexOf(
+                  normalize(File.mountFolder_.replace(/[\/\\]$/, '') + (File.isWin ? '\\' : '/')),
+                );
+            }
+            if (outsideMountFolder) {
+              File.setMountFolder(reqnode('path').dirname(filePath));
+              File.editor.library.onRootChanged(File.mountFolder_, true);
+            }
+          }
+        } else {
+          if (fileName) {
+            titleElement.text(fileName);
+            JSBridge.invoke('window.setTitle', fileName + '• - MarkLyra');
+          } else {
+            titleElement.text($.localize.getString('Untitled'));
+            JSBridge.invoke(
+              'window.setTitle',
+              $.localize.getString('Untitled') +
+                (File.changeCounter && !File.changeCounter.curState
+                  ? '• - MarkLyra'
+                  : ' - MarkLyra'),
+            );
+          }
+        }
+        watchFile(File.getTextFile() || null);
+        if (/draftsRecover/.exec(File.bundle.filePath || '')) {
+          (function () {
+            const pathUtilities = reqnode('path'),
+              recoveryRoot = pathUtilities.join(File.option.userDataPath, 'draftsRecover');
+            if (
+              0 ==
+              pathUtilities
+                .normalize(File.bundle.filePath)
+                .indexOf(recoveryRoot + pathUtilities.sep)
+            ) {
+              dialogs.showHintOrWarning({
+                key: '',
+                title:
+                  '<strong>' +
+                  $.localize.getString('You are not supposed to edit or save this file.', 'Front') +
+                  '</strong>',
+                body: $.localize
+                  .getString(
+                    'Files in this location (%@) are managed by MarkLyra, and may be deleted automatically.<br/>Please copy content to a new file for further editing.',
+                    'Front',
+                  )
+                  .replace('%@', 'draftsRecover'),
+              });
+            }
+          })();
+        }
+      }
+    };
+  var getRecoveryBundleName = function (pathOverride) {
+      if (!File.isTextBundle() && !File.isTextPack()) {
+        return null;
+      }
+      if (File.bundle.unzipFolder) {
+        return utilities.getFileName(File.bundle.unzipFolder);
+      }
+      var documentPath =
+          void 0 !== pathOverride ? pathOverride : File.bundle.filePath || File.bundle.originalPath,
+        pathHash = documentPath
+          ? (function (text) {
+              let hashValue = 0;
+              for (
+                let characterIndex = 0, textLength = text.length;
+                characterIndex < textLength;
+                characterIndex++
+              ) {
+                hashValue = (hashValue << 5) - hashValue + text.charCodeAt(characterIndex);
+                hashValue |= 0;
               }
+              return hashValue;
+            })(documentPath)
+          : File.bundle.untitledId;
+      documentPath =
+        documentPath + (File.isWin ? '\\' : '/') + (File.bundle.bundleFile || 'untitled');
+      return (
+        (fileIntegration.getFileNameFromPath(documentPath) || 'untitled').replace(
+          /\.textbundle$/,
+          '',
+        ) +
+        '-' +
+        pathHash
+      );
+    },
+    saveRecoveryContent = async function (markdownText, assetCopyMode) {
+      var filePath = File.isWin ? '\\' : '/',
+        bundleDirectoryName = getRecoveryBundleName(),
+        searchValue = await getRecoveryDirectory(true);
+      if (0 != (File.bundle.filePath || '').indexOf(searchValue)) {
+        var bundleRecoveryPath = searchValue + filePath + bundleDirectoryName,
+          fileSystemExtra = reqnode('fs-extra');
+        await fileSystemExtra.ensureDir(bundleRecoveryPath);
+        createRecoveryFileName('text');
+        try {
+          await fileSystemExtra.writeFile(
+            bundleRecoveryPath + filePath + recoveryFileName,
+            markdownText,
+          );
+          renameRecoveryDraft(recoveryFileName, bundleDirectoryName);
+        } catch (error) {
+          console.sendError(error, 'skip');
+        }
+        if ('skip' !== assetCopyMode) {
+          try {
+            await fileSystemExtra.copy(
+              File.bundle.filePath + filePath + 'assets',
+              bundleRecoveryPath + filePath + 'assets',
+              {
+                overwrite: 'overwrite' === assetCopyMode,
+              },
+            );
+          } catch (currentError) {
+            if ('ENOENT' == !currentError.code) {
+              console.sendError(currentError, 'skip');
             }
           }
         }
-      },
-      'name',
-      { value: 'x', configurable: true },
-    ),
-    getRecoveryDirectory = Object.defineProperty(
-      function (pathOnly) {
-        var recoveryRoot =
-          window._options.userDataPath + (File.isWin ? '\\' : '/') + 'draftsRecover';
-        if (pathOnly) {
-          return recoveryRoot;
-        } else {
-          return new Promise((resolvePromise) => {
-            reqnode('fs-extra')
-              .ensureDir(recoveryRoot)
-              .then(
-                () => {
-                  resolvePromise(recoveryRoot);
-                },
-                () => {
-                  resolvePromise('');
-                },
-              );
-          });
-        }
-      },
-      'name',
-      { value: 'C', configurable: true },
-    );
+      }
+    },
+    getRecoveryDirectory = function (pathOnly) {
+      var recoveryRoot = window._options.userDataPath + (File.isWin ? '\\' : '/') + 'draftsRecover';
+      if (pathOnly) {
+        return recoveryRoot;
+      } else {
+        return new Promise((resolvePromise) => {
+          reqnode('fs-extra')
+            .ensureDir(recoveryRoot)
+            .then(
+              () => {
+                resolvePromise(recoveryRoot);
+              },
+              () => {
+                resolvePromise('');
+              },
+            );
+        });
+      }
+    };
   moduleExports.textBundleDraftFolder = async function () {
     if (File.bundle.unzipFolder) {
       return File.bundle.unzipFolder;
@@ -635,8 +585,6 @@ export default function initializeDocumentRecovery(requireModule, moduleExports,
     }
   };
   moduleExports.prepareInfoPanel = function () {
-    Object.defineProperty(switchInfoPanelTab, 'name', { value: 'e', configurable: true });
-
     function switchInfoPanelTab(tabName) {
       $('.info-panel-tab.active').removeClass('active');
       if ('file' == tabName) {

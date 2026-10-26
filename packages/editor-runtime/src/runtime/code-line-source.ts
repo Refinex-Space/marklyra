@@ -19,7 +19,7 @@ function patched(source: string, patches: readonly Patch[]): string {
 }
 
 /** A receipt-backed top-level fence proof. No search for a repeated body and no
- * full-block replacement: only the original CM's authorized whole-line ranges. */
+ * full-block replacement: only the CM's authorized whole-line ranges. */
 export function captureCodeLineCut(
   editor: LegacyEditor,
   canonical: string,

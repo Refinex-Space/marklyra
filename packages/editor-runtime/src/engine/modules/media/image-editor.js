@@ -1,22 +1,6 @@
 // media/image-editor.
 export default function initializeMediaImageEditor(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(isAbsoluteImagePath, 'name', { value: 'S', configurable: true });
-  Object.defineProperty(rememberMovedImageDimensions, 'name', { value: 'k', configurable: true });
-  Object.defineProperty(replaceMarkdownImageSource, 'name', { value: 'E', configurable: true });
-  Object.defineProperty(replaceHtmlImageSource, 'name', { value: 'T', configurable: true });
-  Object.defineProperty(clearImageTransferState, 'name', { value: '_', configurable: true });
-  Object.defineProperty(finishImageTransfer, 'name', { value: 'A', configurable: true });
-  Object.defineProperty(createUniqueImagePath, 'name', { value: 'M', configurable: true });
-  Object.defineProperty(backupMediaFile, 'name', { value: 'L', configurable: true });
-  Object.defineProperty(copyImageToFolder, 'name', { value: 'N', configurable: true });
-  Object.defineProperty(parseUploaderOutput, 'name', { value: 'D', configurable: true });
-  Object.defineProperty(uploadImageElements, 'name', { value: 'R', configurable: true });
-  Object.defineProperty(runImageUploader, 'name', { value: 'B', configurable: true });
-  Object.defineProperty(replaceImageSources, 'name', { value: 'P', configurable: true });
-  Object.defineProperty(recordMediaMoveHistory, 'name', { value: 'I', configurable: true });
-  Object.defineProperty(moveImageElements, 'name', { value: 'O', configurable: true });
-  Object.defineProperty(isLocalImageSource, 'name', { value: '$', configurable: true });
 
   var uploaderCommands,
     hostGlobal = this || self,
@@ -187,12 +171,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
               targetFolder = File.editor.imgEdit.getRealTargetImageStorageFolder(targetFolder);
             }
             return new Promise(function (resolvePromise, rejectPromise) {
-              Object.defineProperty(copyImageResource, 'name', { value: 's', configurable: true });
-              Object.defineProperty(copyToAvailablePath, 'name', {
-                value: 'l',
-                configurable: true,
-              });
-
               var fileSystem = reqnode('fs-extra'),
                 destinationPath = null;
               function copyImageResource(text, destinationPath, overwrite) {
@@ -206,11 +184,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
                       );
                     JSBridge.invoke('app.download', sourceUrl, directoryPath, fileName).then(
                       ({ path: downloadedPath, state: downloadState, type: currentText }) => {
-                        Object.defineProperty(applyDownloadedExtension, 'name', {
-                          value: 'c',
-                          configurable: true,
-                        });
-
                         var fileSystem = reqnode('fs'),
                           imageExtension = '';
                         function applyDownloadedExtension() {
@@ -482,62 +455,58 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
               piclistAppPath = File.option.piclistAppPath;
             if ('picgo-app' !== uploaderType || picgoAppPath) {
               if ('piclist-app' !== uploaderType || piclistAppPath) {
-                return Object.defineProperty(
-                  function postUploadRequest(retried) {
-                    return window
-                      .fetch('http://127.0.0.1:36677/upload', {
-                        method: 'POST',
-                        body: JSON.stringify({ list: list }),
-                      })
-                      .then(
-                        function (result) {
-                          if (200 === result.status) {
-                            return result
-                              .json()
-                              .then((inputResult) =>
-                                inputResult.success
-                                  ? (console.sendLog(
-                                      '[Upload Result] ' + JSON.stringify(inputResult.result),
-                                    ),
-                                    inputResult.result)
-                                  : Promise.reject(JSON.stringify(inputResult)),
-                              );
-                          } else {
-                            return Promise.reject(result.text());
-                          }
-                        },
-                        function (result) {
-                          if (retried) {
-                            return Promise.reject(result.message || 'failed');
-                          } else {
-                            return new Promise(function (resolvePromise, rejectPromise) {
-                              var currentTimerId = setTimeout(() => {
-                                currentTimerId = null;
-                                postUploadRequest(true).then(resolvePromise, rejectPromise);
-                              }, 5e3);
-                              window
-                                .reqnode('child_process')
-                                .exec(
-                                  JSON.stringify(
-                                    'piclist-app' === uploaderType ? piclistAppPath : picgoAppPath,
+                return (function postUploadRequest(retried) {
+                  return window
+                    .fetch('http://127.0.0.1:36677/upload', {
+                      method: 'POST',
+                      body: JSON.stringify({ list: list }),
+                    })
+                    .then(
+                      function (result) {
+                        if (200 === result.status) {
+                          return result
+                            .json()
+                            .then((inputResult) =>
+                              inputResult.success
+                                ? (console.sendLog(
+                                    '[Upload Result] ' + JSON.stringify(inputResult.result),
                                   ),
-                                  (launchError, unusedParameter2, unusedParameter3) => {
-                                    if (currentTimerId && launchError) {
-                                      rejectPromise(
-                                        'failed to launch PicGo app: ' + launchError.message,
-                                      );
-                                      clearTimeout(currentTimerId);
-                                    }
-                                  },
-                                );
-                            });
-                          }
-                        },
-                      );
-                  },
-                  'name',
-                  { value: 'r', configurable: true },
-                )(false);
+                                  inputResult.result)
+                                : Promise.reject(JSON.stringify(inputResult)),
+                            );
+                        } else {
+                          return Promise.reject(result.text());
+                        }
+                      },
+                      function (result) {
+                        if (retried) {
+                          return Promise.reject(result.message || 'failed');
+                        } else {
+                          return new Promise(function (resolvePromise, rejectPromise) {
+                            var currentTimerId = setTimeout(() => {
+                              currentTimerId = null;
+                              postUploadRequest(true).then(resolvePromise, rejectPromise);
+                            }, 5e3);
+                            window
+                              .reqnode('child_process')
+                              .exec(
+                                JSON.stringify(
+                                  'piclist-app' === uploaderType ? piclistAppPath : picgoAppPath,
+                                ),
+                                (launchError, unusedParameter2, unusedParameter3) => {
+                                  if (currentTimerId && launchError) {
+                                    rejectPromise(
+                                      'failed to launch PicGo app: ' + launchError.message,
+                                    );
+                                    clearTimeout(currentTimerId);
+                                  }
+                                },
+                              );
+                          });
+                        }
+                      },
+                    );
+                })(false);
               } else {
                 return Promise.reject('请在偏好设置中配置 PicList (app) 的路径。');
               }
@@ -745,8 +714,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
   var imageMap = {};
   moduleRecord.exports = class {
     constructor(editor) {
-      Object.defineProperty(restoreContextMenuCursor, 'name', { value: 'n', configurable: true });
-
       var receiver = this;
       function restoreContextMenuCursor() {
         File.editor.contextMenu.hide();
@@ -1011,9 +978,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       return absolutePath;
     }
     getRealSrc(text, fileUrlsOnly, keepFragment, restoreDeletedAsset) {
-      Object.defineProperty(encodeResolvedImagePath, 'name', { value: 'o', configurable: true });
-      Object.defineProperty(restoreManagedImagePath, 'name', { value: 'a', configurable: true });
-
       if (!text) {
         return text;
       }
@@ -1180,11 +1144,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
           inputItems.forEach((item) => {
             if (item.intersectionRatio <= 0) {
               (function (element) {
-                Object.defineProperty(hasExplicitDimension, 'name', {
-                  value: 'a',
-                  configurable: true,
-                });
-
                 let {
                   naturalHeight: naturalHeight,
                   naturalWidth: naturalWidth,
@@ -1324,16 +1283,12 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       }
     }
     refreshLocalImgDom(domNode, cacheTimestamp, refreshErrorsOnly) {
-      var removeTemporaryDimensions = Object.defineProperty(
-        function (loadEvent) {
-          loadEvent.target.removeAttribute('width');
-          loadEvent.target.removeAttribute('height');
-          loadEvent.target.removeEventListener('load', removeTemporaryDimensions);
-          loadEvent.target.removeEventListener('error', removeTemporaryDimensions);
-        },
-        'name',
-        { value: 'i', configurable: true },
-      );
+      var removeTemporaryDimensions = function (loadEvent) {
+        loadEvent.target.removeAttribute('width');
+        loadEvent.target.removeAttribute('height');
+        loadEvent.target.removeEventListener('load', removeTemporaryDimensions);
+        loadEvent.target.removeEventListener('error', removeTemporaryDimensions);
+      };
       cacheTimestamp = cacheTimestamp || Math.floor((new Date() - 0) / 1e3);
       var originalSource = (domNode.parentElement || domNode).dataset.src || domNode.dataset.src;
       if (!refreshErrorsOnly || domNode.parentElement.classList.contains('md-img-error')) {
@@ -1682,8 +1637,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       }
     }
     insertLocalImage() {
-      Object.defineProperty(insertSelectedImagePaths, 'name', { value: 'e', configurable: true });
-
       function insertSelectedImagePaths(sourcePaths) {
         if (sourcePaths && 0 != sourcePaths.length) {
           mediaActions.insertURLs(sourcePaths);
@@ -1768,8 +1721,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
         File.editor.lastCursor = lastCursor;
       }
       return new Promise(async function (resolvePromise, rejectPromise) {
-        Object.defineProperty(rejectImageInsertion, 'name', { value: 'l', configurable: true });
-
         if (skipPreparation) {
           return resolvePromise();
         }
@@ -1926,10 +1877,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       );
     }
     insertImageFromURL(sourcePath) {
-      Object.defineProperty(generateImageAltText, 'name', { value: 'n', configurable: true });
-      Object.defineProperty(getImageLeadingSpace, 'name', { value: 'i', configurable: true });
-      Object.defineProperty(insertInlineImage, 'name', { value: 'r', configurable: true });
-
       var localSrc = sourcePath;
       function generateImageAltText() {
         return File.editor.imgEdit.generateAlt(sourcePath);
@@ -2071,8 +2018,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       userOperations.pasteHandler(this.editor, audioHtml, false);
     }
     resolveImagePath(textSlice) {
-      Object.defineProperty(escapeInsertedImageUrl, 'name', { value: 't', configurable: true });
-
       if (/^\/\//.exec(textSlice)) {
         return 'https://' + textSlice;
       }
@@ -2191,8 +2136,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       }
     }
     isFixedImageStorageFolder() {
-      Object.defineProperty(isAbsoluteFolderPath, 'name', { value: 'e', configurable: true });
-
       function isAbsoluteFolderPath(folderPath) {
         if (folderPath) {
           return utilities.isAbsolutePath(folderPath);
@@ -2339,8 +2282,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       return this.cachedFileImageStorage || '';
     }
     async moveToTextbundleByNode(bundlePath, documentPath) {
-      Object.defineProperty(deleteMovedMedia, 'name', { value: 's', configurable: true });
-
       const pathSeparator = File.isWin ? '\\' : '/';
       var assetsFolder = bundlePath + pathSeparator + 'assets';
       const pathUtilities = reqnode('path'),
@@ -2390,8 +2331,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       }
     }
     async onFileMoved(oldDocumentPath, text) {
-      Object.defineProperty(isWithinImageFolder, 'name', { value: 'r', configurable: true });
-
       this.cachedFileImageStorage = void 0;
       if (this.editor.localSettingBridge) {
         var receiver = this,
@@ -3087,8 +3026,6 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
       return items;
     }
     afterUserInsertImage(domNode) {
-      Object.defineProperty(restoreInsertedImageCursor, 'name', { value: 'd', configurable: true });
-
       var lastUrl = (domNode.getAttribute('src') || '').replace(/\?(.+)$/, '');
       if (
         lastUrl != this.lastUrl &&
@@ -3098,12 +3035,8 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
         var items = [],
           editor = this.editor,
           attributeValue = domNode.getAttribute('data-pixel-ratio'),
-          hasExplicitZoom = Object.defineProperty(
-            (zoomValue) =>
-              1 != (zoomValue = (zoomValue || 1) - 0) && zoomValue != 1 / 0 && !isNaN(zoomValue),
-            'name',
-            { value: 'a', configurable: true },
-          );
+          hasExplicitZoom = (zoomValue) =>
+            1 != (zoomValue = (zoomValue || 1) - 0) && zoomValue != 1 / 0 && !isNaN(zoomValue);
         if (attributeValue) {
           if (hasExplicitZoom((attributeValue -= 0))) {
             items.push({

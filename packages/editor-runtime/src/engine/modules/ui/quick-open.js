@@ -1,7 +1,6 @@
 // ui/quick-open.
 export default function initializeUiQuickOpen(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(setOutlineExpansion, 'name', { value: 'f', configurable: true });
 
   if (!this) {
     self;
@@ -16,49 +15,45 @@ export default function initializeUiQuickOpen(requireModule, moduleExports, modu
     NodeType = (documentModel.Node, documentModel.TYPE),
     outline = requireModule('ui/outline'),
     timerId = null,
-    renderQuickOpenOutline = Object.defineProperty(
-      function (tableOfContents) {
-        var outlineHtml = '',
-          items = [];
-        try {
-          !(function (headingNodes) {
-            for (var itemIndex = 0; itemIndex < headingNodes.length; itemIndex++) {
-              if (!headingNodes[itemIndex].isDeleted()) {
-                documentNode = headingNodes[itemIndex];
-                outlineHtml +=
-                  "<li class='outline-item-wrapper outline-h" +
-                  documentNode.get('depth') +
-                  "'><div class='outline-item'><span class='outline-expander'></span><span class='outline-label' data-ref='" +
-                  documentNode.cid +
-                  "'>" +
-                  inlineLexer.output(documentNode.get('text')) +
-                  "</span></div><ul class='outline-children'>";
-                items.push(documentNode.get('depth'));
-                var nextHeadingDepth =
-                  headingNodes[itemIndex + 1] && !headingNodes[itemIndex + 1].isDeleted()
-                    ? headingNodes[itemIndex + 1].get('depth')
-                    : 1;
-                if (nextHeadingDepth <= headingNodes[itemIndex].get('depth')) {
-                  for (; items.last() && items.last() >= nextHeadingDepth; ) {
-                    outlineHtml += '</ul></li>';
-                    items.pop();
-                  }
+    renderQuickOpenOutline = function (tableOfContents) {
+      var outlineHtml = '',
+        items = [];
+      try {
+        !(function (headingNodes) {
+          for (var itemIndex = 0; itemIndex < headingNodes.length; itemIndex++) {
+            if (!headingNodes[itemIndex].isDeleted()) {
+              documentNode = headingNodes[itemIndex];
+              outlineHtml +=
+                "<li class='outline-item-wrapper outline-h" +
+                documentNode.get('depth') +
+                "'><div class='outline-item'><span class='outline-expander'></span><span class='outline-label' data-ref='" +
+                documentNode.cid +
+                "'>" +
+                inlineLexer.output(documentNode.get('text')) +
+                "</span></div><ul class='outline-children'>";
+              items.push(documentNode.get('depth'));
+              var nextHeadingDepth =
+                headingNodes[itemIndex + 1] && !headingNodes[itemIndex + 1].isDeleted()
+                  ? headingNodes[itemIndex + 1].get('depth')
+                  : 1;
+              if (nextHeadingDepth <= headingNodes[itemIndex].get('depth')) {
+                for (; items.last() && items.last() >= nextHeadingDepth; ) {
+                  outlineHtml += '</ul></li>';
+                  items.pop();
                 }
               }
             }
-            var documentNode;
-          })(tableOfContents.headers);
-        } catch (error) {
-          if (window.debugMode) {
-            console.warn(error.stack);
           }
-          outlineHtml = '';
+          var documentNode;
+        })(tableOfContents.headers);
+      } catch (error) {
+        if (window.debugMode) {
+          console.warn(error.stack);
         }
-        return outlineHtml;
-      },
-      'name',
-      { value: 'p', configurable: true },
-    );
+        outlineHtml = '';
+      }
+      return outlineHtml;
+    };
   function setOutlineExpansion(outlineRoot, expandTopLevel) {
     for (
       var elements = outlineRoot.find('.outline-item-wrapper'), itemIndex = 0;
@@ -422,9 +417,6 @@ export default function initializeUiQuickOpen(requireModule, moduleExports, modu
       var html, comparisonHtml, previousOutline, nextOutline;
     }
     highlightVisibleHeader(headingElements, preferredIndex, expandAncestors, flashActive) {
-      Object.defineProperty(compareHeadingWithViewport, 'name', { value: 'b', configurable: true });
-      Object.defineProperty(findFirstVisibleHeading, 'name', { value: 'w', configurable: true });
-
       if (document.querySelector('#marklyra-sidebar.open')) {
         var localElement,
           receiver = this,
@@ -602,26 +594,22 @@ export default function initializeUiQuickOpen(requireModule, moduleExports, modu
       }
       if (domNode) {
         if (
-          (element = Object.defineProperty(
-            function findAdjacentOutlineItem(currentItem, filterActive) {
-              var currentIndex = Array.prototype.indexOf.call(elements, currentItem),
-                currentDomNode = elements[moveUp ? currentIndex - 1 : currentIndex + 1] || null;
-              if (!currentDomNode || filterActive || !collapsible) {
-                return currentDomNode;
-              }
-              var parentElement = currentDomNode.parentElement.parentElement.parentElement;
-              if (
-                parentElement.classList.contains('outline-item-open') ||
-                !parentElement.classList.contains('outline-item-wrapper')
-              ) {
-                return currentDomNode;
-              } else {
-                return findAdjacentOutlineItem(currentDomNode, filterActive);
-              }
-            },
-            'name',
-            { value: 't', configurable: true },
-          )(domNode, document.querySelector('#marklyra-sidebar.marklyra-on-outline-filter')))
+          (element = (function findAdjacentOutlineItem(currentItem, filterActive) {
+            var currentIndex = Array.prototype.indexOf.call(elements, currentItem),
+              currentDomNode = elements[moveUp ? currentIndex - 1 : currentIndex + 1] || null;
+            if (!currentDomNode || filterActive || !collapsible) {
+              return currentDomNode;
+            }
+            var parentElement = currentDomNode.parentElement.parentElement.parentElement;
+            if (
+              parentElement.classList.contains('outline-item-open') ||
+              !parentElement.classList.contains('outline-item-wrapper')
+            ) {
+              return currentDomNode;
+            } else {
+              return findAdjacentOutlineItem(currentDomNode, filterActive);
+            }
+          })(domNode, document.querySelector('#marklyra-sidebar.marklyra-on-outline-filter')))
         ) {
           domNode.classList.remove('select');
           element.classList.add('select');

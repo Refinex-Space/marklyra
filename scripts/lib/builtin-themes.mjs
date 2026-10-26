@@ -12,7 +12,7 @@ export async function prepareBuiltinThemes(root, output) {
   for (const id of retired) await rm(resolve(directory, `${id}.css`), { force: true });
   await rm(resolve(directory, 'night'), { recursive: true, force: true });
   const common = await readFile(resolve(root, 'packages/editor-themes/marklyra.css'), 'utf8');
-  // Export is already self-contained; never retain the original remote font directive.
+  // Export is already self-contained; never retain the remote font directive.
   const base = await readFile(resolve(root, 'packages/editor-themes/base.css'), 'utf8');
   const resources = [];
   for (const id of builtinThemeIds) {

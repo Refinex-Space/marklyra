@@ -47,7 +47,7 @@ export function findReplaceSourceMatch(
   return marked.slice(begin + open.length, end).replace(/\r\n?|\n/g, ending);
 }
 
-/** Prove the local source ranges of the original Source replace-all. Native JS
+/** Prove the local source ranges of the Source replace-all. Native JS
  * replacement expands capture/context tokens; this adapter does not implement
  * a second replacement engine or infer ranges from a repeated-text diff. */
 export function findReplaceSourcePatches(

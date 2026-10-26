@@ -55,7 +55,7 @@ async function mount(page: Page): Promise<Frame> {
       release,
     };
     child.focusBrush = probe;
-    // Hold the real next parser callback across the focus handoff. The original
+    // Hold the real next parser callback across the focus handoff. The
     // scheduler and callback still execute, with no timer fast-forward or cancellation.
     brush.brushQueue = async function () {
       probe.entered++;
@@ -129,7 +129,7 @@ test('late math brush completion cannot restore a cursor from before Enter', asy
   const frame = await mount(page);
   await frame.evaluate(() => {
     const child = window as unknown as Child;
-    // Establish the raw view of the text just typed. A separate original refresh
+    // Establish the raw view of the text just typed. A separate refresh
     // can otherwise normalize it before this controlled queue callback runs.
     // Markdown/model text is unchanged; the real parser still performs the render.
     const paragraph = child.editor.writingArea.querySelector('p');
@@ -158,8 +158,8 @@ test('late math brush completion cannot restore a cursor from before Enter', asy
     };
     const cid = paragraph.getAttribute('cid');
     if (!cid) throw new Error('Missing queued paragraph identity');
-    // A timer can enter our wrapper with an empty original queue. Enqueue this
-    // raw view through the original API so its actual async parser must run.
+    // A timer can enter our wrapper with an empty queue. Enqueue this
+    // raw view through the API so its actual async parser must run.
     (child.editor.brush as unknown as Brush).addToQueue(cid, false);
     child.focusBrush.release();
   });

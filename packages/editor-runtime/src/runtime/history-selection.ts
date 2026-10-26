@@ -264,7 +264,7 @@ function firstReplacedParagraph(commands: readonly unknown[], cid: string): obje
   }
   return;
 }
-/** Called after the same original entry's Undo, never from a timer. Re-prove
+/** Called after the same entry's Undo, never from a timer. Re-prove
  * both current model bodies and semantic DOM paths before restoring endpoints. */
 export function restoreHistorySelection(
   context: SelectionContext,
@@ -293,7 +293,7 @@ export function restoreHistorySelection(
     selection = context.editor.writingArea.ownerDocument.getSelection();
   if (!anchor || !head || !selection) return false;
   selection.setBaseAndExtent(...anchor, ...head);
-  // Finalize the original view for its restored target while this same Undo
+  // Finalize the view for its restored target while this same Undo
   // still owns the selection. Pending brush work then sees the already-expanded
   // nodes. Re-prove semantic endpoints after refresh; never schedule a replay.
   context.editor.refresh();

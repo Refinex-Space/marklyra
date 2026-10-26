@@ -817,7 +817,7 @@ for (const fallback of [false, true])
           'contextmenu',
           () => {
             host.File.isMac = true;
-            // Controlled negative: an input notification and a real original edit occur
+            // Controlled negative: an input notification and a real edit occur
             // in the same event task before the deferred offer; this is not an IME claim.
             root.dispatchEvent(new InputEvent('beforeinput', { bubbles: true }));
             host.editor.insertText('X');

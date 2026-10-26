@@ -124,7 +124,7 @@ export function restoreContextSelection(editor: LegacyEditor, saved: ContextSele
   if (saved.focusCid && editor.getNode(saved.focusCid)) editor.refocus(saved.focusCid);
   if (saved.bookmark) {
     const bookmark = saved.bookmark;
-    // Original HTML focus receipts replay focus immediately and again after
+    // HTML focus receipts replay focus immediately and again after
     // 100ms. A menu action can enter and leave its CM in that interval. Restore
     // this proven preview directly, so its retired receipt cannot steal input
     // from the paragraph produced by Enter. Other receipts keep native replay.

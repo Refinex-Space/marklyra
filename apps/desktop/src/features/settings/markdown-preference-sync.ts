@@ -191,7 +191,7 @@ export class MarkdownPreferenceSync {
                 return;
               }
             } catch {
-              /* The original receipt may already have finalized or expired. */
+              /* The receipt may already have finalized or expired. */
             }
             this.failed(`${message}；Native已确认目标值，回执状态未确认。可重试同步。`);
             return;

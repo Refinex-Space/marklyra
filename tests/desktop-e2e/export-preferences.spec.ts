@@ -734,7 +734,7 @@ test.describe('设置窗口中的导出页', () => {
       const ui = page.frameLocator('.runtime-preferences-frame');
       await ui.getByRole('button', { name: '导出', exact: true }).click();
       await expect(page.locator('.es')).toBeVisible();
-      // The isolated page keeps its heading but nothing of the original export controls shows.
+      // The isolated page keeps its heading but nothing of the export controls shows.
       await expect(ui.locator('.export-config')).toBeHidden();
       await expect(ui.locator('.pane')).toHaveCSS('visibility', 'hidden');
       await expect(ui.getByRole('button', { name: '导出', exact: true })).toHaveAttribute(

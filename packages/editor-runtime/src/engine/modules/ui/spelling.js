@@ -57,29 +57,25 @@ export default function initializeUiSpelling(requireModule, moduleExports, modul
       { code: 'ja', userLang: 'ja-JP', label: '日本語', enLabel: 'Japanese' },
     ],
     currentLangMode_ = 'auto',
-    SpellingController = Object.defineProperty(
-      function (editor) {
-        this.editor = editor;
-        this.perFileSettingCache_ = new Map();
-        this.langMode_ = File.option.presetSpellCheck;
-        this.missingLocale_;
-        this.clear_();
-        var receiver = this;
-        if (window.requestIdleCallback) {
-          requestIdleCallback(function () {
-            receiver.init_();
-            receiver.reset();
-          });
-        } else {
-          setTimeout(function () {
-            receiver.init_();
-            receiver.reset();
-          }, 100);
-        }
-      },
-      'name',
-      { value: 'l', configurable: true },
-    );
+    SpellingController = function (editor) {
+      this.editor = editor;
+      this.perFileSettingCache_ = new Map();
+      this.langMode_ = File.option.presetSpellCheck;
+      this.missingLocale_;
+      this.clear_();
+      var receiver = this;
+      if (window.requestIdleCallback) {
+        requestIdleCallback(function () {
+          receiver.init_();
+          receiver.reset();
+        });
+      } else {
+        setTimeout(function () {
+          receiver.init_();
+          receiver.reset();
+        }, 100);
+      }
+    };
   SpellingController.prototype.useHunSpell = function () {
     return !/Windows NT (8|10)\./.exec(navigator.userAgent);
   };

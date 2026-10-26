@@ -1,4 +1,4 @@
-/** Expose the original find/notification strips above sidebars; input remains
+/** Expose the find/notification strips above sidebars; input remains
  * inside the isolated runtime, with no generic iframe hit-test bypass. */
 export class RuntimeFindPanel {
   private panel: HTMLElement | null = null;

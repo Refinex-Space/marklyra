@@ -198,7 +198,7 @@ export class RuntimeSlashMenu {
     this.typed ||= typed;
     const ticket = ++this.ticket;
     this.pending = true;
-    // After the original editor's own input handlers have settled the paragraph DOM.
+    // After the editor's own input handlers have settled the paragraph DOM.
     setTimeout(() => {
       if (ticket === this.ticket) this.flush();
     }, delay);

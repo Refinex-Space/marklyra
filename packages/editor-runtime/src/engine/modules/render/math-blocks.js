@@ -1,15 +1,6 @@
 // render/math-blocks.
 export default function initializeRenderMathBlocks(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(waitForIdleRender, 'name', { value: 'y', configurable: true });
-  Object.defineProperty(initializeMathRenderHooks, 'name', { value: 'b', configurable: true });
-  Object.defineProperty(getMathJaxTags, 'name', { value: 'w', configurable: true });
-  Object.defineProperty(getPrecedingTagCounter, 'name', { value: 'x', configurable: true });
-  Object.defineProperty(resetMathTags, 'name', { value: 'C', configurable: true });
-  Object.defineProperty(removeMathLabels, 'name', { value: 'F', configurable: true });
-  Object.defineProperty(collectAddedLabels, 'name', { value: 'S', configurable: true });
-  Object.defineProperty(renderTex, 'name', { value: 'k', configurable: true });
-  Object.defineProperty(renderMathElements, 'name', { value: 'E', configurable: true });
 
   if (!this) {
     self;
@@ -28,35 +19,23 @@ export default function initializeRenderMathBlocks(requireModule, moduleExports,
     html =
       ((map = keyboardShortcuts.map),
       document.querySelector('#md-rawblock-tooltip-templ').innerHTML),
-    isMathJaxReady = Object.defineProperty(
-      function () {
-        return !!(window.MathJax && window.MathJax.config && MathJax.startup.document);
-      },
-      'name',
-      { value: 'm', configurable: true },
-    ),
-    waitForMathJax = Object.defineProperty(
-      async function () {
-        if (!isMathJaxReady()) {
-          return new Promise((resolvePromise) => {
-            var pollMathJaxReady = Object.defineProperty(
-              function () {
-                if (isMathJaxReady()) {
-                  resolvePromise();
-                } else {
-                  setTimeout(pollMathJaxReady, 50);
-                }
-              },
-              'name',
-              { value: 't', configurable: true },
-            );
-            setTimeout(pollMathJaxReady, 50);
-          });
-        }
-      },
-      'name',
-      { value: 'g', configurable: true },
-    ),
+    isMathJaxReady = function () {
+      return !!(window.MathJax && window.MathJax.config && MathJax.startup.document);
+    },
+    waitForMathJax = async function () {
+      if (!isMathJaxReady()) {
+        return new Promise((resolvePromise) => {
+          var pollMathJaxReady = function () {
+            if (isMathJaxReady()) {
+              resolvePromise();
+            } else {
+              setTimeout(pollMathJaxReady, 50);
+            }
+          };
+          setTimeout(pollMathJaxReady, 50);
+        });
+      }
+    },
     renderHooksInitialized = false;
   function waitForIdleRender(timeout) {
     if (window.requestIdleCallback) {
@@ -70,8 +49,6 @@ export default function initializeRenderMathBlocks(requireModule, moduleExports,
     }
   }
   async function initializeMathRenderHooks() {
-    Object.defineProperty(skipDocumentRenderAction, 'name', { value: 'e', configurable: true });
-
     function skipDocumentRenderAction() {}
     var currentDomNode, hrefPrefixPattern, idPrefixPattern;
     if (!renderHooksInitialized) {
@@ -207,8 +184,6 @@ export default function initializeRenderMathBlocks(requireModule, moduleExports,
     return currentItems;
   }
   function renderTex(texSource, tagMetadata, synchronous, resetCounter) {
-    Object.defineProperty(captureRenderedMathState, 'name', { value: 's', configurable: true });
-
     tagMetadata = tagMetadata || {};
     var counter = getMathJaxTags().counter;
     if (resetCounter) {
@@ -830,8 +805,6 @@ export default function initializeRenderMathBlocks(requireModule, moduleExports,
       };
     }
     async startEditing(nodeOrElement, cursorPlacement) {
-      Object.defineProperty(renderPreviewElement, 'name', { value: 'C', configurable: true });
-
       var nodeAndElement = this.getCidAndElem(nodeOrElement),
         nodeId = nodeAndElement[0],
         blockElement = nodeAndElement[1],
@@ -1138,7 +1111,7 @@ export default function initializeRenderMathBlocks(requireModule, moduleExports,
       }
     }
   }
-  Object.defineProperty(MathBlockController, 'name', { value: 'T', configurable: true });
+
   MathBlockController.isMathType = function (language) {
     return (
       File.option.gitlabMath &&

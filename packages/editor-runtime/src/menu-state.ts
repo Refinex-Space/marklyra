@@ -1,4 +1,4 @@
-/** Finite presentation facts from the active original editor; no DOM/bookmark escapes. */
+/** Finite presentation facts from the active editor; no DOM/bookmark escapes. */
 export interface MarkLyraMenuState {
   sourceMode: boolean;
   focusMode: boolean;

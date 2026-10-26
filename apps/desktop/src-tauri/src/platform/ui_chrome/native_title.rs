@@ -61,7 +61,7 @@ pub(super) fn position(window: &NSWindow, layout: TitlebarLayout, accessory_left
     }
     // AppKit's title field intrinsic width omits part of its cell padding:
     // even README.md needs 85pt where intrinsicContentSize reports only 81pt.
-    // Measure the original native cell and round up to avoid truncating glyphs.
+    // Measure the native title cell and round up to avoid truncating glyphs.
     let natural_width = field
         .cell()
         .map_or_else(

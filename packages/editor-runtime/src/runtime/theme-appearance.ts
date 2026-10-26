@@ -127,7 +127,7 @@ function hoverRules(element: HTMLElement): string {
   return rules.join('\n');
 }
 
-/** Read the original, hidden UI's computed presentation without touching its
+/** Read the hidden UI's computed presentation without touching its
  * model, view state, selection or history. Every temporary node is synchronously
  * removed, and marked before insertion so host observers can ignore the probe. */
 export function readThemeAppearance(): ThemeAppearance {
@@ -186,7 +186,7 @@ export function readThemeAppearance(): ThemeAppearance {
     const footer = document.getElementById('marklyra-sidebar-footer');
     const footerItem = sample(footer ?? sidebar, 'sidebar-footer-item', 'footer-hover');
     const color = sample(sidebar, '', 'color');
-    // The hidden original UI does not use the desktop Host's titlebar inset.
+    // The hidden UI does not use the desktop Host's titlebar inset.
     // Measure its native CSS context on an owned, inert fragment instead of
     // changing body classes and the live editor's layout or input state.
     const nativeContext = sample(body, 'mac-seamless-mode pin-outline', 'native-sidebar-context');
@@ -237,7 +237,7 @@ export function readThemeAppearance(): ThemeAppearance {
     const header = sidebar.querySelector('.sidebar-osx-tab');
     const tabs = header?.querySelector('.sidebar-tabs');
     if (header && tabs) {
-      // WebKit may retain stale computed borders in the display:none original
+      // WebKit may retain stale computed borders in the display:none
       // subtree after a theme swap. Fresh shallow nodes use the current cascade.
       const nativeHeader = header.cloneNode(false) as HTMLElement;
       const nativeTabs = tabs.cloneNode(false) as HTMLElement;

@@ -12,7 +12,7 @@ import {
 
 const method = unique(
   nodes(
-    engineModule('58'),
+    engineModule('editing/table-editor'),
     (node) => node.type === 'AssignmentExpression' && member(node.left, 'addCol'),
   ),
   'addCol method',
@@ -86,8 +86,8 @@ for (const before of [true, false])
       tableEdit: { showTableEdit: () => effects.shown++ },
     };
     const addCol = runInNewContext(expressionOf(method), {
-      [engineImportBinding('58', 'e')]: () => ({ hide() {} }),
-      [engineImportBinding('58', '13', 'Node')]: Node,
+      [engineImportBinding('editing/table-editor', 'libraries/jquery')]: () => ({ hide() {} }),
+      [engineImportBinding('editing/table-editor', 'model/document-model', 'Node')]: Node,
       window: { getSelection: () => ({ anchorNode: {} }) },
     });
     addCol(editor, before);

@@ -31,7 +31,7 @@ test('the lazy Emoji script preserves keyword suggestion order without changing 
     };
     return runtime.editor.emoji.search('score');
   });
-  // The original search places name matches before the keyword table's suggestions.
+  // The search places name matches before the keyword table's suggestions.
   expect(suggestions).toEqual([
     ':musical_score:',
     ':100:',

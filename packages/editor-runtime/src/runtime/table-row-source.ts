@@ -18,8 +18,8 @@ export interface TableSourceRows {
   rows: { id: string; line: string; cells?: readonly TableSourceCell[] }[];
   alignment?: readonly ('left' | 'center' | 'right' | null)[];
 }
-/** Read original linked model order (collection.toArray is insertion order).
- * table_row.toMark is explicitly unsupported by the original serializer. */
+/** Read linked model order (collection.toArray is insertion order).
+ * table_row.toMark is explicitly unsupported by the serializer. */
 export function readTableSourceRows(
   editor: LegacyEditor,
   target: Element,

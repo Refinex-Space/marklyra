@@ -5,15 +5,6 @@ export default function initializeEditingKeyboardShortcuts(
   moduleRecord,
 ) {
   'use strict';
-  Object.defineProperty(findLastIndex, 'name', { value: 'u', configurable: true });
-  Object.defineProperty(sameModifiers, 'name', { value: 'h', configurable: true });
-  Object.defineProperty(updateModifierStates, 'name', { value: 'f', configurable: true });
-  Object.defineProperty(dispatchKeyboardEvent, 'name', { value: 'm', configurable: true });
-  Object.defineProperty(registerShortcut, 'name', { value: 'g', configurable: true });
-  Object.defineProperty(getCurrentScope, 'name', { value: 'v', configurable: true });
-  Object.defineProperty(splitShortcuts, 'name', { value: 'y', configurable: true });
-  Object.defineProperty(parseModifierCodes, 'name', { value: 'b', configurable: true });
-  Object.defineProperty(listenForEvent, 'name', { value: 'w', configurable: true });
 
   if (!this) {
     self;
@@ -65,13 +56,9 @@ export default function initializeEditingKeyboardShortcuts(
       ']': 221,
       '\\': 220,
     },
-    resolveKeyCode = Object.defineProperty(
-      function (keyName) {
-        return namedKeyCodes[keyName] || keyName.toUpperCase().charCodeAt(0);
-      },
-      'name',
-      { value: 'c', configurable: true },
-    ),
+    resolveKeyCode = function (keyName) {
+      return namedKeyCodes[keyName] || keyName.toUpperCase().charCodeAt(0);
+    },
     pressedKeyCodes = [];
   for (keyIndex = 1; keyIndex < 20; keyIndex++) {
     namedKeyCodes['f' + keyIndex] = 111 + keyIndex;

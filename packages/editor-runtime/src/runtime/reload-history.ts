@@ -52,7 +52,7 @@ export function sourceReloadCheckpoint(editor: LegacyEditor): SourceReloadCheckp
   };
 }
 
-/** The original setValue skips identical strings, so a BOM-only disk version
+/** The setValue skips identical strings, so a BOM-only disk version
  * otherwise has no native undo identity. Create a real, isolated CM operation;
  * never modify its history arrays/generation or manufacture a tracking target.
  * BOM-only reloads retain the content transaction identity. */

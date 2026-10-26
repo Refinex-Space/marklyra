@@ -199,8 +199,6 @@ export default function initializeDocumentFileController(
         );
       },
       loadFile: async function (inputFilePath, switchDocument, documentData) {
-        Object.defineProperty(applyLoadedContent, 'name', { value: 'i', configurable: true });
-
         function applyLoadedContent(savedContent) {
           var currentEditor = fileController.editor,
             selection = currentEditor.selection;
@@ -268,8 +266,6 @@ export default function initializeDocumentFileController(
         }
         if (fileController.isNode) {
           await (async function (serializedDocument) {
-            Object.defineProperty(handleLoadFailure, 'name', { value: 'd', configurable: true });
-
             var {
               snap: snapshot,
               filePath: localFilePath,
@@ -686,8 +682,6 @@ export default function initializeDocumentFileController(
         reloadFromDisk,
         diskContentOverride,
       ) {
-        Object.defineProperty(finishDocumentReload, 'name', { value: 'h', configurable: true });
-
         if (!snapshot || !snapshot.undoRedo || !snapshot.nodeMap) {
           return true;
         }
@@ -926,12 +920,6 @@ export default function initializeDocumentFileController(
         window._onBackup = false;
       },
       presentedItemChanged: async function (locationChanged, fileInfo, changedPath) {
-        Object.defineProperty(readCurrentDiskContent, 'name', { value: 'i', configurable: true });
-        Object.defineProperty(handleExternalContentChange, 'name', {
-          value: 'a',
-          configurable: true,
-        });
-
         if (
           fileController.isActiveWindow() &&
           !fileController.bundle.unsupported &&
@@ -1297,20 +1285,16 @@ export default function initializeDocumentFileController(
         if (timerId) {
           clearTimeout(timerId);
         }
-        const refreshMetadataDependentState = Object.defineProperty(
-          () => {
-            if (fileController.isNode) {
-              fileController.refreshImageCopyStatus(true);
-            }
-            var localSettingBridge = fileController.editor.localSettingBridge;
-            if (localSettingBridge) {
-              localSettingBridge.loadFromFile();
-            }
-            timerId = null;
-          },
-          'name',
-          { value: 't', configurable: true },
-        );
+        const refreshMetadataDependentState = () => {
+          if (fileController.isNode) {
+            fileController.refreshImageCopyStatus(true);
+          }
+          var localSettingBridge = fileController.editor.localSettingBridge;
+          if (localSettingBridge) {
+            localSettingBridge.loadFromFile();
+          }
+          timerId = null;
+        };
         if (immediate) {
           refreshMetadataDependentState();
         } else {
@@ -1429,22 +1413,18 @@ export default function initializeDocumentFileController(
     },
     timerId = null,
     recoveryPending = false,
-    scheduleDraftRecovery = Object.defineProperty(
-      function () {
-        if (
-          recoveryPending &&
-          fileController.editor.brush &&
-          fileController.editor.brush.timerID &&
-          fileController.isActiveWindow() &&
-          recoveryPending
-        ) {
-          recoveryPending = false;
-          recovery.saveToRecover(fileController.editor.getMarkdown());
-        }
-      },
-      'name',
-      { value: 'E', configurable: true },
-    );
+    scheduleDraftRecovery = function () {
+      if (
+        recoveryPending &&
+        fileController.editor.brush &&
+        fileController.editor.brush.timerID &&
+        fileController.isActiveWindow() &&
+        recoveryPending
+      ) {
+        recoveryPending = false;
+        recovery.saveToRecover(fileController.editor.getMarkdown());
+      }
+    };
   fileController.ChangeType = fileIntegration.ChangeType;
   fileController.isMacLegacy = void 0 !== window.app;
   fileController.isWK = fileController.isWk = window.isWk;

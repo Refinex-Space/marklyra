@@ -65,13 +65,9 @@ export default function initializeModelDocumentModel(requireModule, moduleExport
     alert_text: 'alert_text',
   });
   var nextNodeSequence = 0,
-    createNodeId = Object.defineProperty(
-      function () {
-        return 'n' + nextNodeSequence++;
-      },
-      'name',
-      { value: 'c', configurable: true },
-    );
+    createNodeId = function () {
+      return 'n' + nextNodeSequence++;
+    };
   class DocumentNode {
     constructor(attributes) {
       attributes = attributes || {};
@@ -144,8 +140,6 @@ export default function initializeModelDocumentModel(requireModule, moduleExport
       return text.replace(/\*/g, '*').replace(/_/g, '_').replace(/`/g, '`');
     }
     isLoose(updateTightFlag) {
-      Object.defineProperty(hasLooseListContent, 'name', { value: 't', configurable: true });
-
       function hasLooseListContent(documentNode) {
         for (
           var currentDocumentNode = documentNode.getFirstChild(),
@@ -803,27 +797,23 @@ export default function initializeModelDocumentModel(requireModule, moduleExport
       this.set(attributeName, void 0);
     }
   }
-  Object.defineProperty(DocumentNode, 'name', { value: 'd', configurable: true });
-  var clearAutomaticListIndents = Object.defineProperty(
-      function (documentNode, lastNode) {
-        var currentDocumentNode = documentNode,
-          parentNode = documentNode.get('parent');
-        if (
-          parentNode &&
-          !parentNode.isDeleted() &&
-          DocumentNode.isType(documentNode, NodeType.list_item) &&
-          parentNode.get('style') == DocumentNode.ListType.ol &&
-          !parentNode.get('isFixed')
-        ) {
-          for (; currentDocumentNode && currentDocumentNode != lastNode; ) {
-            currentDocumentNode.unset('userIndent');
-            currentDocumentNode = currentDocumentNode.get('after');
-          }
+
+  var clearAutomaticListIndents = function (documentNode, lastNode) {
+      var currentDocumentNode = documentNode,
+        parentNode = documentNode.get('parent');
+      if (
+        parentNode &&
+        !parentNode.isDeleted() &&
+        DocumentNode.isType(documentNode, NodeType.list_item) &&
+        parentNode.get('style') == DocumentNode.ListType.ol &&
+        !parentNode.get('isFixed')
+      ) {
+        for (; currentDocumentNode && currentDocumentNode != lastNode; ) {
+          currentDocumentNode.unset('userIndent');
+          currentDocumentNode = currentDocumentNode.get('after');
         }
-      },
-      'name',
-      { value: 'u', configurable: true },
-    ),
+      }
+    },
     items = [
       'depth',
       'lang',
@@ -919,18 +909,14 @@ export default function initializeModelDocumentModel(requireModule, moduleExport
     }
     return currentItems;
   };
-  var NodeCollection = Object.defineProperty(
-    function () {
-      this.reset();
-      Object.defineProperty(this, 'length', {
-        get: function () {
-          return this._set.length;
-        },
-      });
-    },
-    'name',
-    { value: 'p', configurable: true },
-  );
+  var NodeCollection = function () {
+    this.reset();
+    Object.defineProperty(this, 'length', {
+      get: function () {
+        return this._set.length;
+      },
+    });
+  };
   NodeCollection.prototype.get = function (nodeId) {
     return this._map.get(nodeId);
   };
@@ -1022,16 +1008,12 @@ export default function initializeModelDocumentModel(requireModule, moduleExport
         return textParts.join(lineSeparator || '');
       },
     },
-    DocumentMap = Object.defineProperty(
-      function () {
-        this.blocks = new NodeCollection();
-        this.allNodes = new NodeCollection();
-        this.foot_list = [];
-        this.link_list = [];
-      },
-      'name',
-      { value: 'm', configurable: true },
-    );
+    DocumentMap = function () {
+      this.blocks = new NodeCollection();
+      this.allNodes = new NodeCollection();
+      this.foot_list = [];
+      this.link_list = [];
+    };
   DocumentMap.prototype.storeToJson = function () {
     return {
       blocks: this.blocks.map(function (item) {

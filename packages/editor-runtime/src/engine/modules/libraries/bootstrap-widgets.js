@@ -20,17 +20,11 @@ export default function installLibrariesBootstrapWidgets(engineModules, vendorSc
       }
       !(function (jquery) {
         var dismissSelector = '[data-dismiss="alert"]',
-          Alert = Object.defineProperty(
-            function (element) {
-              jquery(element).on('click', dismissSelector, this.close);
-            },
-            'name',
-            { value: 'n', configurable: true },
-          );
+          Alert = function (element) {
+            jquery(element).on('click', dismissSelector, this.close);
+          };
         Alert.VERSION = '3.2.0';
         Alert.prototype.close = function (event) {
-          Object.defineProperty(removeAlert, 'name', { value: 'o', configurable: true });
-
           var trigger = jquery(this),
             selector = trigger.attr('data-target');
           if (!selector) {
@@ -77,17 +71,11 @@ export default function installLibrariesBootstrapWidgets(engineModules, vendorSc
         jquery(document).on('click.bs.alert.data-api', dismissSelector, Alert.prototype.close);
       })(jQuery);
       (function (jquery) {
-        Object.defineProperty(buttonPlugin, 'name', { value: 'n', configurable: true });
-
-        var Button = Object.defineProperty(
-          function (element, options) {
-            this.$element = jquery(element);
-            this.options = jquery.extend({}, Button.DEFAULTS, options);
-            this.isLoading = false;
-          },
-          'name',
-          { value: 't', configurable: true },
-        );
+        var Button = function (element, options) {
+          this.$element = jquery(element);
+          this.options = jquery.extend({}, Button.DEFAULTS, options);
+          this.isLoading = false;
+        };
         function buttonPlugin(option) {
           return this.each(function () {
             var element = jquery(this),
@@ -173,18 +161,11 @@ export default function installLibrariesBootstrapWidgets(engineModules, vendorSc
         );
       })(jQuery);
       (function (jquery) {
-        Object.defineProperty(clearMenus, 'name', { value: 'r', configurable: true });
-        Object.defineProperty(getDropdownParent, 'name', { value: 'o', configurable: true });
-
         var backdropSelector = '.dropdown-backdrop',
           toggleSelector = '[data-toggle="dropdown"]',
-          Dropdown = Object.defineProperty(
-            function (element) {
-              jquery(element).on('click.bs.dropdown', this.toggle);
-            },
-            'name',
-            { value: 'i', configurable: true },
-          );
+          Dropdown = function (element) {
+            jquery(element).on('click.bs.dropdown', this.toggle);
+          };
         function clearMenus(event) {
           if (!(event && 3 === event.which)) {
             jquery(backdropSelector).remove();
@@ -307,27 +288,21 @@ export default function installLibrariesBootstrapWidgets(engineModules, vendorSc
           );
       })(jQuery);
       (function (jquery) {
-        Object.defineProperty(modalPlugin, 'name', { value: 'n', configurable: true });
-
-        var Modal = Object.defineProperty(
-          function (element, options) {
-            this.options = options;
-            this.$body = jquery(document.body);
-            this.$element = jquery(element);
-            this.$backdrop = this.isShown = null;
-            this.scrollbarWidth = 0;
-            if (this.options.remote) {
-              this.$element.find('.modal-content').load(
-                this.options.remote,
-                jquery.proxy(function () {
-                  this.$element.trigger('loaded.bs.modal');
-                }, this),
-              );
-            }
-          },
-          'name',
-          { value: 't', configurable: true },
-        );
+        var Modal = function (element, options) {
+          this.options = options;
+          this.$body = jquery(document.body);
+          this.$element = jquery(element);
+          this.$backdrop = this.isShown = null;
+          this.scrollbarWidth = 0;
+          if (this.options.remote) {
+            this.$element.find('.modal-content').load(
+              this.options.remote,
+              jquery.proxy(function () {
+                this.$element.trigger('loaded.bs.modal');
+              }, this),
+            );
+          }
+        };
         function modalPlugin(option, relatedTarget) {
           return this.each(function () {
             var element = jquery(this),
@@ -499,16 +474,12 @@ export default function installLibrariesBootstrapWidgets(engineModules, vendorSc
           } else {
             if (!this.isShown && this.$backdrop) {
               this.$backdrop.removeClass('in');
-              var removeBackdrop = Object.defineProperty(
-                function () {
-                  modal.removeBackdrop();
-                  if (callback) {
-                    callback();
-                  }
-                },
-                'name',
-                { value: 'o', configurable: true },
-              );
+              var removeBackdrop = function () {
+                modal.removeBackdrop();
+                if (callback) {
+                  callback();
+                }
+              };
               if (jquery.support.transition && this.$element.hasClass('fade')) {
                 this.$backdrop.one('bsTransitionEnd', removeBackdrop).emulateTransitionEnd(150);
               } else {
@@ -575,15 +546,9 @@ export default function installLibrariesBootstrapWidgets(engineModules, vendorSc
         });
       })(jQuery);
       (function (jquery) {
-        Object.defineProperty(tabPlugin, 'name', { value: 'n', configurable: true });
-
-        var Tab = Object.defineProperty(
-          function (element) {
-            this.element = jquery(element);
-          },
-          'name',
-          { value: 't', configurable: true },
-        );
+        var Tab = function (element) {
+          this.element = jquery(element);
+        };
         function tabPlugin(option) {
           return this.each(function () {
             var element = jquery(this),
@@ -618,8 +583,6 @@ export default function installLibrariesBootstrapWidgets(engineModules, vendorSc
           }
         };
         Tab.prototype.activate = function (element, container, callback) {
-          Object.defineProperty(activateTab, 'name', { value: 'a', configurable: true });
-
           var activeElement = container.find('> .active'),
             transition = callback && jquery.support.transition && activeElement.hasClass('fade');
           function activateTab() {

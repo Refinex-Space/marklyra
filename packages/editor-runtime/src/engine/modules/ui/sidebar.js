@@ -1,7 +1,6 @@
 // ui/sidebar.
 export default function initializeUiSidebar(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(valueOrDefault, 'name', { value: 'x', configurable: true });
 
   if (!this) {
     self;
@@ -84,59 +83,60 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       File.editor.tryEnterBusyModeWithDelay();
     }
   };
-  var handleWindowActivated = Object.defineProperty(
-    function (documentSnapshot, shouldReadFromDisk, preserveCursor, diskContentOverride) {
-      console.sendLog('onBecomeActive');
-      File.activeWindow = true;
-      console.sendLog('File.activeWindow = true');
-      if (!File._onInitParse) {
-        File.editor.brush.clearAndPause();
-        var lastCursor = preserveCursor ? File.editor.lastCursor : null,
-          unchangedState = File.restoreEditStateFromData(
-            documentSnapshot,
-            preserveCursor,
-            false,
-            shouldReadFromDisk,
-            diskContentOverride,
-          );
-        File.editor.brush.restart();
-        if (!preserveCursor && File.isMac && documentSnapshot) {
-          if (File.editor.library._onSwitchDocumentTarget) {
-            if (currentTimerId) {
-              clearTimeout(currentTimerId);
-            }
-            window.getSelection().removeAllRanges();
-            currentTimerId = setTimeout(File.recoverPosOrScroll, 400);
-          } else {
-            File.recoverPosOrScroll();
+  var handleWindowActivated = function (
+    documentSnapshot,
+    shouldReadFromDisk,
+    preserveCursor,
+    diskContentOverride,
+  ) {
+    console.sendLog('onBecomeActive');
+    File.activeWindow = true;
+    console.sendLog('File.activeWindow = true');
+    if (!File._onInitParse) {
+      File.editor.brush.clearAndPause();
+      var lastCursor = preserveCursor ? File.editor.lastCursor : null,
+        unchangedState = File.restoreEditStateFromData(
+          documentSnapshot,
+          preserveCursor,
+          false,
+          shouldReadFromDisk,
+          diskContentOverride,
+        );
+      File.editor.brush.restart();
+      if (!preserveCursor && File.isMac && documentSnapshot) {
+        if (File.editor.library._onSwitchDocumentTarget) {
+          if (currentTimerId) {
+            clearTimeout(currentTimerId);
           }
+          window.getSelection().removeAllRanges();
+          currentTimerId = setTimeout(File.recoverPosOrScroll, 400);
         } else {
-          fileIntegration.refreshTitlebarText();
-          if (unchangedState) {
-            Reporter.record({
-              message: 'Restore state from other window (no change)',
-              category: 'window.focus',
-            });
-          } else {
-            if (lastCursor) {
-              File.editor.lastCursor = lastCursor;
-              File.editor.restoreLastCursor();
-              if (!File.editor.sourceView.inSourceMode) {
-                var selection = window.getSelection();
-                if (!(lastCursor && 'None' != selection.type)) {
-                  selection.removeAllRanges();
-                }
+          File.recoverPosOrScroll();
+        }
+      } else {
+        fileIntegration.refreshTitlebarText();
+        if (unchangedState) {
+          Reporter.record({
+            message: 'Restore state from other window (no change)',
+            category: 'window.focus',
+          });
+        } else {
+          if (lastCursor) {
+            File.editor.lastCursor = lastCursor;
+            File.editor.restoreLastCursor();
+            if (!File.editor.sourceView.inSourceMode) {
+              var selection = window.getSelection();
+              if (!(lastCursor && 'None' != selection.type)) {
+                selection.removeAllRanges();
               }
-            } else {
-              window.getSelection().removeAllRanges();
             }
+          } else {
+            window.getSelection().removeAllRanges();
           }
         }
       }
-    },
-    'name',
-    { value: 'C', configurable: true },
-  );
+    }
+  };
   window.onWindowBlur = function () {
     try {
       if (!window.File || !File.editor || !File.editor.sourceView) {
@@ -173,29 +173,25 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       true);
   }
   var localTimerId,
-    switchToFile = Object.defineProperty(
-      function (filePath, onSwitched) {
-        if (!(File.isBroken || File._onInitParse || window._nos)) {
-          if (
-            (filePath = filePath || '').toLowerCase() != (File.bundle.filePath || '').toLowerCase()
-          ) {
-            fileIntegration.tryLeaveDocument(async function (cancelled) {
-              if (cancelled) {
-                File._onFileSwitching = false;
-                return void File.editor.library.resumeOnChange();
-              }
-              File._onFileSwitching = true;
-              await File.editor.library.doSwitchByNode(filePath);
-              if (onSwitched) {
-                onSwitched();
-              }
-            }, true);
-          }
+    switchToFile = function (filePath, onSwitched) {
+      if (!(File.isBroken || File._onInitParse || window._nos)) {
+        if (
+          (filePath = filePath || '').toLowerCase() != (File.bundle.filePath || '').toLowerCase()
+        ) {
+          fileIntegration.tryLeaveDocument(async function (cancelled) {
+            if (cancelled) {
+              File._onFileSwitching = false;
+              return void File.editor.library.resumeOnChange();
+            }
+            File._onFileSwitching = true;
+            await File.editor.library.doSwitchByNode(filePath);
+            if (onSwitched) {
+              onSwitched();
+            }
+          }, true);
         }
-      },
-      'name',
-      { value: 'S', configurable: true },
-    ),
+      }
+    },
     items = [],
     SortType = {
       CreateDateDescend: -3,
@@ -411,22 +407,14 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
         return void window.dispatchEvent(new Event('resize'));
       }
       var element = document.querySelector('#marklyra-sidebar');
-      const notifyTransitionStart = Object.defineProperty(
-          function () {
-            window.dispatchEvent(new Event('resize'));
-          },
-          'name',
-          { value: 't', configurable: true },
-        ),
-        notifyTransitionEnd = Object.defineProperty(
-          function () {
-            window.dispatchEvent(new Event('optimizedResize'));
-            element.removeEventListener('transitionstart', notifyTransitionStart);
-            element.removeEventListener('transitionend', notifyTransitionEnd);
-          },
-          'name',
-          { value: 'n', configurable: true },
-        );
+      const notifyTransitionStart = function () {
+          window.dispatchEvent(new Event('resize'));
+        },
+        notifyTransitionEnd = function () {
+          window.dispatchEvent(new Event('optimizedResize'));
+          element.removeEventListener('transitionstart', notifyTransitionStart);
+          element.removeEventListener('transitionend', notifyTransitionEnd);
+        };
       element.addEventListener('transitionstart', notifyTransitionStart);
       element.addEventListener('transitionend', notifyTransitionEnd);
     }
@@ -781,8 +769,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       }
     }
     addWatchByUnix(folderPath) {
-      Object.defineProperty(applyAddedFileChanges, 'name', { value: 'i', configurable: true });
-
       if ((File.isLinux || File.isMacNode) && folderPath) {
         var receiver = this,
           watcher = this.unixWatchers[folderPath];
@@ -825,8 +811,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       }
     }
     addFolderWatchByWin(watchedFolder, unusedParameter2) {
-      Object.defineProperty(applyRemovedFileChanges, 'name', { value: 'r', configurable: true });
-
       var receiver = this;
       if (this.fsWatcher) {
         this.fsWatcher.close();
@@ -882,9 +866,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       }
     }
     bindContext() {
-      Object.defineProperty(showFileContextMenu, 'name', { value: 'n', configurable: true });
-      Object.defineProperty(positionSidebarContextMenu, 'name', { value: 'i', configurable: true });
-
       var currentReceiver,
         receiver = this;
       function showFileContextMenu(contextEvent) {
@@ -1135,10 +1116,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
         .removeClass('marklyra-search-item-expand');
     }
     bindEvents() {
-      Object.defineProperty(hideSidebarFooterMenu, 'name', { value: 'r', configurable: true });
-      Object.defineProperty(startDragScrolling, 'name', { value: 'a', configurable: true });
-      Object.defineProperty(stopDragScrolling, 'name', { value: 's', configurable: true });
-
       var currentParentElement,
         receiver = this,
         editor = this.editor,
@@ -1207,15 +1184,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
           }
         })
         .on('dragenter', "[data-is-directory='true'] > .file-node-content", function (event) {
-          Object.defineProperty(scheduleFolderDragHighlight, 'name', {
-            value: 'i',
-            configurable: true,
-          });
-          Object.defineProperty(scheduleFolderDragExpansion, 'name', {
-            value: 'r',
-            configurable: true,
-          });
-
           function scheduleFolderDragHighlight(delayMs) {
             setTimeout(function () {
               if (
@@ -1579,19 +1547,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
             ) {
               if (File.isNode) {
                 (function (oldPath, openMovedFile) {
-                  Object.defineProperty(showRenameFailure, 'name', {
-                    value: 'c',
-                    configurable: true,
-                  });
-                  Object.defineProperty(renameFileWithUndo, 'name', {
-                    value: 'h',
-                    configurable: true,
-                  });
-                  Object.defineProperty(confirmDestinationOverwrite, 'name', {
-                    value: 'p',
-                    configurable: true,
-                  });
-
                   var fileSystem = reqnode('fs-extra'),
                     pathUtilities = reqnode('path'),
                     fileName = pathUtilities.basename(oldPath),
@@ -1681,48 +1636,44 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
                         cancelId: 2,
                       }).then(({ response: buttonIndex }) => {
                         if (0 == buttonIndex) {
-                          Object.defineProperty(
-                            function chooseCopyName() {
-                              var endOffset = fileName.indexOf('.'),
-                                baseName =
-                                  -1 == endOffset ? fileName : fileName.substring(0, endOffset),
-                                extension = -1 == endOffset ? '' : fileName.substring(endOffset);
-                              fileName = baseName + ' (copy)' + extension;
-                              newPath = pathUtilities.join(separator, fileName);
-                              if (fileSystem.existsSync(newPath)) {
-                                chooseCopyName();
-                              } else {
-                                receiver.execRenameFileByNode(oldPath, newPath).then(function ([
-                                  renameError,
-                                ]) {
-                                  if (renameError) {
-                                    showRenameFailure(renameError);
-                                    newPath = oldPath;
+                          (function chooseCopyName() {
+                            var endOffset = fileName.indexOf('.'),
+                              baseName =
+                                -1 == endOffset ? fileName : fileName.substring(0, endOffset),
+                              extension = -1 == endOffset ? '' : fileName.substring(endOffset);
+                            fileName = baseName + ' (copy)' + extension;
+                            newPath = pathUtilities.join(separator, fileName);
+                            if (fileSystem.existsSync(newPath)) {
+                              chooseCopyName();
+                            } else {
+                              receiver.execRenameFileByNode(oldPath, newPath).then(function ([
+                                renameError,
+                              ]) {
+                                if (renameError) {
+                                  showRenameFailure(renameError);
+                                  newPath = oldPath;
+                                } else {
+                                  JSBridge.invoke(
+                                    'filesOp.registerUndo',
+                                    newPath,
+                                    oldPath,
+                                    jquery.localize
+                                      .getString('Move %@', 'Panel')
+                                      .replace('%@', reqnode('path').basename(oldPath)),
+                                  );
+                                  if (openMovedFile) {
+                                    receiver.openFile(newPath);
                                   } else {
-                                    JSBridge.invoke(
-                                      'filesOp.registerUndo',
-                                      newPath,
-                                      oldPath,
-                                      jquery.localize
-                                        .getString('Move %@', 'Panel')
-                                        .replace('%@', reqnode('path').basename(oldPath)),
-                                    );
-                                    if (openMovedFile) {
-                                      receiver.openFile(newPath);
-                                    } else {
-                                      receiver.scheduleChangeHighlight(newPath);
-                                    }
+                                    receiver.scheduleChangeHighlight(newPath);
                                   }
-                                  JSBridge.invoke('app.sendEvent', 'didRename', {
-                                    oldPath: oldPath,
-                                    newPath: newPath,
-                                  });
+                                }
+                                JSBridge.invoke('app.sendEvent', 'didRename', {
+                                  oldPath: oldPath,
+                                  newPath: newPath,
                                 });
-                              }
-                            },
-                            'name',
-                            { value: 's', configurable: true },
-                          )();
+                              });
+                            }
+                          })();
                         } else {
                           if (1 == buttonIndex) {
                             renameFileWithUndo(oldPath, newPath, true);
@@ -1805,8 +1756,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       );
     }
     compareItem(firstItem, secondItem) {
-      Object.defineProperty(compareFileNames, 'name', { value: 'n', configurable: true });
-
       if (!firstItem || !secondItem) {
         return 1;
       }
@@ -1965,8 +1914,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       }
     }
     showSidebarMenu() {
-      Object.defineProperty(createFolderMenuItem, 'name', { value: 'i', configurable: true });
-
       jquery('.sidebar-footer').addClass('show-sidebar-footer-context');
       var updatePinnedFolderOrder,
         sidebarMenu = jquery('#sidebar-files-menu').focus(),
@@ -1983,56 +1930,52 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
         insertBefore.before(element);
         return element;
       }
-      updatePinnedFolderOrder = Object.defineProperty(
-        function (slice) {
-          sidebarMenu.find('.folder-menu-item').remove().end().find('.folder-menu-group').show();
-          var item,
-            sidebarHeight = jquery('.sidebar-content').height(),
-            clientHeight = sidebarMenu.find('#reveal-folder-from-sidebar-menu')[0].clientHeight,
-            currentClientHeight = sidebarMenu[0].clientHeight,
-            maxVisibleFolders = Math.max(
-              0,
-              Math.min(6, Math.floor((sidebarHeight - currentClientHeight - 20) / clientHeight)),
-            ),
-            currentItems = [],
-            localItems = [];
-          slice.forEach(function (inputItem) {
-            if (inputItem.path === File.getMountFolder()) {
-              item = inputItem;
-            } else {
-              if (inputItem.pinned) {
-                currentItems.push(inputItem);
-              } else {
-                localItems.push(inputItem);
-              }
-            }
-          });
-          if (File.getMountFolder() && !item) {
-            item = {
-              path: File.getMountFolder(),
-              name: fileIntegration.getFileNameFromPath(File.getMountFolder()),
-              pinned: false,
-            };
-          }
-          slice = (slice = currentItems.concat(localItems)).slice(0, maxVisibleFolders);
-          for (
-            var menuAnchor = jquery('#folder-menu-item-after'), itemIndex = 0;
-            itemIndex < slice.length;
-            itemIndex++
-          ) {
-            createFolderMenuItem(slice[itemIndex], menuAnchor);
-          }
-          if (item) {
-            createFolderMenuItem(item, menuAnchor).addClass('selected-folder-menu-item');
+      updatePinnedFolderOrder = function (slice) {
+        sidebarMenu.find('.folder-menu-item').remove().end().find('.folder-menu-group').show();
+        var item,
+          sidebarHeight = jquery('.sidebar-content').height(),
+          clientHeight = sidebarMenu.find('#reveal-folder-from-sidebar-menu')[0].clientHeight,
+          currentClientHeight = sidebarMenu[0].clientHeight,
+          maxVisibleFolders = Math.max(
+            0,
+            Math.min(6, Math.floor((sidebarHeight - currentClientHeight - 20) / clientHeight)),
+          ),
+          currentItems = [],
+          localItems = [];
+        slice.forEach(function (inputItem) {
+          if (inputItem.path === File.getMountFolder()) {
+            item = inputItem;
           } else {
-            if (0 == slice.length) {
-              sidebarMenu.find('.folder-menu-group').removeClass('show');
+            if (inputItem.pinned) {
+              currentItems.push(inputItem);
+            } else {
+              localItems.push(inputItem);
             }
           }
-        },
-        'name',
-        { value: 'e', configurable: true },
-      );
+        });
+        if (File.getMountFolder() && !item) {
+          item = {
+            path: File.getMountFolder(),
+            name: fileIntegration.getFileNameFromPath(File.getMountFolder()),
+            pinned: false,
+          };
+        }
+        slice = (slice = currentItems.concat(localItems)).slice(0, maxVisibleFolders);
+        for (
+          var menuAnchor = jquery('#folder-menu-item-after'), itemIndex = 0;
+          itemIndex < slice.length;
+          itemIndex++
+        ) {
+          createFolderMenuItem(slice[itemIndex], menuAnchor);
+        }
+        if (item) {
+          createFolderMenuItem(item, menuAnchor).addClass('selected-folder-menu-item');
+        } else {
+          if (0 == slice.length) {
+            sidebarMenu.find('.folder-menu-group').removeClass('show');
+          }
+        }
+      };
       if (File.isMac) {
         bridge.callHandler('library.getRecentFolders', updatePinnedFolderOrder);
       } else {
@@ -2129,8 +2072,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
     calcMountFolder(stopAtParent) {
       var receiver = this;
       return new Promise(function (resolvePromise, rejectPromise) {
-        Object.defineProperty(finishRootChange, 'name', { value: 'r', configurable: true });
-
         function finishRootChange(mountFolder_) {
           File.mountFolder_ = mountFolder_;
           resolvePromise(mountFolder_);
@@ -2430,9 +2371,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       this.fileTree.newFolderCommand(targetElement);
     }
     doDeleteFile(toDel, targetElement, onDeleted) {
-      Object.defineProperty(switchAfterFileDeletion, 'name', { value: 's', configurable: true });
-      Object.defineProperty(trashSelectedFile, 'name', { value: 'l', configurable: true });
-
       var element = targetElement
           ? this.editor.getJQueryElem(targetElement).closest('.file-library-node')
           : this.findElemFromPath(toDel),
@@ -2616,12 +2554,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       }
     }
     duplicateFileCommand(targetElement) {
-      Object.defineProperty(canDuplicateCurrentDocument, 'name', {
-        value: 'p',
-        configurable: true,
-      });
-      Object.defineProperty(revealDuplicatedFile, 'name', { value: 'f', configurable: true });
-
       var textSlice,
         pathUtilities,
         fileName,
@@ -2690,46 +2622,42 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
         textSlice = fileName.substr(startOffset);
         fileName = fileName.substr(0, startOffset);
         JSBridge.invoke('filesOp.clearUndo');
-        Object.defineProperty(
-          function copyWithAvailableName(sourcePath, baseName, extension, folderPath) {
-            baseName = '%@ (copy)'.replace('%@', baseName);
-            var destinationPath = folderPath + currentSep + baseName + extension;
-            fileSystem.copyFile(
-              sourcePath,
-              destinationPath,
-              fileSystem.constants.COPYFILE_EXCL,
-              function (copyError) {
-                if (copyError) {
-                  if ('EEXIST' == copyError.code) {
-                    copyWithAvailableName(sourcePath, baseName, extension, folderPath);
-                  } else {
-                    if (copyError) {
-                      dialogs.showNotification(
-                        '<strong>' +
-                          jquery.localize.getString('Operation Failed', 'Panel') +
-                          '</strong>  ' +
-                          utilities.escape(copyError.message || ''),
-                        true,
-                      );
-                    }
-                  }
+        (function copyWithAvailableName(sourcePath, baseName, extension, folderPath) {
+          baseName = '%@ (copy)'.replace('%@', baseName);
+          var destinationPath = folderPath + currentSep + baseName + extension;
+          fileSystem.copyFile(
+            sourcePath,
+            destinationPath,
+            fileSystem.constants.COPYFILE_EXCL,
+            function (copyError) {
+              if (copyError) {
+                if ('EEXIST' == copyError.code) {
+                  copyWithAvailableName(sourcePath, baseName, extension, folderPath);
                 } else {
-                  receiver.scheduleChangeHighlight(destinationPath);
-                  if (File.isWin) {
-                    revealDuplicatedFile(destinationPath);
+                  if (copyError) {
+                    dialogs.showNotification(
+                      '<strong>' +
+                        jquery.localize.getString('Operation Failed', 'Panel') +
+                        '</strong>  ' +
+                        utilities.escape(copyError.message || ''),
+                      true,
+                    );
                   }
-                  canDuplicateCurrentDocument(sourcePath).then(function (result) {
-                    if (result) {
-                      receiver.openFile(destinationPath);
-                    }
-                  });
                 }
-              },
-            );
-          },
-          'name',
-          { value: 'e', configurable: true },
-        )(sourcePath, fileName, textSlice, directoryPath);
+              } else {
+                receiver.scheduleChangeHighlight(destinationPath);
+                if (File.isWin) {
+                  revealDuplicatedFile(destinationPath);
+                }
+                canDuplicateCurrentDocument(sourcePath).then(function (result) {
+                  if (result) {
+                    receiver.openFile(destinationPath);
+                  }
+                });
+              }
+            },
+          );
+        })(sourcePath, fileName, textSlice, directoryPath);
       } else {
         (function (sourcePath) {
           bridge.callHandler('library.duplicate', sourcePath, function (destinationPath) {
@@ -2790,8 +2718,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       );
     }
     async cannotRename(oldPath, newPath, unusedParameter3) {
-      Object.defineProperty(getFileTypeLabel, 'name', { value: 'o', configurable: true });
-
       if (!File.option.supportTextBundle) {
         return false;
       }
@@ -2838,10 +2764,6 @@ export default function initializeUiSidebar(requireModule, moduleExports, module
       newlyCreated,
       parentPath,
     ) {
-      Object.defineProperty(sanitizeFileName, 'name', { value: 'p', configurable: true });
-      Object.defineProperty(applyInlineRename, 'name', { value: 'm', configurable: true });
-      Object.defineProperty(selectRenameBaseName, 'name', { value: 'g', configurable: true });
-
       var blurHandled,
         renameHandled,
         originalName = inputElement.val(),

@@ -9,12 +9,6 @@ export default function initializeCodemirrorSelectionMarkers(
     self;
   }
   !(function (CodeMirror) {
-    Object.defineProperty(updateMarkedSelection, 'name', { value: 't', configurable: true });
-    Object.defineProperty(clearChangedSelection, 'name', { value: 'n', configurable: true });
-    Object.defineProperty(markSelectionRange, 'name', { value: 'a', configurable: true });
-    Object.defineProperty(clearSelectionMarkers, 'name', { value: 's', configurable: true });
-    Object.defineProperty(rebuildSelectionMarkers, 'name', { value: 'l', configurable: true });
-
     function updateMarkedSelection(editor) {
       if (editor.state.markedSelection) {
         editor.operation(function () {

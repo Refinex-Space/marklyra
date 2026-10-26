@@ -1,6 +1,6 @@
-/** Used only around the hash-verified original surroundPair call.
+/** Groups history snapshots around the surroundPair command.
  * A second snapshot that changes neither model nor cursor is not a second user action.
- * Original non-empty commands and the previous command's objects are never rewritten. */
+ * Non-empty commands and the previous command's objects are never rewritten. */
 export function wrapPairingHistory(original) {
   const same = (left, right) => {
     if (Object.is(left, right)) return true;

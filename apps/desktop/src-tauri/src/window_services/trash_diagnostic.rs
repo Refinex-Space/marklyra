@@ -51,7 +51,7 @@ impl TrashDiagnostic {
         }
     }
 
-    /// Retains the original source FD in memory and preserves informational OS
+    /// Retains the captured source FD in memory and preserves informational OS
     /// evidence on disk. No journal field is accepted as a new filesystem grant.
     pub(crate) fn write(&self, directory: &Path) -> io::Result<()> {
         let builder = fs::DirBuilder::new();

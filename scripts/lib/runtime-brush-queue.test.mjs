@@ -10,7 +10,7 @@ import {
   unique,
 } from './runtime-test-source.mjs';
 
-const module = engineModule('2b');
+const module = engineModule('render/brush-queue');
 const queueMethod = unique(
   nodes(module, (node) => node.type === 'Property' && node.key?.name === 'brushQueue'),
   'brushQueue method',
@@ -42,7 +42,7 @@ function fixture(work = async () => false, sources = corrected) {
   const context = {
     File: { isLocked: false },
     console: { debug() {} },
-    [engineImportBinding('2b', '11')]: {
+    [engineImportBinding('render/brush-queue', 'shared/utilities')]: {
       isNullOrEmpty: (value) => value === null || value === undefined || value === '',
     },
     [runnerBinding]: function (cid, ...args) {

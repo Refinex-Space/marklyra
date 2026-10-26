@@ -1,8 +1,6 @@
 // editing/formatting.
 export default function initializeEditingFormatting(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(resolveListStyle, 'name', { value: 'p', configurable: true });
-  Object.defineProperty(replaceInlineNodeType, 'name', { value: 'b', configurable: true });
 
   if (!this) {
     self;
@@ -32,407 +30,389 @@ export default function initializeEditingFormatting(requireModule, moduleExports
       return DocumentNode.ListType.task;
     }
   }
-  var removeInlineSyntax = Object.defineProperty(
-      function (element, styleType, selectionBookmark, restoreSelection, removeOnly) {
-        Object.defineProperty(collectSyntaxMarkers, 'name', { value: 'a', configurable: true });
-
-        var range = rangy.createRange();
-        function collectSyntaxMarkers(inputElement) {
-          var syntaxElements;
-          syntaxElements =
-            inputElement.attr('md-inline') == styleType
-              ? inputElement.children('.md-meta:not(.md-content)')
-              : inputElement
-                  .find('[md-inline="' + styleType + '"]')
-                  .children('.md-meta:not(.md-content)');
-          if (selectionBookmark) {
-            selectionBookmark.end -= syntaxElements.text().length;
-          }
-          syntaxElements.remove();
-          inputElement
-            .children('.md-meta')
-            .filter(function () {
-              return 0 == (this.textContent || '').length;
-            })
-            .remove();
-          if (inputElement.attr('md-inline') == styleType && selectionBookmark) {
-            selectionBookmark.end = selectionBookmark.start + inputElement.text().length;
-          }
-        }
-        if (element[0].hasAttribute('mdtype')) {
-          element.wrapInner('<span></span>');
-          element = $(element[0].firstChild);
-        }
+  var removeInlineSyntax = function (
+      element,
+      styleType,
+      selectionBookmark,
+      restoreSelection,
+      removeOnly,
+    ) {
+      var range = rangy.createRange();
+      function collectSyntaxMarkers(inputElement) {
+        var syntaxElements;
+        syntaxElements =
+          inputElement.attr('md-inline') == styleType
+            ? inputElement.children('.md-meta:not(.md-content)')
+            : inputElement
+                .find('[md-inline="' + styleType + '"]')
+                .children('.md-meta:not(.md-content)');
         if (selectionBookmark) {
-          selectionBookmark.containerNode = element[0];
-          range.moveToBookmark(selectionBookmark);
-        } else {
-          range.selectNode(element[0]);
+          selectionBookmark.end -= syntaxElements.text().length;
         }
-        if (
-          range.commonAncestorContainer.nodeType == document.ELEMENT_NODE &&
-          range.commonAncestorContainer.getAttribute('md-inline') == styleType
+        syntaxElements.remove();
+        inputElement
+          .children('.md-meta')
+          .filter(function () {
+            return 0 == (this.textContent || '').length;
+          })
+          .remove();
+        if (inputElement.attr('md-inline') == styleType && selectionBookmark) {
+          selectionBookmark.end = selectionBookmark.start + inputElement.text().length;
+        }
+      }
+      if (element[0].hasAttribute('mdtype')) {
+        element.wrapInner('<span></span>');
+        element = $(element[0].firstChild);
+      }
+      if (selectionBookmark) {
+        selectionBookmark.containerNode = element[0];
+        range.moveToBookmark(selectionBookmark);
+      } else {
+        range.selectNode(element[0]);
+      }
+      if (
+        range.commonAncestorContainer.nodeType == document.ELEMENT_NODE &&
+        range.commonAncestorContainer.getAttribute('md-inline') == styleType
+      ) {
+        collectSyntaxMarkers($(range.commonAncestorContainer));
+      } else {
+        for (
+          var SPANElement = document.createElement('SPAN'),
+            selectedFragment = range.extractContents(),
+            itemIndex = 0;
+          itemIndex < selectedFragment.childNodes.length;
+          itemIndex++
         ) {
-          collectSyntaxMarkers($(range.commonAncestorContainer));
-        } else {
-          for (
-            var SPANElement = document.createElement('SPAN'),
-              selectedFragment = range.extractContents(),
-              itemIndex = 0;
-            itemIndex < selectedFragment.childNodes.length;
-            itemIndex++
-          ) {
-            SPANElement.appendChild(selectedFragment.childNodes[itemIndex].cloneNode(true));
-          }
-          collectSyntaxMarkers($(SPANElement));
-          if (
-            !(
-              SPANElement.childNodes.length != SPANElement.childElementCount ||
-              1 != SPANElement.childNodes.length ||
-              SPANElement.childNodes[0].getAttribute('md-inline')
-            )
-          ) {
-            SPANElement = SPANElement.childNodes[0];
-          }
-          range.insertNode(SPANElement);
-          range.setStart(SPANElement, 0);
-          range.setEnd(SPANElement, SPANElement.childNodes.length);
+          SPANElement.appendChild(selectedFragment.childNodes[itemIndex].cloneNode(true));
         }
-        if (!removeOnly) {
-          formatInlineRange.call(
-            this,
-            range,
-            styleType,
-            element[0],
-            restoreSelection ? selectionBookmark : null,
-          );
-        }
-        this.editor.brush.addToQueue(element.attr('cid'));
-        return range;
-      },
-      'name',
-      { value: 'f', configurable: true },
-    ),
-    expandLineSelection = Object.defineProperty(
-      function (treePosition, selectionRange) {
+        collectSyntaxMarkers($(SPANElement));
         if (
-          selectionRange.collapsed &&
-          treePosition[2] === treePosition[1] &&
-          DocumentNode.isType(treePosition[1], NodeType.line)
+          !(
+            SPANElement.childNodes.length != SPANElement.childElementCount ||
+            1 != SPANElement.childNodes.length ||
+            SPANElement.childNodes[0].getAttribute('md-inline')
+          )
         ) {
-          return [
-            treePosition[0],
-            treePosition[1].getFirstBrother(),
-            treePosition[1].getLastBrother(),
-          ];
-        } else {
-          return treePosition;
+          SPANElement = SPANElement.childNodes[0];
         }
-      },
-      'name',
-      { value: 'm', configurable: true },
-    ),
-    formatInlineRange = Object.defineProperty(
-      function (range, styleType, containerNode, inputEnd) {
-        if (DocumentNode.isType(styleType, NodeType.link, NodeType.image)) {
-          insertInlineSyntax.call(this, range, styleType, containerNode, inputEnd);
-        } else {
-          if (
-            range.commonAncestorContainer == range.startContainer &&
-            range.startContainer == range.endContainer
-          ) {
-            var items = (function (inputRange) {
-                Object.defineProperty(formatRangeSegment, 'name', {
-                  value: 'o',
-                  configurable: true,
-                });
-
-                var itemIndex,
-                  currentItems = [],
-                  segmentStartIndex = 0,
-                  commonAncestorContainer = inputRange.commonAncestorContainer;
-                if (!commonAncestorContainer.childElementCount) {
-                  return [inputRange];
-                }
-                function formatRangeSegment() {
-                  if (itemIndex != segmentStartIndex && 0 != itemIndex) {
-                    var currentRange = rangy.createRange();
-                    currentRange.setStart(commonAncestorContainer.children[segmentStartIndex], 0);
-                    currentRange.setEndAfter(commonAncestorContainer.children[itemIndex - 1]);
-                    currentItems.push(currentRange);
-                  }
-                }
-                for (
-                  itemIndex = 0;
-                  itemIndex < commonAncestorContainer.childElementCount;
-                  itemIndex++
-                ) {
-                  var element = commonAncestorContainer.children[itemIndex];
-                  if (element.classList && element.classList.contains('md-softbreak')) {
-                    formatRangeSegment();
-                    segmentStartIndex = itemIndex + 1;
-                  }
-                }
-                if (segmentStartIndex < itemIndex) {
-                  if (segmentStartIndex > 0) {
-                    formatRangeSegment();
-                  } else {
-                    currentItems.push(inputRange);
-                  }
-                }
-                return currentItems;
-              })(range),
-              spansMultipleSegments = items.length > 1,
-              receiver = this;
-            items.forEach(function (item, itemIndex) {
-              var end = insertInlineSyntax.call(
-                receiver,
-                item,
-                styleType,
-                containerNode,
-                itemIndex == items.length - 1 ? inputEnd : void 0,
-                spansMultipleSegments,
-              );
-              if (inputEnd && end) {
-                if (inputEnd instanceof Object) {
-                  inputEnd.end += end;
-                } else {
-                  inputEnd += end;
+        range.insertNode(SPANElement);
+        range.setStart(SPANElement, 0);
+        range.setEnd(SPANElement, SPANElement.childNodes.length);
+      }
+      if (!removeOnly) {
+        formatInlineRange.call(
+          this,
+          range,
+          styleType,
+          element[0],
+          restoreSelection ? selectionBookmark : null,
+        );
+      }
+      this.editor.brush.addToQueue(element.attr('cid'));
+      return range;
+    },
+    expandLineSelection = function (treePosition, selectionRange) {
+      if (
+        selectionRange.collapsed &&
+        treePosition[2] === treePosition[1] &&
+        DocumentNode.isType(treePosition[1], NodeType.line)
+      ) {
+        return [
+          treePosition[0],
+          treePosition[1].getFirstBrother(),
+          treePosition[1].getLastBrother(),
+        ];
+      } else {
+        return treePosition;
+      }
+    },
+    formatInlineRange = function (range, styleType, containerNode, inputEnd) {
+      if (DocumentNode.isType(styleType, NodeType.link, NodeType.image)) {
+        insertInlineSyntax.call(this, range, styleType, containerNode, inputEnd);
+      } else {
+        if (
+          range.commonAncestorContainer == range.startContainer &&
+          range.startContainer == range.endContainer
+        ) {
+          var items = (function (inputRange) {
+              var itemIndex,
+                currentItems = [],
+                segmentStartIndex = 0,
+                commonAncestorContainer = inputRange.commonAncestorContainer;
+              if (!commonAncestorContainer.childElementCount) {
+                return [inputRange];
+              }
+              function formatRangeSegment() {
+                if (itemIndex != segmentStartIndex && 0 != itemIndex) {
+                  var currentRange = rangy.createRange();
+                  currentRange.setStart(commonAncestorContainer.children[segmentStartIndex], 0);
+                  currentRange.setEndAfter(commonAncestorContainer.children[itemIndex - 1]);
+                  currentItems.push(currentRange);
                 }
               }
-            });
-          } else {
-            insertInlineSyntax.call(this, range, styleType, containerNode, inputEnd);
-          }
-        }
-      },
-      'name',
-      { value: 'g', configurable: true },
-    ),
-    insertInlineSyntax = Object.defineProperty(
-      function (range, styleType, containerNode, inputStart, includeSyntaxInSelection) {
-        var text,
-          selectionBookmark,
-          start,
-          end,
-          closingSyntax,
-          clipboardText,
-          syntaxPair = CONST.SyntaxMap[styleType];
-        if (inputStart) {
-          var rangeAdjusted,
-            element = this.editor.getJQueryElem(range.startContainer),
-            currentElement = this.editor.getJQueryElem(range.endContainer);
-          if (element.closest('md-before').length || element.closest('md-content').length) {
-            range.setStartBefore(element.closest('[md-inline]')[0]);
-            rangeAdjusted = true;
-          } else {
-            if (element.closest('md-meta').length) {
-              range.setStartAfter(element.closest('[md-inline]')[0]);
-              rangeAdjusted = true;
+              for (
+                itemIndex = 0;
+                itemIndex < commonAncestorContainer.childElementCount;
+                itemIndex++
+              ) {
+                var element = commonAncestorContainer.children[itemIndex];
+                if (element.classList && element.classList.contains('md-softbreak')) {
+                  formatRangeSegment();
+                  segmentStartIndex = itemIndex + 1;
+                }
+              }
+              if (segmentStartIndex < itemIndex) {
+                if (segmentStartIndex > 0) {
+                  formatRangeSegment();
+                } else {
+                  currentItems.push(inputRange);
+                }
+              }
+              return currentItems;
+            })(range),
+            spansMultipleSegments = items.length > 1,
+            receiver = this;
+          items.forEach(function (item, itemIndex) {
+            var end = insertInlineSyntax.call(
+              receiver,
+              item,
+              styleType,
+              containerNode,
+              itemIndex == items.length - 1 ? inputEnd : void 0,
+              spansMultipleSegments,
+            );
+            if (inputEnd && end) {
+              if (inputEnd instanceof Object) {
+                inputEnd.end += end;
+              } else {
+                inputEnd += end;
+              }
             }
-          }
-          if (currentElement.closest('md-after').length || element.closest('md-content').length) {
-            range.setEndAfter(element.closest('[md-inline]')[0]);
-            rangeAdjusted = true;
-          } else {
-            if (currentElement.closest('md-meta').length) {
-              range.setEndBefore(element.closest('[md-inline]')[0]);
-              rangeAdjusted = true;
-            }
-          }
-          text = range.toString();
-          if (range.collapsed || 0 === text.trim()) {
-            return;
-          }
-          selectionBookmark = rangeAdjusted
-            ? selectionBookmark ||
-              range.getBookmark(
-                containerNode && document.body.contains(containerNode)
-                  ? containerNode
-                  : range.commonAncestorContainer,
-              )
-            : inputStart instanceof Object
-              ? inputStart
-              : { start: inputStart, end: inputStart };
+          });
         } else {
-          text = range.toString();
+          insertInlineSyntax.call(this, range, styleType, containerNode, inputEnd);
         }
-        start = /^\s+/g.exec(text);
-        end = /\s+$/g.exec(text);
-        start = start ? start[0].length : 0;
-        end = end ? end[0].length : 0;
-        if (start || end) {
-          (selectionBookmark =
-            selectionBookmark ||
+      }
+    },
+    insertInlineSyntax = function (
+      range,
+      styleType,
+      containerNode,
+      inputStart,
+      includeSyntaxInSelection,
+    ) {
+      var text,
+        selectionBookmark,
+        start,
+        end,
+        closingSyntax,
+        clipboardText,
+        syntaxPair = CONST.SyntaxMap[styleType];
+      if (inputStart) {
+        var rangeAdjusted,
+          element = this.editor.getJQueryElem(range.startContainer),
+          currentElement = this.editor.getJQueryElem(range.endContainer);
+        if (element.closest('md-before').length || element.closest('md-content').length) {
+          range.setStartBefore(element.closest('[md-inline]')[0]);
+          rangeAdjusted = true;
+        } else {
+          if (element.closest('md-meta').length) {
+            range.setStartAfter(element.closest('[md-inline]')[0]);
+            rangeAdjusted = true;
+          }
+        }
+        if (currentElement.closest('md-after').length || element.closest('md-content').length) {
+          range.setEndAfter(element.closest('[md-inline]')[0]);
+          rangeAdjusted = true;
+        } else {
+          if (currentElement.closest('md-meta').length) {
+            range.setEndBefore(element.closest('[md-inline]')[0]);
+            rangeAdjusted = true;
+          }
+        }
+        text = range.toString();
+        if (range.collapsed || 0 === text.trim()) {
+          return;
+        }
+        selectionBookmark = rangeAdjusted
+          ? selectionBookmark ||
             range.getBookmark(
               containerNode && document.body.contains(containerNode)
                 ? containerNode
-                : range.commonAncestorContainer || range.commonAncestorContainer,
-            )).start += start;
-          selectionBookmark.end -= end;
-          range.moveToBookmark(selectionBookmark);
+                : range.commonAncestorContainer,
+            )
+          : inputStart instanceof Object
+            ? inputStart
+            : { start: inputStart, end: inputStart };
+      } else {
+        text = range.toString();
+      }
+      start = /^\s+/g.exec(text);
+      end = /\s+$/g.exec(text);
+      start = start ? start[0].length : 0;
+      end = end ? end[0].length : 0;
+      if (start || end) {
+        (selectionBookmark =
+          selectionBookmark ||
+          range.getBookmark(
+            containerNode && document.body.contains(containerNode)
+              ? containerNode
+              : range.commonAncestorContainer || range.commonAncestorContainer,
+          )).start += start;
+        selectionBookmark.end -= end;
+        range.moveToBookmark(selectionBookmark);
+      }
+      closingSyntax = syntaxPair[1];
+      if ((clipboardText = JSBridge.clipboard.readText()) && clipboardText.length > 5e3) {
+        clipboardText = '';
+      }
+      if (DocumentNode.isType(styleType, NodeType.link)) {
+        if (utilities.isURL(text)) {
+          closingSyntax = '](' + text + ')';
+        } else {
+          if (utilities.isURL(clipboardText)) {
+            closingSyntax = '](' + clipboardText.trim() + ')';
+          }
         }
-        closingSyntax = syntaxPair[1];
-        if ((clipboardText = JSBridge.clipboard.readText()) && clipboardText.length > 5e3) {
-          clipboardText = '';
-        }
-        if (DocumentNode.isType(styleType, NodeType.link)) {
-          if (utilities.isURL(text)) {
+      } else {
+        if (DocumentNode.isType(styleType, NodeType.image)) {
+          if (utilities.isImg(text)) {
             closingSyntax = '](' + text + ')';
           } else {
-            if (utilities.isURL(clipboardText)) {
-              closingSyntax = '](' + clipboardText.trim() + ')';
+            if (utilities.isImg(clipboardText)) {
+              closingSyntax = '](' + clipboardText + ')';
             }
           }
+        }
+      }
+      range.insertNodeAtEnd(document.createTextNode(closingSyntax));
+      range.insertNode(document.createTextNode(syntaxPair[0]));
+      if (inputStart) {
+        if (DocumentNode.isType(styleType, NodeType.link)) {
+          range.moveToBookmark({
+            containerNode: containerNode,
+            start: selectionBookmark.start + 1,
+            end: 1 + selectionBookmark.end,
+          });
         } else {
-          if (DocumentNode.isType(styleType, NodeType.image)) {
-            if (utilities.isImg(text)) {
-              closingSyntax = '](' + text + ')';
-            } else {
-              if (utilities.isImg(clipboardText)) {
-                closingSyntax = '](' + clipboardText + ')';
-              }
-            }
-          }
+          range.moveToBookmark({
+            containerNode: containerNode,
+            start: selectionBookmark.start + (includeSyntaxInSelection ? 0 : syntaxPair[0].length),
+            end:
+              selectionBookmark.end +
+              syntaxPair[0].length +
+              (includeSyntaxInSelection ? syntaxPair[1].length : 0),
+          });
         }
-        range.insertNodeAtEnd(document.createTextNode(closingSyntax));
-        range.insertNode(document.createTextNode(syntaxPair[0]));
-        if (inputStart) {
-          if (DocumentNode.isType(styleType, NodeType.link)) {
-            range.moveToBookmark({
-              containerNode: containerNode,
-              start: selectionBookmark.start + 1,
-              end: 1 + selectionBookmark.end,
-            });
-          } else {
-            range.moveToBookmark({
-              containerNode: containerNode,
-              start:
-                selectionBookmark.start + (includeSyntaxInSelection ? 0 : syntaxPair[0].length),
-              end:
-                selectionBookmark.end +
-                syntaxPair[0].length +
-                (includeSyntaxInSelection ? syntaxPair[1].length : 0),
-            });
-          }
-          editor.selection.setRange(range, true);
-        }
-        return (syntaxPair[0] || '').length + (syntaxPair[1] || '').length;
-      },
-      'name',
-      { value: 'v', configurable: true },
-    ),
-    formatSelectedNodes = Object.defineProperty(
-      function (range, styleType, removeOnly) {
-        Object.defineProperty(formatDescendantLeaves, 'name', { value: 'r', configurable: true });
-
-        var currentEditor = this.editor;
-        function formatDescendantLeaves(documentNode) {
-          var children = documentNode.get('children');
-          if (children.length) {
-            children.toArray().map(formatDescendantLeaves);
-          } else {
-            if (currentEditor.stylize.canContainInline(documentNode.get('type'))) {
-              if (currentEditor.findElemById(documentNode.id).text().length) {
-                currentEditor.stylize.putStyleInBlock(
-                  currentEditor.findElemById(documentNode.id),
-                  styleType,
-                  void 0,
-                  void 0,
-                  true,
-                  removeOnly,
-                );
-                currentEditor.store(documentNode);
-                currentEditor.brush.addToQueue(documentNode.id);
-              }
-            }
-          }
-          return documentNode;
-        }
-        currentEditor.undo.endSnap(true);
-        var startPosition = currentEditor.selection.getDetailPos(
-            range.startContainer,
-            range.startOffset,
-          ),
-          endPosition = currentEditor.selection.getDetailPos(range.endContainer, range.endOffset),
-          element = currentEditor.getMarkElem(startPosition[0]),
-          currentElement = currentEditor.getMarkElem(endPosition[0]),
-          startNode = currentEditor.findNodeByElem(element),
-          endNode = currentEditor.findNodeByElem(currentElement);
-        if (startNode && endNode) {
-          var treePosition = DocumentNode.getTreePosition(startNode, endNode),
-            currentDocumentNode = treePosition[1],
-            lastBlock = treePosition[2],
-            formatCommand = undoManager.makeEmptyCommand(currentEditor.selection.buildUndo()),
-            endRange = range.cloneRange(),
-            startRange = range.cloneRange(),
-            localDocumentNode = currentDocumentNode;
-          for (
-            formatCommand.undo.push(undoManager.buildReplaceUndo(currentDocumentNode)),
-              startRange.setEndAfter(element[0]),
-              this.canContainInline(startNode) &&
-                startRange.toString().length &&
-                (this.putStyleInBlock(
-                  element,
-                  styleType,
-                  startRange.getBookmark(element[0]),
-                  void 0,
-                  true,
-                  removeOnly,
-                ),
-                currentEditor.store(startNode, true)),
-              currentEditor.UserOp.decorateOneSide(
-                startNode,
-                currentDocumentNode,
-                'after',
-                formatDescendantLeaves,
-              ),
-              formatCommand.redo.push(undoManager.buildReplaceUndo(currentDocumentNode)),
-              currentEditor.brush.addToQueue(element.attr('cid')),
-              localDocumentNode = currentDocumentNode.get('after');
-            localDocumentNode && localDocumentNode !== lastBlock;
-          ) {
-            formatCommand.undo.push(undoManager.buildReplaceUndo(localDocumentNode));
-            formatDescendantLeaves(localDocumentNode);
-            formatCommand.redo.push(undoManager.buildReplaceUndo(localDocumentNode));
-            localDocumentNode = localDocumentNode.get('after');
-          }
-          if (endNode && endNode != currentDocumentNode) {
-            endRange.setStartBefore(currentElement[0]);
-            if (endRange.toString().length) {
-              formatCommand.undo.push(undoManager.buildReplaceUndo(lastBlock));
-              if (this.canContainInline(endNode)) {
-                this.putStyleInBlock(
-                  currentElement,
-                  styleType,
-                  endRange.getBookmark(currentElement[0]),
-                  void 0,
-                  true,
-                  removeOnly,
-                );
-                currentEditor.store(endNode, true);
-              }
-              currentEditor.UserOp.decorateOneSide(
-                endNode,
-                lastBlock,
-                'before',
-                formatDescendantLeaves,
+        editor.selection.setRange(range, true);
+      }
+      return (syntaxPair[0] || '').length + (syntaxPair[1] || '').length;
+    },
+    formatSelectedNodes = function (range, styleType, removeOnly) {
+      var currentEditor = this.editor;
+      function formatDescendantLeaves(documentNode) {
+        var children = documentNode.get('children');
+        if (children.length) {
+          children.toArray().map(formatDescendantLeaves);
+        } else {
+          if (currentEditor.stylize.canContainInline(documentNode.get('type'))) {
+            if (currentEditor.findElemById(documentNode.id).text().length) {
+              currentEditor.stylize.putStyleInBlock(
+                currentEditor.findElemById(documentNode.id),
+                styleType,
+                void 0,
+                void 0,
+                true,
+                removeOnly,
               );
-              formatCommand.redo.push(undoManager.buildReplaceUndo(lastBlock));
-              currentEditor.brush.addToQueue(currentElement.attr('cid'));
+              currentEditor.store(documentNode);
+              currentEditor.brush.addToQueue(documentNode.id);
             }
           }
-          formatCommand.redo.push(currentEditor.selection.buildUndo());
-          currentEditor.undo.register(formatCommand);
-          $('.md-expand').removeClass('md-expand');
-          currentEditor.brush.resume(true);
-        } else {
-          currentEditor.brush.resume(true);
         }
-      },
-      'name',
-      { value: 'y', configurable: true },
-    );
+        return documentNode;
+      }
+      currentEditor.undo.endSnap(true);
+      var startPosition = currentEditor.selection.getDetailPos(
+          range.startContainer,
+          range.startOffset,
+        ),
+        endPosition = currentEditor.selection.getDetailPos(range.endContainer, range.endOffset),
+        element = currentEditor.getMarkElem(startPosition[0]),
+        currentElement = currentEditor.getMarkElem(endPosition[0]),
+        startNode = currentEditor.findNodeByElem(element),
+        endNode = currentEditor.findNodeByElem(currentElement);
+      if (startNode && endNode) {
+        var treePosition = DocumentNode.getTreePosition(startNode, endNode),
+          currentDocumentNode = treePosition[1],
+          lastBlock = treePosition[2],
+          formatCommand = undoManager.makeEmptyCommand(currentEditor.selection.buildUndo()),
+          endRange = range.cloneRange(),
+          startRange = range.cloneRange(),
+          localDocumentNode = currentDocumentNode;
+        for (
+          formatCommand.undo.push(undoManager.buildReplaceUndo(currentDocumentNode)),
+            startRange.setEndAfter(element[0]),
+            this.canContainInline(startNode) &&
+              startRange.toString().length &&
+              (this.putStyleInBlock(
+                element,
+                styleType,
+                startRange.getBookmark(element[0]),
+                void 0,
+                true,
+                removeOnly,
+              ),
+              currentEditor.store(startNode, true)),
+            currentEditor.UserOp.decorateOneSide(
+              startNode,
+              currentDocumentNode,
+              'after',
+              formatDescendantLeaves,
+            ),
+            formatCommand.redo.push(undoManager.buildReplaceUndo(currentDocumentNode)),
+            currentEditor.brush.addToQueue(element.attr('cid')),
+            localDocumentNode = currentDocumentNode.get('after');
+          localDocumentNode && localDocumentNode !== lastBlock;
+        ) {
+          formatCommand.undo.push(undoManager.buildReplaceUndo(localDocumentNode));
+          formatDescendantLeaves(localDocumentNode);
+          formatCommand.redo.push(undoManager.buildReplaceUndo(localDocumentNode));
+          localDocumentNode = localDocumentNode.get('after');
+        }
+        if (endNode && endNode != currentDocumentNode) {
+          endRange.setStartBefore(currentElement[0]);
+          if (endRange.toString().length) {
+            formatCommand.undo.push(undoManager.buildReplaceUndo(lastBlock));
+            if (this.canContainInline(endNode)) {
+              this.putStyleInBlock(
+                currentElement,
+                styleType,
+                endRange.getBookmark(currentElement[0]),
+                void 0,
+                true,
+                removeOnly,
+              );
+              currentEditor.store(endNode, true);
+            }
+            currentEditor.UserOp.decorateOneSide(
+              endNode,
+              lastBlock,
+              'before',
+              formatDescendantLeaves,
+            );
+            formatCommand.redo.push(undoManager.buildReplaceUndo(lastBlock));
+            currentEditor.brush.addToQueue(currentElement.attr('cid'));
+          }
+        }
+        formatCommand.redo.push(currentEditor.selection.buildUndo());
+        currentEditor.undo.register(formatCommand);
+        $('.md-expand').removeClass('md-expand');
+        currentEditor.brush.resume(true);
+      } else {
+        currentEditor.brush.resume(true);
+      }
+    };
   function replaceInlineNodeType(editorInstance, inputElement, blockElement, styleType) {
     var replacementText,
       element = inputElement.closest('[md-inline="' + styleType + '"]');
@@ -690,9 +670,6 @@ export default function initializeEditingFormatting(requireModule, moduleExports
       }
     }
     toggleStyle(styleType) {
-      Object.defineProperty(isEmptyFormattingSelection, 'name', { value: 'p', configurable: true });
-      Object.defineProperty(rangeStartsAtContainer, 'name', { value: 'f', configurable: true });
-
       if (
         !File.isLocked &&
         window.getSelection().rangeCount &&
@@ -1024,8 +1001,6 @@ export default function initializeEditingFormatting(requireModule, moduleExports
       }
     }
     changeBlock(paragraph, documentNode, toggleHeading, attributes) {
-      Object.defineProperty(applyHeading, 'name', { value: 'C', configurable: true });
-
       if (
         !File.isLocked &&
         !document.body.classList.contains('modal-open') &&
@@ -1366,8 +1341,6 @@ export default function initializeEditingFormatting(requireModule, moduleExports
       );
     }
     insertBlock(type, existingNode) {
-      Object.defineProperty(attachSubtreeToDocument, 'name', { value: 'x', configurable: true });
-
       if (!(File.isLocked || ('table' != type && document.body.classList.contains('modal-open')))) {
         this.editor.focusAndRestorePos();
         var currentEditor = this.editor,
@@ -1562,11 +1535,6 @@ export default function initializeEditingFormatting(requireModule, moduleExports
       }
     }
     toggleIndent(type, enforceRequestedStyle, alertType) {
-      Object.defineProperty(applyAlertType, 'name', { value: 'k', configurable: true });
-      Object.defineProperty(applyListStyle, 'name', { value: 'E', configurable: true });
-      Object.defineProperty(splitParagraphLines, 'name', { value: 'T', configurable: true });
-      Object.defineProperty(closestRealBlock, 'name', { value: '_', configurable: true });
-
       if (!File.isLocked && !document.body.classList.contains('modal-open')) {
         this.editor.focusAndRestorePos();
         var currentEditor = this.editor,
@@ -1592,50 +1560,40 @@ export default function initializeEditingFormatting(requireModule, moduleExports
             var lastCursor = this.editor.selection.buildUndo();
             this.editor.lastCursor = lastCursor;
             (function (selectionRange) {
-              Object.defineProperty(closestParagraph, 'name', { value: 'n', configurable: true });
-
               if (selectionRange && !selectionRange.collapsed) {
                 var rangeAdjusted = false;
-                !Object.defineProperty(
-                  function trimEmptyRangeEnd(inputRange) {
-                    var previousElement,
-                      endParagraph = closestParagraph(inputRange.endContainer);
-                    if (
-                      !(
-                        endParagraph.text().length ||
-                        endParagraph.parent()[0] != inputRange.commonAncestorContainer
-                      )
-                    ) {
-                      if ((previousElement = endParagraph.prev()[0])) {
-                        rangeAdjusted = true;
-                        inputRange.setEndAfter(previousElement);
-                        trimEmptyRangeEnd(inputRange);
-                      }
+                !(function trimEmptyRangeEnd(inputRange) {
+                  var previousElement,
+                    endParagraph = closestParagraph(inputRange.endContainer);
+                  if (
+                    !(
+                      endParagraph.text().length ||
+                      endParagraph.parent()[0] != inputRange.commonAncestorContainer
+                    )
+                  ) {
+                    if ((previousElement = endParagraph.prev()[0])) {
+                      rangeAdjusted = true;
+                      inputRange.setEndAfter(previousElement);
+                      trimEmptyRangeEnd(inputRange);
                     }
-                  },
-                  'name',
-                  { value: 'e', configurable: true },
-                )(selectionRange);
-                Object.defineProperty(
-                  function trimEmptyRangeStart(inputRange) {
-                    var followingElement,
-                      startParagraph = closestParagraph(inputRange.startContainer);
-                    if (
-                      !(
-                        startParagraph.text().length ||
-                        startParagraph.parent()[0] != inputRange.commonAncestorContainer
-                      )
-                    ) {
-                      if ((followingElement = startParagraph.after()[0])) {
-                        rangeAdjusted = true;
-                        inputRange.setStartBefore(followingElement);
-                        trimEmptyRangeStart(inputRange);
-                      }
+                  }
+                })(selectionRange);
+                (function trimEmptyRangeStart(inputRange) {
+                  var followingElement,
+                    startParagraph = closestParagraph(inputRange.startContainer);
+                  if (
+                    !(
+                      startParagraph.text().length ||
+                      startParagraph.parent()[0] != inputRange.commonAncestorContainer
+                    )
+                  ) {
+                    if ((followingElement = startParagraph.after()[0])) {
+                      rangeAdjusted = true;
+                      inputRange.setStartBefore(followingElement);
+                      trimEmptyRangeStart(inputRange);
                     }
-                  },
-                  'name',
-                  { value: 'e', configurable: true },
-                )(selectionRange);
+                  }
+                })(selectionRange);
                 if (rangeAdjusted) {
                   currentEditor.selection.deRange(selectionRange);
                 }
@@ -1710,30 +1668,28 @@ export default function initializeEditingFormatting(requireModule, moduleExports
                       }
                     }
                     if (collapsed) {
-                      documentNode = inputDocumentNode = Object.defineProperty(
-                        function findRemovableContainer(callbackDocumentNode) {
-                          var parentNode = callbackDocumentNode.get('parent');
-                          if (
-                            !parentNode ||
-                            callbackDocumentNode.get('before') ||
-                            callbackDocumentNode.get('after')
-                          ) {
-                            if (DocumentNode.isType(callbackDocumentNode, NodeType.list_item)) {
-                              return callbackDocumentNode.getFirstChild();
-                            } else {
-                              if (callbackDocumentNode.isVirtualBlock()) {
-                                return closestRealBlock(callbackDocumentNode);
-                              } else {
-                                return callbackDocumentNode;
-                              }
-                            }
+                      documentNode = inputDocumentNode = (function findRemovableContainer(
+                        callbackDocumentNode,
+                      ) {
+                        var parentNode = callbackDocumentNode.get('parent');
+                        if (
+                          !parentNode ||
+                          callbackDocumentNode.get('before') ||
+                          callbackDocumentNode.get('after')
+                        ) {
+                          if (DocumentNode.isType(callbackDocumentNode, NodeType.list_item)) {
+                            return callbackDocumentNode.getFirstChild();
                           } else {
-                            return findRemovableContainer(parentNode);
+                            if (callbackDocumentNode.isVirtualBlock()) {
+                              return closestRealBlock(callbackDocumentNode);
+                            } else {
+                              return callbackDocumentNode;
+                            }
                           }
-                        },
-                        'name',
-                        { value: 'e', configurable: true },
-                      )(documentNode);
+                        } else {
+                          return findRemovableContainer(parentNode);
+                        }
+                      })(documentNode);
                     }
                     var documentNodeInstance = new DocumentNode({ type: type });
                     DocumentNode.wrap(
@@ -2032,7 +1988,7 @@ export default function initializeEditingFormatting(requireModule, moduleExports
       }
     }
   }
-  Object.defineProperty(FormattingController, 'name', { value: 'w', configurable: true });
+
   var NoInlineBlock = [
       'hr',
       'fences',

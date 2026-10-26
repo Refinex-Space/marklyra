@@ -39,7 +39,7 @@ define_class!(
 
         #[unsafe(method_id(hitTest:))]
         fn hit_test(&self, point: NSPoint) -> Option<Retained<NSView>> {
-            // Cmd-click / secondary-click continue through the original AppKit title controls.
+            // Cmd-click / secondary-click continue through the standard AppKit title controls.
             let passthrough = NSApplication::sharedApplication(self.mtm()).currentEvent()
                 .is_some_and(|event| !accepts_click(event.r#type(), event.modifierFlags()));
             if !self.isEnabled() || passthrough { None } else {

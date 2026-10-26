@@ -49,7 +49,7 @@ for (const mode of [
       '\n\nAfter';
     await createImageEditor(page, { source, context: 'refresh-doc', resolve: 'defer' });
     const frame = imageFrame(page);
-    // The fixture includes a lazily initialized original code fence. Establish
+    // The fixture includes a lazily initialized code fence. Establish
     // that actual instance before comparing decoration effects on its selection.
     await expect(frame.locator('#write .CodeMirror')).toHaveCount(1);
     if (mode.startsWith('source-')) {

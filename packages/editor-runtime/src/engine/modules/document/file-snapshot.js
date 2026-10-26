@@ -15,109 +15,97 @@ export default function initializeDocumentFileSnapshot(requireModule, moduleExpo
       ((fileIntegration = requireModule('host/file-integration')),
       requireModule('document/file-writer')),
     Reporter = requireModule('host/local-diagnostics').Reporter,
-    swapItems = Object.defineProperty(
-      function (items, leftIndex, rightIndex) {
-        var leftItem = items[leftIndex];
-        items[leftIndex] = items[rightIndex];
-        items[rightIndex] = leftItem;
-      },
-      'name',
-      { value: 'h', configurable: true },
-    ),
-    buildSaveDialogOptions = Object.defineProperty(
-      function (preferAllFiles, defaultPath, dialogOptions) {
-        dialogOptions = dialogOptions || {};
-        var filters = [
-          {
-            name: jquery.localize.getString('Markdown File', 'Panel'),
-            extensions: ['md', 'markdown', 'mmd', 'mdwn', 'mdown'],
-          },
-          { name: jquery.localize.getString('TextBundle', 'Panel'), extensions: ['textbundle'] },
-          {
-            name: jquery.localize.getString('Plain Text File', 'Panel'),
-            extensions: ['txt', 'text', ''],
-          },
-        ];
-        if (preferAllFiles) {
-          filters.push({
-            name: jquery.localize.getString('All Files', 'Panel'),
-            extensions: ['*'],
-          });
-        }
-        if (/\.textbundle$/i.exec(defaultPath)) {
-          swapItems(filters, 0, 1);
+    swapItems = function (items, leftIndex, rightIndex) {
+      var leftItem = items[leftIndex];
+      items[leftIndex] = items[rightIndex];
+      items[rightIndex] = leftItem;
+    },
+    buildSaveDialogOptions = function (preferAllFiles, defaultPath, dialogOptions) {
+      dialogOptions = dialogOptions || {};
+      var filters = [
+        {
+          name: jquery.localize.getString('Markdown File', 'Panel'),
+          extensions: ['md', 'markdown', 'mmd', 'mdwn', 'mdown'],
+        },
+        { name: jquery.localize.getString('TextBundle', 'Panel'), extensions: ['textbundle'] },
+        {
+          name: jquery.localize.getString('Plain Text File', 'Panel'),
+          extensions: ['txt', 'text', ''],
+        },
+      ];
+      if (preferAllFiles) {
+        filters.push({
+          name: jquery.localize.getString('All Files', 'Panel'),
+          extensions: ['*'],
+        });
+      }
+      if (/\.textbundle$/i.exec(defaultPath)) {
+        swapItems(filters, 0, 1);
+      } else {
+        if (/\.(txt|text)$/i.exec(defaultPath)) {
+          swapItems(filters, 0, 2);
         } else {
-          if (/\.(txt|text)$/i.exec(defaultPath)) {
+          if (/[\\\/][^\\\/\.]+$/i.exec(defaultPath)) {
             swapItems(filters, 0, 2);
           } else {
-            if (/[\\\/][^\\\/\.]+$/i.exec(defaultPath)) {
-              swapItems(filters, 0, 2);
-            } else {
-              if (!/\.(md|markdown|mmd|mdwn|mdown)$/i.exec(defaultPath)) {
-                if (!preferAllFiles) {
-                  filters.push({
-                    name: jquery.localize.getString('All Files', 'Panel'),
-                    extensions: ['*'],
-                  });
-                }
-                swapItems(filters, 0, 3);
+            if (!/\.(md|markdown|mmd|mdwn|mdown)$/i.exec(defaultPath)) {
+              if (!preferAllFiles) {
+                filters.push({
+                  name: jquery.localize.getString('All Files', 'Panel'),
+                  extensions: ['*'],
+                });
               }
+              swapItems(filters, 0, 3);
             }
           }
         }
-        return JSBridge.invoke(
-          'dialog.showSaveDialog',
-          Object.assign(
-            {
-              properties: ['saveFile', 'showOverwriteConfirmation'],
-              title: jquery.localize.getString('Save', 'Menu'),
-            },
-            dialogOptions,
-            { defaultPath: defaultPath, filters: filters },
-          ),
-        );
-      },
-      'name',
-      { value: 'p', configurable: true },
-    ),
-    showSaveDialog = Object.defineProperty(
-      function (onSaved, onCancelled, onSaveError, forceRename) {
-        var text = File.bundle.filePath || File.bundle.originalPath;
-        if (!(text || File.isLinuxSnap)) {
-          text = fileIntegration.getDefaultPathOrName();
-        }
-        if (/\.textbundle$/i.exec(text) && File.bundle.filePath) {
-          text = text.replace(/\.textbundle$/i, '-2.textbundle');
-        }
-        buildSaveDialogOptions(true, text).then(
-          async ({ filePath: selectedPath }) => {
-            if (selectedPath) {
-              var saveError = await fileSnapshot.saveAsUseNode(selectedPath, forceRename);
-              if (saveError) {
-                if (onSaveError) {
-                  onSaveError(saveError);
-                }
-              } else {
-                if (onSaved) {
-                  onSaved(selectedPath);
-                }
+      }
+      return JSBridge.invoke(
+        'dialog.showSaveDialog',
+        Object.assign(
+          {
+            properties: ['saveFile', 'showOverwriteConfirmation'],
+            title: jquery.localize.getString('Save', 'Menu'),
+          },
+          dialogOptions,
+          { defaultPath: defaultPath, filters: filters },
+        ),
+      );
+    },
+    showSaveDialog = function (onSaved, onCancelled, onSaveError, forceRename) {
+      var text = File.bundle.filePath || File.bundle.originalPath;
+      if (!(text || File.isLinuxSnap)) {
+        text = fileIntegration.getDefaultPathOrName();
+      }
+      if (/\.textbundle$/i.exec(text) && File.bundle.filePath) {
+        text = text.replace(/\.textbundle$/i, '-2.textbundle');
+      }
+      buildSaveDialogOptions(true, text).then(
+        async ({ filePath: selectedPath }) => {
+          if (selectedPath) {
+            var saveError = await fileSnapshot.saveAsUseNode(selectedPath, forceRename);
+            if (saveError) {
+              if (onSaveError) {
+                onSaveError(saveError);
               }
             } else {
-              if (onCancelled) {
-                onCancelled();
+              if (onSaved) {
+                onSaved(selectedPath);
               }
             }
-          },
-          (result) => {
-            if (onSaveError) {
-              onSaveError(result);
+          } else {
+            if (onCancelled) {
+              onCancelled();
             }
-          },
-        );
-      },
-      'name',
-      { value: 'f', configurable: true },
-    ),
+          }
+        },
+        (result) => {
+          if (onSaveError) {
+            onSaveError(result);
+          }
+        },
+      );
+    },
     fileSnapshot = {
       doShowSaveDialog: buildSaveDialogOptions,
       makeEmptyFileByNode: async function (filePath) {
@@ -249,10 +237,6 @@ export default function initializeDocumentFileSnapshot(requireModule, moduleExpo
         console.debug('saved');
       },
       saveUseNode: async function (saveAs, automatic) {
-        Object.defineProperty(switchToUtf8, 'name', { value: 'b', configurable: true });
-        Object.defineProperty(showSaveFailure, 'name', { value: 'w', configurable: true });
-        Object.defineProperty(handleSaveError, 'name', { value: 'x', configurable: true });
-
         if (File.isActiveWindow() && !File.bundle.unsupported && !File.isFileLoading()) {
           var currentSavedContent = File.sync();
           if (void 0 !== currentSavedContent) {
@@ -402,14 +386,10 @@ export default function initializeDocumentFileSnapshot(requireModule, moduleExpo
                   });
                 } else {
                   if (!automatic) {
-                    var releaseSaveState = Object.defineProperty(
-                      () => {
-                        File.inSavingProcess = false;
-                        File._onFileSwitching = false;
-                      },
-                      'name',
-                      { value: 'S', configurable: true },
-                    );
+                    var releaseSaveState = () => {
+                      File.inSavingProcess = false;
+                      File._onFileSwitching = false;
+                    };
                     showSaveDialog(
                       async (unusedParameter1) => {
                         resolvePromise(true);
@@ -484,15 +464,11 @@ export default function initializeDocumentFileSnapshot(requireModule, moduleExpo
       },
       moveTo: async function () {
         return new Promise(function (resolvePromise) {
-          var cancelPendingSave = Object.defineProperty(
-            () => {
-              resolvePromise(false);
-              File.inSavingProcess = false;
-              File._onFileSwitching = false;
-            },
-            'name',
-            { value: 't', configurable: true },
-          );
+          var cancelPendingSave = () => {
+            resolvePromise(false);
+            File.inSavingProcess = false;
+            File._onFileSwitching = false;
+          };
           showSaveDialog(
             () => {
               resolvePromise(true);

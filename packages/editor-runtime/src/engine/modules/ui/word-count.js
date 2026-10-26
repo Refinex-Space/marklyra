@@ -8,30 +8,26 @@ export default function initializeUiWordCount(requireModule, moduleExports, modu
     documentModel = requireModule('model/document-model'),
     currentDocumentNode = documentModel.Node,
     NodeType = documentModel.TYPE,
-    countTextWords = Object.defineProperty(
-      function (text) {
-        if (0 === text.trim().length) {
-          return 0;
-        }
-        var cjkCharacterCount = 0,
-          partsLength = [
-            'd',
-            text
-              .replace(/[\u3040-\uABFF\uD7A4-\uFAFF]/gi, function (unusedParameter1) {
-                cjkCharacterCount++;
-                return ' ';
-              })
-              .replace(/['’]\w+/g, 'b')
-              .replace(/(^|\s+)[(\u3000-\u303F)!-\/:-@\[-`{-~]+(\s+|$)/gm, ' '),
-            'd',
-          ]
-            .join(' ')
-            .split(/[(\u3000-\u303F)\s!-,\\:-@\[-`{-~]+/g).length;
-        return cjkCharacterCount + partsLength - 2;
-      },
-      'name',
-      { value: 's', configurable: true },
-    ),
+    countTextWords = function (text) {
+      if (0 === text.trim().length) {
+        return 0;
+      }
+      var cjkCharacterCount = 0,
+        partsLength = [
+          'd',
+          text
+            .replace(/[\u3040-\uABFF\uD7A4-\uFAFF]/gi, function (unusedParameter1) {
+              cjkCharacterCount++;
+              return ' ';
+            })
+            .replace(/['’]\w+/g, 'b')
+            .replace(/(^|\s+)[(\u3000-\u303F)!-\/:-@\[-`{-~]+(\s+|$)/gm, ' '),
+          'd',
+        ]
+          .join(' ')
+          .split(/[(\u3000-\u303F)\s!-,\\:-@\[-`{-~]+/g).length;
+      return cjkCharacterCount + partsLength - 2;
+    },
     Delimiter = { WORD: 0, CHAR: 1, LINE: 2, TIME: 3 },
     pluralStatisticLabels = ['Words', 'Characters', 'Lines', 'Minutes'],
     singularStatisticLabels = ['Word', 'Character', 'Line', 'Minute'];
@@ -430,7 +426,7 @@ export default function initializeUiWordCount(requireModule, moduleExports, modu
       JSBridge.putSetting('wordCountDelimiter', this.delimiter);
     }
   }
-  Object.defineProperty(WordCountController, 'name', { value: 'u', configurable: true });
+
   WordCountController.Delimiter = Delimiter;
   moduleRecord.exports = WordCountController;
 }

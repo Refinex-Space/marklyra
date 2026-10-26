@@ -203,7 +203,7 @@ test('body input and repeated flush do not rescan or notify an unchanged outline
     );
   expect(await frame.evaluate(() => Reflect.get(window, 'outlineScans'))).toBe(0);
   expect(await page.evaluate(() => (window as unknown as Host).outlineEvents.length)).toBe(before);
-  // Original heading conversion and history must still refresh the same outline.
+  // Heading conversion and history must still refresh the same outline.
   await page.evaluate(() =>
     (window as unknown as Host).marklyraEditor.execute({ type: 'heading', level: 2 }),
   );

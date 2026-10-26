@@ -1,12 +1,6 @@
 // ui/document-menu.
 export default function initializeUiDocumentMenu(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(mergeMenuItemState, 'name', { value: 'l', configurable: true });
-  Object.defineProperty(updateCopyMenuState, 'name', { value: 'c', configurable: true });
-  Object.defineProperty(updateFormatMenuState, 'name', { value: 'd', configurable: true });
-  Object.defineProperty(haveSameStyles, 'name', { value: 'u', configurable: true });
-  Object.defineProperty(updateBlockMenuState, 'name', { value: 'p', configurable: true });
-  Object.defineProperty(updateViewMenuState, 'name', { value: 'f', configurable: true });
 
   if (!this) {
     self;
@@ -157,47 +151,43 @@ export default function initializeUiDocumentMenu(requireModule, moduleExports, m
     }
     return false;
   }
-  var scheduleMenuRefresh = Object.defineProperty(
-    function (bookmark, forceRefresh) {
-      if (timerId) {
-        clearTimeout(timerId);
-      }
-      var delay = 60;
-      if (currentStyle && currentStyle.inline.indexOf(NodeType.inline_math) > -1) {
-        delay = 50;
-      }
-      if (File.isMacWK) {
-        delay = 30;
-      }
-      if (forceRefresh) {
-        currentStyle = null;
-      }
-      timerId = setTimeout(function () {
-        var style = (
-            bookmark || File.editor.stylize.putBookmark(null, File.editor.stylize.buildBookmark())
-          ).style,
-          changedItems = {};
-        if (currentStyle && haveSameStyles(style.block, currentStyle.block)) {
-          if (haveSameStyles(style.inline, currentStyle.inline, [NodeType.plain])) {
-            if (style.textSelected != currentStyle.textSelected) {
-              currentStyle = File.editor.styleBookmark.style;
-              updateCopyMenuState(changedItems);
-            }
-          } else {
-            updateFormatMenuState(changedItems, true);
+  var scheduleMenuRefresh = function (bookmark, forceRefresh) {
+    if (timerId) {
+      clearTimeout(timerId);
+    }
+    var delay = 60;
+    if (currentStyle && currentStyle.inline.indexOf(NodeType.inline_math) > -1) {
+      delay = 50;
+    }
+    if (File.isMacWK) {
+      delay = 30;
+    }
+    if (forceRefresh) {
+      currentStyle = null;
+    }
+    timerId = setTimeout(function () {
+      var style = (
+          bookmark || File.editor.stylize.putBookmark(null, File.editor.stylize.buildBookmark())
+        ).style,
+        changedItems = {};
+      if (currentStyle && haveSameStyles(style.block, currentStyle.block)) {
+        if (haveSameStyles(style.inline, currentStyle.inline, [NodeType.plain])) {
+          if (style.textSelected != currentStyle.textSelected) {
+            currentStyle = File.editor.styleBookmark.style;
+            updateCopyMenuState(changedItems);
           }
         } else {
-          updateBlockMenuState(changedItems, true);
           updateFormatMenuState(changedItems, true);
         }
-        if (Object.keys(changedItems).length > 0) {
-          JSBridge.menu.update(changedItems);
-        }
-      }, delay);
-    },
-    'name',
-    { value: 'h', configurable: true },
-  );
+      } else {
+        updateBlockMenuState(changedItems, true);
+        updateFormatMenuState(changedItems, true);
+      }
+      if (Object.keys(changedItems).length > 0) {
+        JSBridge.menu.update(changedItems);
+      }
+    }, delay);
+  };
   function updateBlockMenuState(menuPatch, reuseBookmark) {
     if (!menuPatch) {
       menuPatch = {};
@@ -417,8 +407,6 @@ export default function initializeUiDocumentMenu(requireModule, moduleExports, m
         scheduleMenuRefresh();
       },
       freshMenu: function (refreshWindowState) {
-        Object.defineProperty(refreshNativeMenuState, 'name', { value: 'n', configurable: true });
-
         var isLocked = File.editor && File.editor.sourceView && File.editor.sourceView.inSourceMode;
         function refreshNativeMenuState() {
           var menuPatch = {};

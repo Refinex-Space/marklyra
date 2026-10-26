@@ -9,7 +9,7 @@ import {
 import type { Patch } from '../src/types.js';
 
 // These receipts are explicit trusted-adapter inputs. Text/range checks in core
-// cannot establish that a real Markdown node or original command owns a prefix.
+// cannot establish that a real Markdown node or command owns a prefix.
 // Every expected raw range below is known from fixture construction, not inferred
 // by searching equal text or by invoking SourceMirror's own mapping as an oracle.
 type Role = SourceMirrorCompletePrefix['role'];
@@ -439,7 +439,7 @@ describe('complete-prefix receipt rejection is atomic', () => {
       hint = prefixHint(mirror, f.from, f.from + '7.    '.length, '', 'list-marker');
     // The preserved raw line would be "-  \n", while its claimed canonical is
     // "-\n". The former is a fresh marker, so generic normalization is not proof
-    // that the original command/model has a corresponding unwrapped paragraph.
+    // that the command/model has a corresponding unwrapped paragraph.
     expect(() => mirror.update(applied(mirror.canonical, hint.patches), hint)).toThrow(
       /normalization/,
     );

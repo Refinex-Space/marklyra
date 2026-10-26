@@ -30,7 +30,7 @@ interface Dependencies {
   setLoading(value: boolean): void;
   state(sync?: boolean, resetTracking?: boolean): RuntimeState;
 }
-/** Original reload transactions; native snapshots are only an in-memory failure rollback. */
+/** Reload transactions; native snapshots are only an in-memory failure rollback. */
 export class RuntimeReload {
   private readonly guarded = new WeakSet<object>();
   constructor(private readonly deps: Dependencies) {}
@@ -61,10 +61,10 @@ export class RuntimeReload {
       let guardedPopup = false;
       // The runtime method checks its range before scheduling, then reads it
       // unconditionally in the popup callback. Recheck at that asynchronous boundary.
-      // Interception exists only during this synchronous original method invocation.
+      // Interception exists only during this synchronous method invocation.
       window.setTimeout = ((handler: TimerHandler, timeout?: number, ...parameters: unknown[]) => {
         // Module 4c showCustom has one 100ms popup-position callback. Other
-        // synchronously scheduled work retains the original timer semantics.
+        // synchronously scheduled work retains the timer semantics.
         if (guardedPopup || typeof handler !== 'function' || timeout !== 100 || parameters.length)
           return schedule(handler, timeout, ...parameters);
         guardedPopup = true;
@@ -123,7 +123,7 @@ export class RuntimeReload {
     const focusElement = HTMLElement.prototype.focus,
       focusWindow = window.focus;
     if (passive) {
-      // Original File.loadFile always focuses its writing area. A failed background
+      // File.loadFile always focuses its writing area. A failed background
       // reload must leave the host's input alone; this override exists only here.
       HTMLElement.prototype.focus = () => {};
       window.focus = () => {};
@@ -194,7 +194,7 @@ export class RuntimeReload {
           fromDiskChange: true,
           delayRefresh: false,
         });
-        // Original reload does not restore these globals on Undo. Keep its internal
+        // Reload does not restore these globals on Undo. Keep its internal
         // canonical representation stable; the adopted raw version keeps actual EOL/BOM.
         file.setLineEnding(flags.crlf);
         file.finalNewline = flags.finalNewline;
@@ -204,7 +204,7 @@ export class RuntimeReload {
       // CM operation, so CodeMirror records selectionAfter for Undo/Redo itself.
       if (sourceHistory) sourceHistory.cm.operation(reload);
       else reload();
-      // Original async scroll/menu callbacks assume a range after reload. WebKit
+      // Async scroll/menu callbacks assume a range after reload. WebKit
       // clears it; create a real editor caret only when this document owned focus.
       if (hadFocus && !editor.sourceView.inSourceMode && !document.getSelection()?.rangeCount) {
         const first = editor.writingArea.querySelector<HTMLElement>(':scope > [cid]');

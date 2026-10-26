@@ -492,7 +492,7 @@ test('native event replay and DOM Files delivery submit only once', async ({ pag
       const FileConstructor = Reflect.get(window, '__imageTestNativeFile') as
         | typeof File
         | undefined;
-      // File is the original model singleton in the runtime; use a realm-owned Blob-backed File via DataTransfer when available.
+      // File is the model singleton in the runtime; use a realm-owned Blob-backed File via DataTransfer when available.
       const file = FileConstructor
         ? new FileConstructor([new Uint8Array([1])], 'duplicate.png', { type: 'image/png' })
         : null;

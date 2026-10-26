@@ -451,7 +451,7 @@ impl Pandoc {
             }
         };
         // A descendant can inherit stdout after the main process exits. Never
-        // join a reader indefinitely; drain only until the original deadline.
+        // join a reader indefinitely; drain only until the initial deadline.
         while !out.is_finished() || !err.is_finished() {
             if started.elapsed() > timeout || overflow.load(Ordering::Relaxed) {
                 terminate(&mut child);

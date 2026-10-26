@@ -377,7 +377,7 @@ test('new generated content uses the current policy and document loading resets 
   await page.evaluate(() =>
     (window as unknown as Host).marklyraEditor.execute({ type: 'list', style: 'blockquote' }),
   );
-  // The original block conversion includes its paragraph's trailing empty quote
+  // The block conversion includes its paragraph's trailing empty quote
   // line. Preserve that command result when later policies or history change.
   const quoted = source.replace('Alpha\r\n', '>   Alpha\r\n>\r\n');
   expect(await flush(page)).toBe(quoted);

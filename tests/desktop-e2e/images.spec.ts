@@ -216,7 +216,7 @@ async function focusEnd(page: Page) {
     let last: Node | null = null;
     for (let node = walker.nextNode(); node; node = walker.nextNode()) last = node;
     const range = doc.createRange();
-    // A paragraph-boundary Range can become offset 0 in original bookmarks.
+    // A paragraph-boundary Range can become offset 0 in bookmarks.
     // Use the visible text endpoint, as a real pointer placement does, before typing.
     if (last) range.setStart(last, last.textContent?.length ?? 0);
     else range.selectNodeContents(element);
@@ -417,7 +417,7 @@ test('Save As rebinds image authorization to the new document without resetting 
 test('React Shell preserves image action capabilities through Native menu execution and original Undo', async ({
   page,
 }) => {
-  // Give the original image wrapper a visible pointer target. The authorized
+  // Give the image wrapper a visible pointer target. The authorized
   // display URL uses the runtime origin, as Native image capabilities do.
   const menuPng =
     'iVBORw0KGgoAAAANSUhEUgAAAKAAAABgCAYAAACaJ3mZAAAAyUlEQVR42u3SMQ0AAAjAMLzgB1X4hgMRPD1qYFlk18CXEAEDYkAwIAYEA2JAMCAGBANiQDAgBgQDYkAwIAYEA2JAMCAGBANiQDAgBgQDYkAwIAYEA2JAMCAGxIBCYEAMCAbEgGBADAgGxIBgQAwIBsSAYEAMCAbEgGBADAgGxIBgQAwIBsSAYEAMCAbEgGBADAgGxIAYEAyIAcGAGBAMiAHBgBgQDIgBwYAYEAyIAcGAGBAMiAHBgBgQDIgBwYAYEAyIAcGAGBDOAlu0NtzjrW0yAAAAAElFTkSuQmCC';

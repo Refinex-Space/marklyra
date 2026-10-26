@@ -60,7 +60,7 @@ export type SourceMirrorHint =
       readonly canonicalProjection?: SourceMirrorCanonicalProjection;
       /** Serializer-proven domains for inferred patch placement; absent means precise input ranges. */
       readonly placementRanges?: readonly { readonly from: number; readonly to: number }[];
-      /** Original coincident insertion fragments. These add placement checks;
+      /** Individual coincident insertion fragments. These add placement checks;
        * they never replace or narrow the merged patch's existing domains. */
       readonly placementChecks?: readonly {
         readonly patch: Patch;
@@ -723,7 +723,7 @@ export class SourceMirror {
       if (projection) this.projectedCanonical(restored.canonical, nextCanonical, projection);
       // The serializer may spell the same blocks with other blank lines (trailing empty paragraphs, a
       // fence it just produced) or other table padding than the journaled checkpoint did, and Undo/Redo
-      // of the original runtime need not land on a journaled spelling. Raw source stays the checkpoint's
+      // of the runtime need not land on a journaled spelling. Raw source stays the checkpoint's
       // exact bytes; the editor's spelling becomes the active canonical, as for an authorized projection
       // gap. Once serializer projections are in play, blank lines need their own proof instead.
       else if (
@@ -1009,7 +1009,7 @@ export class SourceMirror {
         !patches.some((patch) => patch.from === at && patch.to === at && patch.insert === insert)
       )
         throw invalid();
-      // Preserve each original fragment's ambiguity check on the unchanged raw
+      // Preserve each input fragment's ambiguity check on the unchanged raw
       // source correspondence. Checking only the concatenated string is weaker.
       for (let part = index; part < end; part++) {
         const check = checks[part];

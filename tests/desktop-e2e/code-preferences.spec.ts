@@ -104,7 +104,7 @@ test('original code controls keep restart-only settings out of the current WebVi
     await ui.locator('.nav-group-item').nth(3).click();
     await ui.locator('[data-marklyra-preference="show_line_numbers_for_fence"]').check();
     await expect(ui.locator('#marklyra-preferences-status')).toBeHidden();
-    // The original control is reverse: checked means wrapping is enabled.
+    // The control is reverse: checked means wrapping is enabled.
     await ui.locator('[data-marklyra-preference="no_line_wrapping"]').uncheck();
     await expect(ui.locator('#marklyra-preferences-status')).toBeHidden();
     await ui.locator('.nav-group-item').nth(1).click();

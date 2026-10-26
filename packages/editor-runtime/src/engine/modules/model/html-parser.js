@@ -70,208 +70,191 @@ export default function initializeModelHtmlParser(requireModule, moduleExports, 
       'EMBED',
       'OBJECT',
     ],
-    extractGistSource = Object.defineProperty(
-      function (sourceElements) {
-        var elements = sourceElements.find('.gist-file>.gist-data .blob-wrapper');
-        if (!elements.length) {
-          return null;
-        }
-        var text = elements
-            .find('.blob-code.blob-code-inner')
-            .map(function () {
-              return this.textContent;
-            })
-            .toArray()
-            .join('\n'),
-          lang = /\stype-([^\s]+)/.exec(elements.attr('class') || ['', ''])[1];
-        if ('text' == lang) {
-          lang = '';
-        }
-        return { type: NodeType.fences, text: text, lang: lang };
-      },
-      'name',
-      { value: 'p', configurable: true },
-    ),
+    extractGistSource = function (sourceElements) {
+      var elements = sourceElements.find('.gist-file>.gist-data .blob-wrapper');
+      if (!elements.length) {
+        return null;
+      }
+      var text = elements
+          .find('.blob-code.blob-code-inner')
+          .map(function () {
+            return this.textContent;
+          })
+          .toArray()
+          .join('\n'),
+        lang = /\stype-([^\s]+)/.exec(elements.attr('class') || ['', ''])[1];
+      if ('text' == lang) {
+        lang = '';
+      }
+      return { type: NodeType.fences, text: text, lang: lang };
+    },
     htmlBlockStartPattern =
       /^\s*<(iframe|div|p|table|details|figure|img|a|video|audio|script|style|meta|svg|pre|code)(\s|\/?>)/,
     markdownTablePattern = /(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)/,
     leadingPipeTablePattern = /\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)/,
     parseModes = { NORMAL: 'normal', HTML: 'html' },
-    extractMarkdownText = Object.defineProperty(
-      function (sourceElements, splitLines, editor, baseUrl, urlRemap) {
-        Object.defineProperty(splitOuterWhitespace, 'name', { value: 'a', configurable: true });
-
-        function splitOuterWhitespace(textSlice) {
-          var whitespaceParts = ['', textSlice, ''],
-            match = /^(\s*)/.exec(textSlice);
-          if (match) {
-            textSlice = textSlice.substring(match[0].length);
-            whitespaceParts[0] = match[0];
-          }
-          if ((match = /(\s*)$/.exec(textSlice))) {
-            textSlice = textSlice.substring(0, textSlice.length - match[0].length);
-            whitespaceParts[2] = match[0];
-          }
-          whitespaceParts[1] = textSlice;
-          return whitespaceParts;
+    extractMarkdownText = function (sourceElements, splitLines, editor, baseUrl, urlRemap) {
+      function splitOuterWhitespace(textSlice) {
+        var whitespaceParts = ['', textSlice, ''],
+          match = /^(\s*)/.exec(textSlice);
+        if (match) {
+          textSlice = textSlice.substring(match[0].length);
+          whitespaceParts[0] = match[0];
         }
-        editor = editor || File.editor;
-        Object.defineProperty(
-          function replaceInlineMarkup(container) {
-            var currentElement, text, currentText, formattedParts;
-            container.find('img').each(function () {
-              var textSlice;
-              (currentElement = jquery(this)).text(
-                '![' +
-                  (currentElement.attr('alt') || currentElement.attr('title') || 'img').replace(
-                    /\r?\n/gi,
-                    ' ',
-                  ) +
+        if ((match = /(\s*)$/.exec(textSlice))) {
+          textSlice = textSlice.substring(0, textSlice.length - match[0].length);
+          whitespaceParts[2] = match[0];
+        }
+        whitespaceParts[1] = textSlice;
+        return whitespaceParts;
+      }
+      editor = editor || File.editor;
+      (function replaceInlineMarkup(container) {
+        var currentElement, text, currentText, formattedParts;
+        container.find('img').each(function () {
+          var textSlice;
+          (currentElement = jquery(this)).text(
+            '![' +
+              (currentElement.attr('alt') || currentElement.attr('title') || 'img').replace(
+                /\r?\n/gi,
+                ' ',
+              ) +
+              '](' +
+              ((textSlice = currentElement.attr('src') || ''),
+              File.isMac &&
+                (0 == textSlice.indexOf('file:///') &&
+                -1 == textSlice.substring('file:///'.length).indexOf('/')
+                  ? ((textSlice = textSlice.substring('file:///'.length)),
+                    (textSlice = utilities.getAbsoluteURL(baseUrl, textSlice)) &&
+                      urlRemap &&
+                      urlRemap[textSlice] &&
+                      (textSlice = urlRemap[textSlice]))
+                  : 0 == textSlice.indexOf('webkit-fake-url:') &&
+                    (File.isMacWK ||
+                      (textSlice = bridge.callSync('images.convertFakeUrl', textSlice)))),
+              -1 == textSlice.indexOf(':/') &&
+                editor &&
+                editor.imgEdit &&
+                (textSlice = editor.imgEdit.resolveImagePath(textSlice)),
+              textSlice) +
+              ')',
+          );
+          currentElement.replaceWith(currentElement[0].childNodes[0]);
+        });
+        container.find('span.katex').each(function () {
+          let element = this.querySelector('math annotation');
+          if (element) {
+            jquery(this).replaceWith('$' + element.textContent + '$');
+          }
+        });
+        container.find('strong, b').each(function () {
+          currentElement = jquery(this);
+          if ('normal' !== this.style.fontWeight) {
+            replaceInlineMarkup(currentElement);
+            (formattedParts = splitOuterWhitespace(currentElement.text()))[1] = formattedParts[1]
+              ? '**' + formattedParts[1].replace(/([^\\])\*/g, '$1\\*') + '**'
+              : '';
+            currentElement.replaceWith(
+              formattedParts.join('').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+            );
+          }
+        });
+        container.find('em, i').each(function () {
+          replaceInlineMarkup((currentElement = jquery(this)));
+          (formattedParts = splitOuterWhitespace(currentElement.text()))[1] = formattedParts[1]
+            ? '*' + formattedParts[1].replace(/([^\\*])\*([^*])/g, '$1\\*$2') + '*'
+            : '';
+          currentElement.replaceWith(
+            formattedParts.join('').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+          );
+        });
+        container.find('code, pre, tt').each(function () {
+          (currentElement = jquery(this)).replaceWith(
+            '`' + currentElement.text().replace(/</g, '&lt;').replace(/>/g, '&gt;') + '`',
+          );
+        });
+        container.find('del, strike').each(function () {
+          replaceInlineMarkup((currentElement = jquery(this)));
+          currentElement.replaceWith('~~' + currentElement.text() + '~~');
+        });
+        container.find('span').each(function () {
+          currentElement = jquery(this);
+          if (
+            !(
+              0 != (this.style.fontWeight || '').indexOf('bold') &&
+              700 != this.style.fontWeight &&
+              900 != this.style.fontWeight
+            )
+          ) {
+            replaceInlineMarkup(currentElement);
+            (formattedParts = splitOuterWhitespace(currentElement.text()))[1] = formattedParts[1]
+              ? '**' + formattedParts[1].replace(/([^\\])\*/g, '$1\\*') + '**'
+              : '';
+            currentElement.replaceWith(
+              formattedParts.join('').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+            );
+          }
+          if ('italic' == this.style.fontStyle) {
+            replaceInlineMarkup(currentElement);
+            (formattedParts = splitOuterWhitespace(currentElement.text()))[1] = formattedParts[1]
+              ? '*' + formattedParts[1].replace(/([^\\*])\*([^*])/g, '$1\\*$2') + '*'
+              : '';
+            currentElement.replaceWith(
+              formattedParts.join('').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+            );
+          }
+        });
+        container.find('br').each(function () {
+          (currentElement = jquery(this)).replaceWith('');
+        });
+        container.find('a[href]:not(:empty)').each(function () {
+          replaceInlineMarkup((currentElement = jquery(this)));
+          text = utilities.getAbsoluteURL(
+            baseUrl,
+            utilities.decodeFromEscapedPath(currentElement.attr('href')),
+          );
+          if (0 == (currentText = currentElement.text()).length) {
+            currentElement.replaceWith('');
+          } else {
+            if (text == currentText && /^(https?|mailto):/.exec(text)) {
+              currentElement.replaceWith(
+                text.replace(/</g, encodeURI('<')).replace(/>/g, encodeURI('>')),
+              );
+            } else {
+              currentElement.replaceWith(
+                '[' +
+                  currentText.replace(/([^\\])]([^(]|$)/, '$1\\]$2').replace(/\r?\n/gi, ' ') +
                   '](' +
-                  ((textSlice = currentElement.attr('src') || ''),
-                  File.isMac &&
-                    (0 == textSlice.indexOf('file:///') &&
-                    -1 == textSlice.substring('file:///'.length).indexOf('/')
-                      ? ((textSlice = textSlice.substring('file:///'.length)),
-                        (textSlice = utilities.getAbsoluteURL(baseUrl, textSlice)) &&
-                          urlRemap &&
-                          urlRemap[textSlice] &&
-                          (textSlice = urlRemap[textSlice]))
-                      : 0 == textSlice.indexOf('webkit-fake-url:') &&
-                        (File.isMacWK ||
-                          (textSlice = bridge.callSync('images.convertFakeUrl', textSlice)))),
-                  -1 == textSlice.indexOf(':/') &&
-                    editor &&
-                    editor.imgEdit &&
-                    (textSlice = editor.imgEdit.resolveImagePath(textSlice)),
-                  textSlice) +
+                  text +
                   ')',
               );
-              currentElement.replaceWith(currentElement[0].childNodes[0]);
-            });
-            container.find('span.katex').each(function () {
-              let element = this.querySelector('math annotation');
-              if (element) {
-                jquery(this).replaceWith('$' + element.textContent + '$');
-              }
-            });
-            container.find('strong, b').each(function () {
-              currentElement = jquery(this);
-              if ('normal' !== this.style.fontWeight) {
-                replaceInlineMarkup(currentElement);
-                (formattedParts = splitOuterWhitespace(currentElement.text()))[1] =
-                  formattedParts[1]
-                    ? '**' + formattedParts[1].replace(/([^\\])\*/g, '$1\\*') + '**'
-                    : '';
-                currentElement.replaceWith(
-                  formattedParts.join('').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
-                );
-              }
-            });
-            container.find('em, i').each(function () {
-              replaceInlineMarkup((currentElement = jquery(this)));
-              (formattedParts = splitOuterWhitespace(currentElement.text()))[1] = formattedParts[1]
-                ? '*' + formattedParts[1].replace(/([^\\*])\*([^*])/g, '$1\\*$2') + '*'
-                : '';
-              currentElement.replaceWith(
-                formattedParts.join('').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
-              );
-            });
-            container.find('code, pre, tt').each(function () {
-              (currentElement = jquery(this)).replaceWith(
-                '`' + currentElement.text().replace(/</g, '&lt;').replace(/>/g, '&gt;') + '`',
-              );
-            });
-            container.find('del, strike').each(function () {
-              replaceInlineMarkup((currentElement = jquery(this)));
-              currentElement.replaceWith('~~' + currentElement.text() + '~~');
-            });
-            container.find('span').each(function () {
-              currentElement = jquery(this);
-              if (
-                !(
-                  0 != (this.style.fontWeight || '').indexOf('bold') &&
-                  700 != this.style.fontWeight &&
-                  900 != this.style.fontWeight
-                )
-              ) {
-                replaceInlineMarkup(currentElement);
-                (formattedParts = splitOuterWhitespace(currentElement.text()))[1] =
-                  formattedParts[1]
-                    ? '**' + formattedParts[1].replace(/([^\\])\*/g, '$1\\*') + '**'
-                    : '';
-                currentElement.replaceWith(
-                  formattedParts.join('').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
-                );
-              }
-              if ('italic' == this.style.fontStyle) {
-                replaceInlineMarkup(currentElement);
-                (formattedParts = splitOuterWhitespace(currentElement.text()))[1] =
-                  formattedParts[1]
-                    ? '*' + formattedParts[1].replace(/([^\\*])\*([^*])/g, '$1\\*$2') + '*'
-                    : '';
-                currentElement.replaceWith(
-                  formattedParts.join('').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
-                );
-              }
-            });
-            container.find('br').each(function () {
-              (currentElement = jquery(this)).replaceWith('');
-            });
-            container.find('a[href]:not(:empty)').each(function () {
-              replaceInlineMarkup((currentElement = jquery(this)));
-              text = utilities.getAbsoluteURL(
-                baseUrl,
-                utilities.decodeFromEscapedPath(currentElement.attr('href')),
-              );
-              if (0 == (currentText = currentElement.text()).length) {
-                currentElement.replaceWith('');
-              } else {
-                if (text == currentText && /^(https?|mailto):/.exec(text)) {
-                  currentElement.replaceWith(
-                    text.replace(/</g, encodeURI('<')).replace(/>/g, encodeURI('>')),
-                  );
-                } else {
-                  currentElement.replaceWith(
-                    '[' +
-                      currentText.replace(/([^\\])]([^(]|$)/, '$1\\]$2').replace(/\r?\n/gi, ' ') +
-                      '](' +
-                      text +
-                      ')',
-                  );
-                }
-              }
-            });
-            if (File.option.highlight) {
-              container.find('mark').each(function () {
-                replaceInlineMarkup((currentElement = jquery(this)));
-                currentElement.replaceWith(
-                  '==' +
-                    currentElement
-                      .text()
-                      .replace(/</g, '&lt;')
-                      .replace(/>/g, '&gt;')
-                      .replace(/([^\\])\=/, '\\=') +
-                    '==',
-                );
-              });
             }
-          },
-          'name',
-          { value: 'e', configurable: true },
-        )(sourceElements);
-        var localText = (sourceElements[0].innerText || sourceElements[0].textContent || '')
-          .replace(/(^[\r\n]+)|([\r\n]+$)/g, '')
-          .replace(/([\r\n]|\u00a0)\s?/gi, ' ');
-        if (splitLines) {
-          return localText.split(/\uE033/g);
-        } else {
-          return localText.replace(/\uE033/g, ' ');
+          }
+        });
+        if (File.option.highlight) {
+          container.find('mark').each(function () {
+            replaceInlineMarkup((currentElement = jquery(this)));
+            currentElement.replaceWith(
+              '==' +
+                currentElement
+                  .text()
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/([^\\])\=/, '\\=') +
+                '==',
+            );
+          });
         }
-      },
-      'name',
-      { value: 'y', configurable: true },
-    );
+      })(sourceElements);
+      var localText = (sourceElements[0].innerText || sourceElements[0].textContent || '')
+        .replace(/(^[\r\n]+)|([\r\n]+$)/g, '')
+        .replace(/([\r\n]|\u00a0)\s?/gi, ' ');
+      if (splitLines) {
+        return localText.split(/\uE033/g);
+      } else {
+        return localText.replace(/\uE033/g, ' ');
+      }
+    };
   moduleExports.parseInlineHTML = function (htmlText, editor, baseUrl, urlRemap) {
     var sourceContainer = jquery(jquery.parseHTML('<div>' + htmlText + '</div>')[0]);
     sourceContainer
@@ -459,9 +442,6 @@ export default function initializeModelHtmlParser(requireModule, moduleExports, 
     }
   };
   moduleExports.convertToPlain = function (nodes, unusedParameter2) {
-    Object.defineProperty(collectPlainTextLines, 'name', { value: 'n', configurable: true });
-    Object.defineProperty(nodeToPlainTextLines, 'name', { value: 'i', configurable: true });
-
     function collectPlainTextLines(collection, compact) {
       for (
         var documentNode = (
@@ -478,8 +458,6 @@ export default function initializeModelHtmlParser(requireModule, moduleExports, 
       return plainLines;
     }
     function nodeToPlainTextLines(documentNode, compact) {
-      Object.defineProperty(withParagraphSpacing, 'name', { value: 'l', configurable: true });
-
       var definitionLine,
         items = [];
       function withParagraphSpacing(lineText) {
@@ -629,13 +607,6 @@ export default function initializeModelHtmlParser(requireModule, moduleExports, 
     return collectPlainTextLines(nodes).join('\n');
   };
   moduleExports.parseHTML = function (htmlOrElements, documentMap, editor, baseUrl, urlRemap) {
-    Object.defineProperty(detectTextParseMode, 'name', { value: 'F', configurable: true });
-    Object.defineProperty(appendParsedNode, 'name', { value: 'S', configurable: true });
-    Object.defineProperty(parseContainerChildren, 'name', { value: 'k', configurable: true });
-    Object.defineProperty(parseTextLines, 'name', { value: 'E', configurable: true });
-    Object.defineProperty(parseInlineContainer, 'name', { value: 'T', configurable: true });
-    Object.defineProperty(parseElement, 'name', { value: 'A', configurable: true });
-
     var htmlText,
       sourceContainer = htmlOrElements;
     if (sourceContainer.jquery) {
@@ -818,8 +789,6 @@ export default function initializeModelHtmlParser(requireModule, moduleExports, 
     }
     var allowedAlignments = { center: 'center', left: 'left', right: 'right' };
     function parseElement(element, parentNode, items, inputItems) {
-      Object.defineProperty(appendParsedParagraph, 'name', { value: 'C', configurable: true });
-
       var createdNode,
         tableRows,
         text,
@@ -1408,95 +1377,91 @@ export default function initializeModelHtmlParser(requireModule, moduleExports, 
     return (
       parsedBlocks ||
       (rawHtmlBlocks.length &&
-      (Object.defineProperty(
-        function normalizeParsedBlocks(unusedParameter1, firstNode, lastNode, items) {
-          var searchValue,
-            documentNode = firstNode,
-            currentItems = [];
-          for (
-            (function () {
-              if (firstNode && firstNode !== lastNode) {
-                for (
-                  ;
-                  documentNode &&
-                  documentNode !== lastNode &&
-                  DocumentNode.isType(documentNode, NodeType.paragraph) &&
-                  DocumentNode.isEmptyBlock(documentNode);
-                ) {
-                  searchValue = documentNode;
-                  documentNode = documentNode.get('after');
-                  searchValue.remove();
-                  if (items) {
-                    items.splice(items.indexOf(searchValue), 1);
-                  }
-                }
-                for (
-                  firstNode = documentNode.get('before') || documentNode, documentNode = lastNode;
-                  documentNode &&
-                  documentNode !== firstNode &&
-                  DocumentNode.isType(documentNode, NodeType.paragraph) &&
-                  DocumentNode.isEmptyBlock(documentNode);
-                ) {
-                  searchValue = documentNode;
-                  documentNode = documentNode.get('before');
-                  searchValue.remove();
-                  if (items) {
-                    items.splice(items.indexOf(searchValue), 1);
-                  }
+      ((function normalizeParsedBlocks(unusedParameter1, firstNode, lastNode, items) {
+        var searchValue,
+          documentNode = firstNode,
+          currentItems = [];
+        for (
+          (function () {
+            if (firstNode && firstNode !== lastNode) {
+              for (
+                ;
+                documentNode &&
+                documentNode !== lastNode &&
+                DocumentNode.isType(documentNode, NodeType.paragraph) &&
+                DocumentNode.isEmptyBlock(documentNode);
+              ) {
+                searchValue = documentNode;
+                documentNode = documentNode.get('after');
+                searchValue.remove();
+                if (items) {
+                  items.splice(items.indexOf(searchValue), 1);
                 }
               }
-            })(),
-              documentNode = firstNode;
-            documentNode;
-          ) {
-            var codeMatch = null;
-            if (DocumentNode.isType(documentNode, NodeType.blockquote, NodeType.list_item)) {
-              normalizeParsedBlocks(
-                documentNode,
-                documentNode.getFirstChild(),
-                documentNode.getLastChild(),
+              for (
+                firstNode = documentNode.get('before') || documentNode, documentNode = lastNode;
+                documentNode &&
+                documentNode !== firstNode &&
+                DocumentNode.isType(documentNode, NodeType.paragraph) &&
+                DocumentNode.isEmptyBlock(documentNode);
+              ) {
+                searchValue = documentNode;
+                documentNode = documentNode.get('before');
+                searchValue.remove();
+                if (items) {
+                  items.splice(items.indexOf(searchValue), 1);
+                }
+              }
+            }
+          })(),
+            documentNode = firstNode;
+          documentNode;
+        ) {
+          var codeMatch = null;
+          if (DocumentNode.isType(documentNode, NodeType.blockquote, NodeType.list_item)) {
+            normalizeParsedBlocks(
+              documentNode,
+              documentNode.getFirstChild(),
+              documentNode.getLastChild(),
+            );
+          } else {
+            if (
+              DocumentNode.isType(documentNode, NodeType.fences) &&
+              DocumentNode.isType(documentNode.get('before'), NodeType.fences)
+            ) {
+              currentItems.push(documentNode);
+              documentNode.head = documentNode.get('before').head || documentNode.get('before');
+              documentNode.head.set(
+                'text',
+                documentNode.head.get('text') + '\n' + documentNode.get('text'),
               );
             } else {
               if (
-                DocumentNode.isType(documentNode, NodeType.fences) &&
-                DocumentNode.isType(documentNode.get('before'), NodeType.fences)
+                DocumentNode.isType(documentNode, NodeType.list) &&
+                0 === documentNode.get('children').length
               ) {
-                currentItems.push(documentNode);
-                documentNode.head = documentNode.get('before').head || documentNode.get('before');
-                documentNode.head.set(
-                  'text',
-                  documentNode.head.get('text') + '\n' + documentNode.get('text'),
-                );
+                documentNode.set('type', NodeType.paragraph);
               } else {
                 if (
-                  DocumentNode.isType(documentNode, NodeType.list) &&
-                  0 === documentNode.get('children').length
+                  DocumentNode.isType(documentNode, NodeType.paragraph) &&
+                  (codeMatch = /^(`+)([^`]+)\1(?!`)\s*$/g.exec(documentNode.get('text')))
                 ) {
-                  documentNode.set('type', NodeType.paragraph);
-                } else {
-                  if (
-                    DocumentNode.isType(documentNode, NodeType.paragraph) &&
-                    (codeMatch = /^(`+)([^`]+)\1(?!`)\s*$/g.exec(documentNode.get('text')))
-                  ) {
-                    documentNode.set('type', NodeType.fences);
-                    documentNode.set('text', codeMatch[2]);
-                    continue;
-                  }
+                  documentNode.set('type', NodeType.fences);
+                  documentNode.set('text', codeMatch[2]);
+                  continue;
                 }
               }
             }
-            documentNode = documentNode.get('after');
           }
-          currentItems.map(function (inputSearchValue) {
-            if (items) {
-              items.splice(items.indexOf(inputSearchValue), 1);
-            }
-            inputSearchValue.remove();
-          });
-        },
-        'name',
-        { value: 'e', configurable: true },
-      )(0, rawHtmlBlocks[0], rawHtmlBlocks.last(), rawHtmlBlocks),
+          documentNode = documentNode.get('after');
+        }
+        currentItems.map(function (inputSearchValue) {
+          if (items) {
+            items.splice(items.indexOf(inputSearchValue), 1);
+          }
+          inputSearchValue.remove();
+        });
+      })(0, rawHtmlBlocks[0], rawHtmlBlocks.last(), rawHtmlBlocks),
       1 === rawHtmlBlocks.length && DocumentNode.isType(rawHtmlBlocks[0], NodeType.paragraph))
         ? rawHtmlBlocks[0].get('text')
         : rawHtmlBlocks)

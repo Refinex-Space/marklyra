@@ -1,4 +1,4 @@
-//! Application-owned user themes. Original resources are never copied here.
+//! Application-owned user themes. Built-in resources are never copied here.
 //! Leases bind an already opened directory capability to one editor window.
 use cap_std::{ambient_authority, fs::Dir};
 use serde::Serialize;

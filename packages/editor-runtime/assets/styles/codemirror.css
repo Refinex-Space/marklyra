@@ -1,7 +1,4 @@
-/* CodeMirror compatibility styles.
- * Library/legacy fragments retain their original bytes. Only confirmed local
- * adaptations are expanded in place; never move them to an override sheet.
- */
+/* CodeMirror styling and editor layout integration. */
 
 /* Local declarations within a retained rule. */
 
@@ -22,7 +19,7 @@
   z-index: 3;
 }
 
-/* Retained library/legacy rules: original bytes. */
+/* CodeMirror library rules. */
 
 .CodeMirror-gutter-filler,.CodeMirror-scrollbar-filler{background-color:#fff}
 
@@ -33,7 +30,7 @@
   background: inherit;
 white-space:nowrap}
 
-/* Retained library/legacy rules: original bytes. */
+/* CodeMirror library rules. */
 
 .CodeMirror-linenumber{padding:0 3px 0 5px;text-align:right;color:#999}
 
@@ -127,7 +124,7 @@ white-space:nowrap}
   color: #00c;
 }
 
-/* Retained library/legacy rules: original bytes. */
+/* CodeMirror library rules. */
 
 .cm-negative{color:#d44}
 
@@ -159,7 +156,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket{color:#f22}
   background: inherit;
 }
 
-/* Retained library/legacy rules: original bytes. */
+/* CodeMirror library rules. */
 
 .CodeMirror{position:relative;overflow:hidden}
 
@@ -170,7 +167,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket{color:#f22}
   background: inherit;
 }
 
-/* Retained library/legacy rules: original bytes. */
+/* CodeMirror library rules. */
 
 .CodeMirror-sizer{position:relative}
 
@@ -191,7 +188,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket{color:#f22}
   overflow-x: auto;
 }
 
-/* Retained library/legacy rules: original bytes. */
+/* CodeMirror library rules. */
 
 .CodeMirror-scrollbar-filler{right:0;bottom:0}
 
@@ -207,7 +204,7 @@ z-index:3;
   overflow-y: hidden;
 }
 
-/* Retained library/legacy rules: original bytes. */
+/* CodeMirror library rules. */
 
 .CodeMirror-gutter{white-space:normal;height:100%;-moz-box-sizing:content-box;box-sizing:content-box;padding-bottom:30px;margin-bottom:-32px;display:inline-block}
 
@@ -247,7 +244,7 @@ z-index:3;
   visibility: inherit;
 }
 
-/* Retained library/legacy rules: original bytes. */
+/* CodeMirror library rules. */
 
 .cm-searching{background:#ffa;background:rgba(255,255,0,.4)}
 

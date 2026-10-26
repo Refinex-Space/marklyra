@@ -18,7 +18,7 @@ export interface BlockIndentReceipt {
   readonly canonical: string;
   readonly normalizationPatches: readonly Patch[];
   readonly completePrefixes: readonly CompleteIndentPrefix[];
-  /** Same-value numeral spelling normalized before the original Undo snapshot. */
+  /** Same-value numeral spelling normalized before the Undo snapshot. */
   readonly beforeNormalizationPatches?: readonly Patch[];
 }
 interface Context {

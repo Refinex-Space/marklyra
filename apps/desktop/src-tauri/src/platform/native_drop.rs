@@ -1,4 +1,4 @@
-//! File-only AppKit destination. Non-file drags retain WKWebView's original
+//! File-only AppKit destination. Non-file drags retain WKWebView's standard
 //! handlers, including the runtime editor's internal text drag transactions.
 #[cfg(target_os = "macos")]
 mod macos;

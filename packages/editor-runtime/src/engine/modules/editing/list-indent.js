@@ -1,17 +1,6 @@
 // editing/list-indent.
 export default function initializeEditingListIndent(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(visitNextLeaf, 'name', { value: 'c', configurable: true });
-  Object.defineProperty(removeElementWithMathCache, 'name', { value: 'd', configurable: true });
-  Object.defineProperty(cacheNodeMath, 'name', { value: 'u', configurable: true });
-  Object.defineProperty(findIndentableNode, 'name', { value: 'h', configurable: true });
-  Object.defineProperty(closestListItemContent, 'name', { value: 'p', configurable: true });
-  Object.defineProperty(closestBlockquoteContent, 'name', { value: 'f', configurable: true });
-  Object.defineProperty(canMergeLists, 'name', { value: 'm', configurable: true });
-  Object.defineProperty(clearSiblingAttributes, 'name', { value: 'g', configurable: true });
-  Object.defineProperty(clearTrailingBlankLines, 'name', { value: 'y', configurable: true });
-  Object.defineProperty(splitFollowingContainer, 'name', { value: 'b', configurable: true });
-  Object.defineProperty(hasNoChildren, 'name', { value: 'w', configurable: true });
 
   if (!this) {
     self;
@@ -118,194 +107,182 @@ export default function initializeEditingListIndent(requireModule, moduleExports
       documentNode = nextNode;
     }
   }
-  var indentNodeRange = Object.defineProperty(
-    function (firstNode, lastNode, historyEntry) {
-      Object.defineProperty(findNodeElement, 'name', { value: 'l', configurable: true });
-      Object.defineProperty(indentNodeIntoPreviousList, 'name', { value: 'p', configurable: true });
-
-      var items = [];
-      function findNodeElement(node) {
-        return document.querySelector(`[cid="${node.cid}"]`);
-      }
-      function indentNodeIntoPreviousList(callbackDocumentNode, selectedIndex) {
-        var currentDocumentNode;
-        if (!callbackDocumentNode.isDeleted()) {
-          if (DocumentNode.isType(callbackDocumentNode.get('before'), NodeType.list)) {
-            currentDocumentNode = callbackDocumentNode.get('before');
-            undoManager.addUndoForRemove(historyEntry, callbackDocumentNode);
-            let lastChild = callbackDocumentNode.get('before').getLastChild();
-            findNodeElement(lastChild).append(findNodeElement(callbackDocumentNode));
-            lastChild.appendChild(callbackDocumentNode);
-            undoManager.addUndoForInsert(historyEntry, callbackDocumentNode);
-            if (DocumentNode.isType(currentDocumentNode.get('after'), NodeType.list)) {
-              var localDocumentNode = currentDocumentNode.get('after');
-              undoManager.addUndoForRemove(historyEntry, localDocumentNode);
-              var childNodes = DocumentNode.genArrFrom(localDocumentNode.getFirstChild());
-              currentDocumentNode.appendChildrenTillEnd(childNodes[0]);
-              removeElementWithMathCache(findNodeElement(localDocumentNode));
-              localDocumentNode.remove();
-              undoManager.addUndoForInsertArray(historyEntry, childNodes);
-              $(findNodeElement(childNodes[0].get('before'))).after(
-                nodeCollectionUtilities.toHTML(childNodes),
-              );
-              File.editor.mathBlock.clearCache();
-            }
-          } else {
-            var parentNode = callbackDocumentNode.get('parent'),
-              documentNode = parentNode.get('before');
-            if (DocumentNode.isType(parentNode, NodeType.list_item)) {
-              if (documentNode) {
-                undoManager.addUndoForRemove(historyEntry, parentNode);
-                removeElementWithMathCache(findNodeElement(parentNode));
-                (currentDocumentNode = parentNode.get('parent').clone()).unset('start');
-                parentNode.unset('prespace');
-                parentNode.unset('userIndent');
-                currentDocumentNode.appendChild(parentNode);
-                var nextSibling = callbackDocumentNode.get('after');
-                if (DocumentNode.isType(nextSibling, NodeType.list)) {
-                  var currentItems = DocumentNode.genArrFrom(nextSibling.getFirstChild());
-                  currentDocumentNode.appendChildrenTillEnd(currentItems[0]);
-                  parentNode.copyContentFrom(currentItems[0], [
-                    'pattern',
-                    'subindent',
-                    'prespace',
-                    'markindent',
-                    'ahead',
-                    'tail',
-                  ]);
-                  callbackDocumentNode.copyContentFrom(currentItems[0].getLastChild(), ['tail']);
-                  clearSiblingAttributes(parentNode, null, 'userIndent');
-                  currentDocumentNode.addAfterTillEnd(nextSibling.get('after'));
-                  if (hasNoChildren(nextSibling)) {
-                    nextSibling.remove();
-                    var nextListIndex = items.indexOf(nextSibling);
-                    nextSibling = null;
-                    if (nextListIndex > selectedIndex) {
-                      items.splice.apply(
-                        items,
-                        [nextListIndex, 1].concat(
-                          currentItems.map((inputDocumentNode) =>
-                            inputDocumentNode.getFirstChild(),
-                          ),
-                        ),
-                      );
-                    }
+  var indentNodeRange = function (firstNode, lastNode, historyEntry) {
+    var items = [];
+    function findNodeElement(node) {
+      return document.querySelector(`[cid="${node.cid}"]`);
+    }
+    function indentNodeIntoPreviousList(callbackDocumentNode, selectedIndex) {
+      var currentDocumentNode;
+      if (!callbackDocumentNode.isDeleted()) {
+        if (DocumentNode.isType(callbackDocumentNode.get('before'), NodeType.list)) {
+          currentDocumentNode = callbackDocumentNode.get('before');
+          undoManager.addUndoForRemove(historyEntry, callbackDocumentNode);
+          let lastChild = callbackDocumentNode.get('before').getLastChild();
+          findNodeElement(lastChild).append(findNodeElement(callbackDocumentNode));
+          lastChild.appendChild(callbackDocumentNode);
+          undoManager.addUndoForInsert(historyEntry, callbackDocumentNode);
+          if (DocumentNode.isType(currentDocumentNode.get('after'), NodeType.list)) {
+            var localDocumentNode = currentDocumentNode.get('after');
+            undoManager.addUndoForRemove(historyEntry, localDocumentNode);
+            var childNodes = DocumentNode.genArrFrom(localDocumentNode.getFirstChild());
+            currentDocumentNode.appendChildrenTillEnd(childNodes[0]);
+            removeElementWithMathCache(findNodeElement(localDocumentNode));
+            localDocumentNode.remove();
+            undoManager.addUndoForInsertArray(historyEntry, childNodes);
+            $(findNodeElement(childNodes[0].get('before'))).after(
+              nodeCollectionUtilities.toHTML(childNodes),
+            );
+            File.editor.mathBlock.clearCache();
+          }
+        } else {
+          var parentNode = callbackDocumentNode.get('parent'),
+            documentNode = parentNode.get('before');
+          if (DocumentNode.isType(parentNode, NodeType.list_item)) {
+            if (documentNode) {
+              undoManager.addUndoForRemove(historyEntry, parentNode);
+              removeElementWithMathCache(findNodeElement(parentNode));
+              (currentDocumentNode = parentNode.get('parent').clone()).unset('start');
+              parentNode.unset('prespace');
+              parentNode.unset('userIndent');
+              currentDocumentNode.appendChild(parentNode);
+              var nextSibling = callbackDocumentNode.get('after');
+              if (DocumentNode.isType(nextSibling, NodeType.list)) {
+                var currentItems = DocumentNode.genArrFrom(nextSibling.getFirstChild());
+                currentDocumentNode.appendChildrenTillEnd(currentItems[0]);
+                parentNode.copyContentFrom(currentItems[0], [
+                  'pattern',
+                  'subindent',
+                  'prespace',
+                  'markindent',
+                  'ahead',
+                  'tail',
+                ]);
+                callbackDocumentNode.copyContentFrom(currentItems[0].getLastChild(), ['tail']);
+                clearSiblingAttributes(parentNode, null, 'userIndent');
+                currentDocumentNode.addAfterTillEnd(nextSibling.get('after'));
+                if (hasNoChildren(nextSibling)) {
+                  nextSibling.remove();
+                  var nextListIndex = items.indexOf(nextSibling);
+                  nextSibling = null;
+                  if (nextListIndex > selectedIndex) {
+                    items.splice.apply(
+                      items,
+                      [nextListIndex, 1].concat(
+                        currentItems.map((inputDocumentNode) => inputDocumentNode.getFirstChild()),
+                      ),
+                    );
                   }
                 }
-                documentNode.appendChildrenTillEnd(currentDocumentNode);
-                if (nextSibling && !DocumentNode.isType(nextSibling, NodeType.list)) {
-                  documentNode.appendChildrenTillEnd(nextSibling);
-                }
-                var affectedNodes = DocumentNode.genArrFrom(currentDocumentNode);
+              }
+              documentNode.appendChildrenTillEnd(currentDocumentNode);
+              if (nextSibling && !DocumentNode.isType(nextSibling, NodeType.list)) {
+                documentNode.appendChildrenTillEnd(nextSibling);
+              }
+              var affectedNodes = DocumentNode.genArrFrom(currentDocumentNode);
+              undoManager.addUndoForInsertArray(historyEntry, affectedNodes);
+              if (canMergeLists(currentDocumentNode.get('before'), currentDocumentNode, true)) {
+                undoManager.addUndoForRemove(historyEntry, currentDocumentNode);
+                affectedNodes = DocumentNode.genArrFrom(currentDocumentNode.getFirstChild());
+                let previousList = currentDocumentNode.get('before');
+                previousList.appendChildrenTillEnd(currentDocumentNode.getFirstChild());
+                currentDocumentNode.remove();
+                clearSiblingAttributes(
+                  previousList.getFirstChild(),
+                  null,
+                  'userIndent',
+                  'prespace',
+                  'markindent',
+                );
                 undoManager.addUndoForInsertArray(historyEntry, affectedNodes);
-                if (canMergeLists(currentDocumentNode.get('before'), currentDocumentNode, true)) {
-                  undoManager.addUndoForRemove(historyEntry, currentDocumentNode);
-                  affectedNodes = DocumentNode.genArrFrom(currentDocumentNode.getFirstChild());
-                  let previousList = currentDocumentNode.get('before');
-                  previousList.appendChildrenTillEnd(currentDocumentNode.getFirstChild());
-                  currentDocumentNode.remove();
-                  clearSiblingAttributes(
-                    previousList.getFirstChild(),
-                    null,
-                    'userIndent',
-                    'prespace',
-                    'markindent',
-                  );
-                  undoManager.addUndoForInsertArray(historyEntry, affectedNodes);
-                }
-                clearSiblingAttributes(documentNode.get('after'), historyEntry, 'userIndent');
-                cacheNodeMath(documentNode.cid);
-                $(findNodeElement(documentNode)).replaceWith(documentNode.toHTML());
-                return void File.editor.mathBlock.clearCache();
               }
-              var grandparentNode = parentNode.get('parent'),
-                previousContainer = grandparentNode && grandparentNode.get('before');
-              if (DocumentNode.isType(previousContainer, NodeType.list)) {
-                documentNode = previousContainer.getLastChild();
-                undoManager.addUndoForRemove(historyEntry, parentNode);
-                removeElementWithMathCache(findNodeElement(parentNode));
-                var clonedList = grandparentNode.clone();
-                clonedList.appendChild(parentNode);
-                documentNode.appendChild(clonedList);
-                undoManager.addUndoForInsert(historyEntry, clonedList);
-                cacheNodeMath(documentNode.cid);
-                $(findNodeElement(documentNode)).replaceWith(documentNode.toHTML());
-                File.editor.mathBlock.clearCache();
-                if (hasNoChildren(grandparentNode)) {
-                  undoManager.addUndoForRemove(historyEntry, grandparentNode);
-                  grandparentNode.remove();
-                  findNodeElement(grandparentNode).remove();
-                }
+              clearSiblingAttributes(documentNode.get('after'), historyEntry, 'userIndent');
+              cacheNodeMath(documentNode.cid);
+              $(findNodeElement(documentNode)).replaceWith(documentNode.toHTML());
+              return void File.editor.mathBlock.clearCache();
+            }
+            var grandparentNode = parentNode.get('parent'),
+              previousContainer = grandparentNode && grandparentNode.get('before');
+            if (DocumentNode.isType(previousContainer, NodeType.list)) {
+              documentNode = previousContainer.getLastChild();
+              undoManager.addUndoForRemove(historyEntry, parentNode);
+              removeElementWithMathCache(findNodeElement(parentNode));
+              var clonedList = grandparentNode.clone();
+              clonedList.appendChild(parentNode);
+              documentNode.appendChild(clonedList);
+              undoManager.addUndoForInsert(historyEntry, clonedList);
+              cacheNodeMath(documentNode.cid);
+              $(findNodeElement(documentNode)).replaceWith(documentNode.toHTML());
+              File.editor.mathBlock.clearCache();
+              if (hasNoChildren(grandparentNode)) {
+                undoManager.addUndoForRemove(historyEntry, grandparentNode);
+                grandparentNode.remove();
+                findNodeElement(grandparentNode).remove();
               }
             }
           }
         }
       }
-      items = (function (firstNode, lastNode) {
-        for (
-          var currentDocumentNode, nextNode, documentNode = firstNode, currentItems = [];
-          documentNode && documentNode.get('parent');
-        ) {
-          nextNode = null;
-          var consecutiveSibling =
-            currentDocumentNode && documentNode.get('before') == currentDocumentNode;
-          if (DocumentNode.isType(documentNode, NodeType.list) && documentNode.contains(lastNode)) {
-            documentNode = documentNode.getFirstChild().getFirstChild();
-            consecutiveSibling = true;
-          }
-          if (
-            DocumentNode.isType(documentNode.get('before'), NodeType.list) ||
-            consecutiveSibling
-          ) {
-            currentItems.push(documentNode);
-            currentDocumentNode = documentNode;
-            nextNode =
-              documentNode.get('after') ||
-              visitNextLeaf(documentNode.get('parent'), findIndentableNode);
-          } else {
-            if (DocumentNode.isType(documentNode.get('parent'), NodeType.list_item)) {
-              currentDocumentNode = null;
-              if (documentNode.get('parent').get('before')) {
-                if (!documentNode.get('before')) {
-                  currentItems.push(documentNode);
-                  if (DocumentNode.isType(documentNode.get('after'), NodeType.list)) {
-                    nextNode = documentNode.get('after');
-                    currentDocumentNode = documentNode;
-                  } else {
-                    nextNode = visitNextLeaf(documentNode.get('parent'), findIndentableNode);
-                  }
-                }
-              } else {
-                if (
-                  !DocumentNode.isType(
-                    documentNode.closest(NodeType.list).get('before'),
-                    NodeType.list,
-                  ) &&
-                  !consecutiveSibling
-                ) {
-                  break;
-                }
+    }
+    items = (function (firstNode, lastNode) {
+      for (
+        var currentDocumentNode, nextNode, documentNode = firstNode, currentItems = [];
+        documentNode && documentNode.get('parent');
+      ) {
+        nextNode = null;
+        var consecutiveSibling =
+          currentDocumentNode && documentNode.get('before') == currentDocumentNode;
+        if (DocumentNode.isType(documentNode, NodeType.list) && documentNode.contains(lastNode)) {
+          documentNode = documentNode.getFirstChild().getFirstChild();
+          consecutiveSibling = true;
+        }
+        if (DocumentNode.isType(documentNode.get('before'), NodeType.list) || consecutiveSibling) {
+          currentItems.push(documentNode);
+          currentDocumentNode = documentNode;
+          nextNode =
+            documentNode.get('after') ||
+            visitNextLeaf(documentNode.get('parent'), findIndentableNode);
+        } else {
+          if (DocumentNode.isType(documentNode.get('parent'), NodeType.list_item)) {
+            currentDocumentNode = null;
+            if (documentNode.get('parent').get('before')) {
+              if (!documentNode.get('before')) {
                 currentItems.push(documentNode);
-                nextNode = visitNextLeaf(documentNode.get('parent'), findIndentableNode);
+                if (DocumentNode.isType(documentNode.get('after'), NodeType.list)) {
+                  nextNode = documentNode.get('after');
+                  currentDocumentNode = documentNode;
+                } else {
+                  nextNode = visitNextLeaf(documentNode.get('parent'), findIndentableNode);
+                }
               }
+            } else {
+              if (
+                !DocumentNode.isType(
+                  documentNode.closest(NodeType.list).get('before'),
+                  NodeType.list,
+                ) &&
+                !consecutiveSibling
+              ) {
+                break;
+              }
+              currentItems.push(documentNode);
+              nextNode = visitNextLeaf(documentNode.get('parent'), findIndentableNode);
             }
           }
-          if (documentNode == lastNode || documentNode.contains(lastNode)) {
-            break;
-          }
-          documentNode = nextNode;
         }
-        console.debug('findNodesForMoreIndent', currentItems);
-        return currentItems;
-      })(firstNode, lastNode);
-      for (var itemIndex = 0; itemIndex < items.length; itemIndex++) {
-        indentNodeIntoPreviousList(items[itemIndex], itemIndex);
+        if (documentNode == lastNode || documentNode.contains(lastNode)) {
+          break;
+        }
+        documentNode = nextNode;
       }
-      return historyEntry;
-    },
-    'name',
-    { value: 'v', configurable: true },
-  );
+      console.debug('findNodesForMoreIndent', currentItems);
+      return currentItems;
+    })(firstNode, lastNode);
+    for (var itemIndex = 0; itemIndex < items.length; itemIndex++) {
+      indentNodeIntoPreviousList(items[itemIndex], itemIndex);
+    }
+    return historyEntry;
+  };
   function clearTrailingBlankLines(lastChild, depthLimit) {
     for (depthLimit = depthLimit || 1; depthLimit > 0 && lastChild; ) {
       lastChild.unset('tail');
@@ -392,111 +369,176 @@ export default function initializeEditingListIndent(requireModule, moduleExports
       return { oldCid: replacement.oldCid, newHtml: replacement.html, command: command };
     }
   };
-  var outdentListRange = Object.defineProperty(
-      function (firstNode, lastNode, historyEntry, items) {
-        items = items || [];
-        (function (firstNode, lastNode) {
-          for (
-            var documentNode = firstNode, currentItems = [];
-            documentNode &&
-            DocumentNode.isType(documentNode.get('parent'), NodeType.blockquote) &&
-            (currentItems.push(documentNode), documentNode != lastNode);
-          ) {
-            documentNode = visitNextLeaf(documentNode, closestBlockquoteContent);
-          }
-          console.debug('findNodesForLessIndent', currentItems);
-          return currentItems;
-        })(firstNode, lastNode).forEach(function (item) {
-          if (item.isDeleted()) {
-            return;
-          }
-          var replacement = {};
-          undoManager.addUndoForRemoveArray(historyEntry, DocumentNode.genArrFrom(item));
-          const [leadingContainer, trailingContainer] = splitFollowingContainer(item);
-          var currentItems = [];
-          replacement.oldCid = leadingContainer.cid;
-          cacheNodeMath(replacement.oldCid);
-          currentItems.push(item);
-          leadingContainer.addAfter(item);
-          item.addAfter(trailingContainer);
-          if (hasNoChildren(trailingContainer)) {
-            trailingContainer.remove();
-          } else {
-            currentItems.push(trailingContainer);
-          }
-          undoManager.addUndoForInsertArray(historyEntry, currentItems);
-          if (hasNoChildren(leadingContainer)) {
-            undoManager.addUndoForRemove(historyEntry, leadingContainer);
-            leadingContainer.remove();
-          } else {
-            currentItems.unshift(leadingContainer);
-          }
-          replacement.html = nodeCollectionUtilities.toHTML(currentItems, { mathCount: 0 });
-          items.push(replacement);
-          File.editor.mathBlock.clearCache();
-        });
-        return items;
-      },
-      'name',
-      { value: 'x', configurable: true },
-    ),
-    outdentBlockquoteRange = Object.defineProperty(
-      function (firstNode, lastNode, historyEntry, items) {
-        Object.defineProperty(splitOutdentedContainer, 'name', { value: 'l', configurable: true });
-
-        function splitOutdentedContainer(node) {
-          return splitFollowingContainer(node);
+  var outdentListRange = function (firstNode, lastNode, historyEntry, items) {
+      items = items || [];
+      (function (firstNode, lastNode) {
+        for (
+          var documentNode = firstNode, currentItems = [];
+          documentNode &&
+          DocumentNode.isType(documentNode.get('parent'), NodeType.blockquote) &&
+          (currentItems.push(documentNode), documentNode != lastNode);
+        ) {
+          documentNode = visitNextLeaf(documentNode, closestBlockquoteContent);
         }
-        items = items || [];
-        (function (firstNode, lastNode) {
-          for (
-            var documentNode = firstNode, currentItems = [];
-            documentNode &&
-            DocumentNode.isType(documentNode.get('parent'), NodeType.list_item) &&
-            (currentItems.push(documentNode), !documentNode.get('parent').contains(lastNode));
-          ) {
-            documentNode = visitNextLeaf(documentNode.get('parent'), findIndentableNode);
-          }
-          console.debug('findNodesForLessIndent', currentItems);
-          return currentItems;
-        })(firstNode, lastNode).forEach(function (inputDocumentNode) {
-          if (!inputDocumentNode.isDeleted()) {
-            var temporaryCommand,
-              replacement = {},
-              localDocumentNode = inputDocumentNode.get('parent'),
-              documentNode = localDocumentNode.get('parent'),
-              currentItems = [];
-            if (inputDocumentNode.get('before')) {
-              console.debug('lessIndent Pattern 3');
-              historyEntry.undo.push(undoManager.buildReplaceUndo(localDocumentNode));
-              if (localDocumentNode.get('after')) {
-                temporaryCommand = undoManager.addUndoForInsertArray(
-                  { undo: [], redo: [] },
-                  DocumentNode.genArrFrom(localDocumentNode.get('after')),
-                );
-                historyEntry.undo.push(temporaryCommand.redo[0]);
-                historyEntry.redo.push(temporaryCommand.undo[0]);
-              }
-              var clonedItem = localDocumentNode.clone();
-              clonedItem.appendChildrenTillEnd(inputDocumentNode);
-              localDocumentNode.addAfter(clonedItem);
-              replacement.oldCid = documentNode.cid;
-              let [leadingContainer, currentDocumentNode] = splitOutdentedContainer(clonedItem);
-              currentItems = clonedItem.unwrap();
+        console.debug('findNodesForLessIndent', currentItems);
+        return currentItems;
+      })(firstNode, lastNode).forEach(function (item) {
+        if (item.isDeleted()) {
+          return;
+        }
+        var replacement = {};
+        undoManager.addUndoForRemoveArray(historyEntry, DocumentNode.genArrFrom(item));
+        const [leadingContainer, trailingContainer] = splitFollowingContainer(item);
+        var currentItems = [];
+        replacement.oldCid = leadingContainer.cid;
+        cacheNodeMath(replacement.oldCid);
+        currentItems.push(item);
+        leadingContainer.addAfter(item);
+        item.addAfter(trailingContainer);
+        if (hasNoChildren(trailingContainer)) {
+          trailingContainer.remove();
+        } else {
+          currentItems.push(trailingContainer);
+        }
+        undoManager.addUndoForInsertArray(historyEntry, currentItems);
+        if (hasNoChildren(leadingContainer)) {
+          undoManager.addUndoForRemove(historyEntry, leadingContainer);
+          leadingContainer.remove();
+        } else {
+          currentItems.unshift(leadingContainer);
+        }
+        replacement.html = nodeCollectionUtilities.toHTML(currentItems, { mathCount: 0 });
+        items.push(replacement);
+        File.editor.mathBlock.clearCache();
+      });
+      return items;
+    },
+    outdentBlockquoteRange = function (firstNode, lastNode, historyEntry, items) {
+      function splitOutdentedContainer(node) {
+        return splitFollowingContainer(node);
+      }
+      items = items || [];
+      (function (firstNode, lastNode) {
+        for (
+          var documentNode = firstNode, currentItems = [];
+          documentNode &&
+          DocumentNode.isType(documentNode.get('parent'), NodeType.list_item) &&
+          (currentItems.push(documentNode), !documentNode.get('parent').contains(lastNode));
+        ) {
+          documentNode = visitNextLeaf(documentNode.get('parent'), findIndentableNode);
+        }
+        console.debug('findNodesForLessIndent', currentItems);
+        return currentItems;
+      })(firstNode, lastNode).forEach(function (inputDocumentNode) {
+        if (!inputDocumentNode.isDeleted()) {
+          var temporaryCommand,
+            replacement = {},
+            localDocumentNode = inputDocumentNode.get('parent'),
+            documentNode = localDocumentNode.get('parent'),
+            currentItems = [];
+          if (inputDocumentNode.get('before')) {
+            console.debug('lessIndent Pattern 3');
+            historyEntry.undo.push(undoManager.buildReplaceUndo(localDocumentNode));
+            if (localDocumentNode.get('after')) {
               temporaryCommand = undoManager.addUndoForInsertArray(
                 { undo: [], redo: [] },
-                currentItems,
+                DocumentNode.genArrFrom(localDocumentNode.get('after')),
               );
+              historyEntry.undo.push(temporaryCommand.redo[0]);
               historyEntry.redo.push(temporaryCommand.undo[0]);
-              if (hasNoChildren(currentDocumentNode)) {
+            }
+            var clonedItem = localDocumentNode.clone();
+            clonedItem.appendChildrenTillEnd(inputDocumentNode);
+            localDocumentNode.addAfter(clonedItem);
+            replacement.oldCid = documentNode.cid;
+            let [leadingContainer, currentDocumentNode] = splitOutdentedContainer(clonedItem);
+            currentItems = clonedItem.unwrap();
+            temporaryCommand = undoManager.addUndoForInsertArray(
+              { undo: [], redo: [] },
+              currentItems,
+            );
+            historyEntry.redo.push(temporaryCommand.undo[0]);
+            if (hasNoChildren(currentDocumentNode)) {
+              currentDocumentNode.remove();
+            } else {
+              if (canMergeLists(currentDocumentNode, currentItems.last())) {
+                currentItems.last().appendChildrenTillEnd(currentDocumentNode.getFirstChild());
                 currentDocumentNode.remove();
               } else {
-                if (canMergeLists(currentDocumentNode, currentItems.last())) {
-                  currentItems.last().appendChildrenTillEnd(currentDocumentNode.getFirstChild());
-                  currentDocumentNode.remove();
-                } else {
-                  currentItems.push(currentDocumentNode);
-                }
+                currentItems.push(currentDocumentNode);
+              }
+            }
+            temporaryCommand = undoManager.addUndoForInsertArray(
+              { undo: [], redo: [] },
+              currentItems,
+            );
+            historyEntry.redo.push(temporaryCommand.redo[0]);
+            historyEntry.undo.push(temporaryCommand.undo[0]);
+            currentItems.unshift(leadingContainer);
+          } else {
+            if (DocumentNode.isType(documentNode.get('parent'), NodeType.list_item)) {
+              console.debug('lessIndent Pattern 1');
+              historyEntry.undo.push(undoManager.buildReplaceUndo(documentNode.get('parent')));
+              if (documentNode.get('after') && !localDocumentNode.get('after')) {
+                historyEntry.redo.push({
+                  type: 'remove',
+                  idArray: DocumentNode.genArrFrom(documentNode.get('after')).map(
+                    (item) => item.cid,
+                  ),
+                });
+                documentNode.getLastChild().appendChildrenTillEnd(documentNode.get('after'));
+              }
+              let [leadingContainer, trailingContainer] =
+                splitOutdentedContainer(localDocumentNode);
+              if (hasNoChildren(trailingContainer)) {
+                trailingContainer.remove();
+              } else {
+                localDocumentNode.appendChildrenTillEnd(trailingContainer);
+              }
+              var parentNode = localDocumentNode.get('parent');
+              parentNode.addAfter(localDocumentNode);
+              temporaryCommand = undoManager.addUndoForInsert(
+                { undo: [], redo: [] },
+                localDocumentNode,
+              );
+              historyEntry.redo.push(temporaryCommand.undo[0]);
+              historyEntry.redo.push(temporaryCommand.redo[0]);
+              historyEntry.undo.push(temporaryCommand.undo[0]);
+              replacement.oldCid = parentNode.cid;
+              if (hasNoChildren(leadingContainer)) {
+                undoManager.addUndoForRemove(historyEntry, leadingContainer);
+                leadingContainer.remove();
+              }
+              if (hasNoChildren(parentNode)) {
+                undoManager.addUndoForRemove(historyEntry, parentNode);
+                parentNode.remove();
+              } else {
+                currentItems.push(parentNode);
+              }
+              clearSiblingAttributes(
+                localDocumentNode.getFirstBrother(),
+                historyEntry,
+                'userIndent',
+                'prespace',
+                'markindent',
+              );
+              currentItems.push(localDocumentNode);
+            } else {
+              console.debug('lessIndent Pattern 2');
+              historyEntry.undo.push(undoManager.buildReplaceUndo(documentNode));
+              temporaryCommand = undoManager.addUndoForInsertArray(
+                { undo: [], redo: [] },
+                DocumentNode.genArrFrom(localDocumentNode),
+              );
+              historyEntry.redo.push(temporaryCommand.undo[0]);
+              replacement.oldCid = documentNode.cid;
+              let [leadingContainer, trailingContainer] =
+                splitOutdentedContainer(localDocumentNode);
+              currentItems = localDocumentNode.unwrap();
+              if (hasNoChildren(trailingContainer)) {
+                trailingContainer.remove();
+              } else {
+                currentItems.push(trailingContainer);
               }
               temporaryCommand = undoManager.addUndoForInsertArray(
                 { undo: [], redo: [] },
@@ -504,97 +546,22 @@ export default function initializeEditingListIndent(requireModule, moduleExports
               );
               historyEntry.redo.push(temporaryCommand.redo[0]);
               historyEntry.undo.push(temporaryCommand.undo[0]);
-              currentItems.unshift(leadingContainer);
-            } else {
-              if (DocumentNode.isType(documentNode.get('parent'), NodeType.list_item)) {
-                console.debug('lessIndent Pattern 1');
-                historyEntry.undo.push(undoManager.buildReplaceUndo(documentNode.get('parent')));
-                if (documentNode.get('after') && !localDocumentNode.get('after')) {
-                  historyEntry.redo.push({
-                    type: 'remove',
-                    idArray: DocumentNode.genArrFrom(documentNode.get('after')).map(
-                      (item) => item.cid,
-                    ),
-                  });
-                  documentNode.getLastChild().appendChildrenTillEnd(documentNode.get('after'));
-                }
-                let [leadingContainer, trailingContainer] =
-                  splitOutdentedContainer(localDocumentNode);
-                if (hasNoChildren(trailingContainer)) {
-                  trailingContainer.remove();
-                } else {
-                  localDocumentNode.appendChildrenTillEnd(trailingContainer);
-                }
-                var parentNode = localDocumentNode.get('parent');
-                parentNode.addAfter(localDocumentNode);
-                temporaryCommand = undoManager.addUndoForInsert(
-                  { undo: [], redo: [] },
-                  localDocumentNode,
-                );
-                historyEntry.redo.push(temporaryCommand.undo[0]);
-                historyEntry.redo.push(temporaryCommand.redo[0]);
-                historyEntry.undo.push(temporaryCommand.undo[0]);
-                replacement.oldCid = parentNode.cid;
-                if (hasNoChildren(leadingContainer)) {
-                  undoManager.addUndoForRemove(historyEntry, leadingContainer);
-                  leadingContainer.remove();
-                }
-                if (hasNoChildren(parentNode)) {
-                  undoManager.addUndoForRemove(historyEntry, parentNode);
-                  parentNode.remove();
-                } else {
-                  currentItems.push(parentNode);
-                }
-                clearSiblingAttributes(
-                  localDocumentNode.getFirstBrother(),
-                  historyEntry,
-                  'userIndent',
-                  'prespace',
-                  'markindent',
-                );
-                currentItems.push(localDocumentNode);
+              if (hasNoChildren(leadingContainer)) {
+                undoManager.addUndoForRemove(historyEntry, leadingContainer);
+                leadingContainer.remove();
               } else {
-                console.debug('lessIndent Pattern 2');
-                historyEntry.undo.push(undoManager.buildReplaceUndo(documentNode));
-                temporaryCommand = undoManager.addUndoForInsertArray(
-                  { undo: [], redo: [] },
-                  DocumentNode.genArrFrom(localDocumentNode),
-                );
-                historyEntry.redo.push(temporaryCommand.undo[0]);
-                replacement.oldCid = documentNode.cid;
-                let [leadingContainer, trailingContainer] =
-                  splitOutdentedContainer(localDocumentNode);
-                currentItems = localDocumentNode.unwrap();
-                if (hasNoChildren(trailingContainer)) {
-                  trailingContainer.remove();
-                } else {
-                  currentItems.push(trailingContainer);
-                }
-                temporaryCommand = undoManager.addUndoForInsertArray(
-                  { undo: [], redo: [] },
-                  currentItems,
-                );
-                historyEntry.redo.push(temporaryCommand.redo[0]);
-                historyEntry.undo.push(temporaryCommand.undo[0]);
-                if (hasNoChildren(leadingContainer)) {
-                  undoManager.addUndoForRemove(historyEntry, leadingContainer);
-                  leadingContainer.remove();
-                } else {
-                  currentItems.unshift(leadingContainer);
-                }
+                currentItems.unshift(leadingContainer);
               }
             }
-            cacheNodeMath(replacement.oldCid);
-            replacement.html = nodeCollectionUtilities.toHTML(currentItems, { mathCount: 0 });
-            items.push(replacement);
-            File.editor.mathBlock.clearCache();
           }
-        });
-        return items;
-      },
-      'name',
-      { value: 'C', configurable: true },
-    );
+          cacheNodeMath(replacement.oldCid);
+          replacement.html = nodeCollectionUtilities.toHTML(currentItems, { mathCount: 0 });
+          items.push(replacement);
+          File.editor.mathBlock.clearCache();
+        }
+      });
+      return items;
+    };
   moduleExports.moreIndent = function (editor) {
     var range = editor.selection.getRangy();
     if (!range || File.isLocked) {
@@ -637,8 +604,6 @@ export default function initializeEditingListIndent(requireModule, moduleExports
     return false;
   };
   moduleExports.lessIndent = function (editor) {
-    Object.defineProperty(beginIndentCommand, 'name', { value: 'i', configurable: true });
-
     var range = editor.selection.getRangy();
     if (!range || File.isLocked) {
       return true;
@@ -696,33 +661,25 @@ export default function initializeEditingListIndent(requireModule, moduleExports
       selectionSnapshot = editor.selection.buildUndo(range);
       indentCommand = undoManager.makeEmptyCommand(Object.clone(selectionSnapshot));
       items = [];
-      Object.defineProperty(
-        function visitSelectedNodes(documentNode, lastNode, visitNode) {
-          if (documentNode) {
-            visitNode(documentNode);
-          }
-          if (
-            documentNode &&
-            documentNode !== lastNode &&
-            !documentNode.contains(lastNode) &&
-            !lastNode.contains(documentNode)
+      (function visitSelectedNodes(documentNode, lastNode, visitNode) {
+        if (documentNode) {
+          visitNode(documentNode);
+        }
+        if (
+          documentNode &&
+          documentNode !== lastNode &&
+          !documentNode.contains(lastNode) &&
+          !lastNode.contains(documentNode)
+        ) {
+          for (
+            var nextNode = documentNode.get('after'), currentDocumentNode = documentNode;
+            !nextNode;
           ) {
-            for (
-              var nextNode = documentNode.get('after'), currentDocumentNode = documentNode;
-              !nextNode;
-            ) {
-              nextNode = (currentDocumentNode = currentDocumentNode.get('parent')).get('after');
-            }
-            visitSelectedNodes(
-              (nextNode = nextNode && nextNode.getVeryFirst()),
-              lastNode,
-              visitNode,
-            );
+            nextNode = (currentDocumentNode = currentDocumentNode.get('parent')).get('after');
           }
-        },
-        'name',
-        { value: 'e', configurable: true },
-      )(element, lastNode, function (node) {
+          visitSelectedNodes((nextNode = nextNode && nextNode.getVeryFirst()), lastNode, visitNode);
+        }
+      })(element, lastNode, function (node) {
         if (
           (function (documentNode, historyEntry, selectionSnapshot) {
             if (DocumentNode.isType(documentNode, NodeType.paragraph, NodeType.heading)) {

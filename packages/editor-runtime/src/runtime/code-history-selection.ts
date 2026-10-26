@@ -81,7 +81,7 @@ function state(cm: CM): CodeState | undefined {
   if (primary < 0) return;
   return { text: cm.getValue(), ranges, primary };
 }
-/** Replay only actual original fences changes, in the original execution order.
+/** Replay only actual fences changes, in the execution order.
  * This proves history membership; it neither edits a model nor authorizes raw patches. */
 export function replayCodeChanges(
   source: string,
@@ -245,7 +245,7 @@ export function restoreCodeHistorySelection(
 
 /** Only the validated same-document snapshot rollback caller may grant a new
  * CM owner. Data contains no DOM/CM object; exact undo and redo signatures are
- * checked by that caller before this bidirectional original-change proof. */
+ * checked by that caller before this bidirectional change proof. */
 export function rebindRestoredCodeHistorySelection(
   editor: LegacyEditor,
   data: CodeHistoryData,

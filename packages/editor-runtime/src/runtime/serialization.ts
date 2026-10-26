@@ -57,8 +57,8 @@ export interface NativeLineBinding {
   useCRLF(): boolean;
 }
 
-/** The optional capability is created only by the hash-pinned private runtime
- * transform. It references the original module closure, not a reimplementation. */
+/** The optional capability is exported by the Markdown serializer module
+ * and reads its private closure directly. */
 function runtimeLines(
   nodeMap: unknown,
   binding: NativeLineBinding | undefined,
@@ -104,7 +104,7 @@ function runtimeLines(
       if (seen.size >= 200_000) throw new Error('Runtime serializer block limit exceeded');
       seen.add(current);
       // Preserve native call order: serialization may normalize attributes before
-      // the next sibling is read. Never rerun the original after partial effects.
+      // the next sibling is read. Never rerun the serializer after partial effects.
       const value: unknown = Reflect.apply(capability.lines, current, []);
       // A plain native read needs only the source. Source-tracking ranges are
       // optional, and inspecting/allocating them changes the unobserved path.
@@ -166,8 +166,8 @@ function runtimeLines(
 }
 
 /**
- * undefined means the caller must use the original nodeMap.toMark. Every such
- * return occurs before any node serialization, because the original serializer
+ * undefined means the caller must use the nodeMap.toMark. Every such
+ * return occurs before any node serialization, because the serializer
  * can normalize attributes and is not safely repeatable during one capture.
  */
 export function trySerializeNativeBlocks(
@@ -233,7 +233,7 @@ export function trySerializeNativeBlocks(
   const chunks: string[] = [];
   for (const node of roots) {
     const chunk = node.toMark();
-    // Do not invoke the original whole-document method after a partially
+    // Do not invoke the whole-document method after a partially
     // serialized model: that could normalize earlier blocks a second time.
     if (typeof chunk !== 'string' || !chunk)
       throw new Error('Unexpected native serializer contribution after preflight');

@@ -1,8 +1,6 @@
 // ui/find-replace.
 export default function initializeUiFindReplace(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(markSearchRange, 'name', { value: 'f', configurable: true });
-  Object.defineProperty(restoreInitialSearchPosition, 'name', { value: 'm', configurable: true });
 
   if (!this) {
     self;
@@ -269,9 +267,6 @@ export default function initializeUiFindReplace(requireModule, moduleExports, mo
       }
     }
     replaceAll() {
-      Object.defineProperty(replaceNodeAttribute, 'name', { value: 'w', configurable: true });
-      Object.defineProperty(replaceNodeWithHistory, 'name', { value: 'x', configurable: true });
-
       if (this.searchStatus && this.searchStatus.hits.length) {
         var startOffset,
           currentHitsLength,
@@ -751,11 +746,6 @@ export default function initializeUiFindReplace(requireModule, moduleExports, mo
       }
     }
     findAtNode(rootNode, queryText, searchState, sourceMode, includeMetadata) {
-      Object.defineProperty(isHitBeforeInitialPosition, 'name', { value: 'c', configurable: true });
-      Object.defineProperty(expandSearchMetadata, 'name', { value: 'p', configurable: true });
-      Object.defineProperty(searchRenderedNode, 'name', { value: 'm', configurable: true });
-      Object.defineProperty(searchCodeMirror, 'name', { value: 'g', configurable: true });
-
       var currentEditor = this.editor,
         initPosContainer = searchState.initPosContainer,
         initPos = searchState.initPos;
@@ -875,91 +865,84 @@ export default function initializeUiFindReplace(requireModule, moduleExports, mo
       if (sourceMode) {
         searchCodeMirror(this.editor.sourceView.cm, queryText);
       } else {
-        Object.defineProperty(
-          function searchDocumentSubtree(documentNode, queryText) {
-            if (documentNode.get('children').length) {
-              documentNode.get('children').sortedForEach(function (childNode) {
-                searchDocumentSubtree(childNode, queryText);
-              });
+        (function searchDocumentSubtree(documentNode, queryText) {
+          if (documentNode.get('children').length) {
+            documentNode.get('children').sortedForEach(function (childNode) {
+              searchDocumentSubtree(childNode, queryText);
+            });
+          } else {
+            if (DocumentNode.isType(documentNode, NodeType.fences)) {
+              if (currentEditor.fences.queue[documentNode.cid]) {
+                searchCodeMirror(currentEditor.fences.queue[documentNode.cid], queryText);
+              } else {
+                var regexp = searchState.regexp;
+                try {
+                  !(function (fenceNode, unusedParameter2) {
+                    searchRenderedNode(fenceNode, 0, true);
+                  })(documentNode);
+                } catch (error) {
+                  console.error(error);
+                }
+                regexp.lastIndex = 0;
+              }
             } else {
-              if (DocumentNode.isType(documentNode, NodeType.fences)) {
-                if (currentEditor.fences.queue[documentNode.cid]) {
-                  searchCodeMirror(currentEditor.fences.queue[documentNode.cid], queryText);
-                } else {
-                  var regexp = searchState.regexp;
-                  try {
-                    !(function (fenceNode, unusedParameter2) {
-                      searchRenderedNode(fenceNode, 0, true);
-                    })(documentNode);
-                  } catch (error) {
-                    console.error(error);
-                  }
-                  regexp.lastIndex = 0;
+              if (DocumentNode.isType(documentNode, NodeType.math_block)) {
+                if ((currentEditor.mathBlock.currentCm || {}).cid === documentNode.cid) {
+                  currentEditor.fences.clearSearchOn(currentEditor.mathBlock.currentCm);
+                  searchCodeMirror(currentEditor.mathBlock.currentCm, queryText);
                 }
               } else {
-                if (DocumentNode.isType(documentNode, NodeType.math_block)) {
-                  if ((currentEditor.mathBlock.currentCm || {}).cid === documentNode.cid) {
-                    currentEditor.fences.clearSearchOn(currentEditor.mathBlock.currentCm);
-                    searchCodeMirror(currentEditor.mathBlock.currentCm, queryText);
-                  }
-                } else {
-                  if (!DocumentNode.isType(documentNode, NodeType.toc, NodeType.hr)) {
-                    if (DocumentNode.isType(documentNode, NodeType.html_block)) {
-                      if ((currentEditor.htmlBlock.currentCm || {}).cid === documentNode.cid) {
-                        currentEditor.fences.clearSearchOn(currentEditor.htmlBlock.currentCm);
-                        searchCodeMirror(currentEditor.htmlBlock.currentCm, queryText);
-                      } else {
-                        (function (htmlNode, unusedParameter2) {
-                          var range,
-                            matchRecord,
-                            currentRegexp = searchState.regexp,
-                            element = currentEditor
-                              .findElemById(htmlNode.cid)[0]
-                              .querySelector('.md-htmlblock-container'),
-                            text = element.textContent;
-                          currentRegexp.lastIndex = 0;
-                          for (var regexpMatch = null; (regexpMatch = currentRegexp.exec(text)); ) {
-                            if (
-                              (matchRecord = {
-                                cid: htmlNode.cid,
-                                containerNode: element,
-                                start: currentRegexp.lastIndex - regexpMatch[0].length,
-                                end: currentRegexp.lastIndex,
-                              }).start == matchRecord.end
-                            ) {
+                if (!DocumentNode.isType(documentNode, NodeType.toc, NodeType.hr)) {
+                  if (DocumentNode.isType(documentNode, NodeType.html_block)) {
+                    if ((currentEditor.htmlBlock.currentCm || {}).cid === documentNode.cid) {
+                      currentEditor.fences.clearSearchOn(currentEditor.htmlBlock.currentCm);
+                      searchCodeMirror(currentEditor.htmlBlock.currentCm, queryText);
+                    } else {
+                      (function (htmlNode, unusedParameter2) {
+                        var range,
+                          matchRecord,
+                          currentRegexp = searchState.regexp,
+                          element = currentEditor
+                            .findElemById(htmlNode.cid)[0]
+                            .querySelector('.md-htmlblock-container'),
+                          text = element.textContent;
+                        currentRegexp.lastIndex = 0;
+                        for (var regexpMatch = null; (regexpMatch = currentRegexp.exec(text)); ) {
+                          if (
+                            (matchRecord = {
+                              cid: htmlNode.cid,
+                              containerNode: element,
+                              start: currentRegexp.lastIndex - regexpMatch[0].length,
+                              end: currentRegexp.lastIndex,
+                            }).start == matchRecord.end
+                          ) {
+                            return;
+                          }
+                          (range = range || rangy.createRange()).moveToBookmark(matchRecord);
+                          if (3 == range.commonAncestorContainer.nodeType) {
+                            var highlightElement = markSearchRange(range);
+                            searchState.hits.push(highlightElement);
+                            if (isHitBeforeInitialPosition(matchRecord)) {
+                              searchState.curPos++;
+                            }
+                            if (searchState.hits.length > MAX_HITS_COUNT) {
                               return;
                             }
-                            (range = range || rangy.createRange()).moveToBookmark(matchRecord);
-                            if (3 == range.commonAncestorContainer.nodeType) {
-                              var highlightElement = markSearchRange(range);
-                              searchState.hits.push(highlightElement);
-                              if (isHitBeforeInitialPosition(matchRecord)) {
-                                searchState.curPos++;
-                              }
-                              if (searchState.hits.length > MAX_HITS_COUNT) {
-                                return;
-                              }
-                            }
                           }
-                        })(documentNode);
-                      }
-                    } else {
-                      searchRenderedNode(documentNode);
+                        }
+                      })(documentNode);
                     }
+                  } else {
+                    searchRenderedNode(documentNode);
                   }
                 }
               }
             }
-          },
-          'name',
-          { value: 'e', configurable: true },
-        )(rootNode, queryText);
+          }
+        })(rootNode, queryText);
       }
     }
     highlightNext(backward) {
-      Object.defineProperty(compareRangeWithHit, 'name', { value: 'o', configurable: true });
-      Object.defineProperty(compareBookmarkWithHit, 'name', { value: 'a', configurable: true });
-
       if (!this.isOpen()) {
         return this.showPanel(void 0, true);
       }

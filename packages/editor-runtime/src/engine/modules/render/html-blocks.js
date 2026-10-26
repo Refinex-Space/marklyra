@@ -1,11 +1,6 @@
 // render/html-blocks.
 export default function initializeRenderHtmlBlocks(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(showFramePlaceholder, 'name', { value: 'N', configurable: true });
-  Object.defineProperty(isTrustedEmbedScriptUrl, 'name', { value: 'P', configurable: true });
-  Object.defineProperty(sanitizeHtmlContent, 'name', { value: 'O', configurable: true });
-  Object.defineProperty(readFrameDocument, 'name', { value: 'H', configurable: true });
-  Object.defineProperty(updateFrameSource, 'name', { value: 'U', configurable: true });
 
   if (!this) {
     self;
@@ -122,64 +117,52 @@ export default function initializeRenderHtmlBlocks(requireModule, moduleExports,
       /^\s*<(\!DOCTYPE|div|p|h[1-6]|table|figure|details|left|right|center|footer|header|nav|ol|ul|article|address|dl|applet|map|aside|audio|bdo|blockquote|form|select|dialog|picture|embed|object|iframe|main|pre|section|svg|textarea|video|template|head|canvas|base|datalist|meta|script|style|noscript|title|menu|hr)(?:(\/)|>|\s|$)/i,
     voidElementTags = ['br', 'hr', 'embed'],
     tagPatternCache = {},
-    getHtmlTagPattern = Object.defineProperty(
-      function (tagName) {
-        if (!tagPatternCache[tagName]) {
-          tagPatternCache[tagName] = new RegExp(
-            '(?:<' +
-              tagName +
-              '(?:\\s+[a-zA-Z_:][a-zA-Z0-9:._-]*(?:\\s*=\\s*(?:[^"\'=<>`\\\0-\\ ]+|\'[^\']*\'|"[^"]*"))?)*\\s*(\\/?)>?|<(\\/)' +
-              tagName +
-              '\\s*[>])',
-            'i',
-          );
-        }
-        return tagPatternCache[tagName];
-      },
-      'name',
-      { value: 'C', configurable: true },
-    ),
+    getHtmlTagPattern = function (tagName) {
+      if (!tagPatternCache[tagName]) {
+        tagPatternCache[tagName] = new RegExp(
+          '(?:<' +
+            tagName +
+            '(?:\\s+[a-zA-Z_:][a-zA-Z0-9:._-]*(?:\\s*=\\s*(?:[^"\'=<>`\\\0-\\ ]+|\'[^\']*\'|"[^"]*"))?)*\\s*(\\/?)>?|<(\\/)' +
+            tagName +
+            '\\s*[>])',
+          'i',
+        );
+      }
+      return tagPatternCache[tagName];
+    },
     htmlEdited = false,
-    hasCompleteHtmlBlock = Object.defineProperty(
-      function (textSlice) {
-        for (var localText, match, tagDepth = 0; textSlice; ) {
-          if (!localText) {
-            if (
-              !(localText = ((match = BLOCK_OPEN_REG.exec(textSlice)) || [])[1]) ||
-              voidElementTags.indexOf(localText.toLowerCase()) > -1
-            ) {
-              break;
-            }
-            tagDepth = 0;
-          }
-          if (!(match = getHtmlTagPattern(localText).exec(textSlice))) {
+    hasCompleteHtmlBlock = function (textSlice) {
+      for (var localText, match, tagDepth = 0; textSlice; ) {
+        if (!localText) {
+          if (
+            !(localText = ((match = BLOCK_OPEN_REG.exec(textSlice)) || [])[1]) ||
+            voidElementTags.indexOf(localText.toLowerCase()) > -1
+          ) {
             break;
           }
-          textSlice = textSlice.substring(match[0].length);
-          if (match[2]) {
-            tagDepth--;
-          } else {
-            if (!match[1]) {
-              tagDepth++;
-            }
+          tagDepth = 0;
+        }
+        if (!(match = getHtmlTagPattern(localText).exec(textSlice))) {
+          break;
+        }
+        textSlice = textSlice.substring(match[0].length);
+        if (match[2]) {
+          tagDepth--;
+        } else {
+          if (!match[1]) {
+            tagDepth++;
           }
         }
-        return tagDepth <= 0;
-      },
-      'name',
-      { value: 'S', configurable: true },
-    ),
-    isCursorAtHtmlEnd = Object.defineProperty(
-      function (codeMirror) {
-        var cursorPosition = codeMirror.doc.getCursor();
-        return (
-          !cursorPosition ||
-          codeMirror.doc.indexFromPos(cursorPosition) >= codeMirror.doc.getValue().length
-        );
-      },
-      'name',
-      { value: 'k', configurable: true },
-    );
+      }
+      return tagDepth <= 0;
+    },
+    isCursorAtHtmlEnd = function (codeMirror) {
+      var cursorPosition = codeMirror.doc.getCursor();
+      return (
+        !cursorPosition ||
+        codeMirror.doc.indexFromPos(cursorPosition) >= codeMirror.doc.getValue().length
+      );
+    };
   class HtmlBlockController {
     constructor(inputEditor) {
       this.editor = inputEditor;
@@ -408,8 +391,6 @@ export default function initializeRenderHtmlBlocks(requireModule, moduleExports,
       }
     }
     startEditing(nodeOrElement, cursorPlacement) {
-      Object.defineProperty(handleHtmlBoundaryKey, 'name', { value: 'h', configurable: true });
-
       if (!File.isLocked) {
         var currentCm,
           nodeAndElement = this.getCidAndElem(nodeOrElement),
@@ -417,26 +398,22 @@ export default function initializeRenderHtmlBlocks(requireModule, moduleExports,
           element = nodeAndElement[1],
           currentEditor = this.editor,
           documentNode = this.editor.getNode(nodeId),
-          convertHtmlToParagraph = Object.defineProperty(
-            function (codeMirror) {
-              var currentDocumentNode = currentEditor.getNode(codeMirror.cid),
-                UndoManager = currentEditor.undo.UndoManager,
-                deleteCommand = UndoManager.makeEmptyCommand();
-              currentEditor.htmlBlock.beforeDeleteFences(codeMirror.cid);
-              deleteCommand.undo.push({
-                type: 'fences-pos',
-                pos: codeMirror.getCursor(),
-                id: codeMirror.cid,
-              });
-              UndoManager.append(
-                deleteCommand,
-                currentEditor.UserOp.backToParagraph(currentEditor, currentDocumentNode, false),
-              );
-              currentEditor.undo.register(deleteCommand);
-            },
-            'name',
-            { value: 'u', configurable: true },
-          );
+          convertHtmlToParagraph = function (codeMirror) {
+            var currentDocumentNode = currentEditor.getNode(codeMirror.cid),
+              UndoManager = currentEditor.undo.UndoManager,
+              deleteCommand = UndoManager.makeEmptyCommand();
+            currentEditor.htmlBlock.beforeDeleteFences(codeMirror.cid);
+            deleteCommand.undo.push({
+              type: 'fences-pos',
+              pos: codeMirror.getCursor(),
+              id: codeMirror.cid,
+            });
+            UndoManager.append(
+              deleteCommand,
+              currentEditor.UserOp.backToParagraph(currentEditor, currentDocumentNode, false),
+            );
+            currentEditor.undo.register(deleteCommand);
+          };
         if (nodeId) {
           if (this.currentCm && this.currentCm.cid === nodeId) {
             if (currentEditor.writingArea.contains(this.currentCm.getWrapperElement())) {
@@ -602,7 +579,7 @@ export default function initializeRenderHtmlBlocks(requireModule, moduleExports,
       );
     }
   }
-  Object.defineProperty(HtmlBlockController, 'name', { value: 'E', configurable: true });
+
   HtmlBlockController.allowWhiteList = function () {
     if (void 0 === supportsSrcdoc) {
       var iframeElement = document.createElement('iframe');
@@ -646,31 +623,21 @@ export default function initializeRenderHtmlBlocks(requireModule, moduleExports,
       overrides,
     );
   };
-  var forwardFrameContextMenu = Object.defineProperty(
-      function (target, pointerEvent) {
-        var targetElement = jquery(target),
-          offset = targetElement.offset(),
-          contextEvent = new jquery.Event('contextmenu', {
-            target: target,
-            currentTarget: target,
-            clientY: offset.top + pointerEvent.clientY,
-            clientX: offset.left + pointerEvent.clientX,
-          });
-        targetElement.trigger(contextEvent);
-      },
-      'name',
-      { value: '_', configurable: true },
-    ),
-    isPdfFrame = Object.defineProperty(
-      function (frameElement) {
-        return frameElement.src && /\.pdf/i.exec(new URL(frameElement.src).pathname);
-      },
-      'name',
-      { value: 'A', configurable: true },
-    );
+  var forwardFrameContextMenu = function (target, pointerEvent) {
+      var targetElement = jquery(target),
+        offset = targetElement.offset(),
+        contextEvent = new jquery.Event('contextmenu', {
+          target: target,
+          currentTarget: target,
+          clientY: offset.top + pointerEvent.clientY,
+          clientX: offset.left + pointerEvent.clientX,
+        });
+      targetElement.trigger(contextEvent);
+    },
+    isPdfFrame = function (frameElement) {
+      return frameElement.src && /\.pdf/i.exec(new URL(frameElement.src).pathname);
+    };
   window.loadedWebview = function (domNode) {
-    Object.defineProperty(removeFramePlaceholder, 'name', { value: 't', configurable: true });
-
     function removeFramePlaceholder() {
       if (
         domNode.previousElementSibling &&
@@ -719,8 +686,6 @@ export default function initializeRenderHtmlBlocks(requireModule, moduleExports,
     }
   };
   window.remoteOnLoad = function (domNode) {
-    Object.defineProperty(initializeEmbeddedFrame, 'name', { value: 't', configurable: true });
-
     function initializeEmbeddedFrame(frameElement) {
       var isPdf = isPdfFrame(frameElement);
       if (
@@ -804,21 +769,17 @@ export default function initializeRenderHtmlBlocks(requireModule, moduleExports,
     domNode.parentElement.insertBefore(divElement, domNode);
     domNode.classList.add('md-video-load-failed');
   };
-  var hasTrustedEmbedScript = Object.defineProperty(
-    function (parentElement) {
-      if (!HtmlBlockController.allowWhiteList()) {
-        return false;
-      }
-      var elements = parentElement.querySelectorAll('script');
-      return (
-        1 == elements.length &&
-        elements[0].parentElement == parentElement &&
-        isTrustedEmbedScriptUrl(elements[0].getAttribute('src'))
-      );
-    },
-    'name',
-    { value: 'D', configurable: true },
-  );
+  var hasTrustedEmbedScript = function (parentElement) {
+    if (!HtmlBlockController.allowWhiteList()) {
+      return false;
+    }
+    var elements = parentElement.querySelectorAll('script');
+    return (
+      1 == elements.length &&
+      elements[0].parentElement == parentElement &&
+      isTrustedEmbedScriptUrl(elements[0].getAttribute('src'))
+    );
+  };
   HtmlBlockController.checkIsWhiteList = function (documentNode) {
     if (!HtmlBlockController.allowWhiteList()) {
       return false;

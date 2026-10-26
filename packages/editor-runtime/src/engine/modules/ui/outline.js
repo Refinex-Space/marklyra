@@ -1,8 +1,6 @@
 // ui/outline.
 export default function initializeUiOutline(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(getOutlineInlineLexer, 'name', { value: 'g', configurable: true });
-  Object.defineProperty(matchMetadataProperty, 'name', { value: 'b', configurable: true });
 
   if (!this) {
     self;
@@ -108,52 +106,48 @@ export default function initializeUiOutline(requireModule, moduleExports, module
       }
     }
   }
-  Object.defineProperty(ReferenceNodeCollection, 'name', { value: 'p', configurable: true });
+
   var outlineInlineLexer,
-    renderOutlineInlineToken = Object.defineProperty(
-      function (token) {
-        switch (token.type) {
-          case NodeType.strong:
-            return '<strong>' + token.inner + '</strong>';
-          case NodeType.em:
-            return '<em>' + token.inner + '</em>';
-          case NodeType.code:
-            return '<code>' + utilities.escape(token.text) + '</code>';
-          case NodeType.plain:
-            return utilities.escape(token.text);
-          case NodeType.tag:
-            return '';
-          case NodeType.imgtag:
-          case NodeType.refimg:
-          case NodeType.image:
-            return '';
-          case NodeType.inline_math:
-            return inlineDecoration.decorateAsExport(token, { forPrint: true });
-          case NodeType.underline:
-            return '<u>' + token.inner + '</u>';
-          case NodeType.del:
-            return '<del>' + token.inner + '</del>';
-          case NodeType.footnote:
-            return '';
-          case NodeType.escape:
-            return utilities.escape(token.text);
-          case NodeType.highlight:
-            return '<mark>' + token.inner + '</mark>';
-          case NodeType.superscript:
-            return '<sup>' + token.inner + '</sup>';
-          case NodeType.subscript:
-            return '<sub>' + token.inner + '</sub>';
-          case NodeType.linebreak:
-            return '';
-          case NodeType.tab:
-            return '<span>' + token.inner + '</span>';
-          default:
-            return token.inner || utilities.escape(token.text || '');
-        }
-      },
-      'name',
-      { value: 'm', configurable: true },
-    );
+    renderOutlineInlineToken = function (token) {
+      switch (token.type) {
+        case NodeType.strong:
+          return '<strong>' + token.inner + '</strong>';
+        case NodeType.em:
+          return '<em>' + token.inner + '</em>';
+        case NodeType.code:
+          return '<code>' + utilities.escape(token.text) + '</code>';
+        case NodeType.plain:
+          return utilities.escape(token.text);
+        case NodeType.tag:
+          return '';
+        case NodeType.imgtag:
+        case NodeType.refimg:
+        case NodeType.image:
+          return '';
+        case NodeType.inline_math:
+          return inlineDecoration.decorateAsExport(token, { forPrint: true });
+        case NodeType.underline:
+          return '<u>' + token.inner + '</u>';
+        case NodeType.del:
+          return '<del>' + token.inner + '</del>';
+        case NodeType.footnote:
+          return '';
+        case NodeType.escape:
+          return utilities.escape(token.text);
+        case NodeType.highlight:
+          return '<mark>' + token.inner + '</mark>';
+        case NodeType.superscript:
+          return '<sup>' + token.inner + '</sup>';
+        case NodeType.subscript:
+          return '<sub>' + token.inner + '</sub>';
+        case NodeType.linebreak:
+          return '';
+        case NodeType.tab:
+          return '<span>' + token.inner + '</span>';
+        default:
+          return token.inner || utilities.escape(token.text || '');
+      }
+    };
   function getOutlineInlineLexer() {
     if (!outlineInlineLexer) {
       outlineInlineLexer = new markdownParser.InlineLexer(null, renderOutlineInlineToken);
@@ -193,8 +187,6 @@ export default function initializeUiOutline(requireModule, moduleExports, module
       }
     }
     refresh(immediate, skipHtmlUpdate) {
-      Object.defineProperty(collectHeadings, 'name', { value: 'i', configurable: true });
-
       if (!File._onInitParse) {
         var receiver = this;
         if (this.refreshTimeout) {
@@ -271,7 +263,7 @@ export default function initializeUiOutline(requireModule, moduleExports, module
       File.editor.tryEnterBusyModeWithDelay();
     }
   }
-  Object.defineProperty(TableOfContents, 'name', { value: 'v', configurable: true });
+
   class OutlineController {
     constructor(inputEditor) {
       var receiver = this;
@@ -282,8 +274,6 @@ export default function initializeUiOutline(requireModule, moduleExports, module
       inputEditor.nodeMap.toc = new TableOfContents(inputEditor.nodeMap);
       this.editor = inputEditor;
       (function () {
-        Object.defineProperty(scheduleTooltipHide, 'name', { value: 'r', configurable: true });
-
         var tooltipHovered,
           focusCid,
           currentEditor = receiver.editor;
@@ -353,8 +343,6 @@ export default function initializeUiOutline(requireModule, moduleExports, module
       }
     }
     addEmptyDef(ref, type) {
-      Object.defineProperty(insertMissingReference, 'name', { value: 'i', configurable: true });
-
       var currentEditor = this.editor;
       function insertMissingReference(anchorElement) {
         var documentNode = currentEditor.findNodeByElem(anchorElement),
@@ -544,9 +532,6 @@ export default function initializeUiOutline(requireModule, moduleExports, module
       return null;
     }
     buildMetaMap() {
-      Object.defineProperty(parseMetadataValue, 'name', { value: 'o', configurable: true });
-      Object.defineProperty(readIndentedMetadataLines, 'name', { value: 'a', configurable: true });
-
       var documentNode = this.getMetaNode(),
         propertyPattern = /^\s*([^\s\[\{:]+)\s*:\s*(.*)$/,
         quotedPropertyPattern = /^\s*(\"([^"]+)\"|\'([^']+)\')\s*:\s*(.*)/,
@@ -604,27 +589,50 @@ export default function initializeUiOutline(requireModule, moduleExports, module
       if (documentNode) {
         if (
           'string' ==
-          typeof (metadata = Object.defineProperty(
-            function parseMetadataSection(sourceLines) {
-              for (
-                var propertyName, match, itemIndex = 0, sectionValues = {}, openQuote = false;
-                itemIndex < sourceLines.length;
-                itemIndex++
-              ) {
-                var text = sourceLines[itemIndex];
-                if (text.match(commentPattern)) {
+          typeof (metadata = (function parseMetadataSection(sourceLines) {
+            for (
+              var propertyName, match, itemIndex = 0, sectionValues = {}, openQuote = false;
+              itemIndex < sourceLines.length;
+              itemIndex++
+            ) {
+              var text = sourceLines[itemIndex];
+              if (text.match(commentPattern)) {
+              } else {
+                if (!openQuote && (match = /^\s+/.exec(text))) {
+                  var indentPrefix = match[0],
+                    blockScalarMarker = '';
+                  if ((match = /^\s*([\|\>])\s*$/.exec(sectionValues[propertyName] || ''))) {
+                    blockScalarMarker = match[1];
+                  }
+                  if (
+                    (indentedBlock = readIndentedMetadataLines(
+                      sourceLines,
+                      itemIndex,
+                      indentPrefix,
+                    ))[1] -
+                      1 >
+                    itemIndex
+                  ) {
+                    itemIndex = indentedBlock[1] - 1;
+                  }
+                  sectionValues[(propertyName = propertyName || '')] =
+                    '|' == blockScalarMarker
+                      ? indentedBlock[0].join('\n')
+                      : '>' == blockScalarMarker
+                        ? indentedBlock[0]
+                            .map((inputText) => (inputText.trim() ? inputText.trim() + ' ' : '\n'))
+                            .join('')
+                            .trim()
+                        : parseMetadataSection(indentedBlock[0]);
                 } else {
-                  if (!openQuote && (match = /^\s+/.exec(text))) {
-                    var indentPrefix = match[0],
-                      blockScalarMarker = '';
-                    if ((match = /^\s*([\|\>])\s*$/.exec(sectionValues[propertyName] || ''))) {
-                      blockScalarMarker = match[1];
-                    }
+                  if ((match = /^[-+]\s/.exec(text))) {
+                    var indentedBlock;
+                    openQuote = false;
                     if (
                       (indentedBlock = readIndentedMetadataLines(
                         sourceLines,
-                        itemIndex,
-                        indentPrefix,
+                        itemIndex + 1,
+                        (indentPrefix = match[0].replace(/^[-+]/, ' ')),
                       ))[1] -
                         1 >
                       itemIndex
@@ -632,45 +640,31 @@ export default function initializeUiOutline(requireModule, moduleExports, module
                       itemIndex = indentedBlock[1] - 1;
                     }
                     sectionValues[(propertyName = propertyName || '')] =
-                      '|' == blockScalarMarker
-                        ? indentedBlock[0].join('\n')
-                        : '>' == blockScalarMarker
-                          ? indentedBlock[0]
-                              .map((inputText) =>
-                                inputText.trim() ? inputText.trim() + ' ' : '\n',
-                              )
-                              .join('')
-                              .trim()
-                          : parseMetadataSection(indentedBlock[0]);
+                      sectionValues[propertyName] || [];
+                    if (sectionValues[propertyName].push) {
+                      sectionValues[propertyName].push(
+                        parseMetadataSection(
+                          [text.substr(indentPrefix.length)].concat(indentedBlock[0]),
+                        ),
+                      );
+                    }
                   } else {
-                    if ((match = /^[-+]\s/.exec(text))) {
-                      var indentedBlock;
+                    if ((match = quotedPropertyPattern.exec(text))) {
                       openQuote = false;
+                      propertyName = match[2] || match[3] || '';
+                      sectionValues[propertyName] = match[4].trim();
                       if (
-                        (indentedBlock = readIndentedMetadataLines(
-                          sourceLines,
-                          itemIndex + 1,
-                          (indentPrefix = match[0].replace(/^[-+]/, ' ')),
-                        ))[1] -
-                          1 >
-                        itemIndex
+                        (match = /^["']/.exec(sectionValues[propertyName])) &&
+                        sectionValues[propertyName][sectionValues[propertyName].length - 1] !=
+                          match[0]
                       ) {
-                        itemIndex = indentedBlock[1] - 1;
-                      }
-                      sectionValues[(propertyName = propertyName || '')] =
-                        sectionValues[propertyName] || [];
-                      if (sectionValues[propertyName].push) {
-                        sectionValues[propertyName].push(
-                          parseMetadataSection(
-                            [text.substr(indentPrefix.length)].concat(indentedBlock[0]),
-                          ),
-                        );
+                        openQuote = match[0];
                       }
                     } else {
-                      if ((match = quotedPropertyPattern.exec(text))) {
+                      if ((match = propertyPattern.exec(text))) {
                         openQuote = false;
-                        propertyName = match[2] || match[3] || '';
-                        sectionValues[propertyName] = match[4].trim();
+                        propertyName = match[1];
+                        sectionValues[propertyName] = match[2].trim();
                         if (
                           (match = /^["']/.exec(sectionValues[propertyName])) &&
                           sectionValues[propertyName][sectionValues[propertyName].length - 1] !=
@@ -679,48 +673,33 @@ export default function initializeUiOutline(requireModule, moduleExports, module
                           openQuote = match[0];
                         }
                       } else {
-                        if ((match = propertyPattern.exec(text))) {
-                          openQuote = false;
-                          propertyName = match[1];
-                          sectionValues[propertyName] = match[2].trim();
-                          if (
-                            (match = /^["']/.exec(sectionValues[propertyName])) &&
-                            sectionValues[propertyName][sectionValues[propertyName].length - 1] !=
-                              match[0]
-                          ) {
-                            openQuote = match[0];
-                          }
+                        propertyName = propertyName || '';
+                        text = text.trim();
+                        if (sectionValues[propertyName]) {
+                          sectionValues[propertyName] += '\n' + text;
                         } else {
-                          propertyName = propertyName || '';
-                          text = text.trim();
-                          if (sectionValues[propertyName]) {
-                            sectionValues[propertyName] += '\n' + text;
-                          } else {
-                            sectionValues[propertyName] = text;
-                          }
-                          if (text[text.length - 1] == openQuote) {
-                            openQuote = false;
-                          }
+                          sectionValues[propertyName] = text;
+                        }
+                        if (text[text.length - 1] == openQuote) {
+                          openQuote = false;
                         }
                       }
                     }
                   }
                 }
               }
-              if (1 == Object.keys(sectionValues).length && void 0 !== sectionValues['']) {
-                return sectionValues[''];
-              } else {
-                Object.keys(sectionValues).map((item) => {
-                  if ('string' == typeof sectionValues[item]) {
-                    sectionValues[item] = parseMetadataValue(sectionValues[item]);
-                  }
-                });
-                return sectionValues;
-              }
-            },
-            'name',
-            { value: 'e', configurable: true },
-          )((documentNode.get('text') || '').split(/\r|\n|\r\n/g)))
+            }
+            if (1 == Object.keys(sectionValues).length && void 0 !== sectionValues['']) {
+              return sectionValues[''];
+            } else {
+              Object.keys(sectionValues).map((item) => {
+                if ('string' == typeof sectionValues[item]) {
+                  sectionValues[item] = parseMetadataValue(sectionValues[item]);
+                }
+              });
+              return sectionValues;
+            }
+          })((documentNode.get('text') || '').split(/\r|\n|\r\n/g)))
         ) {
           return {};
         }
@@ -839,7 +818,7 @@ export default function initializeUiOutline(requireModule, moduleExports, module
       return propertyCommand;
     }
   }
-  Object.defineProperty(OutlineController, 'name', { value: 'y', configurable: true });
+
   function matchMetadataProperty(propertyName, metadataText) {
     return new RegExp('^s*' + propertyName + 's*:s*(.*)$', 'mig').exec(metadataText);
   }

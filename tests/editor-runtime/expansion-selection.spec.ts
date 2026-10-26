@@ -92,7 +92,7 @@ for (const offset of [0, 4]) {
         text = document.querySelector('strong [md-inline="plain"]')?.firstChild;
       if (!text || text.nodeType !== 3) throw Error('Missing body text');
       // Establish the unexpanded decoration fixture before the operation. The
-      // assertion observes the real original setRange; it never repairs it later.
+      // assertion observes the real setRange; it never repairs it later.
       document.querySelectorAll('.md-expand').forEach((element) => {
         element.classList.remove('md-expand');
       });
@@ -167,7 +167,7 @@ for (const wrapper of ['', '**', '*']) {
       JSON.stringify(target),
     );
     await page.keyboard.type('# ');
-    // Drive the actual queued parser with its public original entry. No bookmark,
+    // Drive the actual queued parser with its public entry. No bookmark,
     // model node, parser result or branch condition is replaced by the harness.
     await frame.evaluate(async () => {
       const child = window as unknown as Child,
@@ -236,7 +236,7 @@ for (const wrapper of ['', '**', '*']) {
         startId: tail.parentElement?.closest('[cid]')?.getAttribute('cid'),
         endId: delta.parentElement?.closest('[cid]')?.getAttribute('cid'),
         html: editor.writingArea.innerHTML,
-        // Original renderer does not produce cross-cid descendants inside these
+        // Renderer does not produce cross-cid descendants inside these
         // inline wrappers. Expansion must leave selections outside the target inline block untouched.
         nestedBlocks: editor.writingArea.querySelectorAll('[md-inline] .md-block-like').length,
       };

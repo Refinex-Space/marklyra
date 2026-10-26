@@ -213,7 +213,7 @@ export function initialPreferencesOptions(
     ...editorPreferencesOptions(defaultMarkLyraEditorPreferences),
     ...startupEditorOptions({}),
     ...initialStartupOptions(input),
-    // Read-only fields show this product's present behavior, not alleged original user settings.
+    // Read-only fields show this product's present behavior, not alleged user settings.
     no_image_move_for_local: false,
     apply_image_move_for_web: false,
     use_relative_path_for_img: true,

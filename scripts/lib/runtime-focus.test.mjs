@@ -4,7 +4,7 @@ import { createContext, Script } from 'node:vm';
 import { engineModule, expressionOf, hasHook, nodes, unique } from './runtime-test-source.mjs';
 
 const wrappers = nodes(
-  engineModule('2b'),
+  engineModule('render/brush-queue'),
   (node) =>
     node.type === 'CallExpression' &&
     node.callee.type === 'FunctionExpression' &&

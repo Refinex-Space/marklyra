@@ -156,7 +156,7 @@ export function OutlinePanel({
     document.addEventListener('keydown', cancel, true);
     try {
       await activate(id);
-      // The original filter keeps its input focused after Enter. A later user
+      // The filter keeps its input focused after Enter. A later user
       // action revokes this restoration while an asynchronous host jump waits.
       if (!interrupted && input?.isConnected && document.hasFocus()) input.focus();
     } finally {

@@ -1,19 +1,6 @@
 // ui/folder-search.
 export default function initializeUiFolderSearch(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(openSearchResultPath, 'name', { value: 'M', configurable: true });
-  Object.defineProperty(getRelativeResultPath, 'name', { value: 'L', configurable: true });
-  Object.defineProperty(appendSearchResult, 'name', { value: 'N', configurable: true });
-  Object.defineProperty(getResultGroupOffset, 'name', { value: 'D', configurable: true });
-  Object.defineProperty(moveSelectedResult, 'name', { value: 'R', configurable: true });
-  Object.defineProperty(renderVisibleResults, 'name', { value: 'B', configurable: true });
-  Object.defineProperty(updateGroupVisibility, 'name', { value: 'P', configurable: true });
-  Object.defineProperty(renderResultGroup, 'name', { value: 'I', configurable: true });
-  Object.defineProperty(restoreResultSelection, 'name', { value: 'O', configurable: true });
-  Object.defineProperty(searchCachedEntries, 'name', { value: '$', configurable: true });
-  Object.defineProperty(filterMatchingEntries, 'name', { value: 'H', configurable: true });
-  Object.defineProperty(matchNormalizedPath, 'name', { value: 'U', configurable: true });
-  Object.defineProperty(performSearch, 'name', { value: 'j', configurable: true });
 
   if (!this) {
     self;
@@ -96,8 +83,6 @@ export default function initializeUiFolderSearch(requireModule, moduleExports, m
     }
   }
   function appendSearchResult(entryOrPath, container, itemIndex, isDirectory) {
-    Object.defineProperty(highlightQueryTerms, 'name', { value: 'd', configurable: true });
-
     var titleText, textSlice, text;
     if (entryOrPath.n) {
       titleText = entryOrPath.n;
@@ -180,9 +165,6 @@ export default function initializeUiFolderSearch(requireModule, moduleExports, m
     }
   }
   function renderVisibleResults(unusedParameter1, container) {
-    Object.defineProperty(appendLoadingIndicator, 'name', { value: 'o', configurable: true });
-    Object.defineProperty(renderResultBlock, 'name', { value: 'a', configurable: true });
-
     container = container || resultsList;
     var resultCount = items.length - resultOffset;
     function appendLoadingIndicator(hasResults, container) {
@@ -517,17 +499,13 @@ export default function initializeUiFolderSearch(requireModule, moduleExports, m
     queryInput
       .on(
         'input',
-        ((readChangedQuery = Object.defineProperty(
-          function () {
-            var text = queryInput.val();
-            if (text != previousQuery) {
-              previousQuery = text.replace(/[()'"%\\\/.?]/g, ' ');
-              performSearch.call(receiver, previousQuery);
-            }
-          },
-          'name',
-          { value: 'e', configurable: true },
-        )),
+        ((readChangedQuery = function () {
+          var text = queryInput.val();
+          if (text != previousQuery) {
+            previousQuery = text.replace(/[()'"%\\\/.?]/g, ' ');
+            performSearch.call(receiver, previousQuery);
+          }
+        }),
         (delay = 100),
         (inputTimer = null),
         function () {

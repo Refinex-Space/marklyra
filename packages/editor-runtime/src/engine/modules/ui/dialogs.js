@@ -1,9 +1,6 @@
 // ui/dialogs.
 export default function initializeUiDialogs(requireModule, moduleExports, moduleRecord) {
   'use strict';
-  Object.defineProperty(findAnchorTarget, 'name', { value: 'a', configurable: true });
-  Object.defineProperty(showModeEnabledHint, 'name', { value: 'u', configurable: true });
-  Object.defineProperty(showPreferenceWarning, 'name', { value: 'h', configurable: true });
 
   if (!this) {
     self;
@@ -206,17 +203,13 @@ export default function initializeUiDialogs(requireModule, moduleExports, module
     }
   }
   var timerId,
-    CommonDialog = Object.defineProperty(
-      function () {
-        this.$dialog = jquery('#common-dialog');
-        this.isShown_ = false;
-        this.callback_ = null;
-        this.checkBoxState = null;
-        this.init();
-      },
-      'name',
-      { value: 'f', configurable: true },
-    );
+    CommonDialog = function () {
+      this.$dialog = jquery('#common-dialog');
+      this.isShown_ = false;
+      this.callback_ = null;
+      this.checkBoxState = null;
+      this.init();
+    };
   CommonDialog.prototype.isShown = function () {
     return this.isShown_;
   };
@@ -311,186 +304,158 @@ export default function initializeUiDialogs(requireModule, moduleExports, module
     this.isShown_ = false;
   };
   var currentTimerId,
-    hideNotification = Object.defineProperty(
-      function () {
-        if (timerId) {
-          clearTimeout(timerId);
-        }
-        timerId = null;
-        document.body.classList.remove('marklyra-show-notification');
-      },
-      'name',
-      { value: 'g', configurable: true },
-    ),
-    showNotification = Object.defineProperty(
-      function (message, allowHtml, buttons, onButton, autoHideOptions) {
-        if (timerId) {
-          clearTimeout(timerId);
-        }
-        timerId = null;
-        var items = buttons || [];
-        if (items && 'string' == typeof items) {
-          items = [items];
-        }
-        var notification = jquery('#md-notification').html(
-          `<div class="md-notification-content"><p style='padding-right: 0;overflow-wrap: anywhere;max-height: 60vh;overflow-y: auto;'>${allowHtml ? message : utilities.escape(message)}</p>` +
-            (items.length
-              ? items
-                  .map(
-                    (item, itemIndex) =>
-                      `<span data-index='${itemIndex}' class='btn-default btn-xs btn'>${item}</span>`,
-                  )
-                  .join(' ')
-              : '') +
-            `<span class='${items.length ? '' : 'btn-default'} btn-xs btn ok-btn'>${jquery.localize.getString('Close')}</span></div>`,
-        );
-        document.body.classList.add('marklyra-show-notification');
-        if (items.length) {
-          jquery('.btn-default').one('click', function () {
-            hideNotification();
-            if (onButton) {
-              onButton(this.dataset.index - 0);
-            }
-          });
-        }
-        if (autoHideOptions) {
-          if (autoHideOptions.checkFocus) {
-            if (document.hasFocus()) {
-              timerId = setTimeout(hideNotification, autoHideOptions.timeout || 1e4);
-            }
-          } else {
+    hideNotification = function () {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+      timerId = null;
+      document.body.classList.remove('marklyra-show-notification');
+    },
+    showNotification = function (message, allowHtml, buttons, onButton, autoHideOptions) {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+      timerId = null;
+      var items = buttons || [];
+      if (items && 'string' == typeof items) {
+        items = [items];
+      }
+      var notification = jquery('#md-notification').html(
+        `<div class="md-notification-content"><p style='padding-right: 0;overflow-wrap: anywhere;max-height: 60vh;overflow-y: auto;'>${allowHtml ? message : utilities.escape(message)}</p>` +
+          (items.length
+            ? items
+                .map(
+                  (item, itemIndex) =>
+                    `<span data-index='${itemIndex}' class='btn-default btn-xs btn'>${item}</span>`,
+                )
+                .join(' ')
+            : '') +
+          `<span class='${items.length ? '' : 'btn-default'} btn-xs btn ok-btn'>${jquery.localize.getString('Close')}</span></div>`,
+      );
+      document.body.classList.add('marklyra-show-notification');
+      if (items.length) {
+        jquery('.btn-default').one('click', function () {
+          hideNotification();
+          if (onButton) {
+            onButton(this.dataset.index - 0);
+          }
+        });
+      }
+      if (autoHideOptions) {
+        if (autoHideOptions.checkFocus) {
+          if (document.hasFocus()) {
             timerId = setTimeout(hideNotification, autoHideOptions.timeout || 1e4);
           }
-        }
-        return notification;
-      },
-      'name',
-      { value: 'v', configurable: true },
-    ),
-    nextLeafNode = Object.defineProperty(
-      function (domNode) {
-        if (!domNode) {
-          return domNode;
-        }
-        var firstLeafNode = Object.defineProperty(
-            function (domNode) {
-              if (domNode.childNodes && 0 == domNode.childNodes.length) {
-                return domNode;
-              } else {
-                return firstLeafNode(domNode.childNodes[0]);
-              }
-            },
-            'name',
-            { value: 't', configurable: true },
-          ),
-          nextSibling = domNode.nextSibling;
-        if (null == nextSibling) {
-          return nextLeafNode(domNode.parentElement);
         } else {
-          return firstLeafNode(nextSibling);
+          timerId = setTimeout(hideNotification, autoHideOptions.timeout || 1e4);
         }
-      },
-      'name',
-      { value: 'y', configurable: true },
-    ),
-    collectTextNodes = Object.defineProperty(
-      function (container) {
-        for (
-          var domNode, childNodesLength = container.childNodes.length, items = [], itemIndex = 0;
-          itemIndex < childNodesLength;
-          itemIndex++
-        ) {
-          var currentDomNode = container.childNodes[itemIndex];
-          if (currentDomNode.tagName) {
-            if (domNode) {
-              if (
-                domNode.tagName != currentDomNode.tagName ||
-                currentDomNode.childElementCount ||
-                domNode.childElementCount ||
-                domNode.getAttribute('class') != currentDomNode.getAttribute('class')
-              ) {
-                domNode = currentDomNode;
-              } else {
-                items.push(currentDomNode);
-                domNode.textContent = domNode.textContent + currentDomNode.textContent;
-              }
-            } else {
+      }
+      return notification;
+    },
+    nextLeafNode = function (domNode) {
+      if (!domNode) {
+        return domNode;
+      }
+      var firstLeafNode = function (domNode) {
+          if (domNode.childNodes && 0 == domNode.childNodes.length) {
+            return domNode;
+          } else {
+            return firstLeafNode(domNode.childNodes[0]);
+          }
+        },
+        nextSibling = domNode.nextSibling;
+      if (null == nextSibling) {
+        return nextLeafNode(domNode.parentElement);
+      } else {
+        return firstLeafNode(nextSibling);
+      }
+    },
+    collectTextNodes = function (container) {
+      for (
+        var domNode, childNodesLength = container.childNodes.length, items = [], itemIndex = 0;
+        itemIndex < childNodesLength;
+        itemIndex++
+      ) {
+        var currentDomNode = container.childNodes[itemIndex];
+        if (currentDomNode.tagName) {
+          if (domNode) {
+            if (
+              domNode.tagName != currentDomNode.tagName ||
+              currentDomNode.childElementCount ||
+              domNode.childElementCount ||
+              domNode.getAttribute('class') != currentDomNode.getAttribute('class')
+            ) {
               domNode = currentDomNode;
+            } else {
+              items.push(currentDomNode);
+              domNode.textContent = domNode.textContent + currentDomNode.textContent;
             }
           } else {
-            domNode = null;
+            domNode = currentDomNode;
           }
-        }
-        items.forEach(function (item) {
-          container.removeChild(item);
-        });
-      },
-      'name',
-      { value: 'b', configurable: true },
-    ),
-    confirmAction = Object.defineProperty(
-      function (message, onConfirm, onCancel) {
-        if (window.reqnode) {
-          JSBridge.invoke('dialog.showMessageBox', {
-            title: jquery.localize.getString('Confirm'),
-            message: message,
-            type: 'question',
-            defaultId: 0,
-            cancelId: 1,
-            buttons: [jquery.localize.getString('OK'), jquery.localize.getString('Cancel')],
-          }).then(({ response: buttonIndex }) => {
-            if (0 == buttonIndex) {
-              onConfirm();
-            } else {
-              if (onCancel) {
-                onCancel();
-              }
-            }
-          });
         } else {
-          if (window.confirm(message)) {
+          domNode = null;
+        }
+      }
+      items.forEach(function (item) {
+        container.removeChild(item);
+      });
+    },
+    confirmAction = function (message, onConfirm, onCancel) {
+      if (window.reqnode) {
+        JSBridge.invoke('dialog.showMessageBox', {
+          title: jquery.localize.getString('Confirm'),
+          message: message,
+          type: 'question',
+          defaultId: 0,
+          cancelId: 1,
+          buttons: [jquery.localize.getString('OK'), jquery.localize.getString('Cancel')],
+        }).then(({ response: buttonIndex }) => {
+          if (0 == buttonIndex) {
             onConfirm();
           } else {
             if (onCancel) {
               onCancel();
             }
           }
+        });
+      } else {
+        if (window.confirm(message)) {
+          onConfirm();
+        } else {
+          if (onCancel) {
+            onCancel();
+          }
         }
-      },
-      'name',
-      { value: 'w', configurable: true },
-    ),
+      }
+    },
     zoomControlsUnbound = true,
-    showZoomHint = Object.defineProperty(
-      function (zoomFactor) {
-        if (zoomControlsUnbound) {
-          zoomControlsUnbound = false;
-          jquery('#zoom-hint')
-            .on('click', '#zoom-hint-in', function () {
-              JSBridge.zoom.zoomOut();
-            })
-            .on('click', '#zoom-hint-out', function () {
-              JSBridge.zoom.zoomIn();
-            })
-            .on('click', '#zoom-hint-reset', function () {
-              JSBridge.zoom.resetZoom();
-            });
-        }
-        jquery('#zoom-hint-current').text((100 * zoomFactor + '').replace(/\..+/, '') + '%');
-        if (currentTimerId) {
-          clearTimeout(currentTimerId);
-        }
-        jquery('#zoom-hint').show();
-        document.body.classList.add('on-zoom');
-        currentTimerId = setTimeout(function () {
-          currentTimerId = null;
-          jquery('#zoom-hint').hide();
-          document.body.classList.remove('on-zoom');
-        }, 3e3);
-      },
-      'name',
-      { value: 'C', configurable: true },
-    ),
+    showZoomHint = function (zoomFactor) {
+      if (zoomControlsUnbound) {
+        zoomControlsUnbound = false;
+        jquery('#zoom-hint')
+          .on('click', '#zoom-hint-in', function () {
+            JSBridge.zoom.zoomOut();
+          })
+          .on('click', '#zoom-hint-out', function () {
+            JSBridge.zoom.zoomIn();
+          })
+          .on('click', '#zoom-hint-reset', function () {
+            JSBridge.zoom.resetZoom();
+          });
+      }
+      jquery('#zoom-hint-current').text((100 * zoomFactor + '').replace(/\..+/, '') + '%');
+      if (currentTimerId) {
+        clearTimeout(currentTimerId);
+      }
+      jquery('#zoom-hint').show();
+      document.body.classList.add('on-zoom');
+      currentTimerId = setTimeout(function () {
+        currentTimerId = null;
+        jquery('#zoom-hint').hide();
+        document.body.classList.remove('on-zoom');
+      }, 3e3);
+    },
     dialog = new CommonDialog(),
     showDialog = dialog.show.bind(dialog);
   moduleExports.dialog = dialog;
@@ -838,8 +803,6 @@ export default function initializeUiDialogs(requireModule, moduleExports, module
     return items;
   };
   moduleExports.keyOnControl = function (keyName, keyboardEvent, respectEditorFocus) {
-    Object.defineProperty(restoreDialogFocus, 'name', { value: 's', configurable: true });
-
     var element, localElement, focusedIndex;
     function restoreDialogFocus(respectEditorFocus) {
       var dialogElements = jquery('.modal-dialog:visible');

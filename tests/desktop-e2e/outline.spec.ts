@@ -39,7 +39,7 @@ test('outline collapse, keyboard hierarchy and jump retain source bytes and edit
   await expect(guide).toBeFocused();
   await tree.getByRole('treeitem', { name: 'End', exact: true }).click();
   await expect(page.locator('.marklyra-editor-frame')).toBeFocused();
-  // All four headings fit in this viewport. The original visible-heading
+  // All four headings fit in this viewport. The visible-heading
   // algorithm chooses the last visible heading, rather than the last click.
   await expect(tree.getByRole('treeitem', { name: 'Appendix', exact: true })).toHaveAttribute(
     'aria-selected',
