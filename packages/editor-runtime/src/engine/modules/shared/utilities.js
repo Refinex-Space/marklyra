@@ -656,6 +656,15 @@ export default function initializeSharedUtilities(requireModule, moduleExports, 
       return text + insertedText;
     }
   };
+  /** Recover smart double quotes around an image's numeric zoom style for display.
+   * Keep the original markup in the document; do not relax general HTML parsing. */
+  moduleExports.imageZoomMarkup = function (source) {
+    if (!/^<img\s/i.test(source)) return source;
+    return source.replace(
+      /^(<img(?:\s+[a-zA-Z_:][a-zA-Z0-9:._-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*?\s+style\s*=\s*)["“”](\s*zoom\s*:\s*(?:\d+(?:\.\d+)?|\.\d+)%?\s*;?\s*)["“”](?=\s|\/?>)/i,
+      '$1"$2"',
+    );
+  };
   moduleExports.escape = function (inputValue, escapeMarkdown, unusedParameter3) {
     return (inputValue = escapeHtmlText(inputValue, escapeMarkdown));
   };

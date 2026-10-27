@@ -212,7 +212,7 @@ export default function initializeRenderInlineDecoration(
       if (
         'BODY' ==
         (element = domPurifyExport.sanitize(
-          sourceText,
+          utilities.imageZoomMarkup(sourceText),
           htmlBlocks.getDomPurifyConfig(htmlBlocks.INLINE_CONFIG),
         )).tagName
       ) {
@@ -495,8 +495,13 @@ export default function initializeRenderInlineDecoration(
           }
         }
         return token.text;
-      case NodeType.br:
       case NodeType.imgtag:
+        return htmlBlocks.buildHTMLForExport(
+          utilities.imageZoomMarkup(token.text),
+          File.editor,
+          exportOptions.forPrint,
+        );
+      case NodeType.br:
       case NodeType.ruby:
         return htmlBlocks.buildHTMLForExport(token.text, File.editor, exportOptions.forPrint);
       case NodeType.html_inline:

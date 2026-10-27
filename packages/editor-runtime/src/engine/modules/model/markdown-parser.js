@@ -1884,9 +1884,12 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
                     items.push({ type: NodeType.br, text: currentMatch[0] });
                   } else {
                     if (
-                      (currentMatch = (
-                        File.shouldRemapPunctuation() ? this.rules.tag_ext : this.rules.tag
-                      ).exec(textSlice))
+                      (currentMatch =
+                        (File.shouldRemapPunctuation() ? this.rules.tag_ext : this.rules.tag).exec(
+                          textSlice,
+                        ) ||
+                        (/^<img\s/i.test(textSlice) &&
+                          this.rules.tag.exec(utilities.imageZoomMarkup(textSlice))))
                     ) {
                       var underlineMatch;
                       if (
@@ -1912,7 +1915,10 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
                         continue;
                       }
                       if (!element.imgtag && (underlineMatch = this.rules.imgtag.exec(textSlice))) {
-                        var localText = (currentText = restoreCodeSpans(underlineMatch[0]));
+                        var imageMarkup = utilities.imageZoomMarkup(
+                            (currentText = restoreCodeSpans(underlineMatch[0])),
+                          ),
+                          localText = imageMarkup;
                         if (remapPunctuation) {
                           localText = localText
                             .replace(/(\w=)[«»“”„‟〝〟]/g, '$1"')
@@ -1955,7 +1961,8 @@ export default function initializeModelMarkdownParser(requireModule, moduleExpor
                           }
                           items.push({
                             type: NodeType.imgtag,
-                            text: localText,
+                            // Zoom quote recovery is display-only; retain source delimiters.
+                            text: localText === imageMarkup ? currentText : localText,
                             href: utilities.unescape(restoreEscapedCharacters(imageSource)),
                             width: width,
                             height: height,

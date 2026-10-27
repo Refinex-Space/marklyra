@@ -2696,6 +2696,7 @@ export default function initializeMediaImageEditor(requireModule, moduleExports,
           }
           var imgElement = document.createElement('img'),
             hasStyleAttribute = false;
+          imageToken.markdown = utilities.imageZoomMarkup(imageToken.markdown);
           imageToken.markdown = imageToken.markdown.replace(
             /(style\s*=\s*)(['"])(.*?)\2/,
             function (unusedParameter1, attributePrefix, unusedParameter3, styleText) {
