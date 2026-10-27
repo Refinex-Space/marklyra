@@ -12,7 +12,7 @@ import type {
   ContextExecutionRequest,
   ContextExecutionResult,
 } from '../context-menu/execution.js';
-import type { ImageHostAction } from '../images/contracts.js';
+import { type ImageHostAction, imageMarkdownDestination } from '../images/contracts.js';
 import type { MarkLyraMenuState } from '../menu-state.js';
 import type { MarkLyraCommand, RuntimeConfiguration } from '../protocol.js';
 import {
@@ -617,9 +617,9 @@ export class RuntimeContextMenu {
           const alt = image?.getAttribute('alt') ?? '';
           if (/[\r\n]/.test(title + alt)) throw Error('此多行图片标题暂不支持安全转换');
           const label = alt.replace(/\\/g, '\\\\').replace(/[[\]]/g, '\\$&');
-          const source = binding.image.source.replace(/</g, '%3C').replace(/>/g, '%3E');
+          const source = imageMarkdownDestination(binding.image.source);
           editor.selection.selectAllElem(this.deps.runtime.$(binding.image.wrapper));
-          editor.insertText(`![${label}](<${source}> ${JSON.stringify(title)})`);
+          editor.insertText(`![${label}](${source} ${JSON.stringify(title)})`);
           break;
         }
         editor.undo.endSnap(true);

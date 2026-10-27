@@ -46,6 +46,42 @@ test.afterEach(async ({ page }, testInfo) => {
   });
 });
 
+for (const [name, destination] of [
+  ['a b.png', 'assets/a%20b.png'],
+  ['a(b).png', '<assets/a(b).png>'],
+  ['a)b.png', '<assets/a)b.png>'],
+] as const) {
+  test(`binary image import preserves the special destination ${name}`, async ({ page }) => {
+    await createImageEditor(page, { source: '', context: 'doc-a' });
+    await focusEnd(page);
+    const job = await page.evaluate(
+      (name) => (window as ImageTestWindow).imageHostFixture.beginImport(0, name),
+      name,
+    );
+    await expect
+      .poll(() =>
+        page.evaluate((job) => (window as ImageTestWindow).imageHostFixture.jobs[job]?.state, job),
+      )
+      .toBe('resolved');
+    await expectDecodedImage(page);
+    expect(await imageSource(page)).toBe(`![${name.replace(/\.png$/, '')}](${destination})`);
+  });
+}
+
+test('existing angle-delimited images survive neighboring edits and undo byte-for-byte', async ({
+  page,
+}) => {
+  const source = '\uFEFF![pixel](<images/pixel.png> "Title")\r\n\r\nAfter\n';
+  await createImageEditor(page, { source, context: 'doc-a' });
+  await expectDecodedImage(page);
+  expect(await imageSource(page)).toBe(source);
+  await focusEnd(page);
+  await page.keyboard.type('X');
+  await expect.poll(() => imageSource(page)).toBe(source.replace('After', 'AfterX'));
+  await imageCommand(page, 'undo');
+  expect(await imageSource(page)).toBe(source);
+});
+
 for (const yaml of [false, true]) {
   test(`relative image decodes through host mapping and preserves source (${yaml ? 'YAML root' : 'document root'})`, async ({
     page,
@@ -633,7 +669,7 @@ test('public binary import inserts a portable reference and supports original un
     .toBe('resolved');
   await expectDecodedImage(page);
   const source = await imageSource(page);
-  expect(source).toMatch(/\(<?assets\/inserted\.png>?\)/);
+  expect(source).toMatch(/\(assets\/inserted\.png\)/);
   expect(source).not.toMatch(/(?:__image_fixture__|cap=|data:image|blob:|file:)/);
   const record = await page.evaluate(() => (window as ImageTestWindow).imageHostFixture.imports[0]);
   expect(record).toEqual(
@@ -716,7 +752,7 @@ for (const kind of ['paste', 'drop'] as const) {
       .toBe(1);
     await expectDecodedImage(page);
     const source = await imageSource(page);
-    expect(source).toMatch(new RegExp(`\\(<?assets/${kind}\\.png>?\\)`));
+    expect(source).toMatch(new RegExp(`\\(assets/${kind}\\.png\\)`));
     expect(source).not.toMatch(/(?:__image_fixture__|cap=|data:image|blob:|file:)/);
     await imageCommand(page, 'undo');
     expect(await imageSource(page)).toBe('');

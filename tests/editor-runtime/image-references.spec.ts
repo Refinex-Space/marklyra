@@ -455,20 +455,27 @@ test('YAML slash copy folder stays document-relative while Source skips the over
   expect(await imageSource(page)).toBe(source);
 });
 
-test('HTML image title survives Markdown conversion and original Undo/Redo', async ({ page }) => {
-  const source =
-    '\uFEFFBefore <img src="images/pixel.png" alt="A" title="Caption"> After\r\n\r\nTail  \n';
-  await createImageEditor(page, { source, context: 'doc-a' });
-  await expectDecodedImage(page);
-  await imageFrame(page).locator('#write img').first().click({ button: 'right' });
-  await page.getByRole('menuitem', { name: '转换为 Markdown 图片', exact: true }).click();
-  const expected = '\uFEFFBefore ![A](<images/pixel.png> "Caption") After\r\n\r\nTail  \n';
-  await expect.poll(() => imageSource(page)).toBe(expected);
-  await imageCommand(page, 'undo');
-  expect(await imageSource(page)).toBe(source);
-  await imageCommand(page, 'redo');
-  expect(await imageSource(page)).toBe(expected);
-});
+for (const [path, destination] of [
+  ['images/pixel.png', 'images/pixel.png'],
+  ['images/a b.png', '<images/a b.png>'],
+  ['images/a)b.png', '<images/a)b.png>'],
+] as const) {
+  test(`HTML image title survives Markdown conversion and original Undo/Redo: ${path}`, async ({
+    page,
+  }) => {
+    const source = `\uFEFFBefore <img src="${path}" alt="A" title="Caption"> After\r\n\r\nTail  \n`;
+    await createImageEditor(page, { source, context: 'doc-a' });
+    await expectDecodedImage(page);
+    await imageFrame(page).locator('#write img').first().click({ button: 'right' });
+    await page.getByRole('menuitem', { name: '转换为 Markdown 图片', exact: true }).click();
+    const expected = `\uFEFFBefore ![A](${destination} "Caption") After\r\n\r\nTail  \n`;
+    await expect.poll(() => imageSource(page)).toBe(expected);
+    await imageCommand(page, 'undo');
+    expect(await imageSource(page)).toBe(source);
+    await imageCommand(page, 'redo');
+    expect(await imageSource(page)).toBe(expected);
+  });
+}
 
 for (const source of ['https://example.invalid/pixel.png', '//example.invalid/pixel.png'])
   test(`image browser action delegates the captured ${source.startsWith('https') ? 'HTTPS' : 'protocol-relative'} source`, async ({

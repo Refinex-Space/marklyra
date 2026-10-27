@@ -126,7 +126,7 @@ describe('explicit host image requests', () => {
 });
 
 it('uses a host-authorized file URL only as source text and keeps display URLs controlled', async () => {
-  expect(imageMarkdown('file:///tmp/a.png', 'a.png')).toBe('![a](<file:///tmp/a.png>)');
+  expect(imageMarkdown('file:///tmp/a.png', 'a.png')).toBe('![a](file:///tmp/a.png)');
   const images = new DocumentImages(
     {
       resolve: async () => null,

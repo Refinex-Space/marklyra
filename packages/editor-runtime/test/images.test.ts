@@ -108,8 +108,23 @@ describe('image reference and capability boundaries', () => {
     ])
       expect(() => displayImageUrl(url)).toThrow();
   });
+  it.each([
+    ['assets/clipboard-123.png', 'assets/clipboard-123.png'],
+    ['./assets/图片.png', './assets/图片.png'],
+    [
+      'https://example.test/image.png?size=2#preview',
+      'https://example.test/image.png?size=2#preview',
+    ],
+    ['assets/a%20b.png', 'assets/a%20b.png'],
+    ['assets/a b.png', '<assets/a b.png>'],
+    ['assets/a(b).png', '<assets/a(b).png>'],
+    ['assets/a)b.png', '<assets/a)b.png>'],
+    ['assets/a<b>.png', 'assets/a%3Cb%3E.png'],
+  ])('uses only necessary destination delimiters for %s', (source, destination) => {
+    expect(imageMarkdown(source, 'image.png')).toBe(`![image](${destination})`);
+  });
   it('creates Markdown without inserting display capability URLs or unescaped alt delimiters', () => {
-    expect(imageMarkdown('assets/a%20b.png', 'a[b].png')).toBe('![ab](<assets/a%20b.png>)');
+    expect(imageMarkdown('assets/a%20b.png', 'a[b].png')).toBe('![ab](assets/a%20b.png)');
   });
 });
 
@@ -253,7 +268,7 @@ describe('native input host capability boundary', () => {
     input[0] = { ...image, name: 'changed' };
     expect(result[0]?.name).toBe('pixel.png');
     expect(result.map(nativeInputMarkdown)).toEqual([
-      '![pixel](<assets/pixel.png>)',
+      '![pixel](assets/pixel.png)',
       ' [a\\[b\\].md](file:///external/a%20b.md) ',
     ]);
   });

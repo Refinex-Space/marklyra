@@ -284,17 +284,23 @@ export function displayImageUrl(value: string, runtimeUrl?: string): string {
   }
   throw new ImageHostError('拒绝未授权的图片 URL 协议或远程网络地址');
 }
+/** Delimit only destinations whose whitespace or parentheses need protection. */
+export function imageMarkdownDestination(source: string): string {
+  const destination = source.replace(/</g, '%3C').replace(/>/g, '%3E').replace(/\n|\r/g, '');
+  return /[\s()]/.test(destination) ? `<${destination}>` : destination;
+}
+
 export function imageMarkdown(source: string, name: string): string {
   // The source is an already-authorized host result. Rendering still resolves
   // through the host and never gives the frame native file/network authority.
   imageHostReference(source);
-  const destination = source.replace(/</g, '%3C').replace(/>/g, '%3E').replace(/\n|\r/g, '');
+  const destination = imageMarkdownDestination(source);
   const alt =
     name
       .replace(/\.[^.]+$/, '')
       .replace(/[\\[\]<>\r\n]/g, '')
       .slice(0, 160) || 'image';
-  return `![${alt}](<${destination}>)`;
+  return `![${alt}](${destination})`;
 }
 
 /** Syntax only. A returned file URI carries no read grant in the runtime. */
