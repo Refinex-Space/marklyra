@@ -13,6 +13,15 @@ for (const titlebar of ['appkit', 'web'] as const) {
       const ui = page.frameLocator('.runtime-preferences-frame');
       const entry = ui.getByRole('button', { name: '赞助', exact: true });
       await expect(ui.locator('.nav-group-item').last()).toHaveText('赞助');
+      const iconBox = (name: string) =>
+        ui
+          .getByRole('button', { name, exact: true })
+          .locator('.icon svg')
+          .evaluate((svg) => {
+            const { left, width } = svg.getBoundingClientRect();
+            return [left, width];
+          });
+      expect(await iconBox('赞助')).toEqual(await iconBox('智能体'));
       await entry.click();
       const sponsor = page.getByRole('region', { name: '赞助', exact: true });
       await expect(sponsor).toBeVisible();

@@ -175,8 +175,21 @@ export function setupNativePages(
       button.dataset.sponsorshipNavigation = 'true';
       button.setAttribute('aria-label', '赞助');
       const icon = document.createElement('span');
-      icon.className = 'icon icon-heart';
+      icon.className = 'icon';
       icon.setAttribute('aria-hidden', 'true');
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.style.fill = 'none';
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '1.6');
+      svg.setAttribute('stroke-linejoin', 'round');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute(
+        'd',
+        'M12 20.5C5 15.5 3 12 3 8.8A4.8 4.8 0 0 1 12 6.4 4.8 4.8 0 0 1 21 8.8c0 3.2-2 6.7-9 11.7z',
+      );
+      svg.append(path);
+      icon.append(svg);
       button.append(icon, document.createTextNode('赞助'));
       sidebar.append(button);
       changed = true;
