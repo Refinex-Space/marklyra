@@ -4,8 +4,10 @@ import { knowledge } from '../../services/knowledge.js';
 import type { WorkspaceFolder, WorkspaceMatchPosition } from '../../services/workspaces.js';
 import { DocumentDetailsResize } from '../document-details/DocumentDetailsResize.js';
 import { GraphDetails } from './GraphDetails.js';
-import { defaultQuery, type GraphView, validView } from './model.js';
-import { darkPalette, GraphRenderer, lightPalette } from './renderer.js';
+import { type Camera3D, defaultQuery, type GraphMode, type GraphView, validView } from './model.js';
+import { darkPalette, lightPalette } from './palette.js';
+import { GraphRenderer } from './renderer.js';
+import type { GraphCallbacks, GraphScene } from './scene.js';
 import { useKnowledge } from './useKnowledge.js';
 import './knowledge-graph.css';
 
@@ -27,7 +29,7 @@ export default function KnowledgeGraph(props: {
   const shell = useRef<HTMLElement>(null),
     mount = useRef<HTMLDivElement>(null),
     search = useRef<HTMLInputElement>(null);
-  const renderer = useRef<GraphRenderer | null>(null),
+  const renderer = useRef<GraphScene | null>(null),
     saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [selected, setSelected] = useState<string | null>(null),
     [filters, setFilters] = useState(false),
@@ -45,6 +47,11 @@ export default function KnowledgeGraph(props: {
     if (!selected || narrow) setDetailsDragging(false);
   }, [selected, narrow]);
   const [particles, setParticles] = useState(false),
+    [folderColors, setFolderColors] = useState(true),
+    [autoRotate, setAutoRotate] = useState(false),
+    [modeChoice, setModeChoice] = useState<GraphMode | null>(null),
+    [gpuNotice, setGpuNotice] = useState(''),
+    [graphScene, setGraphScene] = useState<GraphScene | null>(null),
     [moving, setMoving] = useState<string | null>(null),
     [pinRevision, setPinRevision] = useState(0),
     [listPage, setListPage] = useState(0);
@@ -56,7 +63,18 @@ export default function KnowledgeGraph(props: {
     saved = useRef(''),
     pendingSave = useRef(''),
     scene = useRef<string | null>(null);
+  // A new view starts in 3D; a saved choice wins, and a host without WebGL2 stays in 2D.
+  const mode: GraphMode = gpuNotice ? '2d' : (modeChoice ?? model.restored?.mode ?? '3d');
+  const sceneMode = useRef<GraphMode>(mode),
+    cameras = useRef<{ camera: GraphView['camera']; camera3d: Camera3D | null }>({
+      camera: null,
+      camera3d: null,
+    }),
+    carried = useRef<{ mode: GraphMode; positions: GraphView['positions'] } | null>(null),
+    pendingView = useRef<GraphView | null>(null),
+    lookValue = useRef({ folderColors, autoRotate });
   particleValue.current = particles;
+  lookValue.current = { folderColors, autoRotate };
   moveTarget.current = moving;
   const select = useRef(setSelected);
   select.current = setSelected;
@@ -68,12 +86,24 @@ export default function KnowledgeGraph(props: {
     selectedRef = useRef(selected);
   darkRef.current = props.dark;
   selectedRef.current = selected;
-  const view = (): GraphView => ({
-    version: 1,
-    query: current.current.query,
-    particles: particleValue.current,
-    ...(renderer.current?.capture() ?? { positions: {}, camera: null }),
-  });
+  const view = (): GraphView => {
+    const captured = renderer.current?.capture();
+    if (captured) {
+      if (sceneMode.current === '3d') cameras.current.camera3d = captured.camera3d ?? null;
+      else cameras.current.camera = captured.camera;
+    }
+    return {
+      version: 2,
+      query: current.current.query,
+      particles: particleValue.current,
+      mode: sceneMode.current,
+      folderColors: lookValue.current.folderColors,
+      autoRotate: lookValue.current.autoRotate,
+      positions: captured?.positions ?? {},
+      camera: cameras.current.camera,
+      camera3d: cameras.current.camera3d,
+    };
+  };
   const persist = () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     if (!renderer.current || !current.current.ready) return;
@@ -121,55 +151,111 @@ export default function KnowledgeGraph(props: {
   }, []);
   useEffect(() => {
     if (!model.ready || !mount.current) return;
-    let instance: GraphRenderer;
-    try {
-      instance = new GraphRenderer(
-        mount.current,
-        {
-          select: (id) => {
-            select.current(id);
-            setContext(null);
-          },
-          open: (id) => openNodeRef.current(id),
-          changed: () => scheduleRef.current(),
-          error: (message) => current.current.setError(message),
-          context: (id, point) => {
-            const bounds = shell.current?.getBoundingClientRect();
-            if (bounds)
-              setContext({
-                id,
-                x: Math.min(point.x - bounds.left, Math.max(0, bounds.width - 180)),
-                y: Math.min(point.y - bounds.top, Math.max(0, bounds.height - 180)),
-              });
-          },
-          place: (point) => {
-            const id = moveTarget.current;
-            if (!id) return false;
-            instance.moveNode(id, point.x, point.y);
-            setMoving(null);
-            return true;
-          },
-        },
-        darkRef.current ? darkPalette : lightPalette,
-      );
-      if (current.current.restored) {
-        instance.restore(current.current.restored);
-        setParticles(current.current.restored.particles);
+    const container = mount.current;
+    let cancelled = false,
+      instance: GraphScene | null = null;
+    const callbacks: GraphCallbacks = {
+      select: (id) => {
+        select.current(id);
+        setContext(null);
+      },
+      open: (id) => openNodeRef.current(id),
+      changed: () => scheduleRef.current(),
+      error: (message) => current.current.setError(message),
+      context: (id, point) => {
+        const bounds = shell.current?.getBoundingClientRect();
+        if (bounds)
+          setContext({
+            id,
+            x: Math.min(point.x - bounds.left, Math.max(0, bounds.width - 180)),
+            y: Math.min(point.y - bounds.top, Math.max(0, bounds.height - 180)),
+          });
+      },
+      place: (point) => {
+        const id = moveTarget.current;
+        if (!id || !instance) return false;
+        instance.placeNode(id, point);
+        setMoving(null);
+        return true;
+      },
+      unavailable: (message) => {
+        if (cancelled) return;
+        setGpuNotice(message);
+        current.current.setWarning(message);
+      },
+    };
+    const palette = darkRef.current ? darkPalette : lightPalette;
+    void (async () => {
+      try {
+        if (mode === '3d') {
+          const { GraphRenderer3D } = await import('./renderer3d.js');
+          if (cancelled) return;
+          instance = new GraphRenderer3D(container, callbacks, palette);
+        } else instance = new GraphRenderer(container, callbacks, palette);
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : String(error);
+        if (mode === '3d') {
+          setGpuNotice(message);
+          current.current.setWarning(message);
+        } else current.current.setError(message);
+        return;
       }
+      const restored = current.current.restored,
+        imported = pendingView.current,
+        carry = carried.current;
+      pendingView.current = null;
+      carried.current = null;
+      if (imported) {
+        instance.restore(imported, { relayout: (imported.mode ?? '2d') !== mode });
+        cameras.current = { camera: imported.camera, camera3d: imported.camera3d ?? null };
+      } else if (carry && carry.mode !== mode) {
+        // Switching mode keeps the stored coordinates as a starting point and frames the new layout.
+        instance.restore(
+          {
+            version: 2,
+            query: current.current.query,
+            positions: carry.positions,
+            camera: null,
+            camera3d: null,
+            particles: particleValue.current,
+          },
+          { relayout: true },
+        );
+        cameras.current = { camera: null, camera3d: null };
+      } else if (restored) {
+        instance.restore(restored, { relayout: (restored.mode ?? '2d') !== mode });
+        cameras.current = { camera: restored.camera, camera3d: restored.camera3d ?? null };
+      }
+      const source = imported ?? (carry && carry.mode !== mode ? null : restored);
+      if (source) {
+        setParticles(source.particles);
+        setFolderColors(source.folderColors ?? true);
+        setAutoRotate(source.autoRotate ?? false);
+      }
+      instance.setLook(
+        source
+          ? { folderColors: source.folderColors ?? true, autoRotate: source.autoRotate ?? false }
+          : lookValue.current,
+      );
       renderer.current = instance;
-    } catch (error) {
-      current.current.setError(String(error));
-      return;
-    }
+      sceneMode.current = mode;
+      setGraphScene(instance);
+      if (carry || imported) scheduleRef.current();
+    })();
     return () => {
+      cancelled = true;
+      if (!instance) return;
       persistRef.current();
       if (saveTimer.current) clearTimeout(saveTimer.current);
+      carried.current = { mode, positions: instance.capture().positions };
       instance.destroy();
       if (renderer.current === instance) renderer.current = null;
+      setGraphScene(null);
     };
-  }, [model.ready]);
+  }, [model.ready, mode]);
   useEffect(() => {
-    const instance = renderer.current;
+    const instance = graphScene;
     if (!instance || !model.data) return;
     const key = JSON.stringify(current.current.query),
       changed = scene.current !== null && scene.current !== key;
@@ -178,12 +264,15 @@ export default function KnowledgeGraph(props: {
     if (selectedRef.current && !model.data.nodes.some((n) => n.id === selectedRef.current))
       setSelected(null);
     setListPage(0);
-  }, [model.data]);
+    // The selection's pinned state is read from the scene while rendering, so refresh it once the
+    // scene holds the data (a rebuilt scene starts empty).
+    setPinRevision((value) => value + 1);
+  }, [model.data, graphScene]);
   useEffect(() => {
-    renderer.current?.select(selected);
-  }, [selected]);
+    graphScene?.select(selected);
+  }, [selected, graphScene]);
   useEffect(() => {
-    const instance = renderer.current,
+    const instance = graphScene,
       element = mount.current;
     if (!model.ready || !instance || !element) return;
     const base = props.dark ? darkPalette : lightPalette;
@@ -219,11 +308,15 @@ export default function KnowledgeGraph(props: {
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [props.dark, model.ready]);
+  }, [props.dark, model.ready, graphScene]);
   useEffect(() => {
-    renderer.current?.setParticles(particles);
+    graphScene?.setParticles(particles);
     if (model.ready) scheduleRef.current();
-  }, [particles, model.ready]);
+  }, [particles, model.ready, graphScene]);
+  useEffect(() => {
+    graphScene?.setLook({ folderColors, autoRotate });
+    if (model.ready) scheduleRef.current();
+  }, [folderColors, autoRotate, model.ready, graphScene]);
   useEffect(() => {
     setDraft(model.query.filter);
   }, [model.query.filter]);
@@ -264,7 +357,17 @@ export default function KnowledgeGraph(props: {
       if (!value || !session.alive) return;
       if (!validView(value)) throw new Error('视图设置无效');
       model.acceptView();
-      renderer.current?.restore(value);
+      const target: GraphMode = gpuNotice ? '2d' : (value.mode ?? '3d');
+      if (target !== sceneMode.current) {
+        // The scene is rebuilt in the imported mode and restored from the imported view.
+        pendingView.current = value;
+        setModeChoice(target);
+      } else {
+        renderer.current?.restore(value);
+        cameras.current = { camera: value.camera, camera3d: value.camera3d ?? null };
+        setFolderColors(value.folderColors ?? true);
+        setAutoRotate(value.autoRotate ?? false);
+      }
       model.setQuery(value.query);
       setParticles(value.particles);
       saved.current = '';
@@ -330,7 +433,7 @@ export default function KnowledgeGraph(props: {
         }
         if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
           event.preventDefault();
-          renderer.current?.pan(
+          renderer.current?.step(
             event.key === 'ArrowLeft' ? -0.08 : event.key === 'ArrowRight' ? 0.08 : 0,
             event.key === 'ArrowUp' ? -0.08 : event.key === 'ArrowDown' ? 0.08 : 0,
           );
@@ -364,6 +467,20 @@ export default function KnowledgeGraph(props: {
           <strong>知识图谱</strong>
           <span title={centerTitle}>{centerTitle}</span>
         </div>
+        <fieldset className="knowledge-scope knowledge-mode" aria-label="图谱视图模式">
+          <button type="button" aria-pressed={mode === '2d'} onClick={() => setModeChoice('2d')}>
+            2D
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === '3d'}
+            disabled={!!gpuNotice}
+            title={gpuNotice || '三维视图：拖动旋转，滚轮缩放'}
+            onClick={() => setModeChoice('3d')}
+          >
+            3D
+          </button>
+        </fieldset>
         <fieldset className="knowledge-scope" aria-label="图谱范围">
           <button
             type="button"
@@ -473,6 +590,7 @@ export default function KnowledgeGraph(props: {
               model.acceptView();
               model.setQuery({ ...defaultQuery, focus: props.currentPath });
               setParticles(false);
+              setAutoRotate(false);
               renderer.current?.fit();
               saved.current = '';
               scheduleSave();
@@ -554,6 +672,32 @@ export default function KnowledgeGraph(props: {
               />
               引用方向动效
             </label>
+            {mode === '3d' && (
+              <>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={folderColors}
+                    onChange={(e) => {
+                      setFolderColors(e.target.checked);
+                      scheduleSave();
+                    }}
+                  />
+                  按目录着色
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={autoRotate}
+                    onChange={(e) => {
+                      setAutoRotate(e.target.checked);
+                      scheduleSave();
+                    }}
+                  />
+                  缓慢自转
+                </label>
+              </>
+            )}
           </fieldset>
         </div>
       )}
@@ -655,39 +799,59 @@ export default function KnowledgeGraph(props: {
             >
               ⊡
             </button>
+            {mode === '3d' && (
+              <button
+                type="button"
+                title="自动旋转"
+                aria-label="自动旋转"
+                aria-pressed={autoRotate}
+                onClick={() => {
+                  setAutoRotate(!autoRotate);
+                  scheduleSave();
+                }}
+              >
+                ↻
+              </button>
+            )}
           </div>
-          <div className="knowledge-pan-tools" role="toolbar" aria-label="无需拖动的平移">
+          <div
+            className="knowledge-pan-tools"
+            role="toolbar"
+            aria-label={mode === '3d' ? '无需拖动的旋转' : '无需拖动的平移'}
+          >
             <button
               type="button"
-              aria-label="向左平移"
-              onClick={() => renderer.current?.pan(-0.1, 0)}
+              aria-label={mode === '3d' ? '向左旋转' : '向左平移'}
+              onClick={() => renderer.current?.step(-0.1, 0)}
             >
               ←
             </button>
             <button
               type="button"
-              aria-label="向上平移"
-              onClick={() => renderer.current?.pan(0, -0.1)}
+              aria-label={mode === '3d' ? '向上旋转' : '向上平移'}
+              onClick={() => renderer.current?.step(0, -0.1)}
             >
               ↑
             </button>
             <button
               type="button"
-              aria-label="向下平移"
-              onClick={() => renderer.current?.pan(0, 0.1)}
+              aria-label={mode === '3d' ? '向下旋转' : '向下平移'}
+              onClick={() => renderer.current?.step(0, 0.1)}
             >
               ↓
             </button>
             <button
               type="button"
-              aria-label="向右平移"
-              onClick={() => renderer.current?.pan(0.1, 0)}
+              aria-label={mode === '3d' ? '向右旋转' : '向右平移'}
+              onClick={() => renderer.current?.step(0.1, 0)}
             >
               →
             </button>
           </div>
           <span className="knowledge-keys" id="knowledge-keys">
-            拖动节点 · 滚轮缩放 · Enter 打开 · 方向键平移
+            {mode === '3d'
+              ? '拖动旋转 · Shift 拖动平移 · 拖动节点 · 滚轮缩放 · Enter 打开 · 方向键旋转'
+              : '拖动节点 · 滚轮缩放 · Enter 打开 · 方向键平移'}
           </span>
         </div>
         <DocumentDetailsResize

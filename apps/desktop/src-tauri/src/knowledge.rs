@@ -374,6 +374,9 @@ pub(crate) fn knowledge_rebuild(
 pub(crate) struct Position {
     x: f64,
     y: f64,
+    /// Present only for positions produced by the 3D layout.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    z: Option<f64>,
     pinned: bool,
 }
 #[derive(Clone, Serialize, Deserialize)]
@@ -383,6 +386,18 @@ pub(crate) struct Camera {
     y: f64,
     ratio: f64,
 }
+/// Orbit camera of the 3D view: angles in radians, `x`/`y`/`z` is the point it looks at.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct Camera3d {
+    yaw: f64,
+    pitch: f64,
+    ratio: f64,
+    x: f64,
+    y: f64,
+    z: f64,
+}
+/// Version 1 predates the 3D view; its missing fields read as the defaults of the frontend.
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct View {
@@ -391,10 +406,21 @@ pub(crate) struct View {
     positions: BTreeMap<String, Position>,
     camera: Option<Camera>,
     particles: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    mode: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    camera3d: Option<Camera3d>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    auto_rotate: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    folder_colors: Option<bool>,
 }
+/// Largest orbit pitch the frontend produces, plus rounding slack.
+const MAX_PITCH: f64 = 1.5 + 1e-6;
 fn validate_view(view: &View) -> Result<(), String> {
     let finite = |v: f64| v.is_finite() && v.abs() <= 1e8;
-    if view.version != 1
+    let ratio = |v: f64| v.is_finite() && (0.035..=20.0).contains(&v);
+    if !(1..=2).contains(&view.version)
         || view.positions.len() > 5000
         || view.query.filter.len() > 256
         || view.query.folder.len() > 4096
@@ -402,17 +428,26 @@ fn validate_view(view: &View) -> Result<(), String> {
         || !(1..=2).contains(&view.query.depth)
         || !(1..=5000).contains(&view.query.limit)
         || view.query.focus.as_ref().is_some_and(|s| s.len() > 4096)
-        || view
-            .positions
-            .iter()
-            .any(|(key, p)| key.len() > 4096 || !finite(p.x) || !finite(p.y))
-        || view.camera.as_ref().is_some_and(|c| {
-            !finite(c.x)
-                || !finite(c.y)
-                || !c.ratio.is_finite()
-                || c.ratio < 0.035
-                || c.ratio > 20.0
+        || view.positions.iter().any(|(key, p)| {
+            key.len() > 4096 || !finite(p.x) || !finite(p.y) || p.z.is_some_and(|z| !finite(z))
         })
+        || view
+            .camera
+            .as_ref()
+            .is_some_and(|c| !finite(c.x) || !finite(c.y) || !ratio(c.ratio))
+        || view.camera3d.as_ref().is_some_and(|c| {
+            !finite(c.yaw)
+                || !finite(c.pitch)
+                || c.pitch.abs() > MAX_PITCH
+                || !finite(c.x)
+                || !finite(c.y)
+                || !finite(c.z)
+                || !ratio(c.ratio)
+        })
+        || view
+            .mode
+            .as_ref()
+            .is_some_and(|mode| mode != "2d" && mode != "3d")
     {
         return Err("图谱视图设置无效或超过预算".into());
     }
@@ -686,6 +721,10 @@ mod tests {
             positions: BTreeMap::new(),
             camera: None,
             particles: false,
+            mode: None,
+            camera3d: None,
+            auto_rotate: None,
+            folder_colors: None,
         };
         let bytes = encode_view(&view).unwrap();
         validate_view(&serde_json::from_slice(&bytes).unwrap()).unwrap();
@@ -695,6 +734,7 @@ mod tests {
                 Position {
                     x: 1.0,
                     y: 2.0,
+                    z: None,
                     pinned: true,
                 },
             );
@@ -714,5 +754,63 @@ mod tests {
             ratio: 1e-300,
         });
         assert!(encode_view(&view).is_err());
+    }
+
+    #[test]
+    fn views_round_trip_with_and_without_the_3d_fields() {
+        // A version 1 file written before the 3D view still loads and keeps its shape.
+        let legacy = r#"{"version":1,"query":{"focus":null,"depth":1,"filter":"","folder":"","tag":"","showMissing":true,"showOrphans":true,"limit":2000},"positions":{"a.md":{"x":1,"y":2,"pinned":false}},"camera":{"x":0.5,"y":0.5,"ratio":1},"particles":false}"#;
+        let view: View = serde_json::from_str(legacy).unwrap();
+        validate_view(&view).unwrap();
+        assert!(view.mode.is_none() && view.camera3d.is_none());
+        let bytes = encode_view(&view).unwrap();
+        let text = String::from_utf8(bytes).unwrap();
+        assert!(!text.contains("camera3d") && !text.contains("\"z\""));
+
+        let modern = legacy
+            .replace("\"version\":1", "\"version\":2")
+            .replace(
+                "\"x\":1,\"y\":2,",
+                "\"x\":1,\"y\":2,\"z\":3,",
+            )
+            .replace(
+                "\"particles\":false}",
+                "\"particles\":false,\"mode\":\"3d\",\"autoRotate\":true,\"folderColors\":false,\"camera3d\":{\"yaw\":0.5,\"pitch\":0.3,\"ratio\":1,\"x\":0,\"y\":0,\"z\":0}}",
+            );
+        let view: View = serde_json::from_str(&modern).unwrap();
+        validate_view(&view).unwrap();
+        let round: View = serde_json::from_slice(&encode_view(&view).unwrap()).unwrap();
+        assert_eq!(round.mode.as_deref(), Some("3d"));
+        assert_eq!(round.positions["a.md"].z, Some(3.0));
+        assert_eq!(round.auto_rotate, Some(true));
+        assert_eq!(round.folder_colors, Some(false));
+    }
+
+    #[test]
+    fn invalid_3d_view_fields_are_rejected() {
+        let base = r#"{"version":2,"query":{"focus":null,"depth":1,"filter":"","folder":"","tag":"","showMissing":true,"showOrphans":true,"limit":2000},"positions":{},"camera":null,"particles":false,"mode":"3d","camera3d":{"yaw":0,"pitch":0,"ratio":1,"x":0,"y":0,"z":0}}"#;
+        validate_view(&serde_json::from_str::<View>(base).unwrap()).unwrap();
+        for bad in [
+            base.replace("\"version\":2", "\"version\":3"),
+            base.replace("\"mode\":\"3d\"", "\"mode\":\"4d\""),
+            base.replace("\"pitch\":0", "\"pitch\":3"),
+            base.replace("\"ratio\":1,\"x\"", "\"ratio\":1e-300,\"x\""),
+            base.replace("\"yaw\":0", "\"yaw\":1e300"),
+            base.replace(
+                "\"positions\":{}",
+                "\"positions\":{\"a.md\":{\"x\":0,\"y\":0,\"z\":1e300,\"pinned\":false}}",
+            ),
+        ] {
+            let parsed = serde_json::from_str::<View>(&bad);
+            assert!(
+                parsed.map_or(true, |view| validate_view(&view).is_err()),
+                "accepted {bad}"
+            );
+        }
+        // Unknown fields stay rejected so a damaged file never loads half-understood.
+        assert!(serde_json::from_str::<View>(
+            &base.replace("\"particles\"", "\"extra\":1,\"particles\"")
+        )
+        .is_err());
     }
 }

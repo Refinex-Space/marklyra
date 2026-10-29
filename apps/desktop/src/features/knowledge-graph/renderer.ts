@@ -7,35 +7,13 @@ import {
   type Position,
   seedPosition,
 } from './model.js';
+import { type GraphPalette, lightPalette } from './palette.js';
+import { graphResources } from './resources.js';
+import type { GraphCallbacks, GraphLook, GraphScene, WorldPoint } from './scene.js';
 
-export interface GraphPalette {
-  background: string;
-  text: string;
-  node: string;
-  edge: string;
-  focus: string;
-  missing: string;
-  faded: string;
-}
-export const lightPalette: GraphPalette = {
-  background: '#ffffff',
-  text: '#373737',
-  node: '#64748b',
-  edge: '#7e8997',
-  focus: '#3974ab',
-  missing: '#a36a14',
-  faded: '#c4cad2',
-};
-export const darkPalette: GraphPalette = {
-  background: '#0d1117',
-  text: '#e3e5e7',
-  node: '#a7b4c5',
-  edge: '#5e6a79',
-  focus: '#91bced',
-  missing: '#d7ac63',
-  faded: '#424b57',
-};
-export const graphResources = { renderers: 0, workers: 0 };
+export { darkPalette, type GraphPalette, lightPalette } from './palette.js';
+export { graphResources } from './resources.js';
+
 interface Point {
   x: number;
   y: number;
@@ -58,16 +36,8 @@ interface HoverHighlight {
   edges: Path2D;
 }
 type Camera = NonNullable<GraphView['camera']>;
-interface Callbacks {
-  select: (id: string | null) => void;
-  open: (id: string) => void;
-  changed: () => void;
-  error: (message: string) => void;
-  context?: (id: string, point: Point) => void;
-  place?: (point: Point) => boolean;
-}
 /** One opaque canvas. Geometry changes in place; React never participates in the frame loop. */
-export class GraphRenderer {
+export class GraphRenderer implements GraphScene {
   readonly metrics = { renders: 0, batches: 0, layoutRunning: false, drawMs: 0, pathBuilds: 0 };
   readonly pointerTarget: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
@@ -106,6 +76,7 @@ export class GraphRenderer {
   private motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
   private reduced = this.motionPreference.matches;
   private firstLayout = true;
+  private relayout = false;
   private topology = '';
   private particles = false;
   private pulse: { source: string; started: number } | null = null;
@@ -121,7 +92,7 @@ export class GraphRenderer {
   private suppressClickUntil = 0;
   constructor(
     private container: HTMLElement,
-    private callbacks: Callbacks,
+    private callbacks: GraphCallbacks,
     palette = lightPalette,
   ) {
     this.palette = palette;
@@ -536,14 +507,16 @@ export class GraphRenderer {
     } else if (changed && nodes.size) {
       this.epoch++;
       this.serial = 0;
-      this.metrics.layoutRunning = fresh > 0;
+      const settled = fresh === 0 && !this.relayout;
+      this.metrics.layoutRunning = !settled;
+      this.relayout = false;
       this.send({
         type: 'layout',
         epoch: this.epoch,
         nodes: [...nodes].map(([id, n]) => ({ id, x: n.x, y: n.y, pinned: n.pinned })),
         edges: snapshot.edges.map((e) => ({ source: e.source, target: e.target })),
         reduced: this.reduced,
-        settled: fresh === 0,
+        settled,
       });
     } else if (this.firstLayout) {
       this.firstLayout = false;
@@ -674,7 +647,8 @@ export class GraphRenderer {
     this.palette = palette;
     this.schedule();
   }
-  restore(view: GraphView) {
+  restore(view: GraphView, options: { relayout?: boolean } = {}) {
+    this.relayout = !!options.relayout;
     this.clearHover();
     this.worker?.postMessage({ type: 'stop' } satisfies LayoutRequest);
     this.epoch++;
@@ -698,6 +672,14 @@ export class GraphRenderer {
     this.cameraState = view.camera ? { ...view.camera } : { x: 0.5, y: 0.5, ratio: 1 };
     this.schedule();
   }
+  placeNode(id: string, point: WorldPoint) {
+    this.moveNode(id, point.x, point.y);
+  }
+  step(x: number, y: number) {
+    this.pan(x, y);
+  }
+  /** The 2D scene has no depth cues to tint or rotate. */
+  setLook(_look: GraphLook) {}
   setParticles(value: boolean) {
     this.particles = value;
     if (!value) this.pulse = null;

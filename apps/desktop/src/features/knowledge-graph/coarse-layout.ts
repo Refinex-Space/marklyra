@@ -47,7 +47,8 @@ export function coarseLayout(
         if (!membership.has(neighbor)) queue.push(neighbor);
     }
     const anchors = members.filter((n) => n.pinned),
-      basis = anchors.length ? anchors : members;
+      basis = anchors.length ? anchors : members,
+      spatial = basis.every((n) => n.z !== undefined);
     groups.push({
       id,
       members,
@@ -55,6 +56,7 @@ export function coarseLayout(
       pinned: anchors.length > 0,
       x: basis.reduce((sum, n) => sum + n.x, 0) / basis.length,
       y: basis.reduce((sum, n) => sum + n.y, 0) / basis.length,
+      ...(spatial ? { z: basis.reduce((sum, n) => sum + (n.z ?? 0), 0) / basis.length } : {}),
     });
   }
   const pairs = new Map<string, { source: string; target: string }>();
@@ -69,12 +71,22 @@ export function coarseLayout(
   return { groups, edges: [...pairs.values()] };
 }
 
-export function expandGroups(groups: LayoutGroup[]) {
+/** `spatial` spreads members over a sphere around a group that carries `z`; otherwise over a disc. */
+export function expandGroups(groups: LayoutGroup[], spatial = false) {
   for (const group of groups)
     group.members.forEach((node, i) => {
       if (node.pinned) return;
-      const angle = i * 2.399963229728653,
-        radius = 12 * Math.sqrt(i + 0.5);
+      const angle = i * 2.399963229728653;
+      if (spatial && group.z !== undefined) {
+        const height = 1 - (2 * (i + 0.5)) / group.members.length,
+          ring = Math.sqrt(Math.max(0, 1 - height * height)),
+          radius = 14 * Math.cbrt(i + 0.5);
+        node.x = group.x + Math.cos(angle) * ring * radius;
+        node.y = group.y + Math.sin(angle) * ring * radius;
+        node.z = group.z + height * radius;
+        return;
+      }
+      const radius = 12 * Math.sqrt(i + 0.5);
       node.x = group.x + Math.cos(angle) * radius;
       node.y = group.y + Math.sin(angle) * radius;
     });

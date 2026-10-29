@@ -31,7 +31,8 @@ function installGraphMock(text: string) {
     limit: 2000,
   };
   const initial = {
-    version: 1,
+    version: 2,
+    mode: '2d',
     query,
     positions: {
       'Layout.md': { x: 0, y: 0, pinned: false },
@@ -282,11 +283,11 @@ async function setup(page: Page, theme = 'marklyra-light') {
   await emitLayoutMenu(page, 'open-folder');
   await expect(page.getByRole('button', { name: '知识图谱', exact: true })).toBeEnabled();
 }
-async function openGraph(page: Page) {
+async function openGraph(page: Page, canvases = 1) {
   await page.getByRole('button', { name: '知识图谱', exact: true }).click();
   await expect(page.locator('.knowledge-workbench')).toBeVisible();
   await expect(page.locator('.knowledge-footer')).toContainText('索引已更新');
-  await expect(page.locator('.knowledge-canvas canvas')).toHaveCount(1);
+  await expect(page.locator('.knowledge-canvas canvas')).toHaveCount(canvases);
 }
 async function choose(page: Page, name: string) {
   const summary = page.locator('.knowledge-node-browser summary');
@@ -791,4 +792,229 @@ test('IME guards graph entry and hidden editor commands while graph find stays u
   await emitLayoutMenu(page, 'close-document');
   await expect(page.locator('.knowledge-workbench')).toHaveCount(0);
   expect(await layoutHistory(page)).toBe(before);
+});
+
+type SavedView = {
+  mode?: string;
+  camera3d?: { yaw: number; pitch: number; ratio: number } | null;
+  positions: Record<string, { x: number; y: number; z?: number; pinned: boolean }>;
+};
+const savedView = (page: Page) =>
+  page.evaluate(() => Reflect.get(window, '__knowledgeMock').view as SavedView | null);
+/** A view that was never saved opens in 3D. */
+const forgetView = (page: Page) =>
+  page.evaluate(() => {
+    Reflect.get(window, '__knowledgeMock').view = null;
+  });
+/** Pixels of the graph that differ from its top-left corner, read from a real screenshot. */
+async function paintedPixels(page: Page) {
+  const png = (await page.locator('.knowledge-canvas').screenshot()).toString('base64');
+  return page.evaluate(async (data) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${data}`;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('No 2D context');
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let painted = 0;
+    for (let i = 0; i < pixels.length; i += 4)
+      if (
+        Math.abs((pixels[i] ?? 0) - (pixels[0] ?? 0)) +
+          Math.abs((pixels[i + 1] ?? 0) - (pixels[1] ?? 0)) +
+          Math.abs((pixels[i + 2] ?? 0) - (pixels[2] ?? 0)) >
+        24
+      )
+        painted++;
+    return painted;
+  }, png);
+}
+const openResources = (page: Page) =>
+  page.evaluate(async () => {
+    const route = '/src/features/knowledge-graph/resources.ts';
+    return (await import(route)).graphResources;
+  });
+
+for (const theme of ['marklyra-light', 'marklyra-dark']) {
+  test(`${theme}: a new view opens in 3D, draws spheres, orbits and persists the camera`, async ({
+    page,
+  }) => {
+    await setup(page, theme);
+    await forgetView(page);
+    await openGraph(page, 2);
+    await expect(page.getByRole('button', { name: '3D', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByRole('toolbar', { name: '无需拖动的旋转' })).toBeVisible();
+    await page.getByRole('button', { name: '全目录', exact: true }).click();
+    await expect.poll(() => paintedPixels(page)).toBeGreaterThan(300);
+    await expect.poll(async () => (await savedView(page))?.camera3d?.yaw).toBeDefined();
+    const before = (await savedView(page))?.camera3d;
+    const box = await page.locator('.knowledge-canvas').boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) return;
+    await page.mouse.move(box.x + box.width - 120, box.y + 90);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 260, box.y + 170, { steps: 8 });
+    await page.mouse.up();
+    await expect.poll(async () => (await savedView(page))?.camera3d?.yaw).not.toBe(before?.yaw);
+    const view = await savedView(page);
+    expect(view?.mode).toBe('3d');
+    for (const position of Object.values(view?.positions ?? {}))
+      expect(Number.isFinite(position.z)).toBe(true);
+    // The arrow keys and buttons orbit as well, without dragging.
+    const yaw = view?.camera3d?.yaw;
+    await page.getByRole('button', { name: '向右旋转', exact: true }).click();
+    await expect.poll(async () => (await savedView(page))?.camera3d?.yaw).not.toBe(yaw);
+    await page.locator('.knowledge-canvas').focus();
+    const turned = (await savedView(page))?.camera3d?.yaw;
+    await page.keyboard.press('ArrowLeft');
+    await expect.poll(async () => (await savedView(page))?.camera3d?.yaw).not.toBe(turned);
+    await expect(page.locator('.knowledge-keys')).toContainText('拖动旋转');
+  });
+}
+
+test('switching between 2D and 3D keeps pinned documents and releases the old scene', async ({
+  page,
+}) => {
+  await setup(page);
+  await forgetView(page);
+  await openGraph(page, 2);
+  await choose(page, 'Layout.md');
+  await page.getByRole('button', { name: '固定位置', exact: true }).click();
+  await expect(page.getByRole('button', { name: '取消固定', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '2D', exact: true }).click();
+  await expect(page.locator('.knowledge-canvas canvas')).toHaveCount(1);
+  await expect(page.getByRole('toolbar', { name: '无需拖动的平移' })).toBeVisible();
+  expect(await openResources(page)).toMatchObject({ renderers: 1 });
+  await expect.poll(async () => (await savedView(page))?.mode).toBe('2d');
+  const flat = await savedView(page);
+  expect(flat?.positions['Layout.md']?.pinned).toBe(true);
+  expect(flat?.positions['Layout.md']?.z).toBeUndefined();
+  await page.getByRole('button', { name: '3D', exact: true }).click();
+  await expect(page.locator('.knowledge-canvas canvas')).toHaveCount(2);
+  await expect.poll(async () => (await savedView(page))?.mode).toBe('3d');
+  await choose(page, 'Layout.md');
+  await expect(page.getByRole('button', { name: '取消固定', exact: true })).toBeVisible();
+  const deep = await savedView(page);
+  expect(deep?.positions['Layout.md']?.pinned).toBe(true);
+  expect(Number.isFinite(deep?.positions['Layout.md']?.z)).toBe(true);
+  expect(deep?.positions['Layout.md']?.x).toBeCloseTo(flat?.positions['Layout.md']?.x ?? 0, 3);
+  await page.getByRole('button', { name: '返回文档', exact: true }).first().click();
+  await expect(page.locator('.knowledge-workbench')).toHaveCount(0);
+  await expect.poll(() => openResources(page)).toEqual({ renderers: 0, workers: 0 });
+});
+
+test('an older version 1 view opens in 3D and a saved 2D choice is respected', async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const mock = Reflect.get(window, '__knowledgeMock');
+    const { mode, ...legacy } = mock.view;
+    mock.view = { ...legacy, version: 1 };
+  });
+  await openGraph(page, 2);
+  await expect(page.getByRole('button', { name: '3D', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: '2D', exact: true }).click();
+  await expect(page.locator('.knowledge-canvas canvas')).toHaveCount(1);
+  await expect.poll(async () => (await savedView(page))?.mode).toBe('2d');
+  await page.getByRole('button', { name: '返回文档', exact: true }).first().click();
+  await openGraph(page, 1);
+  await expect(page.getByRole('button', { name: '2D', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+});
+
+test('importing a 2D view while in 3D rebuilds the scene from the imported view', async ({
+  page,
+}) => {
+  await setup(page);
+  await forgetView(page);
+  await openGraph(page, 2);
+  await page.getByRole('button', { name: '导入视图', exact: true }).click();
+  await expect(page.locator('.knowledge-canvas canvas')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: '2D', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect
+    .poll(async () => (await savedView(page))?.positions['Layout.md']?.x)
+    .toBeCloseTo(125, 1);
+  expect((await savedView(page))?.positions['Layout.md']?.pinned).toBe(true);
+});
+
+test('3D options appear only in 3D and are saved with the view', async ({ page }) => {
+  await setup(page);
+  await forgetView(page);
+  await openGraph(page, 2);
+  await page.getByRole('button', { name: '筛选', exact: true }).click();
+  const folders = page.getByLabel('按目录着色'),
+    rotate = page.getByLabel('缓慢自转');
+  await expect(folders).toBeChecked();
+  await expect(rotate).not.toBeChecked();
+  await folders.uncheck();
+  await rotate.check();
+  await expect(page.getByRole('button', { name: '自动旋转', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect
+    .poll(() => page.evaluate(() => Reflect.get(window, '__knowledgeMock').view))
+    .toMatchObject({ folderColors: false, autoRotate: true, mode: '3d' });
+  await page.getByRole('button', { name: '重置视图', exact: true }).click();
+  await expect(rotate).not.toBeChecked();
+  await page.getByRole('button', { name: '2D', exact: true }).click();
+  await expect(page.getByLabel('按目录着色')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '自动旋转', exact: true })).toHaveCount(0);
+});
+
+test('a host without WebGL2 stays in 2D and says why', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
+      type: string,
+      ...rest: unknown[]
+    ) {
+      if (type === 'webgl2' || type === 'webgl') return null;
+      return Reflect.apply(original, this, [type, ...rest]) as RenderingContext | null;
+    } as typeof original;
+  });
+  await setup(page);
+  await forgetView(page);
+  await openGraph(page, 1);
+  await expect(page.getByRole('button', { name: '2D', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('button', { name: '3D', exact: true })).toBeDisabled();
+  await expect(page.locator('.knowledge-notice[role="status"]')).toContainText('WebGL2');
+  await choose(page, 'Layout.md');
+  await expect(page.getByRole('complementary', { name: '关系详情' })).toContainText(
+    'Notes/Other.md',
+  );
+});
+
+test('losing the GPU context falls back to 2D without losing the selection', async ({ page }) => {
+  await setup(page);
+  await forgetView(page);
+  await openGraph(page, 2);
+  await choose(page, 'Layout.md');
+  await page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('.knowledge-canvas canvas');
+    canvas?.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
+  });
+  await expect(page.locator('.knowledge-canvas canvas')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: '3D', exact: true })).toBeDisabled();
+  await expect(page.locator('.knowledge-notice[role="status"]')).toContainText('已切换到 2D');
+  await expect(page.getByRole('complementary', { name: '关系详情' })).toContainText(
+    'Notes/Other.md',
+  );
 });

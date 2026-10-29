@@ -146,6 +146,7 @@ export function useKnowledge(workspace: WorkspaceFolder, currentPath: string | n
               ...view,
               query: { ...view.query, focus },
               camera: focus === view.query.focus ? view.camera : null,
+              camera3d: focus === view.query.focus ? (view.camera3d ?? null) : null,
             });
           }
         } catch (reason) {
