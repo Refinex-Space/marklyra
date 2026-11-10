@@ -26,3 +26,6 @@ __pycache__/
 
 # Generated release configuration and staging
 .release/
+
+# temp
+temp/
