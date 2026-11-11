@@ -14,7 +14,11 @@ import { ShellGlyph } from '../../components/ShellGlyph.js';
 import { type DirectoryHistoryEntry, directoryHistory } from '../../services/directory-history.js';
 import { displayPath } from '../../services/display-path.js';
 import { desktopAvailable, type SavedDocumentPreview } from '../../services/documents.js';
-import type { EntryAction, EntryEditorSnapshot } from '../../services/entry-actions.js';
+import {
+  copyRelativeEntryPath,
+  type EntryAction,
+  type EntryEditorSnapshot,
+} from '../../services/entry-actions.js';
 import {
   type WorkspaceEntryPresence,
   type WorkspaceEntryRenamed,
@@ -403,6 +407,10 @@ export function WorkspaceSidebar({
     revealRoot: () => void revealDirectory(),
     nativeInfo: filePlatform === 'macos' || filePlatform === 'windows',
     entryAction: (target, action) => void entryActions.start(target, action),
+    copyRelativePath: (target) =>
+      void copyRelativeEntryPath(target.relativePath).catch((reason) =>
+        fileActions.report(`复制路径失败：${String(reason)}`),
+      ),
     rename: (target) => void rename.start(target.relativePath, target.kind),
     trash: (target) => void fileActions.trash(target),
     fileUndo: () => (workspace ? workspaces.fileUndo(workspace.id) : Promise.resolve(null)),

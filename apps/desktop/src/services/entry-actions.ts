@@ -178,3 +178,14 @@ function checked(
     return r as EntryResolution;
   throw Error('文件动作状态无效');
 }
+/** Writes a workspace-relative, `/`-separated path; the renderer already holds it. */
+export async function copyRelativeEntryPath(relativePath: string) {
+  if (
+    !relativePath ||
+    relativePath.startsWith('/') ||
+    relativePath.includes('\\') ||
+    relativePath.split('/').some((part) => !part || part === '.' || part === '..')
+  )
+    throw Error('相对路径无效');
+  await invoke('clipboard_write', { data: { text: relativePath } });
+}

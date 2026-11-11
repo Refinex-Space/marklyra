@@ -32,6 +32,32 @@ fn authorize(window: &WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
+/// Clipboard viewers (Windows clipboard history, Office, the WebView itself) open the
+/// clipboard for a few milliseconds after every change. A burst of zero-length yields
+/// finishes before they release it, so a second copy right after the first used to fail.
+#[cfg(any(windows, test))]
+pub(crate) const OPEN_ATTEMPTS: u32 = 30;
+#[cfg(any(windows, test))]
+pub(crate) const OPEN_BACKOFF: std::time::Duration = std::time::Duration::from_millis(10);
+#[cfg(any(windows, test))]
+pub(crate) fn open_with_backoff<T, E>(
+    attempts: u32,
+    mut open: impl FnMut() -> Result<T, E>,
+    mut wait: impl FnMut(),
+) -> Result<T, E> {
+    let mut remaining = attempts.max(1);
+    loop {
+        match open() {
+            Ok(value) => return Ok(value),
+            Err(error) if remaining <= 1 => return Err(error),
+            Err(_) => {
+                remaining -= 1;
+                wait();
+            }
+        }
+    }
+}
+
 #[cfg(target_os = "macos")]
 async fn on_main<T: Send + 'static>(
     window: WebviewWindow,
@@ -183,6 +209,37 @@ pub(crate) async fn read_native_input(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn busy_clipboard_is_retried_with_a_bounded_backoff() {
+        let (mut tries, mut waits) = (0, 0);
+        let opened = open_with_backoff(
+            OPEN_ATTEMPTS,
+            || {
+                tries += 1;
+                if tries < 4 {
+                    Err("busy")
+                } else {
+                    Ok("open")
+                }
+            },
+            || waits += 1,
+        );
+        assert_eq!((opened, tries, waits), (Ok("open"), 4, 3));
+        let (mut tries, mut waits) = (0, 0);
+        let failed = open_with_backoff::<(), _>(
+            OPEN_ATTEMPTS,
+            || {
+                tries += 1;
+                Err("busy")
+            },
+            || waits += 1,
+        );
+        assert_eq!(
+            (failed, tries, waits),
+            (Err("busy"), OPEN_ATTEMPTS, OPEN_ATTEMPTS - 1)
+        );
+        assert!(OPEN_BACKOFF * OPEN_ATTEMPTS <= std::time::Duration::from_millis(500));
+    }
     #[test]
     fn contents_validate_without_touching_the_system_clipboard() {
         assert!(Content {

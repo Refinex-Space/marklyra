@@ -37,6 +37,7 @@ interface Options {
   changeView(view: 'tree' | 'articles'): void;
   revealRoot(): void;
   entryAction(target: EntryMenuTarget, action: EntryOperation): void;
+  copyRelativePath(target: EntryMenuTarget): void;
   nativeInfo: boolean;
   rename(target: EntryMenuTarget): void;
   trash(target: EntryMenuTarget): void;
@@ -149,15 +150,24 @@ function itemsFor(
     }
     items.push({ id: 'trash', label: '删除…', run: () => options.trash(target) });
   }
-  items.push(
-    'separator',
-    { id: 'copy-path', label: '复制文件路径', run: () => options.entryAction(target, 'copy-path') },
-    {
-      id: 'reveal',
-      label: revealLabel(options.platform),
-      run: root ? options.revealRoot : () => options.entryAction(target, 'reveal'),
-    },
-  );
+  const noun = folder ? '目录' : '文件';
+  items.push('separator', {
+    id: 'copy-path',
+    label: `复制${noun}绝对路径`,
+    run: () => options.entryAction(target, 'copy-path'),
+  });
+  // The root's path relative to itself is empty; nothing worth copying.
+  if (!root)
+    items.push({
+      id: 'copy-relative-path',
+      label: `复制${noun}相对路径`,
+      run: () => options.copyRelativePath(target),
+    });
+  items.push({
+    id: 'reveal',
+    label: revealLabel(options.platform),
+    run: root ? options.revealRoot : () => options.entryAction(target, 'reveal'),
+  });
   return tidy(items);
 }
 /** Real native context menu where available; the browser uses the same action model. */

@@ -8,7 +8,7 @@ import { openWorkspaceRootMenu } from './workspace-context.helpers.js';
 
 type ActionWindow = RenameWindow & {
   __actions: {
-    behavior: 'normal' | 'lost' | 'unknown' | 'hold' | 'reuse-lost';
+    behavior: 'normal' | 'lost' | 'unknown' | 'hold' | 'reuse-lost' | 'clipboard-busy';
     release(): void;
     effects: number;
   };
@@ -33,6 +33,10 @@ function installActions() {
     if (['duplicate_workspace_entry', 'perform_workspace_entry_action'].includes(command)) {
       host.__desktopMock.calls.push({ command, args });
       if (host.__actions.behavior === 'unknown') throw Error('unknown');
+      // A busy Windows clipboard as reported by hosts before the fix: an
+      // "uncertain" result that used to keep the sidebar locked for good.
+      if (host.__actions.behavior === 'clipboard-busy' && args.action === 'copy-path')
+        return { status: 'mutationUncertain', message: '系统剪贴板正被占用，请重试' };
       if (host.__actions.behavior === 'hold')
         await new Promise<void>((done) => {
           release = done;
@@ -84,12 +88,19 @@ function installActions() {
     return previous(command, args);
   };
 }
-async function boot(page: Page, articles = false, currentSource = false, blank = false) {
+async function boot(
+  page: Page,
+  articles = false,
+  currentSource = false,
+  blank = false,
+  nested = false,
+) {
   await page.addInitScript(installMock, { nativeChrome: true });
   await page.addInitScript(installRecoveryMock);
   await page.addInitScript(installCreationMock, {
     runtimeUrl: 'http://127.0.0.1:4174/index.html',
     articles,
+    nested,
   });
   await page.addInitScript(installRenameMock);
   await page.addInitScript(installActions);
@@ -192,7 +203,7 @@ test('file/folder new-window and system actions keep the current editor and send
     ['Existing.md', '在新窗口中打开'],
     ['Folder', '在新窗口中打开'],
     ['Existing.md', '显示简介…'],
-    ['Existing.md', '复制文件路径'],
+    ['Existing.md', '复制文件绝对路径'],
     ['Existing.md', '在 Finder 中显示'],
   ] as const) {
     await action(page, label, path);
@@ -228,7 +239,8 @@ test('root Copy Path uses current workspace identity without a renderer-supplied
 }) => {
   await boot(page);
   await openWorkspaceRootMenu(page);
-  await page.getByRole('menuitem', { name: '复制文件路径', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: '复制目录相对路径' })).toHaveCount(0);
+  await page.getByRole('menuitem', { name: '复制目录绝对路径', exact: true }).click();
   await expect
     .poll(async () => (await calls(page, 'perform_workspace_entry_action')).length)
     .toBe(1);
@@ -239,6 +251,56 @@ test('root Copy Path uses current workspace identity without a renderer-supplied
   });
   expect(await calls(page, 'inspect_workspace_entry')).toHaveLength(0);
 });
+
+test('copy path menu items are named for files and folders and split absolute/relative', async ({
+  page,
+}) => {
+  await boot(page, false, false, false, true);
+  for (const [path, noun] of [
+    ['Existing.md', '文件'],
+    ['Folder', '目录'],
+  ] as const) {
+    await page.locator(`button[data-entry-path="${path}"]:visible`).click({ button: 'right' });
+    const menu = page.getByRole('menu', { name: '文件操作' });
+    await expect(menu.getByRole('menuitem', { name: /^复制.*路径$/ })).toHaveText([
+      `复制${noun}绝对路径`,
+      `复制${noun}相对路径`,
+    ]);
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+  }
+  await page.locator('button[data-entry-path="Folder"]:visible').click();
+  await action(page, '复制文件相对路径', 'Folder/Nested.md');
+  await action(page, '复制目录相对路径', 'Folder');
+  await expect
+    .poll(async () => (await calls(page, 'clipboard_write')).map((c) => c.args))
+    .toEqual([{ data: { text: 'Folder/Nested.md' } }, { data: { text: 'Folder' } }]);
+  expect(await calls(page, 'perform_workspace_entry_action')).toHaveLength(0);
+  expect(await calls(page, 'inspect_workspace_entry')).toHaveLength(0);
+});
+
+for (const behavior of ['clipboard-busy', 'unknown'] as const)
+  test(`a failed copy (${behavior}) never leaves the sidebar without its context menu`, async ({
+    page,
+  }) => {
+    await boot(page);
+    await page.evaluate((behavior) => {
+      (window as unknown as ActionWindow).__actions.behavior = behavior;
+    }, behavior);
+    for (let round = 0; round < 3; round++) {
+      await action(page, '复制文件绝对路径');
+      await expect(page.getByRole('alert').filter({ hasText: '核对结果' })).toHaveCount(0);
+      await expect(page.getByText(/复制路径失败/)).toBeVisible();
+    }
+    await page.evaluate(() => {
+      (window as unknown as ActionWindow).__actions.behavior = 'normal';
+    });
+    for (let round = 0; round < 3; round++) await action(page, '复制文件绝对路径');
+    const actions = (await calls(page, 'perform_workspace_entry_action')).map((c) => c.args.action);
+    expect(actions).toEqual(Array(6).fill('copy-path'));
+    await page.locator('button[data-entry-path="Existing.md"]:visible').click({ button: 'right' });
+    await expect(page.getByRole('menu', { name: '文件操作' })).toBeVisible();
+  });
 
 test('a delayed copy receipt refreshes its row without stealing focus after continued typing', async ({
   page,

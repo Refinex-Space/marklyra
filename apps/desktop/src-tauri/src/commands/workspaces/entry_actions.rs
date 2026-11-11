@@ -221,16 +221,26 @@ pub async fn perform_workspace_entry_action(
             crate::windows::build_reserved_editor_window(reserved).map(Some)
         }
         Dispatch::Path(path) if action == EntryActionKind::CopyPath => {
-            match crate::platform::entry_actions::clipboard_path(&path) {
+            let written = match crate::platform::entry_actions::clipboard_path(&path) {
                 Err(error) => Err(error),
-                Ok(data) => crate::clipboard::clipboard_write(
-                    window.clone(),
-                    app.state::<crate::clipboard::ClipboardHost>(),
-                    data,
-                )
-                .await
-                .map(|()| None),
-            }
+                Ok(data) => {
+                    crate::clipboard::clipboard_write(
+                        window.clone(),
+                        app.state::<crate::clipboard::ClipboardHost>(),
+                        data,
+                    )
+                    .await
+                }
+            };
+            // Writing the clipboard changes no file, so a busy clipboard or a lost
+            // focus is a plain, retryable rejection rather than an uncertain mutation
+            // that would keep the sidebar locked until it is "checked".
+            return Ok(match written {
+                Ok(()) => ticket.finish(Ok(None)),
+                Err(message) => app
+                    .state::<WindowServices>()
+                    .reject_entry_action(ticket, copy_path_failure(&message)),
+            });
         }
         Dispatch::Path(path) if action == EntryActionKind::Info => {
             crate::platform::entry_actions::show_info(window.clone(), path)
@@ -246,6 +256,9 @@ pub async fn perform_workspace_entry_action(
         .map(|()| None),
     };
     Ok(ticket.finish(result))
+}
+fn copy_path_failure(reason: &str) -> String {
+    format!("复制路径失败：{reason}")
 }
 #[tauri::command]
 pub async fn resolve_workspace_entry_action(

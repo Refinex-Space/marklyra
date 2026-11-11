@@ -4,8 +4,12 @@ use tauri::WebviewWindow;
 
 fn open(window: &WebviewWindow) -> Result<Clipboard, String> {
     let owner = window.hwnd().map_err(|error| error.to_string())?.0;
-    Clipboard::new_attempts_for(owner as clipboard_win::types::HWND, 10)
-        .map_err(|_| "系统剪贴板正被占用，请重试".to_owned())
+    super::open_with_backoff(
+        super::OPEN_ATTEMPTS,
+        || Clipboard::new_for(owner as clipboard_win::types::HWND),
+        || std::thread::sleep(super::OPEN_BACKOFF),
+    )
+    .map_err(|_| "系统剪贴板正被占用，请重试".to_owned())
 }
 fn bytes(kind: u32, limit: usize) -> Result<Option<Vec<u8>>, String> {
     if !raw::is_format_avail(kind) {

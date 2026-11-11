@@ -99,8 +99,21 @@ export function useWorkspaceEntryActions(options: Options) {
         )
         .catch((e) => setMessage(String(e)));
   }, [completion]);
-  const done = async (o: Operation, result: EntryResolution | null) => {
+  const done = async (o: Operation, outcome: EntryResolution | null) => {
     if (!current(o)) return;
+    // Copying a path changes no file and is safe to repeat: anything short of a
+    // confirmed copy is a plain failure, never a pending check that keeps the
+    // sidebar (and with it the context menu) disabled.
+    const result: EntryResolution | null =
+      o.action === 'copy-path' && outcome?.status !== 'committed'
+        ? {
+            status: 'rejected',
+            message:
+              outcome?.status === 'rejected'
+                ? outcome.message
+                : `复制路径失败：${outcome?.status === 'mutationUncertain' && outcome.message ? outcome.message : '结果未确认，请重试'}`,
+          }
+        : outcome;
     if (result?.status === 'committed' || result?.status === 'rejected') {
       await release(o);
       if (!current(o)) return;
@@ -141,7 +154,8 @@ export function useWorkspaceEntryActions(options: Options) {
         await entryActions.resolve(o.workspaceId, o.entryToken, o.operationId, o.action),
       );
     } catch (e) {
-      if (current(o)) {
+      if (o.action === 'copy-path') await done(o, null);
+      else if (current(o)) {
         o.checking = true;
         o.error = `结果核对失败：${String(e)}`;
         setState({ ...o });

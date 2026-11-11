@@ -103,6 +103,42 @@ fn unknown_post_dispatch_result_is_retained_without_replay() {
 }
 
 #[test]
+fn failed_copy_is_a_retryable_rejection_not_an_uncertain_mutation() {
+    let (_root, s, id, token) = setup();
+    let op = uuid::Uuid::new_v4().to_string();
+    let EntryActionStart::Ready(ticket) = s
+        .begin_entry_action("main", &id, &token, &op, EntryActionKind::CopyPath)
+        .unwrap()
+    else {
+        panic!()
+    };
+    s.prepare_entry_dispatch(&ticket, |_, _| Ok(())).unwrap();
+    let result = s.reject_entry_action(ticket, "系统剪贴板正被占用，请重试".into());
+    assert!(matches!(result, EntryActionResolution::Rejected { .. }));
+    assert_eq!(
+        s.resolve_entry_action("main", &id, &token, &op, EntryActionKind::CopyPath)
+            .unwrap(),
+        Some(result)
+    );
+    let retry = s
+        .mutate_workspace("main", &id, |w| {
+            w.inspect_entry("A.md").map_err(|e| e.to_string())
+        })
+        .unwrap();
+    assert!(matches!(
+        s.begin_entry_action(
+            "main",
+            &id,
+            &retry.entry_token,
+            &uuid::Uuid::new_v4().to_string(),
+            EntryActionKind::CopyPath
+        )
+        .unwrap(),
+        EntryActionStart::Ready(_)
+    ));
+}
+
+#[test]
 fn root_copy_uses_only_the_current_authorized_root_and_no_entry_inspection() {
     let (root, s, id, _) = setup();
     let op = uuid::Uuid::new_v4().to_string();
