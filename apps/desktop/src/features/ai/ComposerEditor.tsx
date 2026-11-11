@@ -223,7 +223,13 @@ export const ComposerEditor = forwardRef<
       aria-label="发送给 AI 的消息"
       aria-multiline="true"
       aria-disabled={disabled}
-      aria-controls={activeMention ? 'ai-mentions' : undefined}
+      aria-controls={
+        activeMention
+          ? activeMention.startsWith('ai-command')
+            ? 'ai-commands'
+            : 'ai-mentions'
+          : undefined
+      }
       aria-activedescendant={activeMention}
       data-placeholder="发送消息，@ 提及文档"
       data-empty="true"

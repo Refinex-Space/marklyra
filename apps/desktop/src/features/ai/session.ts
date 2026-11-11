@@ -1,6 +1,6 @@
 import { agentApi } from './api.js';
 import { attachmentBlocks, rememberAttachment } from './attachments.js';
-import { configOptions, updateMessages } from './model.js';
+import { builtinSkill, configOptions, updateMessages } from './model.js';
 import type { Attachment, DraftAttachment } from './types.js';
 import {
   type AgentEvent,
@@ -386,9 +386,16 @@ export class AgentSession {
     try {
       const snapshot = includeSnapshot ? await this.host.snapshot?.() : undefined;
       if (generation !== this.generation || this.snapshot().phase !== 'running') return false;
+      const invoked = builtinSkill(input);
       const context = await agentApi.invoke<unknown>('agent_context', {
         connectionId: this.connectionId,
-        context: { turnId, references, active, ...(snapshot ? { snapshot } : {}) },
+        context: {
+          turnId,
+          references,
+          active,
+          ...(snapshot ? { snapshot } : {}),
+          ...(invoked ? { skill: invoked.skill } : {}),
+        },
       });
       if (generation !== this.generation || this.snapshot().phase !== 'running') return false;
       const prompt = [
@@ -396,7 +403,12 @@ export class AgentSession {
           type: 'text',
           text: `<marklyra-context>\n${JSON.stringify(context)}\n</marklyra-context>`,
         },
-        ...(input.trim() ? [{ type: 'text', text: input }] : []),
+        // A built-in command is MarkLyra's, not the agent's: it reads the request alone.
+        ...(invoked
+          ? [{ type: 'text', text: invoked.text }]
+          : input.trim()
+            ? [{ type: 'text', text: input }]
+            : []),
         ...blocks,
       ];
       if (new TextEncoder().encode(JSON.stringify(prompt)).length > 7.5 * 1024 * 1024)

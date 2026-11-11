@@ -146,3 +146,44 @@ export function encodeDocumentPath(path: string): string {
     )
     .join('/');
 }
+
+export interface SlashCommand {
+  name: string;
+  description: string;
+  /** Handled by MarkLyra itself rather than the agent. */
+  builtin?: boolean;
+}
+/** MarkLyra's own commands: each attaches a bundled skill to the turn. */
+export const BUILTIN_COMMANDS: SlashCommand[] = [
+  { name: 'marklyra-task', description: '查询、创建、更新与排期工作区任务', builtin: true },
+];
+const DEFAULT_SKILL_REQUEST: Record<string, string> = {
+  'marklyra-task': '概览当前工作区的任务：未完成、已逾期和即将到期的任务，按优先级列出。',
+};
+
+/** The typed command while the whole draft is still `/name`; null otherwise. */
+export function slashQuery(value: string): string | null {
+  const match = /^\/([\w:-]{0,64})$/.exec(value);
+  return match ? (match[1] ?? '').toLowerCase() : null;
+}
+
+/** Built-in commands first, then the agent's advertised ones, filtered by prefix-or-substring. */
+export function slashCommands(agent: SessionView['commands'], query: string): SlashCommand[] {
+  const seen = new Set<string>();
+  return [...BUILTIN_COMMANDS, ...agent]
+    .filter((command) => {
+      if (!/^[\w:-]{1,64}$/.test(command.name) || seen.has(command.name)) return false;
+      seen.add(command.name);
+      return command.name.toLowerCase().includes(query);
+    })
+    .slice(0, 12);
+}
+
+/** `/marklyra-task …` → the skill to attach and the request the agent reads. */
+export function builtinSkill(input: string): { skill: string; text: string } | null {
+  const match = /^\s*\/([\w:-]+)(?:\s+([\s\S]*))?$/.exec(input);
+  const name = match?.[1];
+  if (!name || !BUILTIN_COMMANDS.some((command) => command.name === name)) return null;
+  const request = match?.[2]?.trim() ?? '';
+  return { skill: name, text: request || (DEFAULT_SKILL_REQUEST[name] ?? '') };
+}

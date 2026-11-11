@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  builtinSkill,
   configOptions,
   documentLink,
   mentionAt,
+  slashCommands,
+  slashQuery,
   updateMessages,
 } from '../src/features/ai/model.js';
 
@@ -107,4 +110,35 @@ it('updates plan status in place so late completion cannot move a final answer i
   expect(complete.map((message) => message.role)).toEqual(['plan', 'assistant']);
   expect(complete[0]?.text).toBe('✓ Read');
   expect(complete[0]?.createdAt).toBe(plan[0]?.createdAt);
+});
+
+describe('slash commands', () => {
+  it('opens only while the whole draft is a command name', () => {
+    expect(slashQuery('/')).toBe('');
+    expect(slashQuery('/Mark')).toBe('mark');
+    expect(slashQuery('/marklyra-task ')).toBeNull();
+    expect(slashQuery('see /mark')).toBeNull();
+    expect(slashQuery('/a/b')).toBeNull();
+  });
+  it('lists the built-in skill first, then safe agent commands without duplicates', () => {
+    const agent = [
+      { name: 'review', description: 'Review' },
+      { name: 'marklyra-task', description: 'shadow' },
+      { name: 'bad name', description: 'x' },
+    ];
+    expect(slashCommands(agent, '').map((c) => c.name)).toEqual(['marklyra-task', 'review']);
+    expect(slashCommands(agent, '').at(0)?.builtin).toBe(true);
+    expect(slashCommands(agent, 'rev').map((c) => c.name)).toEqual(['review']);
+    expect(slashCommands(agent, 'task').map((c) => c.name)).toEqual(['marklyra-task']);
+  });
+  it('recognizes only the built-in skill and keeps the request', () => {
+    expect(builtinSkill('/marklyra-task  完成 WEB-12\n并评论')).toEqual({
+      skill: 'marklyra-task',
+      text: '完成 WEB-12\n并评论',
+    });
+    expect(builtinSkill('/marklyra-task')?.text).toContain('概览');
+    expect(builtinSkill('/marklyra-tasks 1')).toBeNull();
+    expect(builtinSkill('/review')).toBeNull();
+    expect(builtinSkill('请用 /marklyra-task')).toBeNull();
+  });
 });

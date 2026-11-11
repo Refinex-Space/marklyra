@@ -27,7 +27,14 @@ import { HistoryPanel } from './HistoryPanel.js';
 import { type HistoryItem, removeHistory } from './history-management.js';
 import { MessageActions } from './MessageActions.js';
 import { MessageContent } from './MessageContent.js';
-import { documentLink, encodeDocumentPath, mentionAt } from './model.js';
+import {
+  documentLink,
+  encodeDocumentPath,
+  mentionAt,
+  type SlashCommand,
+  slashCommands,
+  slashQuery,
+} from './model.js';
 import { AgentSession } from './session.js';
 import { conversationGroups, TurnActivity } from './TurnActivity.js';
 import type { DraftAttachment } from './types.js';
@@ -634,6 +641,13 @@ function Conversation({
       window.removeEventListener('focus', refreshFiles);
     };
   }, [refreshFiles]);
+  const slash = mention ? null : slashQuery(input);
+  const commands = slash === null ? [] : slashCommands(state?.commands ?? [], slash);
+  const chooseCommand = (command: SlashCommand) => {
+    setInput(`/${command.name} `);
+    setSelected(0);
+    textarea.current?.focus();
+  };
   const mentionOpen = mention !== null;
   useEffect(() => {
     if (mentionOpen) refreshFiles();
@@ -1167,11 +1181,38 @@ function Conversation({
                 {!matches.length && <p>{filesError || '没有匹配的文档'}</p>}
               </div>
             )}
+            {!!commands.length && (
+              <div
+                id="ai-commands"
+                className="ai-mentions ai-commands"
+                role="listbox"
+                aria-label="选择命令"
+              >
+                {commands.map((command, index) => (
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={index === selected}
+                    id={`ai-command-${index}`}
+                    key={command.name}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => chooseCommand(command)}
+                  >
+                    <span>/{command.name}</span>
+                    <small>{command.description}</small>
+                  </button>
+                ))}
+              </div>
+            )}
             <ComposerEditor
               ref={textarea}
               value={input}
               disabled={editingLocked}
-              {...(mention && matches.length ? { activeMention: `ai-mention-${selected}` } : {})}
+              {...(mention && matches.length
+                ? { activeMention: `ai-mention-${selected}` }
+                : commands.length
+                  ? { activeMention: `ai-command-${selected % commands.length}` }
+                  : {})}
               change={(value, caret, boundary, paths) => {
                 syncMentions(paths);
                 setMentionBoundary(boundary);
@@ -1195,6 +1236,22 @@ function Conversation({
                     const match = matches[selected];
                     if (match) add(match.relativePath);
                   } else setCaret(0);
+                  return;
+                }
+                if (
+                  commands.length &&
+                  ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key) &&
+                  !event.shiftKey
+                ) {
+                  event.preventDefault();
+                  const index = selected % commands.length;
+                  if (event.key === 'ArrowDown') setSelected((index + 1) % commands.length);
+                  else if (event.key === 'ArrowUp')
+                    setSelected((index - 1 + commands.length) % commands.length);
+                  else {
+                    const command = commands[index];
+                    if (command) chooseCommand(command);
+                  }
                   return;
                 }
                 if (event.key === 'Enter' && !event.shiftKey) {

@@ -6,7 +6,7 @@ use std::path::Component;
 use std::time::{Duration, Instant};
 
 const REGISTRY: &str = "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json";
-const SUPPORTED: &[&str] = &[
+pub(super) const SUPPORTED: &[&str] = &[
     "codex-acp",
     "cursor",
     "claude-acp",

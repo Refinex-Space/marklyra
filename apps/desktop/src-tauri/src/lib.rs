@@ -1,3 +1,4 @@
+mod agent_skills;
 pub mod agents;
 mod app_paths;
 mod app_update;
@@ -118,6 +119,9 @@ pub fn run() {
             cli_install::cli_status,
             cli_install::cli_install,
             cli_install::cli_uninstall,
+            agent_skills::agent_skills_status,
+            agent_skills::agent_skill_install,
+            agent_skills::agent_skill_uninstall,
             app_update::app_update_status,
             app_update::app_update_automatic,
             app_update::app_update_check,

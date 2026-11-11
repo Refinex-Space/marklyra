@@ -150,6 +150,8 @@ const paths = {
   book: 'M4.5 5.5c2.6-1.3 5.2-1.3 7.5 0v14c-2.3-1.3-4.9-1.3-7.5 0zM12 5.5c2.3-1.3 4.9-1.3 7.5 0v14c-2.6-1.3-5.2-1.3-7.5 0z',
   table: 'M4 5h16v14H4zM4 10h16M4 15h16M10 10v9',
   branch: 'M7 4.5v15M7 15.5c0-4 10-3 10-7M7 4.5h.01M17 8.5h.01M7 19.5h.01',
+  spark:
+    'M10.5 4l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4L4.5 10l4.4-1.6zM17.5 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z',
 } as const;
 export type TaskIconName = keyof typeof paths;
 export function TaskIcon({ name, color }: { name: TaskIconName; color?: string }) {

@@ -566,6 +566,13 @@
   white-space: nowrap;
   max-width: 40%;
 }
+.ai-commands span {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: nowrap;
+}
+.ai-commands small {
+  max-width: 62%;
+}
 .ai-mentions p {
   padding: 6px;
   font-size: 12px;

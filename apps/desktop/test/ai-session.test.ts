@@ -121,6 +121,39 @@ describe('ACP session lifecycle', () => {
     await session.disconnect();
     expect(session.snapshot().record.messages[0]?.completedAt).toBe(finished);
   });
+  it('/marklyra-task attaches the bundled skill by name and sends only the request', async () => {
+    const { session } = make();
+    const pending = session.prompt('/marklyra-task 列出本周到期的任务', [], null);
+    await vi.waitFor(() => expect(bridge.promptId).toBeGreaterThan(0));
+    expect(bridge.invoke).toHaveBeenCalledWith(
+      'agent_context',
+      expect.objectContaining({ context: expect.objectContaining({ skill: 'marklyra-task' }) }),
+    );
+    const prompt = bridge.sent.find((m) => m.method === 'session/prompt')?.params?.prompt as {
+      text: string;
+    }[];
+    expect(prompt.at(-1)?.text).toBe('列出本周到期的任务');
+    expect(JSON.stringify(prompt)).not.toContain('/marklyra-task');
+    // The transcript keeps what the person typed.
+    expect(session.snapshot().record.messages[0]?.text).toBe('/marklyra-task 列出本周到期的任务');
+    event({ jsonrpc: '2.0', id: bridge.promptId, result: { stopReason: 'end_turn' } });
+    expect(await pending).toBe(true);
+  });
+  it('an agent-advertised command goes to the agent verbatim without a skill', async () => {
+    const { session } = make();
+    const pending = session.prompt('/review now', [], null);
+    await vi.waitFor(() => expect(bridge.promptId).toBeGreaterThan(0));
+    const context = bridge.invoke.mock.calls.find(([name]) => name === 'agent_context')?.[1] as {
+      context: Record<string, unknown>;
+    };
+    expect(context.context).not.toHaveProperty('skill');
+    const prompt = bridge.sent.find((m) => m.method === 'session/prompt')?.params?.prompt as {
+      text: string;
+    }[];
+    expect(prompt.at(-1)?.text).toBe('/review now');
+    event({ jsonrpc: '2.0', id: bridge.promptId, result: { stopReason: 'end_turn' } });
+    expect(await pending).toBe(true);
+  });
   it('requires a current user decision before host writes and rejects after cancel', async () => {
     const { session, host } = make();
     const pending = session.prompt('Edit', [], null);

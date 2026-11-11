@@ -29,10 +29,23 @@ pub(super) fn prepare(root: &Path, value: Value) -> Result<TurnContext, String> 
     let active = value["active"]
         .as_str()
         .filter(|active| paths.iter().any(|p| p == active));
+    let mut prompt = json!({"policy":POLICY,"workspace":root,"active":active,"references":paths});
+    // `/marklyra-task` in the panel: the same bundled skill external agents install.
+    match &value["skill"] {
+        Value::Null => {}
+        Value::String(name) if name == crate::agent_skills::NAME => {
+            prompt["skill"] = json!({
+                "name": name,
+                "policy": "用户以斜杠命令调用了这个技能：按 instructions 处理本轮请求；本会话已提供 task_* 任务工具时优先使用它们。",
+                "instructions": crate::agent_skills::instructions(),
+            });
+        }
+        _ => return Err("未知技能".into()),
+    }
     Ok(TurnContext {
         turn_id: turn_id.into(),
         active_document_id: None,
-        prompt: json!({"policy":POLICY,"workspace":root,"active":active,"references":paths}),
+        prompt,
     })
 }
 
@@ -48,5 +61,30 @@ mod tests {
         )
         .unwrap();
         assert!(result.prompt["active"].is_null());
+    }
+
+    #[test]
+    fn the_task_skill_is_attached_by_name_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let turn = || Uuid::new_v4().to_string();
+        let plain = prepare(dir.path(), json!({"turnId":turn(),"references":[]})).unwrap();
+        assert!(plain.prompt.get("skill").is_none());
+        let skilled = prepare(
+            dir.path(),
+            json!({"turnId":turn(),"references":[],"skill":"marklyra-task"}),
+        )
+        .unwrap();
+        assert_eq!(skilled.prompt["skill"]["name"], "marklyra-task");
+        assert!(skilled.prompt["skill"]["instructions"]
+            .as_str()
+            .unwrap()
+            .contains("marklyra task list"));
+        for bad in [json!("other"), json!(1), json!({"name":"marklyra-task"})] {
+            assert!(prepare(
+                dir.path(),
+                json!({"turnId":turn(),"references":[],"skill":bad})
+            )
+            .is_err());
+        }
     }
 }

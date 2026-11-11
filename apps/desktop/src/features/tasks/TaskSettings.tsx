@@ -7,6 +7,7 @@ import type {
   MutationResult,
   TaskMutation,
 } from '../../services/tasks.js';
+import { AgentSkillsPage } from './agentSkills.js';
 import { colorVar, PriorityGlyph, StatusGlyph, TaskIcon, type TaskIconName } from './glyphs.js';
 import { type GuideActions, TaskGuide } from './guide.js';
 import { type ImportContext, ImportPage } from './importer.js';
@@ -24,6 +25,7 @@ type Page =
   | 'templates'
   | 'cycles'
   | 'import'
+  | 'agents'
   | 'guide';
 const PAGES: [Page, string, TaskIconName][] = [
   ['general', '常规', 'sliders'],
@@ -34,6 +36,7 @@ const PAGES: [Page, string, TaskIconName][] = [
   ['templates', '模板', 'template'],
   ['cycles', '迭代', 'cycle'],
   ['import', '导入', 'import'],
+  ['agents', '智能体技能', 'spark'],
   ['guide', '使用指南', 'book'],
 ];
 const CATEGORY_NAMES: Record<Category, string> = {
@@ -111,6 +114,7 @@ export function TaskSettings({
         {page === 'import' && (
           <ImportPage catalog={catalog} context={importContext} confirm={confirm} />
         )}
+        {page === 'agents' && <AgentSkillsPage />}
         {page === 'guide' && (
           <TaskGuide actions={{ ...guideActions, openImport: () => setPage('import') }} />
         )}

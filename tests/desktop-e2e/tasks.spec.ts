@@ -1300,3 +1300,122 @@ test('the guide reads in chapters, follows the scroll, and its actions start the
   await page.locator('#tg-automation').getByRole('button', { name: '去导入' }).click();
   await expect(page.locator('.task-settings-page h2')).toHaveText('导入');
 });
+
+/** `agent_skill*` and `cli_*` answer from an in-page home folder; Claude and GLM share one. */
+function installSkillsMock() {
+  if (window !== window.top) return;
+  const host = window as TestWindow & {
+    __TAURI_INTERNALS__: {
+      invoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
+    };
+  };
+  const previous = host.__TAURI_INTERNALS__.invoke;
+  const agents = [
+    ['claude-acp', 'Claude', '.claude/skills'],
+    ['codex-acp', 'Codex', '.agents/skills'],
+    ['glm-acp-agent', 'GLM', '.claude/skills'],
+    ['opencode', 'OpenCode', '.config/opencode/skills'],
+    ['qoder', 'Qoder', '.qoder/skills'],
+  ];
+  const files: Record<string, 'ours' | 'old' | 'foreign'> = { '.qoder/skills': 'foreign' };
+  const cli = {
+    path: '/Users/me/.local/bin/marklyra',
+    installed: false,
+    ours: false,
+    current: false,
+  };
+  const statuses = () =>
+    agents.map(([agentId, name, dir]) => {
+      const file = files[dir as string];
+      return {
+        agentId,
+        name,
+        path: `/Users/me/${dir}/marklyra-task/SKILL.md`,
+        installed: !!file,
+        ours: file === 'ours' || file === 'old',
+        current: file === 'ours',
+        sharedWith: agents.filter((a) => a[2] === dir && a[0] !== agentId).map((a) => a[1]),
+      };
+    });
+  const dirOf = (id: unknown) => agents.find((a) => a[0] === id)?.[2] as string;
+  host.__TAURI_INTERNALS__.invoke = async (command, args = {}) => {
+    if (command === 'agent_skills_status') return statuses();
+    if (command === 'agent_skill_install') {
+      host.__desktopMock.calls.push({ command, args });
+      files[dirOf(args.agentId)] = 'ours';
+      return statuses();
+    }
+    if (command === 'agent_skill_uninstall') {
+      host.__desktopMock.calls.push({ command, args });
+      delete files[dirOf(args.agentId)];
+      return statuses();
+    }
+    if (command === 'cli_status') return { ...cli };
+    if (command === 'cli_install') {
+      Object.assign(cli, { installed: true, ours: true, current: true });
+      return { ...cli };
+    }
+    return previous(command, args);
+  };
+}
+
+test('agent skills install and uninstall per agent, with shared folders and foreign files left alone', async ({
+  page,
+}) => {
+  await installLayout(page, undefined, 'web');
+  await page.addInitScript(installTasksMock, { seed: true });
+  await page.addInitScript(installSkillsMock);
+  await readyLayout(page, 'marklyra-light');
+  await openLayoutDocument(page, '# 文档\n\n正文\n');
+  await emitLayoutMenu(page, 'open-folder');
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await page.locator('.task-nav-item', { hasText: '任务设置' }).click();
+  await page.locator('.task-settings-nav').getByRole('button', { name: '智能体技能' }).click();
+
+  const list = page.getByRole('list', { name: '智能体' });
+  const row = (name: string) =>
+    list
+      .getByRole('listitem')
+      .filter({ has: page.locator('.task-skill-name').getByText(name, { exact: true }) });
+  await expect(list.getByRole('listitem')).toHaveCount(5);
+  await expect(row('Claude')).toContainText('~/.claude/skills/marklyra-task/SKILL.md');
+  await expect(row('Claude')).toContainText('与 GLM 共用');
+  await expect(row('Qoder')).toContainText('已有同名文件');
+  await expect(row('Qoder').getByRole('button', { name: /^(安装|卸载|更新)/ })).toHaveCount(0);
+
+  await page.getByRole('button', { name: '安装到 Claude' }).click();
+  await expect(row('Claude')).toContainText('已安装');
+  // GLM reads the same folder, so it follows.
+  await expect(row('GLM')).toContainText('已安装');
+  await expect(row('Codex')).not.toContainText('已安装');
+  await page.getByRole('button', { name: '从 GLM 卸载' }).click();
+  await expect(row('Claude').getByRole('button', { name: '安装到 Claude' })).toBeVisible();
+
+  await page.getByRole('button', { name: '安装命令行' }).click();
+  await expect(page.locator('.task-skills')).toContainText('~/.local/bin/marklyra');
+  await expect(page.getByRole('button', { name: '卸载命令行' })).toBeVisible();
+  if (process.env.SKILL_SHOTS) {
+    await page.getByRole('button', { name: '安装到 Codex' }).click();
+    await page
+      .locator('.task-skills')
+      .screenshot({ path: `${process.env.SKILL_SHOTS}/skills.png` });
+    if (process.env.SKILL_DARK) {
+      await emitLayoutMenu(page, 'theme:marklyra-dark');
+      await page.waitForTimeout(400);
+      await page
+        .locator('.task-skills')
+        .screenshot({ path: `${process.env.SKILL_SHOTS}/skills-dark.png` });
+    }
+  }
+  expect(
+    await page.evaluate(() =>
+      (window as TestWindow).__desktopMock.calls
+        .filter((c) => c.command.startsWith('agent_skill_'))
+        .map((c) => [c.command, c.args?.agentId]),
+    ),
+  ).toEqual([
+    ['agent_skill_install', 'claude-acp'],
+    ['agent_skill_uninstall', 'glm-acp-agent'],
+    ...(process.env.SKILL_SHOTS ? [['agent_skill_install', 'codex-acp']] : []),
+  ]);
+});

@@ -21,6 +21,12 @@ pub mod mcp;
 pub mod process;
 pub use mcp::proxy_main;
 
+/// ACP agents MarkLyra supports, by catalog id.
+#[cfg(test)]
+pub(crate) fn supported_agents() -> &'static [&'static str] {
+    catalog::SUPPORTED
+}
+
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};

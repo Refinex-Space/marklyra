@@ -434,6 +434,7 @@
   color: var(--muted);
 }
 .task-display select {
+  width: 124px;
   height: 28px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -2356,6 +2357,8 @@
 /* Imports (task settings → 导入) */
 .task-import-source .task-btn {
   flex-shrink: 0;
+  justify-content: center;
+  width: 108px;
 }
 .task-btn[aria-busy="true"] {
   cursor: progress;
@@ -2560,4 +2563,131 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+/* Agent skills */
+.task-skills .mono {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+}
+.task-skill-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.task-skill-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.task-skill-row {
+  min-height: 52px;
+  gap: 12px;
+}
+.task-skill-row > .ai-agent-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--border);
+}
+.task-skill-row > .ai-agent-icon img {
+  display: block;
+}
+.task-skill-mark {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+.task-skill-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.task-skill-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+.task-skill-sub {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.task-skill-path {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.task-skill-shared {
+  flex-shrink: 0;
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.task-skill-shared::before {
+  content: "·";
+  margin-right: 8px;
+}
+.task-skill-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.task-skill-state.ok {
+  color: var(--task-c-done, var(--text));
+}
+.task-skill-state .task-icon {
+  color: inherit;
+  width: 14px;
+  height: 14px;
+}
+.task-skill-actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+.task-skill-actions .task-btn {
+  height: 26px;
+  font-size: 12px;
+  transition:
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+.task-skill-actions .task-btn:disabled {
+  opacity: 0.55;
+}
+.task-skill-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.task-skill-skeleton {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0 12px;
 }

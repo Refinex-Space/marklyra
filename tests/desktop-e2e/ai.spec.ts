@@ -3097,3 +3097,69 @@ test('task proposals list each change, start duplicates unticked and return only
   await expect(page.getByText('AI 修改了 3 个任务')).toBeVisible();
   await expect(page.getByRole('button', { name: '撤销' }).last()).toBeVisible();
 });
+
+test('slash commands: /marklyra-task completes from the list and attaches the task skill', async ({
+  page,
+}, info) => {
+  await installLayout(page);
+  await page.addInitScript(mockAgents);
+  await readyLayout(page, 'marklyra-light');
+  await emitLayoutMenu(page, 'open-folder');
+  await emitLayoutMenu(page, 'view:ai');
+  await startConversation(page);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as TestWindow).__desktopMock.calls.some(
+          (call) => (call.args?.message as { method?: string })?.method === 'session/new',
+        ),
+      ),
+    )
+    .toBe(true);
+  // The agent advertises its own command; it is listed after MarkLyra's.
+  await page.evaluate(() =>
+    (window as TestWindow).__desktopMock.emitEvent('marklyra:agent-event', {
+      connectionId: 'connection-1',
+      kind: 'message',
+      message: {
+        jsonrpc: '2.0',
+        method: 'session/update',
+        params: {
+          sessionId: 'provider-session',
+          update: {
+            sessionUpdate: 'available_commands_update',
+            availableCommands: [{ name: 'review', description: 'Review changes' }],
+          },
+        },
+      },
+    }),
+  );
+  const input = page.getByRole('textbox', { name: '发送给 AI 的消息' });
+  await input.fill('/');
+  const list = page.getByRole('listbox', { name: '选择命令' });
+  await expect(list.getByRole('option')).toHaveText([/\/marklyra-task/, /\/review/]);
+  await expect(list.getByRole('option').first()).toHaveAttribute('aria-selected', 'true');
+  await page.locator('.ai-panel').screenshot({ path: info.outputPath('slash-commands.png') });
+  await input.press('ArrowDown');
+  await expect(list.getByRole('option').nth(1)).toHaveAttribute('aria-selected', 'true');
+  await input.fill('/task');
+  await expect(list.getByRole('option')).toHaveText([/\/marklyra-task/]);
+  await input.press('Enter');
+  await expect(list).toHaveCount(0);
+  await expect(input).toHaveText('/marklyra-task ');
+  await page.keyboard.type('把 WEB-12 标记完成');
+  await input.press('Enter');
+  await expect(page.locator('.ai-message-user')).toContainText('/marklyra-task 把 WEB-12 标记完成');
+  const sent = await page.evaluate(() => {
+    const calls = (window as TestWindow).__desktopMock.calls;
+    return {
+      context: calls.find((c) => c.command === 'agent_context')?.args?.context,
+      prompt: (
+        calls.find((c) => (c.args?.message as { method?: string })?.method === 'session/prompt')
+          ?.args?.message as { params?: { prompt?: { text?: string }[] } } | undefined
+      )?.params?.prompt,
+    };
+  });
+  expect(sent.context).toMatchObject({ skill: 'marklyra-task' });
+  expect(sent.prompt?.at(-1)?.text).toBe('把 WEB-12 标记完成');
+});
