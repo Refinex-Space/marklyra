@@ -1252,3 +1252,51 @@ test('the description opens in the note editor as the task file', async ({ page 
   // The window now holds the task's own file.
   await expect(page.getByRole('button', { name: /navfix000001\.md/ }).first()).toBeVisible();
 });
+
+test('the guide reads in chapters, follows the scroll, and its actions start the real thing', async ({
+  page,
+}) => {
+  await setup(page);
+  await page.setViewportSize({ width: 1180, height: 800 });
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await page.locator('.task-nav-item', { hasText: '任务设置' }).click();
+  await page.locator('.task-settings-nav').getByRole('button', { name: '使用指南' }).click();
+  const guide = page.locator('.tg');
+  await expect(guide.getByRole('heading', { level: 2 })).toHaveText('在写作的地方，管理要做的事');
+  const rail = page.getByRole('navigation', { name: '指南目录' });
+  await expect(rail.getByRole('button')).toHaveCount(8);
+  await expect(rail.getByRole('button', { name: /三步上手/ })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+  const shots = process.env.GUIDE_SHOTS;
+  if (shots) await page.screenshot({ path: `${shots}/guide-hero.png` });
+
+  // The rail jumps to a chapter and marks it; its figure plays once in view.
+  await rail.getByRole('button', { name: /搜索与视图/ }).click();
+  const query = page.locator('#tg-query');
+  await expect(query).toHaveAttribute('data-in', '');
+  await expect(rail.getByRole('button', { name: /搜索与视图/ })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+  await expect(query.locator('table')).toContainText('overdue');
+  if (shots) {
+    if (process.env.GUIDE_DARK) await emitLayoutMenu(page, 'theme:marklyra-dark');
+    for (const id of ['keyboard', 'query', 'board', 'page', 'plan', 'notes', 'automation']) {
+      await page.locator(`#tg-${id}`).scrollIntoViewIfNeeded();
+      await page.waitForTimeout(Number(process.env.GUIDE_WAIT ?? 1600));
+      await page
+        .locator(`#tg-${id}`)
+        .screenshot({ path: `${shots}/guide-${id}${process.env.GUIDE_DARK ? '-dark' : ''}.png` });
+    }
+  }
+
+  // A chapter ends in the product: this one opens the new-project dialog.
+  await rail.getByRole('button', { name: /项目与迭代/ }).click();
+  await page.locator('#tg-plan').getByRole('button', { name: '新建项目' }).click();
+  await expect(page.getByLabel('项目名称')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await page.locator('#tg-automation').getByRole('button', { name: '去导入' }).click();
+  await expect(page.locator('.task-settings-page h2')).toHaveText('导入');
+});

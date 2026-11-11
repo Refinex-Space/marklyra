@@ -8,6 +8,7 @@ import type {
   TaskMutation,
 } from '../../services/tasks.js';
 import { colorVar, PriorityGlyph, StatusGlyph, TaskIcon, type TaskIconName } from './glyphs.js';
+import { type GuideActions, TaskGuide } from './guide.js';
 import { type ImportContext, ImportPage } from './importer.js';
 import { CATEGORY_ORDER, type Catalog, PRIORITIES } from './model/catalog.js';
 import { validKey } from './model/view.js';
@@ -22,7 +23,8 @@ type Page =
   | 'buckets'
   | 'templates'
   | 'cycles'
-  | 'import';
+  | 'import'
+  | 'guide';
 const PAGES: [Page, string, TaskIconName][] = [
   ['general', '常规', 'sliders'],
   ['statuses', '状态', 'clock'],
@@ -32,6 +34,7 @@ const PAGES: [Page, string, TaskIconName][] = [
   ['templates', '模板', 'template'],
   ['cycles', '迭代', 'cycle'],
   ['import', '导入', 'import'],
+  ['guide', '使用指南', 'book'],
 ];
 const CATEGORY_NAMES: Record<Category, string> = {
   backlog: '待规划',
@@ -54,7 +57,11 @@ interface Props {
   run(mutation: TaskMutation): Promise<MutationResult | null>;
   confirm(request: ConfirmRequest): void;
 }
-type SettingsProps = Props & { importContext: ImportContext; initialPage?: Page };
+type SettingsProps = Props & {
+  importContext: ImportContext;
+  guideActions: Omit<GuideActions, 'openImport'>;
+  initialPage?: Page;
+};
 
 function Info({ text }: { text: string }) {
   return (
@@ -73,6 +80,7 @@ export function TaskSettings({
   run,
   confirm,
   importContext,
+  guideActions,
   initialPage = 'statuses',
 }: SettingsProps) {
   const [page, setPage] = useState<Page>(initialPage);
@@ -102,6 +110,9 @@ export function TaskSettings({
         {page === 'cycles' && <CyclesPage catalog={catalog} run={run} />}
         {page === 'import' && (
           <ImportPage catalog={catalog} context={importContext} confirm={confirm} />
+        )}
+        {page === 'guide' && (
+          <TaskGuide actions={{ ...guideActions, openImport: () => setPage('import') }} />
         )}
       </div>
     </div>

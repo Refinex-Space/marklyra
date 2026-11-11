@@ -200,7 +200,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   padding: 8px 6px;
   border-right: 1px solid var(--border);
   background: color-mix(in srgb, var(--text) 2%, var(--surface));
@@ -1777,6 +1777,9 @@
 .task-settings-nav {
   width: 180px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 10px 6px;
   border-right: 1px solid var(--border);
 }
@@ -2547,4 +2550,14 @@
 }
 .task-import-consequence {
   font-size: 12px;
+}
+
+/* Stacked hover targets keep a hairline apart, so two highlighted neighbours never merge. */
+.task-menu,
+.task-suggest,
+.task-picker-options,
+.task-import-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }

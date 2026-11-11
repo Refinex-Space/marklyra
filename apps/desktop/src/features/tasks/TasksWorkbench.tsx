@@ -897,6 +897,11 @@ export default function TasksWorkbench({
               run={(m) => store.run(m)}
               confirm={setConfirm}
               importContext={{ workspaceId: workspace.id, currentNote, currentNoteDirty }}
+              guideActions={{
+                newTask: () => createIn(),
+                newProject: () => setNewProject(true),
+                openAll: () => go({ view: 'list', scope: { kind: 'all' }, tab: 'all' }),
+              }}
             />
           </>
         ) : (
