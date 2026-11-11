@@ -6,10 +6,22 @@ use serde::Serialize;
 use std::path::{Path, PathBuf};
 
 pub(crate) const NAME: &str = "marklyra-task";
-/// The whole `SKILL.md`, as installed.
-pub(crate) const SKILL: &str = include_str!("../skills/marklyra-task/SKILL.md");
+/// Raw bytes from the tree; may still carry CRLF on a Windows checkout before attributes apply.
+const SKILL_RAW: &str = include_str!("../skills/marklyra-task/SKILL.md");
 const MARKER: &str = "generator: marklyra";
 const FILE: &str = "SKILL.md";
+
+/// The whole `SKILL.md`, as installed. Always LF so Windows checkouts match Unix agents and tests.
+pub(crate) fn skill() -> &'static str {
+    use std::sync::OnceLock;
+    static NORMALIZED: OnceLock<String> = OnceLock::new();
+    if !SKILL_RAW.contains('\r') {
+        return SKILL_RAW;
+    }
+    NORMALIZED
+        .get_or_init(|| SKILL_RAW.replace("\r\n", "\n").replace('\r', "\n"))
+        .as_str()
+}
 
 /// Agent id (as in the ACP catalog), display name and skills folder relative to home.
 /// Sources: Claude Code, Codex, Cursor, GitHub Copilot CLI, Grok Build, Kimi CLI, OpenCode,
@@ -51,10 +63,10 @@ pub(crate) struct SkillStatus {
 
 /// The skill text without its frontmatter, for agents that get it inline.
 pub(crate) fn instructions() -> &'static str {
-    SKILL
-        .strip_prefix("---")
+    let text = skill();
+    text.strip_prefix("---")
         .and_then(|rest| rest.split_once("\n---"))
-        .map_or(SKILL, |(_, body)| body.trim_start_matches(['\r', '\n']))
+        .map_or(text, |(_, body)| body.trim_start_matches(['\r', '\n']))
 }
 
 fn home() -> Result<PathBuf, String> {
@@ -106,7 +118,7 @@ fn status(
         path: path.to_string_lossy().into_owned(),
         installed: linked || path.exists(),
         ours: text.as_deref().is_some_and(ours),
-        current: text.as_deref() == Some(SKILL),
+        current: text.as_deref() == Some(skill()),
         shared_with: TARGETS
             .iter()
             .filter(|(other, _, r)| other != id && r == relative)
@@ -141,7 +153,7 @@ pub(crate) fn install_in(home: &Path, agent_id: &str) -> Result<Vec<SkillStatus>
     }
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let temp = dir.join(format!(".{FILE}.tmp"));
-    std::fs::write(&temp, SKILL).map_err(|e| e.to_string())?;
+    std::fs::write(&temp, skill()).map_err(|e| e.to_string())?;
     std::fs::rename(&temp, &path).map_err(|e| {
         let _ = std::fs::remove_file(&temp);
         e.to_string()
@@ -200,12 +212,14 @@ mod tests {
 
     #[test]
     fn the_bundled_skill_is_well_formed() {
-        assert!(SKILL.starts_with("---\nname: marklyra-task\ndescription: "));
-        assert!(ours(SKILL));
+        let text = skill();
+        assert!(text.starts_with("---\nname: marklyra-task\ndescription: "));
+        assert!(!text.contains('\r'));
+        assert!(ours(text));
         let body = instructions();
         assert!(body.starts_with("# MarkLyra 任务"));
         assert!(!body.contains(MARKER));
-        let description = SKILL.lines().nth(2).unwrap();
+        let description = text.lines().nth(2).unwrap();
         assert!(description.chars().count() <= 1024);
     }
 
@@ -213,17 +227,26 @@ mod tests {
     fn installs_updates_and_removes_only_its_own_skill() {
         let home = tempfile::tempdir().unwrap();
         let home = home.path();
+        let claude_skill = home
+            .join(".claude")
+            .join("skills")
+            .join("marklyra-task")
+            .join("SKILL.md");
+        let opencode_skill = home
+            .join(".config")
+            .join("opencode")
+            .join("skills")
+            .join("marklyra-task")
+            .join("SKILL.md");
         let fresh = statuses_in(home);
         assert!(fresh.iter().all(|s| !s.installed));
         assert_eq!(
-            find(&fresh, "claude-acp").path,
-            home.join(".claude/skills/marklyra-task/SKILL.md")
-                .to_string_lossy()
+            Path::new(&find(&fresh, "claude-acp").path),
+            claude_skill.as_path()
         );
         assert_eq!(
-            find(&fresh, "opencode").path,
-            home.join(".config/opencode/skills/marklyra-task/SKILL.md")
-                .to_string_lossy()
+            Path::new(&find(&fresh, "opencode").path),
+            opencode_skill.as_path()
         );
 
         let after = install_in(home, "claude-acp").unwrap();
@@ -233,15 +256,11 @@ mod tests {
         assert!(find(&after, "glm-acp-agent").current);
         assert_eq!(claude.shared_with, vec!["GLM"]);
         assert!(!find(&after, "codex-acp").installed);
-        assert_eq!(
-            std::fs::read_to_string(home.join(".claude/skills/marklyra-task/SKILL.md")).unwrap(),
-            SKILL
-        );
+        assert_eq!(std::fs::read_to_string(&claude_skill).unwrap(), skill());
 
         // An older copy of our own skill is replaced.
-        let file = home.join(".claude/skills/marklyra-task/SKILL.md");
         std::fs::write(
-            &file,
+            &claude_skill,
             "---\nname: marklyra-task\nmetadata:\n  generator: marklyra\n---\nold",
         )
         .unwrap();
@@ -250,15 +269,24 @@ mod tests {
         assert!(find(&install_in(home, "claude-acp").unwrap(), "claude-acp").current);
 
         // Removing keeps files the person put beside it, and the parent skills folder.
-        std::fs::write(home.join(".claude/skills/marklyra-task/notes.md"), "mine").unwrap();
+        let notes = home
+            .join(".claude")
+            .join("skills")
+            .join("marklyra-task")
+            .join("notes.md");
+        std::fs::write(&notes, "mine").unwrap();
         let removed = uninstall_in(home, "glm-acp-agent").unwrap();
         assert!(!find(&removed, "claude-acp").installed);
-        assert!(home.join(".claude/skills/marklyra-task/notes.md").exists());
-        std::fs::remove_file(home.join(".claude/skills/marklyra-task/notes.md")).unwrap();
+        assert!(notes.exists());
+        std::fs::remove_file(&notes).unwrap();
         install_in(home, "claude-acp").unwrap();
         uninstall_in(home, "claude-acp").unwrap();
-        assert!(!home.join(".claude/skills/marklyra-task").exists());
-        assert!(home.join(".claude/skills").is_dir());
+        assert!(!home
+            .join(".claude")
+            .join("skills")
+            .join("marklyra-task")
+            .exists());
+        assert!(home.join(".claude").join("skills").is_dir());
     }
 
     #[test]

@@ -11,6 +11,7 @@
 *.yml text eol=lf
 *.css text eol=lf
 *.html text eol=lf
+*.md text eol=lf
 
 # Keep the project license byte-exact on all hosts.
 LICENSE -text -whitespace
