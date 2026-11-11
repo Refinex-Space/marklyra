@@ -97,6 +97,8 @@ import { DocumentStatistics } from '../features/statistics/DocumentStatistics.js
 import { StatisticsStatus } from '../features/statistics/StatisticsStatus.js';
 import { useStatistics } from '../features/statistics/useStatistics.js';
 import { type AiChange, aiChangeCount, undoAiChanges } from '../features/tasks/ai-undo.js';
+import type { DescriptionEditorSetup } from '../features/tasks/DescriptionEditor.js';
+import { descriptionTarget, focusedDescription } from '../features/tasks/description-target.js';
 import { lastTaskProject } from '../features/tasks/model/last-project.js';
 import {
   type LinkTarget,
@@ -200,6 +202,26 @@ export function App() {
   const [gitViewOpen, setGitViewOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
+  /** The task description editor while its frame has focus; menus then describe it. */
+  const [descriptionEditor, setDescriptionEditor] = useState<MarkLyraEditor | null>(null);
+  useEffect(() => {
+    let alive = true;
+    // Focus entering a frame blurs this window rather than moving focus within it.
+    const update = () =>
+      setTimeout(() => {
+        if (alive) setDescriptionEditor(focusedDescription()?.editor ?? null);
+      });
+    const stop = descriptionTarget.subscribe(update);
+    for (const event of ['focusin', 'focusout'] as const) document.addEventListener(event, update);
+    for (const event of ['blur', 'focus'] as const) window.addEventListener(event, update);
+    return () => {
+      alive = false;
+      stop();
+      for (const event of ['focusin', 'focusout'] as const)
+        document.removeEventListener(event, update);
+      for (const event of ['blur', 'focus'] as const) window.removeEventListener(event, update);
+    };
+  }, []);
   const [newTaskRequest, setNewTaskRequest] = useState(0);
   const [cliDialog, setCliDialog] = useState(false);
   // The sidebar slot the task navigation moves into while the task workbench is open.
@@ -1387,6 +1409,12 @@ export function App() {
     if (!desktopAvailable) return;
     const bridge = new NativeEditorCommands({
       capture: (action) => {
+        const description = actions.current.tasksOpen ? focusedDescription() : null;
+        if (description) {
+          const composing = description.editor.isComposing;
+          if (composing) notify('请先完成输入法候选', 'info');
+          return { editor: description.editor, documentOwner: description, blocked: composing };
+        }
         const active = editor.current;
         const composing = active?.isComposing === true;
         if (composing) actions.current.doc.setMessage('请先完成输入法候选');
@@ -1403,6 +1431,13 @@ export function App() {
         };
       },
       execute: async (value, expectedEditor, owner) => {
+        const description = descriptionTarget.get();
+        if (description && owner === description) {
+          if (expectedEditor !== description.editor) throw new Error('任务描述已关闭');
+          if (!nativeMenuCommandAllowed(description.editor.menuState, value)) return;
+          await description.editor.execute(value);
+          return;
+        }
         if (
           !expectedEditor ||
           editor.current !== expectedEditor ||
@@ -1425,8 +1460,42 @@ export function App() {
       bridge.dispose();
     };
   }, []);
+  /** Task descriptions run in the note editor with the window's base theme and settings. */
+  const descriptionSetup = useMemo<DescriptionEditorSetup | null>(
+    () =>
+      runtime && markdownSystem.initial
+        ? {
+            runtimeUrl: runtime.url,
+            configuration: {
+              sourceBOM: 'text',
+              nativeMenus: runtime.nativeMenus,
+              platform: runtime.platform,
+              locale: 'zh-Hans',
+              theme: builtinTheme(theme),
+              layout: 'embedded',
+            },
+            preferences: appliedEditorPreferences,
+            markdownPreferences: {
+              indentSize: markdownSystem.initial.indentSize,
+              prettyIndent: markdownSystem.initial.prettyIndent,
+              headingStyle: markdownSystem.initial.headingStyle ?? 0,
+              ulStyle: markdownSystem.initial.ulStyle ?? 0,
+              olStyle: markdownSystem.initial.olStyle ?? 0,
+            },
+            host: {
+              ...desktopContextHost,
+              onOpenLink: (link) => {
+                const linked = parseLinkTarget(link.url);
+                if (linked) actions.current.openTaskLink(linked);
+              },
+            },
+          }
+        : null,
+    [runtime, markdownSystem.initial, theme, appliedEditorPreferences],
+  );
+  const menuEditor = tasksOpen && descriptionEditor ? descriptionEditor : editor.current;
   useNativeMenus(
-    ready ? editor.current : null,
+    ready ? menuEditor : null,
     {
       ready,
       // The home view is reported as `home`, where native rules keep start and application
@@ -1438,8 +1507,8 @@ export function App() {
         exporter.working ||
         importingImage ||
         creatingWindow ||
-        editor.current?.isComposing === true,
-      editor: editor.current?.menuState ?? null,
+        menuEditor?.isComposing === true,
+      editor: menuEditor?.menuState ?? null,
       sidebar,
       sidebarTab: tab,
       outlinePanelOpen,
@@ -1460,6 +1529,7 @@ export function App() {
       graphView: graphOpen,
       graphAvailable: !!sessionWorkspace,
       tasksView: tasksOpen,
+      taskDescription: tasksOpen && descriptionEditor !== null,
       gitRepository,
       dailyAvailable: !!daily.location,
       dailyOpen: !!daily.activeKey,
@@ -1559,6 +1629,26 @@ export function App() {
     let alive = true;
     const stops: (() => void)[] = [];
     const menu = (value: string) => {
+      // A focused task description takes editing and save; the covered document gets nothing.
+      const description = actions.current.tasksOpen ? focusedDescription() : null;
+      if (description) {
+        if (value === 'save') {
+          void description.save();
+          return;
+        }
+        const item = nativeEditorCommand(value);
+        if (item) {
+          if (description.editor.isComposing) {
+            notify('请先完成输入法候选', 'info');
+            return;
+          }
+          if (nativeMenuCommandAllowed(description.editor.menuState, item))
+            void description.editor.execute(item).catch((error: unknown) => {
+              if (!description.editor.isComposing) notify(String(error), 'error');
+            });
+          return;
+        }
+      }
       if (editor.current?.isImagePreviewOpen) {
         if (value === 'close-document') editor.current.closeImagePreview();
         return;
@@ -3177,6 +3267,7 @@ export function App() {
                     workspaceIdentity.current.path,
                   )}
                   currentNoteDirty={doc.dirty}
+                  descriptionSetup={descriptionSetup}
                   openNote={(relativePath, match) => {
                     const workspaceId = workspaceIdentity.current?.id;
                     if (!workspaceId) return;

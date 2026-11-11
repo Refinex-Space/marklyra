@@ -6,6 +6,7 @@ import { type TaskFields, type TaskMeta, tasks as taskApi } from '../../services
 import type { WorkspaceFolder, WorkspaceMatchPosition } from '../../services/workspaces.js';
 import { notify } from '../notices/notices.js';
 import { CompleteCycleDialog, CycleOverview } from './cycles.js';
+import type { DescriptionEditorSetup } from './DescriptionEditor.js';
 import {
   applyTemplate,
   ConfirmDialog,
@@ -89,6 +90,8 @@ interface Props {
   /** The open note (workspace-relative) and whether it has unsaved edits, for imports. */
   currentNote?: string | null;
   currentNoteDirty?: boolean;
+  /** Runs task descriptions in the note editor. */
+  descriptionSetup?: DescriptionEditorSetup | null;
 }
 
 export default function TasksWorkbench({
@@ -100,11 +103,15 @@ export default function TasksWorkbench({
   navHost = null,
   currentNote = null,
   currentNoteDirty = false,
+  descriptionSetup = null,
 }: Props) {
   const store = useTaskStore(workspace.id);
   const { catalog } = store;
   const memory = remembered.get(workspace.id);
   const [route, setRoute] = useState<Route>(memory?.route ?? START);
+  // The last task page stays mounted, undisplayed, behind the other views: its description
+  // editor is one instance for the whole workbench, created once rather than per visit.
+  const [keptId, setKeptId] = useState<string | null>(null);
   const lists = useRef(memory?.lists ?? new Map<string, ListState>());
   useEffect(() => {
     remembered.set(workspace.id, { route, lists: lists.current });
@@ -593,6 +600,8 @@ export default function TasksWorkbench({
   };
   const selected = [...selection].map((id) => catalog.task(id)).filter((t): t is TaskMeta => !!t);
   const routeTask = route.view === 'task' ? catalog.task(route.id) : undefined;
+  if (routeTask && routeTask.id !== keptId) setKeptId(routeTask.id);
+  const pageTask = routeTask ?? (keptId ? catalog.task(keptId) : undefined);
   const tabs: { id: Tab; name: string; removable: boolean }[] = cycle
     ? [
         { id: 'overview', name: '概览', removable: false },
@@ -858,23 +867,28 @@ export default function TasksWorkbench({
         </nav>,
       )}
       <main className="task-pane">
-        {route.view === 'task' && routeTask ? (
-          <TaskPage
-            workspaceId={workspace.id}
-            catalog={catalog}
-            store={store}
-            task={routeTask}
-            order={taskOrder}
-            propsOpen={propsOpen}
-            toggleProps={() => setPropsOpen((v) => !v)}
-            back={back}
-            open={(id) => openTask(id, taskOrder)}
-            openNote={openNote}
-            pick={(kind, el) => pick(kind, [routeTask], el)}
-            setStatus={setStatus}
-            remove={remove}
-          />
-        ) : route.view === 'settings' ? (
+        {pageTask && (
+          <div className="task-page-keep" hidden={!routeTask}>
+            <TaskPage
+              workspaceId={workspace.id}
+              catalog={catalog}
+              store={store}
+              task={pageTask}
+              order={taskOrder}
+              propsOpen={propsOpen}
+              toggleProps={() => setPropsOpen((v) => !v)}
+              back={back}
+              open={(id) => openTask(id, taskOrder)}
+              openNote={openNote}
+              pick={(kind, el) => pick(kind, [pageTask], el)}
+              setStatus={setStatus}
+              remove={remove}
+              descriptionSetup={descriptionSetup}
+              active={!!routeTask}
+            />
+          </div>
+        )}
+        {route.view === 'task' && routeTask ? null : route.view === 'settings' ? (
           <>
             <div className="task-pane-head">
               <h2 className="task-pane-title">

@@ -363,8 +363,12 @@ export class RuntimeSlashMenu {
     }
     const below = innerHeight - rect.bottom - 12,
       above = rect.top - 12;
-    const downward = below >= Math.min(220, root.scrollHeight) || below >= above;
-    root.style.maxHeight = `${Math.max(120, Math.min(340, downward ? below : above))}px`;
+    // An embedded editor's host grows the frame to fit the menu, so it always opens below.
+    const embedded = document.documentElement.dataset.marklyraLayout === 'embedded';
+    const downward = embedded || below >= Math.min(220, root.scrollHeight) || below >= above;
+    root.style.maxHeight = embedded
+      ? '340px'
+      : `${Math.max(120, Math.min(340, downward ? below : above))}px`;
     const height = root.offsetHeight,
       width = root.offsetWidth;
     const paragraph = session.paragraph.getBoundingClientRect();

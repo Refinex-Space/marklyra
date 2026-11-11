@@ -814,27 +814,203 @@
 .task-desc.empty {
   color: color-mix(in srgb, var(--muted) 75%, transparent);
 }
-.task-desc p,
-.task-comment-body p {
+/* Rendered Markdown in descriptions and comments. */
+:is(.task-desc, .task-comment-body) {
+  overflow-wrap: anywhere;
+}
+:is(.task-desc, .task-comment-body) > :first-child {
+  margin-top: 0;
+}
+:is(.task-desc, .task-comment-body) > :last-child {
+  margin-bottom: 0;
+}
+:is(.task-desc, .task-comment-body) p {
   margin: 0 0 8px;
 }
-.task-desc ul,
-.task-comment-body ul {
-  margin: 0 0 8px;
-  padding-left: 20px;
+:is(.task-desc, .task-comment-body) .task-md-heading {
+  margin: 18px 0 6px;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
 }
-.task-desc code,
-.task-comment-body code {
+:is(.task-desc, .task-comment-body) h2.task-md-heading {
+  font-size: 1.32em;
+}
+:is(.task-desc, .task-comment-body) h3.task-md-heading {
+  font-size: 1.16em;
+}
+:is(.task-desc, .task-comment-body) :is(h4, h5, h6).task-md-heading {
+  font-size: 1em;
+}
+:is(.task-desc, .task-comment-body) h6.task-md-heading {
+  color: var(--muted);
+}
+:is(.task-desc, .task-comment-body) :is(ul, ol) {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+:is(.task-desc, .task-comment-body) li > :is(ul, ol) {
+  margin: 2px 0 0;
+}
+:is(.task-desc, .task-comment-body) li::marker {
+  color: var(--muted);
+}
+:is(.task-desc, .task-comment-body) ul.task-md-checklist {
+  padding-left: 2px;
+}
+:is(.task-desc, .task-comment-body) li.task-md-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0 8px;
+  list-style: none;
+}
+.task-md-check > .task-md-item {
+  flex: 1;
+  min-width: 0;
+  transition: color 0.16s;
+}
+.task-md-check > :is(ul, ol) {
+  flex-basis: 100%;
+  padding-left: 24px;
+}
+.task-md-check.done > .task-md-item {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+.task-md-check > input {
+  appearance: none;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  margin: calc((1lh - 15px) / 2) 0 0;
+  border: 1.5px solid color-mix(in srgb, var(--muted) 70%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.16s,
+    border-color 0.16s,
+    transform 0.12s;
+}
+.task-md-check > input::after {
+  content: "";
+  width: 8px;
+  height: 4px;
+  margin-top: -2px;
+  border: solid #fff;
+  border-width: 0 0 1.75px 1.75px;
+  transform: rotate(-45deg) scale(0.4);
+  opacity: 0;
+  transition:
+    transform 0.18s cubic-bezier(0.3, 1.6, 0.5, 1),
+    opacity 0.12s;
+}
+.task-md-check > input:checked {
+  border-color: var(--focus);
+  background: var(--focus);
+}
+.task-md-check > input:checked::after {
+  transform: rotate(-45deg) scale(1);
+  opacity: 1;
+}
+.task-md-check > input:hover:not(:disabled) {
+  border-color: var(--focus);
+}
+.task-md-check > input:active:not(:disabled) {
+  transform: scale(0.88);
+}
+.task-md-check > input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--focus) 55%, transparent);
+  outline-offset: 2px;
+}
+.task-md-check > input:disabled {
+  cursor: default;
+}
+:is(.task-desc, .task-comment-body) blockquote {
+  margin: 0 0 8px;
+  padding: 0 0 0 12px;
+  border-left: 3px solid color-mix(in srgb, var(--muted) 30%, transparent);
+  color: var(--muted);
+}
+:is(.task-desc, .task-comment-body) hr {
+  height: 1px;
+  margin: 14px 0;
+  border: 0;
+  background: var(--border);
+}
+:is(.task-desc, .task-comment-body) code {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 0.92em;
-  padding: 1px 4px;
+  font-size: 0.88em;
+  padding: 1px 5px;
   border-radius: 4px;
   background: var(--task-pill);
 }
+:is(.task-desc, .task-comment-body) pre {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--task-pill) 70%, transparent);
+  overflow-x: auto;
+  line-height: 1.6;
+  cursor: auto;
+}
+:is(.task-desc, .task-comment-body) pre code {
+  padding: 0;
+  background: none;
+  font-size: 12px;
+  white-space: pre;
+}
+:is(.task-desc, .task-comment-body) a {
+  color: var(--focus);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--focus) 35%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.12s;
+}
+:is(.task-desc, .task-comment-body) a:hover {
+  text-decoration-color: currentColor;
+}
+:is(.task-desc, .task-comment-body) .task-md-link {
+  text-decoration: underline dotted color-mix(in srgb, var(--muted) 60%, transparent);
+  text-underline-offset: 3px;
+}
+:is(.task-desc, .task-comment-body) del {
+  color: var(--muted);
+}
+.task-md-table {
+  margin: 0 0 10px;
+  overflow-x: auto;
+}
+.task-md-table table {
+  border-collapse: collapse;
+  font-size: 0.94em;
+  line-height: 1.55;
+}
+.task-md-table :is(th, td) {
+  padding: 5px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  text-align: left;
+  vertical-align: top;
+}
+.task-md-table th {
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom-color: var(--border);
+  white-space: nowrap;
+}
+.task-md-table tr:last-child td {
+  border-bottom: 0;
+}
 .task-desc-source {
+  display: block;
   width: 100%;
-  min-height: 140px;
-  resize: vertical;
+  min-height: 120px;
+  resize: none;
   border: 1px solid color-mix(in srgb, var(--focus) 45%, var(--border));
   border-radius: 7px;
   padding: 8px 10px;
@@ -846,6 +1022,8 @@
     Menlo,
     monospace;
   outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 12%, transparent);
+  tab-size: 2;
 }
 .task-desc-skeleton {
   display: grid;
@@ -2690,4 +2868,38 @@
   border: 1px solid var(--border);
   border-radius: 9px;
   padding: 0 12px;
+}
+/* Task description in the note editor. The frame is created while the preview shows and kept
+   undisplayed until an edit starts: the runtime focuses its page as it loads, and an undisplayed
+   frame cannot take the keyboard from the workbench. */
+.task-desc-editor:not(.editing) {
+  display: none;
+}
+.task-desc-editor.editing .task-desc-frame {
+  height: calc(var(--task-desc-height, 72px) + 2px);
+  width: calc(100% + 12px);
+  margin-left: -6px;
+  border: 1px solid color-mix(in srgb, var(--focus) 45%, var(--border));
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 10%, transparent);
+  animation: task-fade-in 0.16s var(--task-ease);
+}
+.task-desc-editor.editing[data-shown="false"] .task-desc-frame {
+  height: 0;
+  border-width: 0;
+  box-shadow: none;
+}
+.task-desc-frame > .task-desc-iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+.task-page-keep {
+  display: contents;
+}
+.task-page-keep[hidden] {
+  display: none;
 }

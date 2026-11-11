@@ -78,6 +78,10 @@ pub struct Snapshot {
     /// The task workbench covers the document; document commands do nothing.
     #[serde(default)]
     tasks_view: bool,
+    /// In the workbench, a task description editor has focus and `editor` describes it: text
+    /// editing and saving reach the description; view and document commands stay off.
+    #[serde(default)]
+    task_description: bool,
     /// The open folder is a usable Git repository.
     #[serde(default)]
     git_repository: bool,
@@ -172,6 +176,17 @@ fn home_action(action: &str) -> bool {
         || super::recent::record_id(action).is_some()
 }
 
+/// What the task description editor takes while it has focus: text editing, history and save.
+/// Find, view modes and document actions belong to the covered document.
+fn description_action(action: &str) -> bool {
+    action == "save"
+        || (crate::editor_commands::is_editor_action(action)
+            && !matches!(
+                action,
+                "find" | "replace" | "view:source" | "view:focus" | "view:typewriter"
+            ))
+}
+
 impl Snapshot {
     pub(super) fn active(&self) -> Option<&EditorFacts> {
         self.editor
@@ -198,7 +213,8 @@ impl Snapshot {
         if self.graph_view && action == "find" {
             return true;
         }
-        if (self.home || self.git_view || self.graph_view || self.tasks_view)
+        let description = self.tasks_view && self.task_description && description_action(action);
+        if (self.home || self.git_view || self.graph_view || (self.tasks_view && !description))
             && !home_action(action)
         {
             return false;
@@ -527,6 +543,40 @@ mod tests {
         ] {
             assert!(state.enabled(action), "{action}");
         }
+    }
+    #[test]
+    fn a_focused_task_description_takes_editing_and_save_but_not_view_or_document_commands() {
+        let mut state = ready();
+        state.graph_available = true;
+        state.tasks_view = true;
+        assert!(!state.enabled("format:strong"), "the covered document");
+        state.task_description = true;
+        for action in [
+            "format:strong",
+            "format:em",
+            "format:link",
+            "list:ul",
+            "heading:2",
+            "save",
+        ] {
+            assert!(state.enabled(action), "{action}");
+        }
+        for action in [
+            "find",
+            "view:source",
+            "view:focus",
+            "task:convert",
+            "export:pdf",
+            "save-as",
+        ] {
+            assert!(!state.enabled(action), "{action}");
+        }
+        assert!(!state.enabled("undo"), "nothing to undo yet");
+        state.editor.as_mut().unwrap().can_undo = true;
+        assert!(state.enabled("undo"));
+        state.tasks_view = false;
+        state.task_description = false;
+        assert!(state.enabled("undo"));
     }
     #[test]
     fn converting_selection_to_task_needs_a_folder_and_editable_inline_text() {

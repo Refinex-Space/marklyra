@@ -30,6 +30,8 @@ export interface NativeMenuPresentation {
   graphAvailable?: boolean;
   /** The task workbench covers the document. */
   tasksView?: boolean;
+  /** In the workbench, a task description editor has focus; `editor` describes it. */
+  taskDescription?: boolean;
   /** The open folder is a usable Git repository. */
   gitRepository?: boolean;
 }
@@ -100,6 +102,7 @@ export class NativeMenuPublisher {
       graphView: value.graphView === true,
       graphAvailable: value.graphAvailable === true,
       tasksView: value.tasksView === true,
+      taskDescription: value.tasksView === true && value.taskDescription === true,
       gitRepository: value.gitRepository === true,
       editor: value.editor
         ? {

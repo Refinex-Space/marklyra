@@ -1242,15 +1242,256 @@ test('import history waits behind a skeleton without loading text', async ({ pag
   await expect(skeleton).toHaveCount(0);
 });
 
-test('the description opens in the note editor as the task file', async ({ page }) => {
+test('description edits in the note editor: native format reaches it, the document stays, leaving saves', async ({
+  page,
+}) => {
+  await setup(page);
+  const documentBefore = await editorFrame(page).locator('#write').innerText();
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await row(page, '修复移动端导航栏错位').click();
+  const frame = page.locator('iframe[title="任务描述"]');
+  const description = page.frameLocator('iframe[title="任务描述"]').locator('#write');
+  const setDescriptions = () =>
+    page.evaluate(
+      () =>
+        (window as unknown as TestWindow).__desktopMock.calls.filter(
+          (c) =>
+            c.command === 'tasks_mutate' &&
+            (c.args.mutation as { kind: string }).kind === 'setDescription',
+        ).length,
+    );
+
+  // Opening and leaving without a change writes nothing.
+  await page.getByRole('button', { name: '编辑描述' }).click();
+  await expect(frame).toBeVisible();
+  await expect(page.locator('.task-desc-editor [role="status"]')).toHaveCount(0);
+  await page.locator('.task-title-edit').click();
+  await expect(frame).toBeHidden();
+  expect(await setDescriptions()).toBe(0);
+
+  await page.getByRole('button', { name: '编辑描述' }).click();
+  await expect(frame).toBeVisible();
+  await description.click();
+  await page.keyboard.type('先修 iOS');
+  await page.keyboard.press('Shift+ArrowLeft');
+  await page.keyboard.press('Shift+ArrowLeft');
+  await page.keyboard.press('Shift+ArrowLeft');
+  // ⌘B arrives as a native menu action; with the description focused it formats there.
+  await emitLayoutMenu(page, 'format:strong');
+  await expect(description.locator('strong')).toHaveText('iOS');
+  expect(await editorFrame(page).locator('#write').innerText()).toBe(documentBefore);
+
+  // ⌘S saves and keeps editing; leaving saves the rest.
+  await emitLayoutMenu(page, 'save');
+  await expect.poll(setDescriptions).toBe(1);
+  await expect(frame).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.type('！');
+  await page.locator('.task-title-edit').click();
+  await expect(frame).toBeHidden();
+  await expect.poll(setDescriptions).toBe(2);
+  const body = await page.evaluate(() => {
+    const last = (window as unknown as TestWindow).__desktopMock.calls
+      .filter((c) => c.command === 'tasks_mutate')
+      .at(-1);
+    return (last?.args.mutation as { body?: string } | undefined)?.body ?? '';
+  });
+  expect(body).toContain('先修 **iOS！**');
+  await expect(page.locator('.task-desc')).toContainText('先修 iOS！');
+});
+
+test('description undo stays in the description; commands wait while an input method composes', async ({
+  page,
+}) => {
+  await setup(page);
+  const documentBefore = await editorFrame(page).locator('#write').innerText();
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await row(page, '修复移动端导航栏错位').click();
+  await page.getByRole('button', { name: '编辑描述' }).click();
+  const description = page.frameLocator('iframe[title="任务描述"]').locator('#write');
+  await description.click();
+  await page.keyboard.type('临时文字');
+  await expect(description).toContainText('临时文字');
+  await emitLayoutMenu(page, 'undo');
+  await expect(description).not.toContainText('临时文字');
+  expect(await editorFrame(page).locator('#write').innerText()).toBe(documentBefore);
+
+  await page.keyboard.type('组合');
+  await description.evaluate((element) =>
+    element.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' })),
+  );
+  await emitLayoutMenu(page, 'format:strong');
+  await expect(page.locator('.notice-text', { hasText: '请先完成输入法候选' })).toBeVisible();
+  await expect(description.locator('strong')).toHaveCount(0);
+  await description.evaluate((element) =>
+    element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '' })),
+  );
+  // The workbench list keeps its own undo: leaving saves, and its ⌘Z is untouched by the frame's.
+  await page.locator('.task-title-edit').click();
+  await expect(page.locator('.task-desc')).toContainText('组合');
+});
+
+test('one description editor serves every task page, kept across the list and other tasks', async ({
+  page,
+}) => {
   await setup(page);
   await page.getByRole('button', { name: '任务', exact: true }).first().click();
   await row(page, '修复移动端导航栏错位').click();
-  await page.getByRole('button', { name: '更多操作' }).click();
-  await page.getByRole('menuitem', { name: '在编辑器中编辑描述' }).click();
-  await expect(workbench(page)).toHaveCount(0);
-  // The window now holds the task's own file.
-  await expect(page.getByRole('button', { name: /navfix000001\.md/ }).first()).toBeVisible();
+  const frame = page.locator('iframe[title="任务描述"]');
+  await page.getByRole('button', { name: '编辑描述' }).click();
+  await expect(frame).toBeVisible();
+  await frame.evaluate((element) => {
+    element.dataset.probe = 'first';
+  });
+  await page.locator('.task-title-edit').click();
+  await expect(frame).toBeHidden();
+
+  // Back to the list and into another task: the same frame, not a new one.
+  await page.getByRole('button', { name: '返回' }).first().click();
+  await expect(page.locator('.task-page-keep')).toBeHidden();
+  await row(page, '编写发布公告').click();
+  await page.getByRole('button', { name: '编辑描述' }).click();
+  await expect(frame).toBeVisible();
+  await expect(frame).toHaveCount(1);
+  await expect(frame).toHaveAttribute('data-probe', 'first');
+  const description = page.frameLocator('iframe[title="任务描述"]').locator('#write');
+  await description.click();
+  await page.keyboard.type('第二个任务');
+  await page.getByRole('button', { name: '返回' }).first().click();
+  // Leaving the page while editing still saves what was typed.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const m = Reflect.get(window, '__tasksMock') as {
+          tasks: { id: string; title: string }[];
+          bodies: Record<string, string>;
+        };
+        const t = m.tasks.find((x) => x.title === '编写发布公告');
+        return t ? (m.bodies[t.id] ?? '') : '';
+      }),
+    )
+    .toContain('第二个任务');
+});
+
+test('the description grows with its text instead of scrolling inside a box', async ({ page }) => {
+  await setup(page);
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await row(page, '修复移动端导航栏错位').click();
+  await page.getByRole('button', { name: '编辑描述' }).click();
+  const frame = page.locator('iframe[title="任务描述"]');
+  await expect(frame).toBeVisible();
+  const description = page.frameLocator('iframe[title="任务描述"]').locator('#write');
+  await description.click();
+  await page.keyboard.press('ControlOrMeta+ArrowDown');
+  const before = (await frame.boundingBox())?.height ?? 0;
+  for (let line = 1; line <= 12; line++) {
+    await page.keyboard.press('Enter');
+    await page.keyboard.type(`第 ${line} 行`);
+  }
+  await expect
+    .poll(async () => (await frame.boundingBox())?.height ?? 0)
+    .toBeGreaterThan(before + 200);
+  // Everything typed fits: the frame itself never needs to scroll.
+  const content = page.frameLocator('iframe[title="任务描述"]').locator('content');
+  await expect
+    .poll(() => content.evaluate((el) => el.scrollHeight - el.clientHeight))
+    .toBeLessThanOrEqual(1);
+  // The slash menu opens below the caret in full, the frame making room for it.
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('/');
+  const menu = page.frameLocator('iframe[title="任务描述"]').locator('#ml-slash-menu');
+  await expect(menu).toBeVisible();
+  await expect
+    .poll(async () => {
+      const box = await frame.boundingBox();
+      const inner = await menu.evaluate((el) => el.getBoundingClientRect().bottom);
+      return box ? box.height - inner : -1;
+    })
+    .toBeGreaterThanOrEqual(0);
+});
+
+test('descriptions and comments render Markdown; ticking a checkbox changes one character', async ({
+  page,
+}) => {
+  await setup(page);
+  const source = [
+    '## 验收',
+    '',
+    '- [ ] 桌面端',
+    '- [x] 移动端',
+    '  - 子项 **加粗**',
+    '',
+    '1. 第一步',
+    '2. 第二步',
+    '',
+    '> 引用的话',
+    '',
+    '| 端 | 状态 |',
+    '| --- | :-: |',
+    '| iOS | `ok` |',
+    '',
+    '```ts',
+    'const a = 1;',
+    '```',
+    '',
+    '见 [文档](https://example.com) 与 ~~旧方案~~。',
+  ].join('\n');
+  await page.evaluate((body) => {
+    const m = Reflect.get(window, '__tasksMock') as {
+      tasks: { id: string; title: string; hasDescription?: boolean }[];
+      bodies: Record<string, string>;
+    };
+    const t = m.tasks.find((x) => x.title === '修复移动端导航栏错位');
+    if (t) {
+      m.bodies[t.id] = body;
+      t.hasDescription = true;
+    }
+  }, source);
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await row(page, '修复移动端导航栏错位').click();
+  const desc = page.locator('.task-desc');
+  await expect(desc.locator('h3')).toHaveText('验收');
+  await expect(desc.locator('ol > li')).toHaveCount(2);
+  await expect(desc.locator('li.task-md-check li strong')).toHaveText('加粗');
+  await expect(desc.locator('blockquote')).toHaveText('引用的话');
+  await expect(desc.locator('table td').first()).toHaveText('iOS');
+  await expect(desc.locator('pre[data-lang="ts"]')).toHaveText('const a = 1;');
+  await expect(desc.locator('a[href="https://example.com"]')).toHaveText('文档');
+  await expect(desc.locator('del')).toHaveText('旧方案');
+  await expect(desc).not.toContainText('##');
+
+  const boxes = desc.getByRole('checkbox');
+  await expect(boxes).toHaveCount(2);
+  await boxes.first().check();
+  await expect(boxes.first()).toBeChecked();
+  // The page stays in reading mode, and the file differs by exactly that mark.
+  await expect(page.locator('iframe[title="任务描述"]')).toBeHidden();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const m = Reflect.get(window, '__tasksMock') as {
+          tasks: { id: string; title: string }[];
+          bodies: Record<string, string>;
+        };
+        const t = m.tasks.find((x) => x.title === '修复移动端导航栏错位');
+        return t ? m.bodies[t.id] : '';
+      }),
+    )
+    .toBe(source.replace('- [ ] 桌面端', '- [x] 桌面端'));
+
+  // The comment field continues lists and formats the selection.
+  const composer = page.getByLabel('评论');
+  await composer.click();
+  await page.keyboard.type('- 一');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('二');
+  await composer.evaluate((el: HTMLTextAreaElement) =>
+    el.setSelectionRange(el.value.length - 1, el.value.length),
+  );
+  await page.keyboard.press('ControlOrMeta+b');
+  await expect(composer).toHaveValue('- 一\n- **二**');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(page.locator('.task-comment-body li strong')).toHaveText('二');
 });
 
 test('the guide reads in chapters, follows the scroll, and its actions start the real thing', async ({

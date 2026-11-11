@@ -126,6 +126,9 @@ export interface RuntimeConfiguration {
    * text: the host has already decoded encoding metadata; FEFF is literal text. */
   sourceBOM?: 'metadata' | 'text';
   contextMenu?: { clipboardRead: boolean; clipboardWrite: boolean; openExternal: boolean };
+  /** document: a full page (default). embedded: a field inside a host layout, with compact
+   * margins and no reading-width limit. Fixed when the editor is created. */
+  layout?: 'document' | 'embedded';
 }
 export type HostAction =
   | 'zoom-in'

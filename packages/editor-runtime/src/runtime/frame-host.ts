@@ -1450,6 +1450,62 @@ async function ready() {
     '#md-searchpanel .input-group-addon.close-btn:hover{background:color-mix(in srgb,var(--bg-color,#fff) 80%,var(--text-color,#333));opacity:1}';
   // The scrollport ends where the host's pane ends, so its scrollbar sits on the pane's own edge.
   style.textContent += '#marklyra-source .CodeMirror-scroll{overflow-y:auto!important}';
+  // A field inside the host's own layout: its margins and width come from the host.
+  if (new URL(location.href).searchParams.get('layout') === 'embedded') {
+    document.documentElement.dataset.marklyraLayout = 'embedded';
+    style.textContent +=
+      'html[data-marklyra-layout=embedded] #write{max-width:none!important;min-height:0!important;margin:0!important;padding:10px 14px 18px!important}' +
+      'html[data-marklyra-layout=embedded] content::-webkit-scrollbar{display:none}';
+    // The host sizes the frame to the text, so the page grows like a note instead of scrolling
+    // inside a box. An open slash menu counts too, so it is never cut off at the frame's edge.
+    let reported = '';
+    let queued = false;
+    const measure = () => {
+      queued = false;
+      const write = document.getElementById('write');
+      if (!write) return;
+      const content = write.closest('content') ?? write.parentElement;
+      let height =
+        write.offsetHeight +
+        (content ? Number.parseFloat(getComputedStyle(content).marginTop) || 0 : 0);
+      const menu = document.getElementById('ml-slash-menu');
+      if (menu && !menu.hidden)
+        height = Math.max(
+          height,
+          menu.getBoundingClientRect().bottom + (content?.scrollTop ?? 0) + 8,
+        );
+      // The caret, so the host can keep it in view as the page (not this frame) scrolls.
+      const selection = document.getSelection();
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : undefined;
+      const caret = range?.getClientRects()[0] ?? range?.getBoundingClientRect();
+      const scroll = content?.scrollTop ?? 0;
+      const payload = {
+        height: Math.ceil(height),
+        caretTop: caret && (caret.width || caret.height) ? Math.floor(caret.top + scroll) : null,
+        caretBottom:
+          caret && (caret.width || caret.height) ? Math.ceil(caret.bottom + scroll) : null,
+      };
+      const key = JSON.stringify(payload);
+      if (key === reported) return;
+      reported = key;
+      send('content-height', payload);
+    };
+    const schedule = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(measure);
+    };
+    const write = document.getElementById('write');
+    if (write) new ResizeObserver(schedule).observe(write);
+    document.addEventListener('selectionchange', schedule);
+    new MutationObserver(schedule).observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['hidden', 'style'],
+    });
+    schedule();
+  }
   document.head.append(style);
   const noticeStyle = document.createElement('style');
   noticeStyle.textContent = `

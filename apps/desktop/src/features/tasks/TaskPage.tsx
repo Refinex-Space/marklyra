@@ -12,12 +12,19 @@ import {
 } from '../../services/tasks.js';
 import type { WorkspaceMatchPosition } from '../../services/workspaces.js';
 import { notify } from '../notices/notices.js';
+import {
+  DescriptionEditor,
+  type DescriptionEditorSetup,
+  type DescriptionSession,
+} from './DescriptionEditor.js';
 import { colorVar, PriorityGlyph, ProgressPie, StatusGlyph, TaskIcon } from './glyphs.js';
 import { type Catalog, priorityName } from './model/catalog.js';
 import { cycleTitle } from './model/cycle.js';
 import { taskLink } from './model/links.js';
+import { toggleCheckbox } from './model/markdown-input.js';
 import { daysUntil } from './model/query.js';
 import { formatDay, formatRange, type PickerKind } from './pickers.js';
+import { MarkdownTextarea, TaskMarkdown } from './TaskMarkdown.js';
 import type { TaskStore } from './useTaskStore.js';
 
 interface Props {
@@ -35,6 +42,10 @@ interface Props {
   pick(kind: PickerKind, anchor: Element | null): void;
   setStatus(tasks: TaskMeta[], status: string): void;
   remove(task: TaskMeta): void;
+  /** Runs the description in the note editor; without it the description is edited as text. */
+  descriptionSetup?: DescriptionEditorSetup | null;
+  /** False while the page is kept, undisplayed, behind another workbench view. */
+  active?: boolean;
 }
 
 /** Agent ids as people know them. */
@@ -75,6 +86,12 @@ export function TaskPage(props: Props) {
   const [adding, setAdding] = useState(false);
   const [menu, setMenu] = useState(false);
   const [comment, setComment] = useState('');
+  /** The note editor's edit session; the plain field uses `editing` and `draft` alone. */
+  const [session, setSession] = useState<DescriptionSession | null>(null);
+  const [richFailed, setRichFailed] = useState(false);
+  const rich = !!props.descriptionSetup && !richFailed;
+  const preview = useRef<HTMLDivElement>(null);
+  const active = props.active !== false;
   const title = useRef<HTMLHeadingElement>(null);
   const cycle = catalog.cycle(task.cycle);
   /** The task's fields, subtasks and description become a reusable template. */
@@ -126,6 +143,7 @@ export function TaskPage(props: Props) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: transient UI resets when another task opens.
   useEffect(() => {
     setEditing(false);
+    setSession(null);
     setConflict(false);
     setAdding(false);
     setMenu(false);
@@ -155,10 +173,75 @@ export function TaskPage(props: Props) {
     const latest = await taskApi.detail(props.workspaceId, task.id);
     await saveDescription(latest.revision);
   };
+  /** Ticks run one at a time against the latest file, each changing one character. */
+  const ticking = useRef(Promise.resolve());
+  const toggleCheck = (offset: number) => {
+    const before = detail?.body;
+    const next = before === undefined ? null : toggleCheckbox(before, offset);
+    if (!detail || next === null) return;
+    setDetail({ ...detail, body: next });
+    ticking.current = ticking.current.then(async () => {
+      try {
+        const latest = await taskApi.detail(props.workspaceId, task.id);
+        const body = latest.body === before ? next : toggleCheckbox(latest.body, offset);
+        if (body === null) throw new Error('描述已在其他地方改动，请重试');
+        await taskApi.mutate(props.workspaceId, {
+          kind: 'setDescription',
+          id: task.id,
+          revision: latest.revision,
+          body,
+        });
+        await store.refresh();
+      } catch (error) {
+        notify(taskErrorMessage(error), 'error');
+        await load();
+      }
+    });
+  };
+  // Leaving the page ends an edit; the editor saves what was typed as the session closes.
+  useEffect(() => {
+    if (active) return;
+    setSession(null);
+    setEditing(false);
+  }, [active]);
+  /** Saves one rich edit session; `false` keeps it open (a conflict shows its banner). */
+  const saveSession = async (current: DescriptionSession, text: string) => {
+    if (text === current.original) return true;
+    try {
+      await taskApi.mutate(props.workspaceId, {
+        kind: 'setDescription',
+        id: current.taskId,
+        revision: current.revision,
+        body: text,
+      });
+      // ⌘S keeps editing: the next save starts from what is now on disk.
+      const saved = await taskApi.detail(props.workspaceId, current.taskId);
+      current.revision = saved.revision;
+      current.original = text;
+      if (current.taskId === task.id) setDetail(saved);
+      setConflict(false);
+      void store.refresh();
+      return true;
+    } catch (error) {
+      if (taskErrorCode(error) === 'conflict' && current.taskId === task.id) {
+        setDraft(text);
+        setConflict(true);
+      } else notify(taskErrorMessage(error), 'error');
+      return false;
+    }
+  };
   const startEditing = () => {
     if (!detail) return;
     setDraft(detail.body);
     setEditing(true);
+    if (rich)
+      setSession({
+        taskId: task.id,
+        revision: detail.revision,
+        original: detail.body,
+        // The editor opens at the height the text had, so nothing below it jumps.
+        height: preview.current?.offsetHeight ?? 0,
+      });
   };
   const project = catalog.project(task.project);
   const parent = catalog.task(task.parent);
@@ -387,20 +470,6 @@ export function TaskPage(props: Props) {
                   className="task-option"
                   onClick={() => {
                     setMenu(false);
-                    // The task's own file, in the note editor: formatting, input methods, undo
-                    // and saving are the editor's; the task list picks the change up from disk.
-                    props.openNote(`.marklyra/tasks/items/${task.id}.md`);
-                  }}
-                >
-                  <TaskIcon name="note" />
-                  <span className="task-option-label">在编辑器中编辑描述</span>
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="task-option"
-                  onClick={() => {
-                    setMenu(false);
                     void saveAsTemplate();
                   }}
                 >
@@ -471,6 +540,7 @@ export function TaskPage(props: Props) {
                 onClick={() => {
                   setConflict(false);
                   setEditing(false);
+                  setSession(null);
                   void load();
                 }}
               >
@@ -558,13 +628,13 @@ export function TaskPage(props: Props) {
             </Skeleton>
           ) : (
             <div className="task-desc-slot">
-              {editing ? (
-                <textarea
+              {editing && !rich ? (
+                <MarkdownTextarea
                   className="task-desc-source"
                   value={draft}
                   aria-label="描述（Markdown）"
                   autoFocus
-                  onChange={(e) => setDraft(e.target.value)}
+                  onValue={setDraft}
                   onKeyDown={(e) => {
                     if (e.nativeEvent.isComposing) return;
                     e.stopPropagation();
@@ -579,31 +649,57 @@ export function TaskPage(props: Props) {
                   onBlur={() => !conflict && void saveDescription()}
                 />
               ) : (
-                // The preview holds its own link buttons, so it cannot itself be a button.
-                // biome-ignore lint/a11y/useSemanticElements: see above; Enter edits like a click.
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-label="编辑描述"
-                  className={detail.body.trim() ? 'task-desc' : 'task-desc empty'}
-                  onClick={(e) => {
-                    if ((e.target as Element).closest('button')) return;
-                    startEditing();
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter' || e.target !== e.currentTarget) return;
-                    e.preventDefault();
-                    startEditing();
-                  }}
-                >
-                  {detail.body.trim() ? (
-                    <MarkdownPreview source={detail.body} catalog={catalog} open={props.open} />
-                  ) : (
-                    '添加描述…'
-                  )}
-                </div>
+                !editing && (
+                  // The preview holds its own link buttons, so it cannot itself be a button.
+                  // biome-ignore lint/a11y/useSemanticElements: see above; Enter edits like a click.
+                  <div
+                    ref={preview}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="编辑描述"
+                    className={detail.body.trim() ? 'task-desc' : 'task-desc empty'}
+                    onClick={(e) => {
+                      if ((e.target as Element).closest('button, a, input')) return;
+                      // Selecting text to copy it is not a request to edit.
+                      if (!window.getSelection()?.isCollapsed) return;
+                      startEditing();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' || e.target !== e.currentTarget) return;
+                      e.preventDefault();
+                      startEditing();
+                    }}
+                  >
+                    {detail.body.trim() ? (
+                      <TaskMarkdown
+                        source={detail.body}
+                        catalog={catalog}
+                        open={props.open}
+                        openNote={props.openNote}
+                        onToggle={toggleCheck}
+                      />
+                    ) : (
+                      '添加描述…'
+                    )}
+                  </div>
+                )
               )}
             </div>
+          )}
+          {rich && props.descriptionSetup && (
+            <DescriptionEditor
+              setup={props.descriptionSetup}
+              session={session}
+              onSave={saveSession}
+              onClose={() => {
+                setSession(null);
+                setEditing(false);
+              }}
+              onUnavailable={() => {
+                setRichFailed(true);
+                setSession(null);
+              }}
+            />
           )}
           {!task.parent && (
             <section className="task-section-block">
@@ -766,7 +862,12 @@ export function TaskPage(props: Props) {
                     <span>· {relative(item.at)}</span>
                   </div>
                   <div className="task-comment-body">
-                    <MarkdownPreview source={item.body} catalog={catalog} open={props.open} />
+                    <TaskMarkdown
+                      source={item.body}
+                      catalog={catalog}
+                      open={props.open}
+                      openNote={props.openNote}
+                    />
                   </div>
                 </div>
               ) : (
@@ -790,12 +891,13 @@ export function TaskPage(props: Props) {
             )}
             {catalog.snapshot.settings.comments && (
               <div className="task-composer">
-                <textarea
+                <MarkdownTextarea
                   value={comment}
                   rows={2}
+                  maxHeight={240}
                   placeholder="写评论… 支持 Markdown 与任务编号"
                   aria-label="评论"
-                  onChange={(e) => setComment(e.target.value)}
+                  onValue={setComment}
                   onKeyDown={(e) => {
                     if (e.nativeEvent.isComposing) return;
                     e.stopPropagation();
@@ -1023,97 +1125,4 @@ function EventText({ event, catalog }: { event: TaskEvent; catalog: Catalog }) {
     default:
       return <>{event.type}</>;
   }
-}
-
-/**
- * A small, safe Markdown preview for descriptions and comments: paragraphs, lists, bold,
- * inline code, `[[note]]` names and task IDs. Everything is rendered as React text, never HTML.
- */
-function MarkdownPreview({
-  source,
-  catalog,
-  open,
-}: {
-  source: string;
-  catalog: Catalog;
-  open(id: string): void;
-}) {
-  const inline = (text: string, key: string) => {
-    const parts = text.split(
-      /(\*\*[^*]+\*\*|`[^`]+`|\[(?:\\.|[^\]\\])+\]\(task:[0-9a-z]+\)|\[\[[^\]]+\]\]|\b[A-Z][A-Z0-9]{1,4}-\d+\b)/g,
-    );
-    return parts.map((part, i) => {
-      const k = `${key}-${i}`;
-      if (/^\*\*[^*]+\*\*$/.test(part)) return <b key={k}>{part.slice(2, -2)}</b>;
-      if (/^`[^`]+`$/.test(part)) return <code key={k}>{part.slice(1, -1)}</code>;
-      const md = /^\[(?:\\.|[^\]\\])+\]\(task:([0-9a-z]+)\)$/.exec(part);
-      const mdTask = md ? catalog.task(md[1]) : undefined;
-      if (mdTask)
-        return (
-          <button type="button" key={k} className="task-chip-link" onClick={() => open(mdTask.id)}>
-            <StatusGlyph status={catalog.status(mdTask.status)} size={12} />
-            {catalog.humanId(mdTask)} {mdTask.title}
-          </button>
-        );
-      const link = /^\[\[([^\]]+)\]\]$/.exec(part);
-      if (link) {
-        const target = /^task:(.+)$/.exec(link[1] ?? '');
-        const linked = target ? catalog.task(target[1]) : undefined;
-        return linked ? (
-          <button type="button" key={k} className="task-chip-link" onClick={() => open(linked.id)}>
-            <StatusGlyph status={catalog.status(linked.status)} size={12} />
-            {catalog.humanId(linked)}
-          </button>
-        ) : (
-          <span key={k} className="task-note-link">
-            {link[1]}
-          </span>
-        );
-      }
-      const resolved = /^[A-Z][A-Z0-9]{1,4}-\d+$/.test(part) ? catalog.resolve(part) : undefined;
-      if (resolved)
-        return (
-          <button
-            type="button"
-            key={k}
-            className="task-note-link"
-            onClick={() => open(resolved.id)}
-          >
-            {part}
-          </button>
-        );
-      return part;
-    });
-  };
-  // Blocks and lines are derived from immutable text; their position is their identity.
-  /* biome-ignore-start lint/suspicious/noArrayIndexKey: see above */
-  return (
-    <>
-      {source
-        .trim()
-        .split(/\n{2,}/)
-        .map((block, b) => {
-          const lines = block.split('\n');
-          if (lines.every((l) => /^\s*[-*]\s/.test(l)))
-            return (
-              <ul key={b}>
-                {lines.map((l, i) => (
-                  <li key={i}>{inline(l.replace(/^\s*[-*]\s/, ''), `${b}-${i}`)}</li>
-                ))}
-              </ul>
-            );
-          return (
-            <p key={b}>
-              {lines.map((l, i) => (
-                <span key={i}>
-                  {i > 0 && <br />}
-                  {inline(l, `${b}-${i}`)}
-                </span>
-              ))}
-            </p>
-          );
-        })}
-    </>
-  );
-  /* biome-ignore-end lint/suspicious/noArrayIndexKey: see above */
 }

@@ -190,6 +190,9 @@ export interface MarkLyraEditorOptions {
   imagePreviewTopInset?: () => number;
   onViewModeChange?: (mode: MarkLyraViewMode) => void;
   onScrollAwayFromTopChange?: (awayFromTop: boolean) => void;
+  /** With `layout: 'embedded'`: the height (CSS px) the frame needs to show all of its text,
+   * and the caret's vertical extent in that same space (null without a caret). */
+  onContentHeightChange?: (height: number, caret: { top: number; bottom: number } | null) => void;
   onLinkHintPreferenceChange?: (suppressed: boolean) => void;
   onMenuStateChange?: (state: MarkLyraMenuState) => void;
   onOutlinePin?: () => void;
@@ -372,6 +375,7 @@ export class MarkLyraEditor {
     url.searchParams.set('channel', this.channel);
     url.searchParams.set('locale', marklyraLocale(options.configuration?.locale));
     url.searchParams.set('theme', options.configuration?.theme ?? 'marklyra-light');
+    if (options.configuration?.layout === 'embedded') url.searchParams.set('layout', 'embedded');
     this.ready = new Promise<void>((resolve, reject) => {
       this.readyResolve = resolve;
       this.readyReject = reject;
@@ -2113,6 +2117,21 @@ export class MarkLyraEditor {
     if (message.kind === 'outline-popover' && typeof message.payload === 'boolean') {
       this.outlinePopoverOpen = message.payload;
       this.options.onOutlinePopoverChange?.(message.payload);
+      return;
+    }
+    if (
+      message.kind === 'content-height' &&
+      message.payload &&
+      typeof message.payload === 'object'
+    ) {
+      const { height, caretTop, caretBottom } = message.payload as Record<string, unknown>;
+      const finite = (value: unknown): value is number =>
+        typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1_000_000;
+      if (!finite(height)) return;
+      this.options.onContentHeightChange?.(
+        height,
+        finite(caretTop) && finite(caretBottom) ? { top: caretTop, bottom: caretBottom } : null,
+      );
       return;
     }
     if (message.kind === 'scroll-away-from-top' && typeof message.payload === 'boolean') {
