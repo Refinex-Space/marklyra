@@ -2992,3 +2992,108 @@ test('attention preference survives settings reload while authorization remains 
   await toggle.check();
   await expect(toggle).toBeChecked();
 });
+
+test('task proposals list each change, start duplicates unticked and return only ticked items', async ({
+  page,
+}) => {
+  await installLayout(page);
+  await page.addInitScript(mockAgents);
+  await page.addInitScript(() => {
+    if (window !== window.top) return;
+    const host = window as TestWindow & {
+      __TAURI_INTERNALS__: {
+        invoke: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+      };
+    };
+    const previous = host.__TAURI_INTERNALS__.invoke;
+    let turnId = '';
+    host.__TAURI_INTERNALS__.invoke = async (name, args = {}) => {
+      if (name === 'agent_context')
+        turnId = String((args.context as { turnId?: string } | undefined)?.turnId ?? '');
+      const message = args.message as { method?: string } | undefined;
+      if (name === 'agent_send' && message?.method === 'session/prompt') {
+        host.__desktopMock.calls.push({ command: name, args });
+        setTimeout(
+          () =>
+            host.__desktopMock.emitEvent('marklyra:agent-event', {
+              connectionId: args.connectionId,
+              kind: 'tool',
+              requestId: 'tool-1',
+              name: 'task_propose',
+              sessionId: 'provider-session',
+              context: { turnId },
+              arguments: {
+                agent: 'codex-acp',
+                tasks: [
+                  {
+                    op: 'create',
+                    title: '修复登录页白屏',
+                    project: '官网改版',
+                    changes: [{ field: '优先级', from: null, to: '高' }],
+                    subtasks: ['复现', '修复'],
+                    duplicate: null,
+                  },
+                  {
+                    op: 'create',
+                    title: '重做首页',
+                    project: '官网改版',
+                    changes: [],
+                    duplicate: 'WEB-1',
+                  },
+                  {
+                    op: 'update',
+                    ref: 'WEB-4',
+                    title: '编写发布公告',
+                    changes: [{ field: '状态', from: '待办', to: '进行中' }],
+                  },
+                ],
+              },
+            }),
+          20,
+        );
+        return null;
+      }
+      return previous(name, args);
+    };
+  });
+  await readyLayout(page, 'marklyra-light');
+  await emitLayoutMenu(page, 'view:ai');
+  await page.getByRole('button', { name: '打开文件夹', exact: true }).click();
+  await startConversation(page);
+  await page.getByRole('textbox', { name: '发送给 AI 的消息' }).fill('整理任务');
+  await page.getByRole('button', { name: '发送 AI 消息' }).click();
+  const card = page.locator('.ai-task-proposal');
+  await expect(card).toContainText('修改任务 · 3 项');
+  await expect(card.locator('.ai-task-item')).toHaveCount(3);
+  await expect(card).toContainText('子任务：复现、修复');
+  await expect(card).toContainText('已有同名任务 WEB-1');
+  const boxes = card.getByRole('checkbox');
+  await expect(boxes.nth(0)).toBeChecked();
+  await expect(boxes.nth(1)).not.toBeChecked();
+  await expect(boxes.nth(2)).toBeChecked();
+  await boxes.nth(2).uncheck();
+  await card.getByRole('button', { name: '允许所选（1）' }).click();
+  await expect(card).toHaveCount(0);
+  const response = await page.evaluate(
+    () =>
+      (window as TestWindow).__desktopMock.calls
+        .filter((c) => c.command === 'agent_tool_respond')
+        .at(-1)?.args,
+  );
+  expect(response).toMatchObject({
+    requestId: 'tool-1',
+    result: { approved: true, selected: [0] },
+  });
+
+  // The host reports what it wrote; the shell offers to take the turn back.
+  await page.evaluate(() =>
+    (window as TestWindow).__desktopMock.emitEvent('marklyra:tasks-ai', {
+      agent: 'codex-acp',
+      turnId: 't',
+      workspaceId: 'layout-workspace',
+      receipts: [{ kind: 'created', ids: ['a', 'b', 'c'] }],
+    }),
+  );
+  await expect(page.getByText('AI 修改了 3 个任务')).toBeVisible();
+  await expect(page.getByRole('button', { name: '撤销' }).last()).toBeVisible();
+});

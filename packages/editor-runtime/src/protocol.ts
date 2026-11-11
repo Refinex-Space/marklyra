@@ -112,7 +112,11 @@ export type MarkLyraCommand =
   | { type: 'setTheme'; theme: 'marklyra-light' | 'marklyra-dark' }
   | { type: 'jumpToBlock'; id: string; preserveSelection?: boolean }
   | { type: 'restoreSelection'; bookmark: CursorBookmark }
-  | { type: 'insertLink'; url: string; title: string };
+  | { type: 'insertLink'; url: string; title: string }
+  /** Replaces the selection with `[title](url)` exactly; only `task:` and `project:` links. */
+  | { type: 'replaceSelectionWithLink'; url: string; title: string };
+/** A link into the task store: `task:<id>` or `project:<slug>`. */
+export const TASK_LINK = /^(?:task:[0-9a-z]{6,40}|project:[a-z0-9][a-z0-9-]{0,39})$/;
 export interface RuntimeConfiguration {
   nativeMenus: boolean;
   platform: 'macos' | 'windows' | 'browser';

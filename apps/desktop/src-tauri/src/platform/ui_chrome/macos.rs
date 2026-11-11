@@ -75,6 +75,9 @@ define_class!(
         #[unsafe(method(toggleGraph:))]
         fn toggle_graph(&self, _sender: &AnyObject) { self.emit("view:graph"); }
 
+        #[unsafe(method(toggleTasks:))]
+        fn toggle_tasks(&self, _sender: &AnyObject) { self.emit("view:tasks"); }
+
         #[unsafe(method(toggleSource:))]
         fn toggle_source(&self, _sender: &AnyObject) { self.emit("view:source"); }
 
@@ -227,6 +230,7 @@ struct EditorChrome {
     outline: Retained<NSButton>,
     ai: Retained<NSButton>,
     graph: Retained<NSButton>,
+    tasks: Retained<NSButton>,
     images: TitlebarImages,
     fullscreen_constraints: Option<Retained<NSArray<NSLayoutConstraint>>>,
     dark: Option<bool>,
@@ -285,7 +289,8 @@ impl EditorChrome {
         // Match ai.css: 28px buttons, 4px gaps, 8px padding and a 20px
         // scrollbar gutter put the centers 106 / 74 / 42px from the edge.
         // Source mode keeps its existing label placement; these icons are hidden there.
-        let trailing = if source_mode { 70.0 } else { 142.0 };
+        // The task column sits left of the graph, so the graph and AI keep their right offsets.
+        let trailing = if source_mode { 70.0 } else { 174.0 };
         // The Home button takes a column to the left of the word count while it is offered.
         let home = home_slot(self.view.home_offered());
         self.view
@@ -301,12 +306,16 @@ impl EditorChrome {
         }
         if let Some(actions) = self.view.ivars().actions.get() {
             native_hover::set_frame(
+                &actions[4],
+                titlebar_icon_rect(leading + home + width + 60.0, 14.0),
+            );
+            native_hover::set_frame(
                 &actions[3],
-                titlebar_icon_rect(leading + home + width + 60.0, 16.0),
+                titlebar_icon_rect(leading + home + width + 92.0, 16.0),
             );
             native_hover::set_frame(
                 &actions[2],
-                titlebar_icon_rect(leading + home + width + 92.0, 13.0),
+                titlebar_icon_rect(leading + home + width + 124.0, 13.0),
             );
             native_hover::set_frame(
                 &actions[0],
@@ -479,6 +488,26 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         graph.setButtonType(NSButtonType::Toggle);
         graph.setEnabled(false);
         graph.setToolTip(Some(&NSString::from_str("知识图谱（先打开文件夹）")));
+        let tasks = button(
+            &view,
+            "任务",
+            sel!(toggleTasks:),
+            titlebar_icon_rect(0.0, 14.0),
+            true,
+        );
+        if let Some(image) =
+            objc2_app_kit::NSImage::imageWithSystemSymbolName_accessibilityDescription(
+                &NSString::from_str("checklist"),
+                Some(&NSString::from_str("任务")),
+            )
+        {
+            image.setSize(NSSize::new(14.0, 14.0));
+            tasks.setImage(Some(&image));
+            tasks.setTitle(&NSString::from_str(""));
+        }
+        tasks.setButtonType(NSButtonType::Toggle);
+        tasks.setEnabled(false);
+        tasks.setToolTip(Some(&NSString::from_str("任务（先打开文件夹）")));
         let source = button(
             &view,
             "Source Mode ×",
@@ -493,10 +522,13 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         source.setState(1);
         source.setAlphaValue(0.8);
         let _ = view.ivars().source_button.set(source);
-        let _ = view
-            .ivars()
-            .actions
-            .set(vec![outline.clone(), sidebar, ai.clone(), graph.clone()]);
+        let _ = view.ivars().actions.set(vec![
+            outline.clone(),
+            sidebar,
+            ai.clone(),
+            graph.clone(),
+            tasks.clone(),
+        ]);
         view.update_visibility();
         let controller = NSTitlebarAccessoryViewController::new(mtm);
         controller.setView(&view);
@@ -511,6 +543,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             outline,
             ai,
             graph,
+            tasks,
             images,
             fullscreen_constraints: None,
             dark: None,
@@ -573,6 +606,15 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
         chrome.ai.setState(if update.ai_panel_open { 1 } else { 0 });
         chrome.graph.setState(if update.graph_open { 1 } else { 0 });
         chrome.graph.setEnabled(update.graph_available);
+        chrome.tasks.setState(if update.tasks_open { 1 } else { 0 });
+        chrome.tasks.setEnabled(update.graph_available);
+        chrome
+            .tasks
+            .setToolTip(Some(&NSString::from_str(if update.graph_available {
+                "任务 ⌘⌥T"
+            } else {
+                "任务（先打开文件夹）"
+            })));
         chrome
             .graph
             .setToolTip(Some(&NSString::from_str(if update.graph_available {

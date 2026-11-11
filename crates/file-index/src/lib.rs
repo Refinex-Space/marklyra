@@ -20,6 +20,7 @@ mod relocation;
 mod relocation_tests;
 mod removal;
 mod search;
+mod tasks;
 pub use articles::{
     ArticleSkipped, ArticleTruncation, DocumentSummary, SummaryState, WorkspaceArticlesReport,
     WorkspaceDocument, MAX_SUMMARY_BATCH,

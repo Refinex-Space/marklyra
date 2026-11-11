@@ -1,0 +1,615 @@
+{
+ "today": "2026-11-10",
+ "statuses": [
+  {
+   "id": "backlog",
+   "name": "待规划",
+   "category": "backlog",
+   "color": "backlog",
+   "builtin": true,
+   "order": 0
+  },
+  {
+   "id": "todo",
+   "name": "待办",
+   "category": "unstarted",
+   "color": "todo",
+   "builtin": true,
+   "order": 1
+  },
+  {
+   "id": "in-progress",
+   "name": "进行中",
+   "category": "started",
+   "color": "in-progress",
+   "builtin": true,
+   "order": 2
+  },
+  {
+   "id": "in-review",
+   "name": "评审中",
+   "category": "review",
+   "color": "in-review",
+   "builtin": true,
+   "order": 3
+  },
+  {
+   "id": "done",
+   "name": "已完成",
+   "category": "completed",
+   "color": "done",
+   "builtin": true,
+   "order": 4
+  },
+  {
+   "id": "cancelled",
+   "name": "已取消",
+   "category": "cancelled",
+   "color": "cancelled",
+   "builtin": true,
+   "order": 5
+  }
+ ],
+ "labels": [
+  {
+   "id": "design",
+   "name": "设计",
+   "color": "pink",
+   "order": 1,
+   "addLabels": [],
+   "setPriority": 0
+  }
+ ],
+ "types": [
+  {
+   "id": "bug",
+   "name": "缺陷",
+   "color": "red",
+   "order": 1,
+   "addLabels": [],
+   "setPriority": 0
+  }
+ ],
+ "buckets": [
+  {
+   "id": "now",
+   "name": "现在",
+   "color": "orange",
+   "order": 1,
+   "addLabels": [],
+   "setPriority": 0
+  }
+ ],
+ "projects": [
+  {
+   "id": "web",
+   "name": "官网",
+   "key": "WEB",
+   "previousKeys": [
+    "SITE"
+   ],
+   "icon": "folder",
+   "color": "violet",
+   "state": "active",
+   "order": 1,
+   "pinned": false,
+   "description": "",
+   "created": "",
+   "statuses": null,
+   "labels": null,
+   "buckets": null,
+   "views": [],
+   "defaultTemplate": null,
+   "revision": "p"
+  }
+ ],
+ "cycles": [
+  {
+   "number": 2,
+   "name": null,
+   "start": "2026-11-09",
+   "end": "2026-11-22",
+   "state": "completed",
+   "started": null,
+   "completedAt": null,
+   "summary": null,
+   "revision": "c"
+  },
+  {
+   "number": 3,
+   "name": null,
+   "start": "2026-11-09",
+   "end": "2026-11-22",
+   "state": "active",
+   "started": null,
+   "completedAt": null,
+   "summary": null,
+   "revision": "c"
+  },
+  {
+   "number": 4,
+   "name": null,
+   "start": "2026-11-09",
+   "end": "2026-11-22",
+   "state": "upcoming",
+   "started": null,
+   "completedAt": null,
+   "summary": null,
+   "revision": "c"
+  }
+ ],
+ "settings": {
+  "unassignedKey": "TASK",
+  "comments": true,
+  "cyclesEnabled": true,
+  "cycleWeeks": 2,
+  "cycleStartDay": 1
+ },
+ "bodies": {
+  "t3": "接入 stripe 支付，年付打折"
+ },
+ "tasks": [
+  {
+   "id": "t1",
+   "title": "重做首页首屏视觉",
+   "project": "web",
+   "number": 1,
+   "status": "in-progress",
+   "priority": 1,
+   "type": null,
+   "labels": [
+    "design"
+   ],
+   "bucket": null,
+   "cycle": 3,
+   "cycleAdded": null,
+   "parent": null,
+   "due": "2026-11-09",
+   "created": "2026-11-01T12:00:00Z",
+   "updated": "2026-11-01T12:00:00Z",
+   "completed": null,
+   "previousIds": [],
+   "archived": false,
+   "order": 1,
+   "blockedBy": [],
+   "related": [],
+   "hasDescription": false,
+   "comments": 0,
+   "revision": "r"
+  },
+  {
+   "id": "t2",
+   "title": "输出三套方案",
+   "project": "web",
+   "number": 2,
+   "status": "done",
+   "priority": 0,
+   "type": null,
+   "labels": [],
+   "bucket": null,
+   "cycle": 3,
+   "cycleAdded": null,
+   "parent": "t1",
+   "due": null,
+   "created": "2026-11-08T12:00:00Z",
+   "updated": "2026-11-01T12:00:00Z",
+   "completed": "2026-11-08T12:00:00Z",
+   "previousIds": [],
+   "archived": false,
+   "order": 2,
+   "blockedBy": [],
+   "related": [],
+   "hasDescription": false,
+   "comments": 0,
+   "revision": "r"
+  },
+  {
+   "id": "t3",
+   "title": "定价页支持年付",
+   "project": "web",
+   "number": 3,
+   "status": "todo",
+   "priority": 2,
+   "type": "bug",
+   "labels": [],
+   "bucket": "now",
+   "cycle": null,
+   "cycleAdded": null,
+   "parent": null,
+   "due": null,
+   "created": "2026-11-05T12:00:00Z",
+   "updated": "2026-11-01T12:00:00Z",
+   "completed": null,
+   "previousIds": [
+    "MKT-7"
+   ],
+   "archived": false,
+   "order": 3,
+   "blockedBy": [
+    "t1"
+   ],
+   "related": [],
+   "hasDescription": true,
+   "comments": 0,
+   "revision": "r"
+  },
+  {
+   "id": "t4",
+   "title": "写周报给团队",
+   "project": null,
+   "number": 1,
+   "status": "backlog",
+   "priority": 0,
+   "type": null,
+   "labels": [],
+   "bucket": null,
+   "cycle": 4,
+   "cycleAdded": null,
+   "parent": null,
+   "due": "2026-11-15",
+   "created": "2026-10-01T12:00:00Z",
+   "updated": "2026-11-01T12:00:00Z",
+   "completed": null,
+   "previousIds": [],
+   "archived": false,
+   "order": 4,
+   "blockedBy": [],
+   "related": [],
+   "hasDescription": false,
+   "comments": 0,
+   "revision": "r"
+  },
+  {
+   "id": "t5",
+   "title": "旧任务",
+   "project": "web",
+   "number": 4,
+   "status": "cancelled",
+   "priority": 0,
+   "type": null,
+   "labels": [],
+   "bucket": null,
+   "cycle": null,
+   "cycleAdded": null,
+   "parent": null,
+   "due": null,
+   "created": "2026-11-01T12:00:00Z",
+   "updated": "2026-11-01T12:00:00Z",
+   "completed": null,
+   "previousIds": [],
+   "archived": true,
+   "order": 5,
+   "blockedBy": [],
+   "related": [],
+   "hasDescription": false,
+   "comments": 0,
+   "revision": "r"
+  },
+  {
+   "id": "t6",
+   "title": "评审 API 文档",
+   "project": "web",
+   "number": 5,
+   "status": "in-review",
+   "priority": 3,
+   "type": null,
+   "labels": [],
+   "bucket": null,
+   "cycle": null,
+   "cycleAdded": null,
+   "parent": null,
+   "due": "2026-11-10",
+   "created": "2026-11-09T12:00:00Z",
+   "updated": "2026-11-01T12:00:00Z",
+   "completed": null,
+   "previousIds": [],
+   "archived": false,
+   "order": 6,
+   "blockedBy": [],
+   "related": [
+    "t3"
+   ],
+   "hasDescription": false,
+   "comments": 2,
+   "revision": "r"
+  }
+ ],
+ "cases": [
+  [
+   "is:open",
+   [
+    "t1",
+    "t3",
+    "t4",
+    "t6"
+   ]
+  ],
+  [
+   "is:closed",
+   [
+    "t2"
+   ]
+  ],
+  [
+   "is:archived",
+   [
+    "t5"
+   ]
+  ],
+  [
+   "is:overdue",
+   [
+    "t1"
+   ]
+  ],
+  [
+   "due:today",
+   [
+    "t6"
+   ]
+  ],
+  [
+   "due:<7d",
+   [
+    "t1",
+    "t4",
+    "t6"
+   ]
+  ],
+  [
+   "due:>3d",
+   [
+    "t4"
+   ]
+  ],
+  [
+   "due:none",
+   [
+    "t2",
+    "t3"
+   ]
+  ],
+  [
+   "-due:none",
+   [
+    "t1",
+    "t4",
+    "t6"
+   ]
+  ],
+  [
+   "status:started",
+   [
+    "t1"
+   ]
+  ],
+  [
+   "status:review",
+   [
+    "t6"
+   ]
+  ],
+  [
+   "状态:待办",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "status:canceled",
+   []
+  ],
+  [
+   "priority:urgent,high",
+   [
+    "t1",
+    "t3"
+   ]
+  ],
+  [
+   "p:3",
+   [
+    "t6"
+   ]
+  ],
+  [
+   "label:设计",
+   [
+    "t1"
+   ]
+  ],
+  [
+   "label:\"设计\"",
+   [
+    "t1"
+   ]
+  ],
+  [
+   "type:none",
+   [
+    "t1",
+    "t2",
+    "t4",
+    "t6"
+   ]
+  ],
+  [
+   "type:缺陷",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "bucket:now",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "project:web",
+   [
+    "t1",
+    "t2",
+    "t3",
+    "t6"
+   ]
+  ],
+  [
+   "project:none",
+   [
+    "t4"
+   ]
+  ],
+  [
+   "project:task",
+   [
+    "t4"
+   ]
+  ],
+  [
+   "项目:官网",
+   [
+    "t1",
+    "t2",
+    "t3",
+    "t6"
+   ]
+  ],
+  [
+   "cycle:current",
+   [
+    "t1",
+    "t2"
+   ]
+  ],
+  [
+   "cycle:next",
+   [
+    "t4"
+   ]
+  ],
+  [
+   "迭代:#3",
+   [
+    "t1",
+    "t2"
+   ]
+  ],
+  [
+   "cycle:none",
+   [
+    "t3",
+    "t6"
+   ]
+  ],
+  [
+   "is:parent",
+   [
+    "t1"
+   ]
+  ],
+  [
+   "is:subtask",
+   [
+    "t2"
+   ]
+  ],
+  [
+   "is:blocked",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "has:relations",
+   [
+    "t3",
+    "t6"
+   ]
+  ],
+  [
+   "has:comments",
+   [
+    "t6"
+   ]
+  ],
+  [
+   "has:description",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "created:<7d",
+   [
+    "t2",
+    "t3",
+    "t6"
+   ]
+  ],
+  [
+   "created:>30d",
+   [
+    "t4"
+   ]
+  ],
+  [
+   "completed:<7d",
+   [
+    "t2"
+   ]
+  ],
+  [
+   "首页",
+   [
+    "t1"
+   ]
+  ],
+  [
+   "web-3",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "mkt-7",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "#5",
+   [
+    "t6"
+   ]
+  ],
+  [
+   "stripe",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "支付 定价",
+   [
+    "t3"
+   ]
+  ],
+  [
+   "is:open 评审",
+   [
+    "t6"
+   ]
+  ],
+  [
+   "-is:open is:archived",
+   [
+    "t5"
+   ]
+  ],
+  [
+   "unknown:x",
+   []
+  ]
+ ]
+}

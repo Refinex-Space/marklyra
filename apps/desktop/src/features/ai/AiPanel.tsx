@@ -31,7 +31,14 @@ import { documentLink, encodeDocumentPath, mentionAt } from './model.js';
 import { AgentSession } from './session.js';
 import { conversationGroups, TurnActivity } from './TurnActivity.js';
 import type { DraftAttachment } from './types.js';
-import { type AgentProfile, type Interaction, object, type SessionRecord, text } from './types.js';
+import {
+  type AgentProfile,
+  type Interaction,
+  object,
+  type SessionRecord,
+  type TaskProposal,
+  text,
+} from './types.js';
 import './ai.css';
 
 interface Props {
@@ -1356,6 +1363,56 @@ function Permission({
   decide: (choice: string, form?: Record<string, unknown>) => void;
 }) {
   const [form, setForm] = useState<Record<string, unknown>>({});
+  // Likely duplicates start unticked; everything else is proposed as-is.
+  const [selected, setSelected] = useState<Set<number>>(
+    () => new Set((value.tasks ?? []).flatMap((t, i) => (t.duplicate ? [] : [i]))),
+  );
+  if (value.tasks)
+    return (
+      <section className="ai-permission ai-task-proposal" tabIndex={-1} aria-label="待处理授权">
+        <strong>
+          {value.title}
+          {value.tasks.length > 1 && (
+            <span className="ai-task-count"> · {value.tasks.length} 项</span>
+          )}
+        </strong>
+        <ul className="ai-task-items">
+          {value.tasks.map((task, i) => (
+            <TaskProposalRow
+              // biome-ignore lint/suspicious/noArrayIndexKey: the proposal is fixed; its order is its identity.
+              key={i}
+              task={task}
+              checked={selected.has(i)}
+              toggle={
+                value.tasks && value.tasks.length > 1
+                  ? () =>
+                      setSelected((current) => {
+                        const next = new Set(current);
+                        if (!next.delete(i)) next.add(i);
+                        return next;
+                      })
+                  : undefined
+              }
+            />
+          ))}
+        </ul>
+        <div>
+          {value.options.map((option) => (
+            <button
+              type="button"
+              key={option.id}
+              className={option.allow ? 'ai-primary' : ''}
+              disabled={option.allow && value.tasks && value.tasks.length > 1 && !selected.size}
+              onClick={() => decide(option.id, { selected: [...selected].sort((a, b) => a - b) })}
+            >
+              {option.allow && value.tasks && value.tasks.length > 1
+                ? `${option.name}（${selected.size}）`
+                : option.name}
+            </button>
+          ))}
+        </div>
+      </section>
+    );
   return (
     <section className="ai-permission" tabIndex={-1} aria-label="待处理授权">
       <strong>{value.title}</strong>
@@ -1408,6 +1465,69 @@ function Permission({
         ))}
       </div>
     </section>
+  );
+}
+const TASK_OP: Record<TaskProposal['op'], string> = {
+  create: '新建',
+  update: '修改',
+  comment: '评论',
+  archive: '归档',
+  restore: '恢复',
+};
+function TaskProposalRow({
+  task,
+  checked,
+  toggle,
+}: {
+  task: TaskProposal;
+  checked: boolean;
+  /** Absent for a single item: approving the card is the choice. */
+  toggle: (() => void) | undefined;
+}) {
+  const body = (
+    <>
+      <span className="ai-task-head">
+        <span className="ai-task-op">{TASK_OP[task.op]}</span>
+        {task.ref && <span className="ai-task-ref">{task.ref}</span>}
+        <span className="ai-task-title">{task.title}</span>
+        {task.project && task.op === 'create' && (
+          <span className="ai-task-muted">{task.project}</span>
+        )}
+      </span>
+      {task.duplicate && <span className="ai-task-warn">已有同名任务 {task.duplicate}</span>}
+      {task.changes.length > 0 && (
+        <span className="ai-task-changes">
+          {task.changes.map((c) => (
+            <span key={c.field} className="ai-task-change">
+              <span className="ai-task-muted">{c.field}</span>
+              {c.from != null && (
+                <>
+                  <span className="ai-task-from">{c.from}</span>
+                  <span aria-hidden="true">→</span>
+                </>
+              )}
+              <span>{c.to}</span>
+            </span>
+          ))}
+        </span>
+      )}
+      {task.subtasks && task.subtasks.length > 0 && (
+        <span className="ai-task-muted">子任务：{task.subtasks.join('、')}</span>
+      )}
+      {task.description && <span className="ai-task-desc">{task.description}</span>}
+    </>
+  );
+  return (
+    <li className={checked || !toggle ? 'ai-task-item' : 'ai-task-item off'}>
+      {toggle ? (
+        <label>
+          <input type="checkbox" checked={checked} onChange={toggle} />
+          <span className="ai-task-body">{body}</span>
+        </label>
+      ) : (
+        <span className="ai-task-body">{body}</span>
+      )}
+    </li>
   );
 }
 function toolStatus(status: unknown) {

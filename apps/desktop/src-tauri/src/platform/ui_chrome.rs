@@ -142,6 +142,8 @@ pub struct ChromeUpdate {
     #[serde(default)]
     graph_available: bool,
     #[serde(default)]
+    tasks_open: bool,
+    #[serde(default)]
     source_mode: Option<bool>,
     /// A document is open, so the titlebar offers a way back to the home view.
     #[serde(default)]
@@ -204,6 +206,7 @@ pub(super) struct DocumentChrome {
     ai_panel_open: bool,
     graph_open: bool,
     graph_available: bool,
+    tasks_open: bool,
     source_mode: Option<bool>,
     can_close_document: bool,
     image_preview_open: bool,
@@ -291,6 +294,7 @@ fn document_chrome(
         ai_panel_open: update.ai_panel_open,
         graph_open: update.graph_open,
         graph_available: update.graph_available,
+        tasks_open: update.tasks_open,
         source_mode: if update.graph_open {
             Some(false)
         } else {
@@ -465,6 +469,7 @@ pub async fn update_editor_chrome(
             update.ai_panel_open,
             update.graph_open,
             update.graph_available,
+            update.tasks_open,
             update.source_mode,
             update.can_close_document,
         );
@@ -789,6 +794,7 @@ mod tests {
             ai_panel_open: false,
             graph_open: false,
             graph_available: false,
+            tasks_open: false,
             source_mode: None,
             can_close_document: false,
             image_preview_open: false,
@@ -866,6 +872,7 @@ mod tests {
                     ai_panel_open: false,
                     graph_open: false,
                     graph_available: false,
+                    tasks_open: false,
                     source_mode: None,
                     can_close_document: false,
                     image_preview_open: false,
@@ -886,6 +893,7 @@ mod tests {
             ai_panel_open: false,
             graph_open: false,
             graph_available: false,
+            tasks_open: false,
             source_mode: None,
             can_close_document: false,
             image_preview_open: false,
@@ -959,6 +967,7 @@ mod tests {
             ai_panel_open: false,
             graph_open: false,
             graph_available: false,
+            tasks_open: false,
             source_mode: Some(false),
             can_close_document: false,
             image_preview_open: false,

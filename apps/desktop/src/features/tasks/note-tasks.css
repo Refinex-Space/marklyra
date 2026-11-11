@@ -1,0 +1,66 @@
+/* Tasks linked from the open note, under its outline. */
+.note-tasks {
+  --task-c-backlog: #9a9a9a;
+  --task-c-todo: #6b6b6b;
+  --task-c-started: #e5a01b;
+  --task-c-review: #2fa35c;
+  --task-c-done: #5e6ad2;
+  --task-c-cancelled: #8a8a8a;
+  --task-c-red: #e5534b;
+  --task-c-orange: #ef8a2f;
+  --task-c-yellow: #d4a72c;
+  --task-c-green: #2fa35c;
+  --task-c-blue: #4c8df6;
+  --task-c-violet: #a371f7;
+  --task-c-pink: #e46fb2;
+  --task-c-gray: #8a8a8a;
+  margin: 4px 18px 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--marklyra-sidebar-font-family, inherit);
+  color: var(--marklyra-sidebar-text, var(--text));
+}
+:root[data-theme="dark"] .note-tasks {
+  --task-c-todo: #b8bec4;
+  --task-c-backlog: #7d858d;
+  --task-c-done: #7c86f0;
+}
+.note-tasks-head {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.note-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: 3px 6px;
+  margin-left: -6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.note-task:hover {
+  background: var(--hover);
+}
+.note-task .task-glyph {
+  flex-shrink: 0;
+}
+.note-task-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-task.closed .note-task-title {
+  color: var(--muted);
+  text-decoration: line-through;
+}

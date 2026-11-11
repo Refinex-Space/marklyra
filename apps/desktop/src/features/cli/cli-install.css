@@ -1,0 +1,113 @@
+.cli-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+}
+.cli-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 18%);
+}
+.cli-dialog {
+  position: relative;
+  width: min(460px, calc(100vw - 32px));
+  padding: 18px 20px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow:
+    0 16px 40px -10px rgb(0 0 0 / 30%),
+    0 2px 8px rgb(0 0 0 / 10%);
+  font-size: 13px;
+  animation: cli-in 0.14s ease-out;
+}
+.cli-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.cli-dialog p {
+  margin: 0 0 12px;
+  line-height: 1.55;
+}
+.cli-dialog code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+.cli-facts {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 6px 10px;
+  margin: 0 0 12px;
+}
+.cli-facts dt {
+  color: var(--muted);
+}
+.cli-facts dd {
+  margin: 0;
+}
+.cli-path {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 5%, var(--surface));
+}
+.cli-path span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+.cli-error {
+  color: #c34747;
+}
+.cli-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.cli-spacer {
+  flex: 1;
+}
+.cli-dialog button {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.cli-dialog button:hover:not(:disabled) {
+  background: var(--hover);
+}
+.cli-dialog button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.cli-dialog button.cli-primary {
+  border-color: transparent;
+  background: var(--focus);
+  color: #fff;
+}
+.cli-dialog button.cli-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--focus) 85%, #000);
+}
+@keyframes cli-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cli-dialog {
+    animation: none;
+  }
+}

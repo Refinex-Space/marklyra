@@ -10,6 +10,7 @@ import {
   type RpcMessage,
   type SessionRecord,
   type SessionView,
+  type TaskProposal,
   text,
 } from './types.js';
 
@@ -560,6 +561,33 @@ export class AgentSession {
         return;
       }
       const args = event.arguments ?? {};
+      if ((event.name ?? '').startsWith('task_') && Array.isArray(args.tasks)) {
+        const tasks = args.tasks as TaskProposal[];
+        this.interact(
+          {
+            id,
+            kind: 'operation',
+            title: operationName(event.name ?? ''),
+            detail: '',
+            tasks,
+            options: [
+              { id: 'allow', name: tasks.length > 1 ? '允许所选' : '允许本次', allow: true },
+              { id: 'deny', name: '拒绝', allow: false },
+            ],
+          },
+          async (choice, form) => {
+            const selected = Array.isArray(form?.selected)
+              ? (form.selected as number[])
+              : tasks.map((_, i) => i);
+            await agentApi.invoke('agent_tool_respond', {
+              connectionId,
+              requestId: id,
+              result: { approved: choice === 'allow' && current(), selected },
+            });
+          },
+        );
+        return;
+      }
       this.interact(
         {
           id,
@@ -906,6 +934,12 @@ function operationName(name: string) {
         workspace_restore_entry: '恢复文档或目录',
         'fs/write_text_file': '写入文档',
         'terminal/create': '运行本机命令',
+        task_create: '创建任务',
+        task_propose: '修改任务',
+        task_update: '修改任务',
+        task_comment: '评论任务',
+        task_archive: '归档任务',
+        task_restore: '恢复任务',
       } as Record<string, string>
     )[name] ?? name
   );

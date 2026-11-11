@@ -34,6 +34,8 @@ export interface TitlebarProps {
   graphOpen?: boolean;
   graphAvailable?: boolean;
   onGraph?: () => void;
+  tasksOpen?: boolean;
+  onTasks?: () => void;
   onSidebar: () => void;
   onOutline: () => void;
   onAi: () => void;
@@ -307,6 +309,17 @@ export function Titlebar(props: TitlebarProps) {
                   onClick={props.onGraph}
                 >
                   <Icon name="graph" />
+                </button>
+                <button
+                  type="button"
+                  className="titlebar-action"
+                  title="任务 ⌘⌥T"
+                  aria-label="任务"
+                  aria-pressed={props.tasksOpen}
+                  disabled={props.disabled || !props.graphAvailable}
+                  onClick={props.onTasks}
+                >
+                  <Icon name="tasks" />
                 </button>
                 <button
                   type="button"

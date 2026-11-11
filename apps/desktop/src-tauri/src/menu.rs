@@ -23,6 +23,7 @@ use MenuEntry::{Action, Separator};
 const FILE: &[MenuEntry] = &[
     Action("new", "新建", Some("CmdOrCtrl+N")),
     Action("new-window", "新建窗口", Some("CmdOrCtrl+Shift+N")),
+    Action("task:new", "新建任务", Some("CmdOrCtrl+Alt+N")),
     #[cfg(target_os = "macos")]
     Action("new-tab", "新建标签页", Some("CmdOrCtrl+T")),
     Action("open", "打开…", Some("CmdOrCtrl+O")),
@@ -85,6 +86,11 @@ const PARAGRAPH: &[MenuEntry] = &[
     Action("list:ul", "无序列表", Some("CmdOrCtrl+Shift+U")),
     Action("list:ol", "有序列表", Some("CmdOrCtrl+Shift+O")),
     Action("list:tasklist", "任务列表", Some("CmdOrCtrl+Shift+X")),
+    Action(
+        "task:convert",
+        "所选文字转为任务",
+        Some("CmdOrCtrl+Alt+Shift+T"),
+    ),
     Action("list-indentation-menu", "列表缩进", None),
     Separator,
     Action("hr", "分隔线", Some("CmdOrCtrl+Shift+Minus")),
@@ -129,6 +135,7 @@ const VIEW: &[MenuEntry] = &[
     Action("view:files", "文件树", Some("CmdOrCtrl+Ctrl+3")),
     Action("view:workspace-search", "搜索", Some("CmdOrCtrl+Shift+F")),
     Action("view:graph", "知识图谱", Some("CmdOrCtrl+Alt+G")),
+    Action("view:tasks", "任务", Some("CmdOrCtrl+Alt+T")),
     Separator,
     Action("view:statistics", "字数统计", None),
     Separator,
@@ -175,6 +182,7 @@ const WINDOW: &[MenuEntry] = &[
 ];
 const APPLICATION: &[MenuEntry] = &[
     Action("preferences", "偏好设置…", Some("CmdOrCtrl+,")),
+    Action("cli:install", "安装命令行工具…", None),
     Action("quit", "退出 MarkLyra", Some("CmdOrCtrl+Q")),
 ];
 const GROUPS: &[&[MenuEntry]] = &[
@@ -710,7 +718,7 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            92 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            96 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {
@@ -737,5 +745,8 @@ mod tests {
         assert!(shortcuts.contains(&"CmdOrCtrl+Shift+K"));
         assert!(ids.contains(&"view:graph"));
         assert!(shortcuts.contains(&"CmdOrCtrl+Alt+G"));
+        assert!(ids.contains(&"view:tasks") && ids.contains(&"task:new"));
+        assert!(ids.contains(&"task:convert"));
+        assert!(shortcuts.contains(&"CmdOrCtrl+Alt+T") && shortcuts.contains(&"CmdOrCtrl+Alt+N"));
     }
 }

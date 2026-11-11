@@ -5,6 +5,7 @@ import type {
   MarkLyraEditor,
   OutlineEntry,
 } from '@marklyra/editor-runtime';
+import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
   type CSSProperties,
@@ -17,15 +18,17 @@ import {
   useRef,
   useState,
 } from 'react';
-import { flushSync } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { CommandMenu } from '../components/CommandMenu.js';
 import { focusInitialEditor } from '../components/focusInitialEditor.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { ShellGlyph } from '../components/ShellGlyph.js';
 import { SidebarResize } from '../components/SidebarResize.js';
+import { SkeletonRows } from '../components/Skeleton.js';
 import { Titlebar } from '../components/Titlebar.js';
 import { useModalFocus } from '../components/useModalFocus.js';
 import { AiPanel } from '../features/ai/AiPanel.js';
+import { CliInstallDialog } from '../features/cli/CliInstallDialog.js';
 import { CalendarPanel } from '../features/daily/CalendarPanel.js';
 import { DailyHeader } from '../features/daily/DailyHeader.js';
 import {
@@ -93,6 +96,15 @@ import { usePreferences } from '../features/settings/usePreferences.js';
 import { DocumentStatistics } from '../features/statistics/DocumentStatistics.js';
 import { StatisticsStatus } from '../features/statistics/StatisticsStatus.js';
 import { useStatistics } from '../features/statistics/useStatistics.js';
+import { type AiChange, aiChangeCount, undoAiChanges } from '../features/tasks/ai-undo.js';
+import { lastTaskProject } from '../features/tasks/model/last-project.js';
+import {
+  type LinkTarget,
+  parseLinkTarget,
+  taskLink,
+  taskLinkText,
+} from '../features/tasks/model/links.js';
+import { NoteTasks } from '../features/tasks/NoteTasks.js';
 import { builtinTheme, validThemeId } from '../features/themes/model.js';
 import { useSystemAppearance } from '../features/themes/useSystemAppearance.js';
 import { useThemes } from '../features/themes/useThemes.js';
@@ -112,6 +124,7 @@ import {
 } from '../services/native-input.js';
 import { discoverRecovery } from '../services/recovery.js';
 import { type EditorRuntime, editorRuntime } from '../services/runtime.js';
+import { taskErrorMessage, tasks as tasksApi } from '../services/tasks.js';
 import { completePreferenceTheme } from '../services/theme-preferences.js';
 import { type EditorChrome, editorChrome } from '../services/ui-chrome.js';
 import { windowStartup } from '../services/window-startup.js';
@@ -120,6 +133,7 @@ import { type WorkspaceFolder, workspaces } from '../services/workspaces.js';
 import { NativeEditorCommands, nativeEditorCommand } from './native-editor-commands.js';
 
 const KnowledgeGraph = lazy(() => import('../features/knowledge-graph/KnowledgeGraph.js'));
+const TasksWorkbench = lazy(() => import('../features/tasks/TasksWorkbench.js'));
 
 function filename(path: string) {
   return path.split(/[\\/]/).at(-1) ?? '未命名';
@@ -185,6 +199,15 @@ export function App() {
   /** The Git view covers the document like the home view; the editor is inert under it. */
   const [gitViewOpen, setGitViewOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const [newTaskRequest, setNewTaskRequest] = useState(0);
+  const [cliDialog, setCliDialog] = useState(false);
+  // The sidebar slot the task navigation moves into while the task workbench is open.
+  const [taskNavHost, setTaskNavHost] = useState<HTMLDivElement | null>(null);
+  const [taskLinkRequest, setTaskLinkRequest] = useState<{
+    seq: number;
+    target: LinkTarget;
+  } | null>(null);
   const [gitRepository, setGitRepository] = useState(false);
   const gitApi = useRef<GitContextValue | null>(null);
   /** Application menu handler; the search window runs its actions through the same guards. */
@@ -420,14 +443,14 @@ export function App() {
     strict = false,
     expectedSource?: string,
   ): Promise<void> => {
-    if (editor.current?.isImagePreviewOpen || graphOpen) return Promise.resolve();
+    if (editor.current?.isImagePreviewOpen || graphOpen || tasksOpen) return Promise.resolve();
     setStatisticsOpen(false);
     setRecoveryOpen(false);
     setRecentOpen(false);
     const active = editor.current;
     const owner = doc.getOwner();
     const work = editorCommandWork.current.then(async () => {
-      if (actions.current.graphOpen) return;
+      if (actions.current.graphOpen || actions.current.tasksOpen) return;
       if (!active || editor.current !== active || actions.current.doc.getOwner() !== owner)
         throw new Error('编辑文档已更换，请重试编辑操作');
       if (expectedSource !== undefined && active.getMarkdown() !== expectedSource)
@@ -640,6 +663,7 @@ export function App() {
     }
     if (!graphOpen) {
       gitApi.current?.closeView();
+      setTasksOpen(false);
       documentAreaElement.current
         ?.querySelector('.runtime-editor-mount')
         ?.setAttribute('inert', '');
@@ -647,11 +671,129 @@ export function App() {
     flushSync(() => setGraphOpen((value) => !value));
   };
   useEffect(() => {
-    if (gitViewOpen) setGraphOpen(false);
+    if (gitViewOpen) {
+      setGraphOpen(false);
+      setTasksOpen(false);
+    }
   }, [gitViewOpen]);
   useEffect(() => {
-    if (!sessionWorkspace) setGraphOpen(false);
+    if (!sessionWorkspace) {
+      setGraphOpen(false);
+      setTasksOpen(false);
+    }
   }, [sessionWorkspace]);
+  /** Tasks cover the document card like the graph; `create` also opens the new-task dialog. */
+  const toggleTasks = (create = false) => {
+    if (tasksOpen && !create) {
+      flushSync(() => setTasksOpen(false));
+      return;
+    }
+    if (!workspaceIdentity.current) {
+      doc.setMessage('请先打开文件夹，再管理任务');
+      return;
+    }
+    if (!tasksOpen) {
+      if (editor.current?.isComposing) {
+        doc.setMessage('请先完成当前输入');
+        return;
+      }
+      gitApi.current?.closeView();
+      setGraphOpen(false);
+      documentAreaElement.current
+        ?.querySelector('.runtime-editor-mount')
+        ?.setAttribute('inert', '');
+    }
+    if (create) setNewTaskRequest((n) => n + 1);
+    flushSync(() => setTasksOpen(true));
+  };
+  // Task changes an agent made in this window: say so, and offer to take the whole turn back.
+  useEffect(() => {
+    const stop = listen<AiChange>('marklyra:tasks-ai', (event) => {
+      const change = event.payload;
+      const count = aiChangeCount(change.receipts);
+      if (!count) return;
+      notify(`AI 修改了 ${count} 个任务`, 'info', {
+        actions: [
+          {
+            label: '撤销',
+            run: () =>
+              void undoAiChanges(change).then(
+                ({ undone, skipped }) =>
+                  notify(
+                    skipped
+                      ? `已撤销 ${undone} 项；${skipped} 项之后又被修改，保留现状`
+                      : `已撤销 AI 的 ${undone} 项修改`,
+                    skipped ? 'info' : 'success',
+                  ),
+                (error: unknown) => notify(taskErrorMessage(error), 'error'),
+              ),
+          },
+        ],
+      });
+    });
+    return () => void stop.then((f) => f()).catch(() => {});
+  }, []);
+  /** Turns the selected text into a task and puts a link to it in its place. */
+  const convertSelectionToTask = async () => {
+    const workspace = workspaceIdentity.current;
+    const active = editor.current;
+    if (!workspace || !active) {
+      doc.setMessage('请先打开文件夹，再把文字转为任务');
+      return;
+    }
+    const selected = active.getSelection().text;
+    const title = selected.replace(/\s+/g, ' ').trim();
+    if (!title) {
+      notify('请先选中要转为任务的文字', 'info');
+      return;
+    }
+    if (title.length > 500) {
+      notify('选中的文字过长，任务标题不超过 500 个字符', 'error');
+      return;
+    }
+    try {
+      const project = lastTaskProject(workspace.id);
+      const result = await tasksApi.mutate(workspace.id, {
+        kind: 'createTask',
+        draft: { title, project },
+      });
+      const id = result.applied[0];
+      if (!id) return;
+      const snapshot = await tasksApi.snapshot(workspace.id);
+      const task = snapshot.tasks.find((t) => t.id === id);
+      const key =
+        snapshot.projects.find((p) => p.id === task?.project)?.key ??
+        snapshot.settings.unassignedKey;
+      const humanId = `${key}-${task?.number ?? ''}`;
+      const open = { label: '打开', run: () => actions.current.openTaskLink({ kind: 'task', id }) };
+      // Only the text that was selected is replaced; a moved selection keeps the note as it is.
+      if (editor.current !== active || active.getSelection().text !== selected) {
+        await navigator.clipboard?.writeText(taskLink(humanId, title, id)).catch(() => {});
+        notify(`已创建 ${humanId}；选区已变化，链接已复制`, 'info', { actions: [open] });
+        return;
+      }
+      await command(
+        {
+          type: 'replaceSelectionWithLink',
+          url: `task:${id}`,
+          title: taskLinkText(humanId, title),
+        },
+        true,
+      );
+      notify(`已创建 ${humanId}`, 'success', { actions: [open] });
+    } catch (error) {
+      doc.setMessage(taskErrorMessage(error));
+    }
+  };
+  /** A ⌘-clicked task or project link in a note opens it in the task workbench. */
+  const openTaskLink = (target: LinkTarget) => {
+    if (!workspaceIdentity.current) {
+      doc.setMessage('请先打开包含这篇笔记的文件夹，再打开任务链接');
+      return;
+    }
+    setTaskLinkRequest((previous) => ({ seq: (previous?.seq ?? 0) + 1, target }));
+    if (!tasksOpen) toggleTasks();
+  };
   const toggleAiPanel = () => {
     setDetailsMode('ai');
     setAiPanelOpen((open) => !open);
@@ -756,11 +898,11 @@ export function App() {
   useEffect(() => {
     documentAreaElement.current
       ?.querySelector('.runtime-editor-mount')
-      ?.toggleAttribute('inert', homeVisible || gitViewOpen || graphOpen);
-    if (wasHome.current && !homeVisible && !gitViewOpen && !graphOpen)
+      ?.toggleAttribute('inert', homeVisible || gitViewOpen || graphOpen || tasksOpen);
+    if (wasHome.current && !homeVisible && !gitViewOpen && !graphOpen && !tasksOpen)
       void editor.current?.focus().catch(() => {});
-    wasHome.current = homeVisible || gitViewOpen || graphOpen;
-  }, [homeVisible, gitViewOpen, graphOpen]);
+    wasHome.current = homeVisible || gitViewOpen || graphOpen || tasksOpen;
+  }, [homeVisible, gitViewOpen, graphOpen, tasksOpen]);
   const rename = useDocumentRename({
     file:
       doc.file && doc.file.locationState !== 'trashed'
@@ -893,6 +1035,10 @@ export function App() {
     toggleAiPanel,
     toggleGraph,
     graphOpen,
+    toggleTasks,
+    openTaskLink,
+    convertSelectionToTask,
+    tasksOpen,
     command,
     doc,
     exporter,
@@ -918,7 +1064,12 @@ export function App() {
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
     editorObscured:
-      imagePreviewOpen || homeVisible || quickOpen !== null || gitViewOpen || graphOpen,
+      imagePreviewOpen ||
+      homeVisible ||
+      quickOpen !== null ||
+      gitViewOpen ||
+      graphOpen ||
+      tasksOpen,
     blockedEditorCommand:
       imagePreviewOpen ||
       !ready ||
@@ -943,6 +1094,10 @@ export function App() {
     toggleAiPanel,
     toggleGraph,
     graphOpen,
+    toggleTasks,
+    openTaskLink,
+    convertSelectionToTask,
+    tasksOpen,
     command,
     doc,
     exporter,
@@ -968,7 +1123,12 @@ export function App() {
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
     editorObscured:
-      imagePreviewOpen || homeVisible || quickOpen !== null || gitViewOpen || graphOpen,
+      imagePreviewOpen ||
+      homeVisible ||
+      quickOpen !== null ||
+      gitViewOpen ||
+      graphOpen ||
+      tasksOpen,
     blockedEditorCommand:
       imagePreviewOpen ||
       !ready ||
@@ -1299,6 +1459,7 @@ export function App() {
       gitView: gitViewOpen,
       graphView: graphOpen,
       graphAvailable: !!sessionWorkspace,
+      tasksView: tasksOpen,
       gitRepository,
       dailyAvailable: !!daily.location,
       dailyOpen: !!daily.activeKey,
@@ -1448,6 +1609,22 @@ export function App() {
       }
       if (value === 'view:graph') {
         actions.current.toggleGraph();
+        return;
+      }
+      if (value === 'cli:install') {
+        setCliDialog(true);
+        return;
+      }
+      if (value === 'task:convert') {
+        void actions.current.convertSelectionToTask();
+        return;
+      }
+      if (value === 'view:tasks' || value === 'task:new') {
+        actions.current.toggleTasks(value === 'task:new');
+        return;
+      }
+      if (actions.current.tasksOpen && (value === 'close' || value === 'close-document')) {
+        setTasksOpen(false);
         return;
       }
       if (actions.current.graphOpen && (value === 'close' || value === 'close-document')) {
@@ -1851,6 +2028,7 @@ export function App() {
         graphOpen,
         !!sessionWorkspace,
         sidebar,
+        tasksOpen,
       )
       .catch((error: unknown) => {
         if (
@@ -1881,6 +2059,7 @@ export function App() {
     graphOpen,
     sessionWorkspace,
     sidebar,
+    tasksOpen,
   ]);
   useEffect(() => {
     if (!ready || !editor.current) return;
@@ -2116,6 +2295,8 @@ export function App() {
           graphOpen={graphOpen}
           graphAvailable={!!sessionWorkspace}
           onGraph={toggleGraph}
+          tasksOpen={tasksOpen}
+          onTasks={() => toggleTasks()}
           onSidebar={() => setSidebar((visible) => !visible)}
           onOutline={() => {
             setDetailsMode('outline');
@@ -2258,6 +2439,17 @@ export function App() {
           <button
             type="button"
             className="icon-button"
+            title="任务 ⌘⌥T"
+            aria-label="任务"
+            aria-pressed={tasksOpen}
+            disabled={!sessionWorkspace || !ready}
+            onClick={() => toggleTasks()}
+          >
+            <Icon name="tasks" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
             title="AI 助手"
             aria-label="AI 助手"
             aria-pressed={aiPanelOpen}
@@ -2314,8 +2506,14 @@ export function App() {
           data-sidebar-mode={tab}
           className="sidebar"
           hidden={!sidebar}
+          data-tasks={(tasksOpen && workspaceIdentity.current !== null) || undefined}
           style={{ width: sidebarWidth }}
         >
+          {/* Task mode reuses the sidebar for its navigation; the file tree stays mounted
+              (expanded folders, search) and returns unchanged when tasks close. */}
+          {tasksOpen && workspaceIdentity.current && (
+            <div className="task-nav-host" ref={setTaskNavHost} />
+          )}
           {chrome.native ? (
             <SidebarHeader
               mode={tab}
@@ -2779,6 +2977,11 @@ export function App() {
                   ...desktopContextHost,
                   onAction: (value) => actions.current.action(value),
                   onOpenLink: (link) => {
+                    const linked = parseLinkTarget(link.url);
+                    if (linked) {
+                      actions.current.openTaskLink(linked);
+                      return;
+                    }
                     const target = resolveLinkTarget(
                       link.url,
                       link.anchor,
@@ -2929,9 +3132,65 @@ export function App() {
               </Suspense>
             </GraphBoundary>
           )}
+          {tasksOpen && workspaceIdentity.current && (
+            <GraphBoundary title="任务暂时无法显示" close={() => setTasksOpen(false)}>
+              <Suspense
+                fallback={
+                  <div
+                    className="knowledge-surface"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      zIndex: 15,
+                      display: 'flex',
+                      gap: 24,
+                      padding: '12px 16px',
+                      background: 'var(--marklyra-body-bg, var(--surface))',
+                    }}
+                  >
+                    {sidebar && taskNavHost ? (
+                      createPortal(
+                        <div className="task-sidebar-skeleton">
+                          <SkeletonRows rows={4} icon height={30} />
+                        </div>,
+                        taskNavHost,
+                      )
+                    ) : (
+                      <div style={{ width: 200, flexShrink: 0 }}>
+                        <SkeletonRows rows={4} icon height={30} />
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <SkeletonRows rows={8} icon height={34} />
+                    </div>
+                  </div>
+                }
+              >
+                <TasksWorkbench
+                  key={workspaceIdentity.current.id}
+                  workspace={workspaceIdentity.current}
+                  newTaskRequest={newTaskRequest}
+                  openRequest={taskLinkRequest}
+                  navHost={sidebar ? taskNavHost : null}
+                  currentNote={relativeGraphPath(
+                    doc.file?.path ?? null,
+                    workspaceIdentity.current.path,
+                  )}
+                  currentNoteDirty={doc.dirty}
+                  openNote={(relativePath, match) => {
+                    const workspaceId = workspaceIdentity.current?.id;
+                    if (!workspaceId) return;
+                    setTasksOpen(false);
+                    void doc.request({ kind: 'workspace', workspaceId, relativePath, match });
+                  }}
+                  onClose={() => setTasksOpen(false)}
+                />
+              </Suspense>
+            </GraphBoundary>
+          )}
         </main>
         <DocumentDetailsPanel
-          open={(outlinePanelOpen && !graphOpen) || aiPanelOpen}
+          open={(outlinePanelOpen && !graphOpen && !tasksOpen) || aiPanelOpen}
           mode={detailsMode}
           elementRef={detailsElement}
           width={detailsLayout.width}
@@ -3059,8 +3318,16 @@ export function App() {
               }}
             />
           )}
+          {detailsMode === 'outline' && (
+            <NoteTasks
+              workspaceId={sessionWorkspace ? (workspaceIdentity.current?.id ?? null) : null}
+              markdown={doc.snapshot}
+              open={(id) => actions.current.openTaskLink({ kind: 'task', id })}
+            />
+          )}
         </DocumentDetailsPanel>
       </div>
+      {cliDialog && <CliInstallDialog close={() => setCliDialog(false)} />}
       {quickOpen && (
         <QuickOpen
           initialTab={quickOpen.tab}

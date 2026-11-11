@@ -155,6 +155,7 @@ export type {
   RuntimeConfiguration,
   RuntimeSelection,
 } from './protocol.js';
+export { TASK_LINK } from './protocol.js';
 export type { ThemeAppearance } from './styles/appearance.js';
 export type { ThemeStyles } from './styles/contracts.js';
 export type { ThemeFont, ThemeFontDescriptors, ThemeFontSource } from './styles/fonts.js';

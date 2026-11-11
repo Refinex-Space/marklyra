@@ -63,7 +63,10 @@ pub(crate) struct Opened {
     status: IndexStatus,
 }
 
-fn authorized(window: &WebviewWindow, workspace: &str) -> Result<Arc<Workspace>, String> {
+pub(crate) fn authorized(
+    window: &WebviewWindow,
+    workspace: &str,
+) -> Result<Arc<Workspace>, String> {
     require_window(window)?;
     let registry = window
         .state::<WindowServices>()
@@ -76,7 +79,7 @@ fn authorized(window: &WebviewWindow, workspace: &str) -> Result<Arc<Workspace>,
     selected.display_root_binding().map_err(|e| e.to_string())?;
     Ok(selected)
 }
-fn identity(workspace: &Workspace) -> Result<String, String> {
+pub(crate) fn identity(workspace: &Workspace) -> Result<String, String> {
     let bookmark = workspace.bookmark().map_err(|e| e.to_string())?;
     let value = serde_json::to_value(bookmark).map_err(|e| e.to_string())?;
     let identity = value.get("identity").ok_or("目录身份不可用")?;

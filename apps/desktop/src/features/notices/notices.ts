@@ -48,9 +48,18 @@ export function notify(
   text: string,
   kind: NoticeKind = 'info',
   options: { actions?: readonly NoticeAction[] } = {},
-) {
+): void {
+  notifyTracked(text, kind, options);
+}
+
+/** `notify` that also returns the notice id, for retracting it when its action goes stale. */
+export function notifyTracked(
+  text: string,
+  kind: NoticeKind = 'info',
+  options: { actions?: readonly NoticeAction[] } = {},
+): number | undefined {
   const message = text.trim();
-  if (!message) return;
+  if (!message) return undefined;
   const actions = options.actions ?? [];
   const existing = notices.find((notice) => notice.text === message && notice.kind === kind);
   const id = existing?.id ?? next++;
@@ -63,7 +72,7 @@ export function notify(
       actions.length ? Math.max(ACTION_LIFETIME, LIFETIME[kind]) : LIFETIME[kind],
     ),
   );
-  if (existing) return;
+  if (existing) return id;
   const list = [...notices, { id, text: message, kind, actions }];
   for (const evicted of list.slice(0, Math.max(0, list.length - VISIBLE))) {
     const pending = timers.get(evicted.id);
@@ -71,6 +80,7 @@ export function notify(
     timers.delete(evicted.id);
   }
   publish(list.slice(-VISIBLE));
+  return id;
 }
 
 function subscribe(listener: () => void) {

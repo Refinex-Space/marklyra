@@ -240,9 +240,12 @@ fn verify_titlebar(window: &WebviewWindow) -> Result<(), String> {
                     let view = controller.view();
                     for child in view.subviews() {
                         if let Ok(button) = child.downcast::<NSButton>() {
+                            // The task column sits between the sidebar and graph buttons.
                             let expected = if button.action() == Some(sel!(toggleOutline:)) {
-                                Some(138.0)
+                                Some(170.0)
                             } else if button.action() == Some(sel!(toggleSidebar:)) {
+                                Some(138.0)
+                            } else if button.action() == Some(sel!(toggleTasks:)) {
                                 Some(106.0)
                             } else if button.action() == Some(sel!(toggleGraph:)) {
                                 Some(74.0)
@@ -280,7 +283,7 @@ fn verify_titlebar(window: &WebviewWindow) -> Result<(), String> {
                 if !found {
                     return Err("native AI control missing".into());
                 }
-                assert_eq!(aligned, 4, "all four native columns align to the toolbar grid");
+                assert_eq!(aligned, 5, "all five native columns align to the toolbar grid");
                 Ok(())
             })();
             let _ = tx.send(result);
@@ -621,6 +624,108 @@ fn verify_model(
     Ok(())
 }
 
+/// Task tools over the real MCP bridge: query, single create, a batch where only the ticked
+/// item is applied, a stale revision refused, and agent provenance in the activity log.
+fn verify_task_tools(
+    app: &AppHandle,
+    process: &Arc<process::AgentProcess>,
+    rpc: &mut dyn FnMut(&str, Value) -> Result<Value, String>,
+) -> Result<(), String> {
+    let workspace = process
+        .workspace
+        .clone()
+        .ok_or("fixture workspace missing")?;
+    crate::tasks::with_store(app, &workspace, true, |store| {
+        let apply = |store: &mut task_store::TaskStore, value: Value| {
+            store
+                .apply(serde_json::from_value(value).map_err(|e| e.to_string())?)
+                .map_err(|e| e.to_string())
+        };
+        apply(
+            store,
+            json!({"kind":"createProject","name":"官网","key":"WEB"}),
+        )?;
+        apply(
+            store,
+            json!({"kind":"createTask","draft":{"title":"重做首页","project":"web"}}),
+        )?;
+        Ok(((), true))
+    })?;
+    let call = |rpc: &mut dyn FnMut(&str, Value) -> Result<Value, String>,
+                name: &str,
+                args: Value|
+     -> Result<(bool, Value), String> {
+        let reply = rpc("tools/call", json!({"name":name,"arguments":args}))?;
+        let text = reply["content"][0]["text"].as_str().unwrap_or("");
+        Ok((
+            reply["isError"] == true,
+            serde_json::from_str(text).unwrap_or(json!(text)),
+        ))
+    };
+    let tools = rpc("tools/list", json!({}))?;
+    assert!(tools["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|t| t["name"] == "task_propose"));
+    let (error, found) = call(rpc, "task_query", json!({"query":"is:open project:WEB"}))?;
+    assert!(!error, "task_query: {found}");
+    assert_eq!(found["total"], 1);
+    let revision = found["items"][0]["revision"]
+        .as_str()
+        .ok_or("revision missing")?
+        .to_owned();
+    let (error, created) = call(
+        rpc,
+        "task_create",
+        json!({"title":"修复登录白屏","project":"WEB","priority":"high","subtasks":["复现"]}),
+    )?;
+    assert!(!error, "task_create: {created}");
+    assert_eq!(created["items"][0]["applied"], true);
+    let (error, batch) = call(
+        rpc,
+        "task_propose",
+        json!({"items":[{"create":{"title":"补充埋点","project":"WEB"}},{"update":{"id":"WEB-1","revision":revision,"set":{"status":"进行中"}}}]}),
+    )?;
+    assert!(!error, "task_propose: {batch}");
+    assert_eq!(batch["items"][0]["applied"], true);
+    assert_eq!(
+        batch["items"][1]["applied"], false,
+        "unticked item must not apply"
+    );
+    let (error, _) = call(
+        rpc,
+        "task_update",
+        json!({"id":"WEB-1","revision":"stale","set":{"status":"done"}}),
+    )?;
+    assert!(error, "a stale revision must be refused");
+    let (error, first) = call(rpc, "task_get", json!({"id":"WEB-1"}))?;
+    assert!(!error);
+    assert_eq!(first["status"], "todo");
+    let (error, all) = call(rpc, "task_query", json!({"query":"is:open"}))?;
+    assert!(!error);
+    assert_eq!(
+        all["total"], 4,
+        "WEB-1, the new task, its subtask and the ticked batch item"
+    );
+    let created_id = created["items"][0]["result"]["id"]
+        .as_str()
+        .ok_or("created id")?;
+    let activity = fs::read_to_string(
+        process
+            .root
+            .join(".marklyra/tasks/activity")
+            .join(format!("{created_id}.jsonl")),
+    )
+    .map_err(|e| e.to_string())?;
+    assert!(
+        activity.contains("\"by\":\"ai:"),
+        "agent provenance missing: {activity}"
+    );
+    println!("Native MCP task tools: query, approved create, batch selection, stale revision refusal and agent provenance passed");
+    Ok(())
+}
+
 fn verify_mcp(app: &AppHandle, window: &WebviewWindow, id: &str) -> Result<(), String> {
     use std::io::{BufRead, BufReader};
     let process = connection(&app.state::<AgentHostState>(), window, id)?;
@@ -641,23 +746,28 @@ fn verify_mcp(app: &AppHandle, window: &WebviewWindow, id: &str) -> Result<(), S
         if event["connectionId"] != expected || event["kind"] != "tool" {
             return;
         }
+        let name = event["name"].as_str().unwrap_or("");
         let approved = event["context"]["turnId"] == turn
-            && matches!(
-                event["name"].as_str(),
-                Some(
-                    "workspace_write_document"
-                        | "workspace_edit_document"
-                        | "workspace_create_directory"
-                        | "workspace_trash_entry"
-                        | "workspace_restore_entry"
-                )
-            );
+            && (matches!(
+                name,
+                "workspace_write_document"
+                    | "workspace_edit_document"
+                    | "workspace_create_directory"
+                    | "workspace_trash_entry"
+                    | "workspace_restore_entry"
+            ) || name.starts_with("task_"));
+        // A batch proposal is answered like a person ticking only its first item.
+        let decision = if name == "task_propose" {
+            json!({"approved":approved,"selected":[0]})
+        } else {
+            json!({"approved":approved})
+        };
         let _ = mcp::agent_tool_respond(
             app_owned.state::<AgentHostState>(),
             window_owned.clone(),
             expected.clone(),
             event["requestId"].as_str().unwrap_or("").into(),
-            json!({"approved":approved}),
+            decision,
         );
     });
     let config = process.mcp_config.lock().map_err(|_| "MCP config lock")?[0].clone();
@@ -774,6 +884,7 @@ fn verify_mcp(app: &AppHandle, window: &WebviewWindow, id: &str) -> Result<(), S
             true
         );
         assert!(process.root.join("generated/new.md").is_file());
+        verify_task_tools(app, &process, &mut rpc)?;
         process
             .cancelled_turn
             .store(true, std::sync::atomic::Ordering::Release);

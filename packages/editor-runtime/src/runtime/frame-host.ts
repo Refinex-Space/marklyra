@@ -12,6 +12,7 @@ import {
   PROTOCOL,
   type RuntimeConfiguration,
   type RuntimeState,
+  TASK_LINK,
 } from '../protocol.js';
 import type { RuntimeReloadRequest } from '../reload/contracts.js';
 import { marklyraStartupPreferences } from '../startup-preferences.js';
@@ -712,6 +713,16 @@ function command(value: MarkLyraCommand) {
     case 'insertLink':
       editor.UserOp.insertUrlWithTitle(editor, value.url, value.title);
       break;
+    case 'replaceSelectionWithLink': {
+      if (!TASK_LINK.test(value.url)) throw Error('链接无效');
+      const title = value.title
+        .replace(/[\\[\]]/g, '\\$&')
+        .replace(/[\r\n]+/g, ' ')
+        .trim();
+      if (!title) throw Error('链接文字为空');
+      editor.UserOp.pasteHandler(editor, `[${title}](${value.url})`, true);
+      break;
+    }
     case 'setTheme':
       runtime._options.theme = value.theme;
       runtime._options.curTheme = value.theme;
@@ -1463,6 +1474,21 @@ async function ready() {
   const initialState = state(false);
   installFindReplaceGuard(runtime.editor.searchPanel);
   findPanel.install();
+  // ⌘/Ctrl-click on a task or project link opens it in the shell's task workbench; every other
+  // link keeps the engine's own handling.
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (!(event.metaKey || event.ctrlKey) || !(event.target instanceof Element)) return;
+      const link = event.target.closest('#write a[href^="task:"], #write a[href^="project:"]');
+      const url = link?.getAttribute('href') ?? '';
+      if (!TASK_LINK.test(url)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      send('open-link', { url, anchor: '' });
+    },
+    true,
+  );
   send('ready', initialState);
 }
 if (document.readyState === 'loading')

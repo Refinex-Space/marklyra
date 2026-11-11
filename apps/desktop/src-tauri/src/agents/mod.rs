@@ -15,6 +15,7 @@ pub mod image_preview;
 mod install_task;
 pub(crate) mod network;
 mod profiles;
+mod task_tools;
 use install_task::InstallTask;
 pub mod mcp;
 pub mod process;

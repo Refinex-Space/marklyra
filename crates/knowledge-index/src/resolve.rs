@@ -189,9 +189,13 @@ impl Catalog {
         out.fragment = fragment.into_owned();
         let path = path.replace('\\', "/");
         if path.contains(':') || path.starts_with('/') || path.starts_with('~') {
+            // Task and project links point into the task store, not at documents: they are
+            // neither drawn nor counted as unresolved.
             out.status = if path.starts_with("http:")
                 || path.starts_with("https:")
                 || path.starts_with("mailto:")
+                || path.starts_with("task:")
+                || path.starts_with("project:")
             {
                 "external"
             } else {
@@ -332,6 +336,10 @@ mod tests {
                 .status,
             "external"
         );
+        for link in ["task:0123456789abcdefghjk", "project:website"] {
+            assert_eq!(c.resolve("dir/source.md", link, false).status, "external");
+            assert_eq!(c.resolve("dir/source.md", link, true).status, "external");
+        }
         assert_eq!(
             c.resolve("dir/source.md", "#missing", false)
                 .target

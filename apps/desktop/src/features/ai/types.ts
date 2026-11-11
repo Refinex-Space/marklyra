@@ -72,6 +72,20 @@ export interface Interaction {
   preview?: string;
   options: { id: string; name: string; allow: boolean }[];
   schema?: Record<string, unknown>;
+  /** Task changes proposed by the agent; the person ticks which ones to apply. */
+  tasks?: TaskProposal[];
+}
+export interface TaskProposal {
+  op: 'create' | 'update' | 'comment' | 'archive' | 'restore';
+  /** `WEB-12` for an existing task. */
+  ref?: string;
+  title: string;
+  project?: string;
+  changes: { field: string; from?: string | null; to: string }[];
+  description?: string | null;
+  subtasks?: string[];
+  /** An open task with the same title already exists here. */
+  duplicate?: string | null;
 }
 export interface SessionView {
   promptCapabilities: { image: boolean; embeddedContext: boolean };

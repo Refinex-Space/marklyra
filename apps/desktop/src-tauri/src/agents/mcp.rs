@@ -24,6 +24,9 @@ fn schemas() -> Vec<Value> {
         schema("workspace_trash_entry", "Move a document or directory into a recoverable local trash after user approval. Never permanently deletes documents.", json!({"path":{"type":"string"}}), vec!["path"]),
         schema("workspace_restore_entry", "Restore an entry moved to trash by this session; fails if destination exists.", json!({"receipt":{"type":"string"}}), vec!["receipt"]),
     ]
+    .into_iter()
+    .chain(super::task_tools::schemas())
+    .collect()
 }
 fn tool_result(value: Result<Value, String>) -> Value {
     match value {
@@ -260,6 +263,51 @@ fn handle(
                             )
                         };
                         operation()
+                    }
+                    task if super::task_tools::is_task_tool(task) => {
+                        if !super::task_tools::is_write(task) {
+                            return super::task_tools::read(app, process, task, &arguments);
+                        }
+                        let plan = super::task_tools::plan(app, process, task, &arguments)?;
+                        let decision = frontend_tool(
+                            app,
+                            window,
+                            process,
+                            task,
+                            json!({"tasks": plan.preview(), "agent": process.profile.agent_id}),
+                            &session,
+                            &turn.turn_id,
+                        )?;
+                        if decision["approved"] != true {
+                            return Err("用户未批准本次任务修改".into());
+                        }
+                        if process
+                            .mcp_context
+                            .lock()
+                            .map_err(|_| "上下文不可用")?
+                            .turn_id
+                            != turn.turn_id
+                            || process
+                                .cancelled_turn
+                                .load(std::sync::atomic::Ordering::Acquire)
+                        {
+                            return Err("工具授权已过期".into());
+                        }
+                        let selected = super::task_tools::selection(&decision, plan.items.len());
+                        if selected.is_empty() {
+                            return Err("用户没有选择任何一项".into());
+                        }
+                        let (outcome, receipts) =
+                            super::task_tools::execute(app, process, &plan, &selected)?;
+                        if !receipts.is_empty() {
+                            // The workbench offers to undo the whole turn's task changes.
+                            let _ = window.emit_to(
+                                window.label(),
+                                "marklyra:tasks-ai",
+                                json!({"agent": process.profile.agent_id, "turnId": turn.turn_id, "workspaceId": process.workspace_id, "receipts": receipts}),
+                            );
+                        }
+                        Ok(outcome)
                     }
                     _ => Err("不支持的 MarkLyra 文档工具".into()),
                 }

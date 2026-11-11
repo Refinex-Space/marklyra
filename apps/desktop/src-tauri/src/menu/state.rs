@@ -75,6 +75,9 @@ pub struct Snapshot {
     graph_view: bool,
     #[serde(default)]
     graph_available: bool,
+    /// The task workbench covers the document; document commands do nothing.
+    #[serde(default)]
+    tasks_view: bool,
     /// The open folder is a usable Git repository.
     #[serde(default)]
     git_repository: bool,
@@ -159,6 +162,7 @@ fn home_action(action: &str) -> bool {
             | "daily:today"
             | "view:calendar"
             | "preferences"
+            | "cli:install"
             | "view:sidebar"
             | "view:files"
             | "view:articles"
@@ -188,14 +192,24 @@ impl Snapshot {
             // Git acts on the folder, not the document; settings work without a repository.
             return git == "settings" || self.git_repository;
         }
-        if action == "view:graph" {
+        if matches!(action, "view:graph" | "view:tasks" | "task:new") {
             return self.graph_available;
         }
         if self.graph_view && action == "find" {
             return true;
         }
-        if (self.home || self.git_view || self.graph_view) && !home_action(action) {
+        if (self.home || self.git_view || self.graph_view || self.tasks_view)
+            && !home_action(action)
+        {
             return false;
+        }
+        if action == "task:convert" {
+            // Replaces the selection with a task link, so it needs inline editing and a folder.
+            return self.graph_available
+                && !self.text_input_focused
+                && editor.inline_allowed
+                && !editor.source_mode
+                && !editor.locked;
         }
         if self.text_input_focused
             && crate::editor_commands::is_editor_action(action)
@@ -284,6 +298,7 @@ impl Snapshot {
             "view:fullscreen" => self.fullscreen,
             "git:panel" => self.git_view,
             "view:graph" => self.graph_view,
+            "view:tasks" => self.tasks_view,
             _ => {
                 if let Some(style) = action.strip_prefix("format:") {
                     return editor.inline_styles.iter().any(|item| item == style);
@@ -512,6 +527,21 @@ mod tests {
         ] {
             assert!(state.enabled(action), "{action}");
         }
+    }
+    #[test]
+    fn converting_selection_to_task_needs_a_folder_and_editable_inline_text() {
+        let mut state = ready();
+        assert!(!state.enabled("task:convert"), "no folder");
+        state.graph_available = true;
+        assert!(state.enabled("task:convert"));
+        state.text_input_focused = true;
+        assert!(!state.enabled("task:convert"));
+        state.text_input_focused = false;
+        state.tasks_view = true;
+        assert!(!state.enabled("task:convert"), "covered by the workbench");
+        state.tasks_view = false;
+        state.editor.as_mut().unwrap().source_mode = true;
+        assert!(!state.enabled("task:convert"));
     }
     #[test]
     fn history_locked_modal_and_loading_states_gate_actions() {

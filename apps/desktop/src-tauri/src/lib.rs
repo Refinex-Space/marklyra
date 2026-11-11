@@ -2,6 +2,7 @@ pub mod agents;
 mod app_paths;
 mod app_update;
 mod application_preferences;
+mod cli_install;
 mod clipboard;
 mod commands;
 mod context_menu;
@@ -23,6 +24,8 @@ mod preferences_store;
 mod rename_metadata;
 mod runtime_assets;
 mod startup;
+mod tasks;
+mod tasks_import;
 #[cfg(test)]
 mod test_support;
 mod themes;
@@ -87,6 +90,8 @@ pub fn run() {
         .manage(agents::AgentHostState::default())
         .manage(git::GitHost::default())
         .manage(knowledge::KnowledgeHost::default())
+        .manage(tasks::TasksHost::default())
+        .manage(tasks_import::ImportHost::default())
         .invoke_handler(tauri::generate_handler![
             knowledge::knowledge_open,
             knowledge::knowledge_status,
@@ -99,6 +104,20 @@ pub fn run() {
             knowledge::knowledge_anchor,
             knowledge::knowledge_import_view,
             knowledge::knowledge_export_view,
+            tasks::tasks_snapshot,
+            tasks::tasks_mutate,
+            tasks::tasks_detail,
+            tasks::tasks_search,
+            tasks::tasks_mentions,
+            tasks_import::tasks_import_pick,
+            tasks_import::tasks_import_notes,
+            tasks_import::tasks_import_preview,
+            tasks_import::tasks_import_apply,
+            tasks_import::tasks_import_receipts,
+            tasks_import::tasks_import_undo,
+            cli_install::cli_status,
+            cli_install::cli_install,
+            cli_install::cli_uninstall,
             app_update::app_update_status,
             app_update::app_update_automatic,
             app_update::app_update_check,

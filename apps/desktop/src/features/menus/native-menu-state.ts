@@ -28,6 +28,8 @@ export interface NativeMenuPresentation {
   gitView?: boolean;
   graphView?: boolean;
   graphAvailable?: boolean;
+  /** The task workbench covers the document. */
+  tasksView?: boolean;
   /** The open folder is a usable Git repository. */
   gitRepository?: boolean;
 }
@@ -51,6 +53,7 @@ export function nativeMenuCommandAllowed(
     case 'find':
       return true;
     case 'format':
+    case 'replaceSelectionWithLink':
       return !state.locked && !state.sourceMode && state.inlineAllowed;
     case 'heading':
     case 'insertTable':
@@ -96,6 +99,7 @@ export class NativeMenuPublisher {
       gitView: value.gitView === true,
       graphView: value.graphView === true,
       graphAvailable: value.graphAvailable === true,
+      tasksView: value.tasksView === true,
       gitRepository: value.gitRepository === true,
       editor: value.editor
         ? {

@@ -13,6 +13,7 @@ fn main() {
     tauri::Builder::default()
         .manage(window_services::WindowServices::default())
         .manage(agents::AgentHostState::default())
+        .manage(tasks::TasksHost::default())
         .setup(|app| {
             let services = app.state::<window_services::WindowServices>();
             services.register("main")?;

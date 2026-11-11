@@ -2,7 +2,7 @@ import { Component, type ReactNode } from 'react';
 
 /** A graph loading/rendering failure must never unmount the editor or its undo history. */
 export class GraphBoundary extends Component<
-  { children: ReactNode; close: () => void },
+  { children: ReactNode; close: () => void; title?: string },
   { error: string }
 > {
   state = { error: '' };
@@ -27,7 +27,7 @@ export class GraphBoundary extends Component<
           color: 'var(--text)',
         }}
       >
-        <strong>图谱暂时无法显示</strong>
+        <strong>{this.props.title ?? '图谱暂时无法显示'}</strong>
         <p>{this.state.error}</p>
         <button type="button" onClick={this.props.close}>
           返回文档

@@ -45,10 +45,28 @@
   outline: 2px solid var(--ai-accent);
   outline-offset: 2px;
 }
+/* Text entry shows focus through its own field (border and soft glow, following its radius),
+   not a square ring around it: the ring above is for buttons and other keyboard targets. */
+.ai-panel
+:is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select,
+  [contenteditable]
+):focus-visible {
+  outline: none;
+}
+.ai-panel :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select):focus {
+  border-color: color-mix(in srgb, var(--ai-accent) 55%, var(--ai-line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ai-accent) 14%, transparent);
+}
 .ai-panel input,
 .ai-panel select,
 .ai-panel textarea,
 .ai-settings input {
+  transition:
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
   font: inherit;
   color: inherit;
   background: var(--ai-bg);
@@ -1624,4 +1642,101 @@ fieldset.ai-context {
   display: block;
   margin-top: 4px;
   color: var(--muted);
+}
+
+/* Task changes an agent proposes: one row per item, ticked ones are applied. */
+.ai-task-count {
+  color: var(--ai-muted);
+  font-weight: 400;
+}
+.ai-task-items {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.ai-task-item {
+  border-top: 1px solid var(--ai-line);
+  transition: opacity 0.14s;
+}
+.ai-task-item:first-child {
+  border-top: 0;
+}
+.ai-task-item.off {
+  opacity: 0.5;
+}
+.ai-permission .ai-task-item label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 7px 0;
+  cursor: pointer;
+}
+.ai-task-item label input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.ai-task-item > .ai-task-body {
+  padding: 7px 0;
+}
+.ai-task-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+.ai-task-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.ai-task-op {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ai-accent) 14%, transparent);
+  font-size: 11px;
+}
+.ai-task-ref {
+  flex-shrink: 0;
+  color: var(--ai-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+.ai-task-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.ai-task-muted {
+  color: var(--ai-muted);
+}
+.ai-task-warn {
+  color: #b7791f;
+  font-size: 11.5px;
+}
+.ai-task-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+.ai-task-change {
+  display: inline-flex;
+  gap: 5px;
+}
+.ai-task-from {
+  color: var(--ai-muted);
+  text-decoration: line-through;
+}
+.ai-task-desc {
+  max-height: 3.6em;
+  overflow: hidden;
+  color: var(--ai-muted);
+  white-space: pre-wrap;
 }
