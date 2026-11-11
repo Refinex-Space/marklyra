@@ -1,4 +1,6 @@
 node_modules/
+# Local pnpm content-addressable store (created when install cannot use the user store)
+.pnpm-store/
 dist/
 target/
 # Scratch cargo target directories used for isolated builds and tests
