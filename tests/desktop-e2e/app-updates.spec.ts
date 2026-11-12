@@ -152,6 +152,11 @@ for (const fallback of [false, true]) {
     await expect(dialog).toBeVisible();
     await expect(dialog).toBeFocused();
     // A dark thick-glass sheet (docs/DESIGN.md): translucent, blurred, and dark under a dark theme.
+    // Chromium on macOS reports the system Reduce Transparency setting (on in CI runners); the
+    // sheet must then turn opaque and unblurred, still dark.
+    const reduced = await page.evaluate(
+      () => matchMedia('(prefers-reduced-transparency: reduce)').matches,
+    );
     expect(
       await dialog.evaluate((element) => {
         const style = getComputedStyle(element);
@@ -165,7 +170,7 @@ for (const fallback of [false, true]) {
             (style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter')) !== 'none',
         };
       }),
-    ).toEqual({ dark: true, translucent: true, blurred: true });
+    ).toEqual({ dark: true, translucent: !reduced, blurred: !reduced });
     await page.screenshot({ path: info.outputPath('update-dark.png') });
     await page.keyboard.press('Shift+Tab');
     await expect(dialog.getByRole('button', { name: '下载更新' })).toBeFocused();
