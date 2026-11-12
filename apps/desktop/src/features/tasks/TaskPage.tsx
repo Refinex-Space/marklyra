@@ -737,6 +737,7 @@ export function TaskPage(props: Props) {
                   <button
                     type="button"
                     className="task-sub-title"
+                    title={kid.title}
                     onClick={() => props.open(kid.id)}
                   >
                     {kid.title}

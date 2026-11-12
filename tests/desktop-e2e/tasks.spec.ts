@@ -1803,3 +1803,41 @@ test('the 日历 settings page replaces 日程 and keeps only display choices', 
   await expect(page_).not.toContainText('模板');
   await expect(settings.getByRole('button', { name: '日程', exact: true })).toHaveCount(0);
 });
+
+test('long subtask titles truncate instead of pushing the task page past its left edge', async ({
+  page,
+}) => {
+  // Narrow enough that the page and the property card must share the width.
+  await page.setViewportSize({ width: 1200, height: 767 });
+  await setup(page);
+  await page.evaluate(() => {
+    const m = Reflect.get(window, '__tasksMock') as {
+      tasks: { title: string; parent: string | null; id: string }[];
+    };
+    const parent = m.tasks.find((t) => t.title === '重做首页首屏视觉');
+    const kid = m.tasks.find((t) => t.parent === parent?.id);
+    if (kid)
+      kid.title =
+        '1.收集大家的下周和本周工作内容 2.收集新平台的进度 3.和骆总沟通用户管理是否调整， 是否新增一个独立的用户管理页面与权限配置能力并同步给所有人';
+  });
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await row(page, '重做首页首屏视觉').click();
+  await expect(page.locator('.task-prop-card')).toBeVisible();
+  const layout = await page.evaluate(() => {
+    const pane = document.querySelector('.task-page') as HTMLElement;
+    const main = document.querySelector('.task-main') as HTMLElement;
+    const title = document.querySelector('.task-sub-title') as HTMLElement;
+    return {
+      paneLeft: pane.getBoundingClientRect().left,
+      mainLeft: main.getBoundingClientRect().left,
+      overflow: pane.scrollWidth - pane.clientWidth,
+      truncated: title.scrollWidth > title.clientWidth,
+    };
+  });
+  expect(layout.mainLeft).toBeGreaterThanOrEqual(layout.paneLeft);
+  expect(layout.overflow).toBeLessThanOrEqual(0);
+  expect(layout.truncated).toBe(true);
+  // The full title stays one hover away.
+  await expect(page.locator('.task-sub-title').first()).toHaveAttribute('title', /同步给所有人$/);
+  if (process.env.OVERFLOW_SHOT) await page.screenshot({ path: process.env.OVERFLOW_SHOT });
+});
