@@ -18,10 +18,8 @@ export interface NativeMenuPresentation {
   /** The home view covers the editor. */
   home?: boolean;
   textInputFocused?: boolean;
-  /** 日程 is enabled and a folder is open. */
-  dailyAvailable?: boolean;
-  /** A day or week note (or its unsaved draft) is open. */
-  dailyOpen?: boolean;
+  /** The sidebar calendar is enabled and a folder is open. */
+  calendarAvailable?: boolean;
   /** The calendar is expanded below the file list. */
   calendar?: boolean;
   /** The Git view covers the document. */
@@ -95,8 +93,7 @@ export class NativeMenuPublisher {
       canImport: value.canImport === true,
       canRename: value.canRename === true,
       home: value.home === true,
-      dailyAvailable: value.dailyAvailable === true,
-      dailyOpen: value.dailyOpen === true,
+      calendarAvailable: value.calendarAvailable === true,
       calendar: value.calendar === true,
       gitView: value.gitView === true,
       graphView: value.graphView === true,

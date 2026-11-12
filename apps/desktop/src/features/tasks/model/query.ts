@@ -195,6 +195,8 @@ function matchValue(task: TaskMeta, key: QueryKey, raw: string, catalog: Catalog
       if (v === 'overdue') return d < 0 && catalog.isOpen(task);
       if (v === 'today') return d === 0;
       if (v === 'week') return d <= 7;
+      // One calendar day, as the sidebar calendar asks for it.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return task.due === v;
       const m = /^([<>])(\d+)([dw])$/.exec(v);
       if (!m) return false;
       const n = Number(m[2]) * (m[3] === 'w' ? 7 : 1);

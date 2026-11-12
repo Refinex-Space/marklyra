@@ -1,5 +1,6 @@
 .daily-calendar {
   --daily-accent: var(--focus);
+  --daily-overdue: #d6443c;
   --daily-cell-height: 30px;
   container: daily-sidebar / inline-size;
   flex-shrink: 0;
@@ -124,17 +125,6 @@ span.daily-calendar-title {
   padding-bottom: 4px;
   opacity: 0.7;
 }
-.daily-calendar-week button {
-  width: 100%;
-  height: 100%;
-  padding: 0;
-}
-.daily-calendar-week button[data-note] {
-  color: var(--daily-accent);
-}
-.daily-calendar-week button[data-selected] {
-  background: var(--selected);
-}
 .daily-day {
   position: relative;
   display: flex;
@@ -196,9 +186,13 @@ span.daily-calendar-title {
   opacity: 0;
   transition: opacity 0.16s ease;
 }
-.daily-day-mark[data-mark="note"] {
+.daily-day-mark[data-mark="done"] {
   background: var(--muted);
-  opacity: 0.85;
+  opacity: 0.6;
+}
+.daily-day-mark[data-mark="overdue"] {
+  background: var(--daily-overdue);
+  opacity: 1;
 }
 .daily-day-mark[data-mark="open"] {
   background: var(--daily-accent);
@@ -267,68 +261,6 @@ span.daily-calendar-title {
     transition: none;
   }
 }
-.daily-header {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 4px;
-  min-height: 40px;
-  padding: 4px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  font-size: 13px;
-}
-.daily-header button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 6px;
-  color: var(--muted);
-  background: transparent;
-  border: 0;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.daily-header button:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--hover);
-}
-.daily-header button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
-}
-.daily-header .ui-icon {
-  width: 15px;
-  height: 15px;
-}
-.daily-header-title {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-  padding: 0 4px;
-  white-space: nowrap;
-}
-.daily-header-title span {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 12px;
-  text-overflow: ellipsis;
-}
-.daily-header .daily-header-today {
-  color: var(--focus);
-  font-size: 12px;
-}
-.daily-header-draft {
-  margin-left: auto;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
 .home-today-date {
   margin-left: 6px;
   color: var(--muted);
@@ -353,11 +285,26 @@ span.daily-calendar-title {
   font-size: 11px;
   line-height: inherit;
 }
-.home-today-time {
+.home-task-id {
   flex: 0 0 auto;
-  color: var(--focus);
-  font-size: 12px;
+  color: var(--muted);
+  font:
+    12px ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
   font-variant-numeric: tabular-nums;
+}
+.home-task-due {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.home-task-due.late {
+  color: var(--daily-overdue, #d6443c);
 }
 .home-today-list .home-today-more {
   justify-content: center;

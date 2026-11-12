@@ -13,6 +13,10 @@ export const taskLink = (humanId: string, title: string, id: string) =>
 export const projectLink = (name: string, slug: string) => `[${escapeText(name)}](project:${slug})`;
 
 export type LinkTarget = { kind: 'task' | 'project'; id: string };
+/** What the window asks the workbench to show: a linked task or project, or tasks by due date
+ * (`id` holds `due:` values such as `2026-11-12` or `overdue,today`), optionally starting a new
+ * task due that day. */
+export type OpenTarget = LinkTarget | { kind: 'day'; id: string; create?: boolean };
 /** `task:<id>` / `project:<slug>` as reported by a clicked link. */
 export function parseLinkTarget(url: string): LinkTarget | null {
   const m = /^(task|project):([a-z0-9][a-z0-9-]{0,39})$/.exec(url.trim());

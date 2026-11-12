@@ -63,37 +63,12 @@ function owner(context: string | null): string {
   if (!id) throw new Error('当前宿主尚未提供图片暂存能力');
   return id;
 }
-/**
- * A day's draft becomes its file before an image is written, so the image is stored
- * beside the note instead of in a draft store that is discarded with the draft.
- */
-export interface DraftImageHandoff {
-  /** The owner the image is written to: the new document, or `draft` unchanged. Synchronous
-   * unless a file must be created, so the usual write keeps capturing its epoch at invocation. */
-  materialize(draft: string): string | Promise<string>;
-  /** Called once the write finished; the editor then adopts the new owner. */
-  settle(draft: string, next: string): void;
-}
-let draftHandoff: DraftImageHandoff | null = null;
-export function setDraftImageHandoff(handoff: DraftImageHandoff): () => void {
-  draftHandoff = handoff;
-  return () => {
-    if (draftHandoff === handoff) draftHandoff = null;
-  };
-}
 interface WriteOwner {
   id: string;
   settle(): void;
 }
 function writeOwner(context: string | null): WriteOwner | Promise<WriteOwner> {
-  const draft = owner(context);
-  const handoff = draftHandoff;
-  const target = (id: string): WriteOwner => ({
-    id,
-    settle: () => (id === draft ? undefined : handoff?.settle(draft, id)),
-  });
-  const id = handoff ? handoff.materialize(draft) : draft;
-  return typeof id === 'string' ? target(id) : id.then(target);
+  return { id: owner(context), settle: () => {} };
 }
 
 export type PreparedImageSave =

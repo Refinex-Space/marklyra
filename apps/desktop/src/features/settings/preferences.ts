@@ -4,10 +4,10 @@ import {
   marklyraEditorPreferences,
 } from '@marklyra/editor-runtime';
 import {
-  type DailyPreferences,
-  defaultDailyPreferences,
-  normalizeDailyPreferences,
-} from '../daily/daily-preferences.js';
+  type CalendarPreferences,
+  defaultCalendarPreferences,
+  normalizeCalendarPreferences,
+} from '../calendar/calendar-preferences.js';
 import {
   defaultFileSidebarPreferences,
   type FileSidebarPreferences,
@@ -36,7 +36,7 @@ export interface Preferences {
   customWordsPerMinute: boolean;
   editorPreferences: MarkLyraEditorPreferences;
   fileSidebar: FileSidebarPreferences;
-  daily: DailyPreferences;
+  calendar: CalendarPreferences;
   git: GitPreferences;
 }
 export const defaultPreferences: Preferences = {
@@ -54,7 +54,7 @@ export const defaultPreferences: Preferences = {
   customWordsPerMinute: false,
   editorPreferences: { ...defaultMarkLyraEditorPreferences },
   fileSidebar: { ...defaultFileSidebarPreferences },
-  daily: { ...defaultDailyPreferences },
+  calendar: { ...defaultCalendarPreferences },
   git: { ...defaultGitPreferences },
 };
 export const preferencesKey = 'marklyra-preferences-v1';
@@ -68,7 +68,8 @@ export function normalizePreferences(value: unknown): Preferences {
   }
   return {
     fileSidebar: normalizeFileSidebarPreferences(input.fileSidebar),
-    daily: normalizeDailyPreferences(input.daily),
+    // The calendar used to live in the retired 日程 settings; its display choices carry over.
+    calendar: normalizeCalendarPreferences(input.calendar ?? input.daily),
     git: normalizeGitPreferences(input.git),
     editorPreferences,
     imageStorageFolder: normalizeImageStorageFolder(input.imageStorageFolder),

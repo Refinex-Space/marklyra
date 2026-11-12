@@ -28,17 +28,11 @@ import { SkeletonRows } from '../components/Skeleton.js';
 import { Titlebar } from '../components/Titlebar.js';
 import { useModalFocus } from '../components/useModalFocus.js';
 import { AiPanel } from '../features/ai/AiPanel.js';
+import { CalendarPanel } from '../features/calendar/CalendarPanel.js';
+import type { CalendarPreferences } from '../features/calendar/calendar-preferences.js';
+import { useTaskAgenda } from '../features/calendar/useTaskAgenda.js';
+import { useToday } from '../features/calendar/useToday.js';
 import { CliInstallDialog } from '../features/cli/CliInstallDialog.js';
-import { CalendarPanel } from '../features/daily/CalendarPanel.js';
-import { DailyHeader } from '../features/daily/DailyHeader.js';
-import {
-  type DailyPreferences,
-  dailyRelativePath,
-  effectiveWeekStart,
-} from '../features/daily/daily-preferences.js';
-import { HomeToday } from '../features/daily/HomeToday.js';
-import { dateQuickItems } from '../features/daily/quick-dates.js';
-import { useDailyController } from '../features/daily/useDailyController.js';
 import { DocumentDetailsPanel } from '../features/document-details/DocumentDetailsPanel.js';
 import {
   documentDetailsTransitionMs,
@@ -64,6 +58,7 @@ import { GitFileDecorations, GitOverlays } from '../features/git/GitOverlays.js'
 import { type GitContextValue, GitProvider } from '../features/git/GitProvider.js';
 import { GitWorkbench } from '../features/git/GitWorkbench.js';
 import { HomeScreen } from '../features/home/HomeScreen.js';
+import { HomeTasks } from '../features/home/HomeTasks.js';
 import { GraphBoundary } from '../features/knowledge-graph/GraphBoundary.js';
 import { relativeGraphPath } from '../features/knowledge-graph/model.js';
 import { nativeMenuCommandAllowed } from '../features/menus/native-menu-state.js';
@@ -101,7 +96,7 @@ import type { DescriptionEditorSetup } from '../features/tasks/DescriptionEditor
 import { descriptionTarget, focusedDescription } from '../features/tasks/description-target.js';
 import { lastTaskProject } from '../features/tasks/model/last-project.js';
 import {
-  type LinkTarget,
+  type OpenTarget,
   parseLinkTarget,
   taskLink,
   taskLinkText,
@@ -228,7 +223,7 @@ export function App() {
   const [taskNavHost, setTaskNavHost] = useState<HTMLDivElement | null>(null);
   const [taskLinkRequest, setTaskLinkRequest] = useState<{
     seq: number;
-    target: LinkTarget;
+    target: OpenTarget;
   } | null>(null);
   const [gitRepository, setGitRepository] = useState(false);
   const gitApi = useRef<GitContextValue | null>(null);
@@ -312,12 +307,7 @@ export function App() {
       setGraphOpen(false);
     }
   }, [graphDocumentOwner]);
-  // A day's unsaved draft is already named after the file it becomes.
-  const documentName = doc.file
-    ? filename(doc.file.path)
-    : doc.dailyDraft
-      ? `${doc.dailyDraft.key}.md`
-      : '未命名';
+  const documentName = doc.file ? filename(doc.file.path) : '未命名';
   const cancelDocumentAction = async () => {
     if (doc.working || !doc.pending || cancellingDocumentRef.current) return;
     cancellingDocumentRef.current = true;
@@ -808,7 +798,7 @@ export function App() {
     }
   };
   /** A ⌘-clicked task or project link in a note opens it in the task workbench. */
-  const openTaskLink = (target: LinkTarget) => {
+  const openTaskLink = (target: OpenTarget) => {
     if (!workspaceIdentity.current) {
       doc.setMessage('请先打开包含这篇笔记的文件夹，再打开任务链接');
       return;
@@ -827,41 +817,64 @@ export function App() {
   const startupFailed = Boolean(
     applicationSystem.error || markdownSystem.error || doc.message || doc.recoveryError,
   );
-  const daily = useDailyController(
-    doc,
-    sessionWorkspace ? workspaceIdentity.current : null,
-    preferences.daily,
-    () => void editor.current?.focus().catch((error) => doc.setMessage(String(error))),
+  // The calendar and the home view's 今天 read the workspace's tasks by due date.
+  const today = useToday();
+  const taskWorkspaceId = sessionWorkspace ? (workspaceIdentity.current?.id ?? null) : null;
+  const taskAgenda = useTaskAgenda(taskWorkspaceId, today);
+  /** The day whose due tasks the workbench was opened on from the calendar. */
+  const [calendarDay, setCalendarDay] = useState<string | null>(null);
+  useEffect(() => {
+    if (tasksOpen) return;
+    setCalendarDay(null);
+    // The next workbench answers only the requests made for it.
+    setNewTaskRequest(0);
+  }, [tasksOpen]);
+  const openTasksDue = (due: string, create = false) => {
+    setCalendarDay(/^\d{4}-\d{2}-\d{2}$/.test(due) ? due : null);
+    openTaskLink({ kind: 'day', id: due, create });
+  };
+  /** The same calendar sits under the file tree and, while tasks are open, under their navigation. */
+  const calendarPanel = (disabled: boolean) => (
+    <CalendarPanel
+      agenda={taskAgenda}
+      preferences={preferences.calendar}
+      onPreferencesChange={changeCalendarPreferences}
+      today={today}
+      activeDay={tasksOpen ? calendarDay : null}
+      platform={runtime?.platform ?? 'browser'}
+      disabled={disabled}
+      onOpenDay={(day) => openTasksDue(day)}
+      onNewTask={(day) => openTasksDue(day, true)}
+    />
   );
-  const changeDailyPreferences = (next: DailyPreferences) =>
-    setPreferences((current) => ({ ...current, daily: next }));
+  const changeCalendarPreferences = (next: CalendarPreferences) =>
+    setPreferences((current) => ({ ...current, calendar: next }));
+  const calendarAvailable = !!taskWorkspaceId && preferences.calendar.enabled;
   const calendarShown =
-    !!daily.location &&
+    calendarAvailable &&
     sidebar &&
     tab === 'files' &&
-    preferences.daily.calendarView !== 'collapsed';
+    preferences.calendar.calendarView !== 'collapsed';
   /** 显示 → 日历: reveal the calendar (opening the sidebar if needed), or collapse it. */
   const toggleCalendar = () => {
-    const settings = preferences.daily;
+    const settings = preferences.calendar;
     if (!settings.enabled) return;
     if (calendarShown) {
-      changeDailyPreferences({ ...settings, calendarView: 'collapsed' });
+      changeCalendarPreferences({ ...settings, calendarView: 'collapsed' });
       return;
     }
     setSidebar(true);
     setTab('files');
     if (settings.calendarView === 'collapsed')
-      changeDailyPreferences({ ...settings, calendarView: settings.expandedView });
+      changeCalendarPreferences({ ...settings, calendarView: settings.expandedView });
   };
   // The first screen of a window with nothing open. It covers the editor, which stays mounted but
-  // inert underneath, so no input or command can reach text nobody can see. A day's unsaved draft
-  // is a document being written, never the home view.
+  // inert underneath, so no input or command can reach text nobody can see.
   const homeVisible =
     homeAllowed &&
     startupSettled &&
     !homeDismissed &&
     !doc.file &&
-    !doc.dailyDraft &&
     !doc.dirty &&
     !doc.pending &&
     doc.snapshot === '';
@@ -1104,7 +1117,6 @@ export function App() {
       closingPanel,
     preferencesOpen,
     statisticsOpen,
-    daily,
     toggleCalendar,
     gitMenu: (value: string) => gitMenu(value),
   });
@@ -1163,7 +1175,6 @@ export function App() {
       closingPanel,
     preferencesOpen,
     statisticsOpen,
-    daily,
     toggleCalendar,
     gitMenu: (value: string) => gitMenu(value),
   };
@@ -1531,8 +1542,7 @@ export function App() {
       tasksView: tasksOpen,
       taskDescription: tasksOpen && descriptionEditor !== null,
       gitRepository,
-      dailyAvailable: !!daily.location,
-      dailyOpen: !!daily.activeKey,
+      calendarAvailable,
       calendar: calendarShown,
     },
     async () => {
@@ -1727,14 +1737,6 @@ export function App() {
       }
       if (value === 'view:ai') {
         actions.current.toggleAiPanel();
-        return;
-      }
-      if (value === 'daily:today') {
-        actions.current.daily.openToday();
-        return;
-      }
-      if (value === 'daily:previous' || value === 'daily:next') {
-        actions.current.daily.step(value === 'daily:previous' ? -1 : 1);
         return;
       }
       if (value === 'view:calendar') {
@@ -2604,6 +2606,9 @@ export function App() {
           {tasksOpen && workspaceIdentity.current && (
             <div className="task-nav-host" ref={setTaskNavHost} />
           )}
+          {tasksOpen && workspaceIdentity.current && preferences.calendar.enabled && (
+            <div className="task-calendar-host">{calendarPanel(!ready || !!doc.pending)}</div>
+          )}
           {chrome.native ? (
             <SidebarHeader
               mode={tab}
@@ -2810,30 +2815,8 @@ export function App() {
                 void doc.request({ kind: 'workspace', workspaceId, relativePath, match });
               }}
               renderCalendar={
-                preferences.daily.enabled
-                  ? (context) => (
-                      <CalendarPanel
-                        location={{
-                          workspaceId: context.workspace.id,
-                          folder: preferences.daily.folder,
-                          layout: preferences.daily.layout,
-                        }}
-                        preferences={preferences.daily}
-                        onPreferencesChange={changeDailyPreferences}
-                        today={daily.today}
-                        activeKey={daily.activeKey}
-                        liveText={
-                          daily.activeKey && doc.file
-                            ? { key: daily.activeKey, text: doc.snapshot }
-                            : null
-                        }
-                        refresh={context.refresh}
-                        platform={runtime?.platform ?? 'browser'}
-                        disabled={context.disabled || !ready || !!doc.pending}
-                        onOpen={daily.open}
-                        onEntryAction={context.entryAction}
-                      />
-                    )
+                preferences.calendar.enabled
+                  ? (context) => calendarPanel(context.disabled || !ready || !!doc.pending)
                   : undefined
               }
               onCurrentDocument={(match) => {
@@ -2961,25 +2944,6 @@ export function App() {
                 重试
               </button>
             </div>
-          )}
-          {daily.activeKey && !homeVisible && (
-            <DailyHeader
-              noteKey={daily.activeKey}
-              today={daily.today}
-              lunar={preferences.daily.lunar}
-              draftPath={
-                doc.dailyDraft
-                  ? dailyRelativePath(
-                      doc.dailyDraft.location.folder,
-                      doc.dailyDraft.location.layout,
-                      doc.dailyDraft.key,
-                    )
-                  : null
-              }
-              disabled={!ready || doc.working || !!doc.pending}
-              onStep={daily.step}
-              onToday={daily.openToday}
-            />
           )}
           <div className="runtime-editor-mount">
             {runtime && doc.recoveryReady && markdownSystem.initial && applicationSystem.value ? (
@@ -3149,21 +3113,15 @@ export function App() {
               onOpenRecent={(id) => void doc.request({ kind: 'recent', id })}
               onViewAll={() => menuHandler.current('recent-files')}
               today={
-                daily.location ? (
-                  <HomeToday
-                    location={daily.location}
-                    today={daily.today}
-                    lunar={preferences.daily.lunar}
+                taskWorkspaceId ? (
+                  <HomeTasks
+                    agenda={taskAgenda}
+                    today={today}
+                    lunar={preferences.calendar.lunar}
                     mac={runtime?.platform === 'macos'}
-                    onOpenDay={daily.openToday}
-                    onOpenItem={(relativePath, item) =>
-                      void doc.request({
-                        kind: 'workspace',
-                        workspaceId: daily.location?.workspaceId ?? '',
-                        relativePath,
-                        match: { line: item.line, column: item.column, matchLength: 0 },
-                      })
-                    }
+                    onOpenTask={(id) => openTaskLink({ kind: 'task', id })}
+                    onOpenDay={() => openTasksDue('overdue,today')}
+                    onNewTask={() => toggleTasks(true)}
                   />
                 ) : undefined
               }
@@ -3432,25 +3390,13 @@ export function App() {
               ...(exporter.capabilities?.image ? ['image'] : []),
               ...(exporter.capabilities?.formats ?? []),
             ],
-            daily: !!daily.location,
-            dailyOpen: !!daily.activeKey,
+            calendar: calendarAvailable,
             run: (action) => menuHandler.current(action),
             openAiSettings: () => {
               sessionStorage.setItem('marklyra.settings.ai', 'true');
               actions.current.openPreferences();
             },
           })}
-          dates={
-            daily.location
-              ? (query, tab) =>
-                  dateQuickItems(query, tab, {
-                    today: daily.today,
-                    weekStart: effectiveWeekStart(preferences.daily.weekStart),
-                    weekly: preferences.daily.weekly,
-                    open: (key) => actions.current.daily.open(key),
-                  })
-              : undefined
-          }
           notes={quickNotes?.items ?? null}
           {...(quickNotes?.hint ? { notesHint: quickNotes.hint } : {})}
           onClose={closeQuickOpen}

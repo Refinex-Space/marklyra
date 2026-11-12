@@ -18,7 +18,6 @@ const ACCELERATORS: Record<string, string> = {
   'view:typewriter': 'F9',
   preferences: 'CmdOrCtrl+,',
   'quick-open': 'CmdOrCtrl+Shift+P',
-  'daily:today': 'CmdOrCtrl+Shift+D',
 };
 export function acceleratorFor(action: string, mac: boolean): string | undefined {
   const accelerator = ACCELERATORS[action];
@@ -39,10 +38,8 @@ export interface QuickContext {
   canRename: boolean;
   /** Export kinds the host can write right now, as the menu names them (`pdf`, `docx`…). */
   availableFormats: readonly string[];
-  /** 日程 is enabled and a folder is open. */
-  daily?: boolean;
-  /** A day or week note is open. */
-  dailyOpen?: boolean;
+  /** The sidebar calendar is enabled and a folder is open. */
+  calendar?: boolean;
   /** Run an application menu action through the same guards as the menu itself. */
   run(action: string): void;
   openAiSettings(): void;
@@ -81,14 +78,6 @@ export function quickItems(context: QuickContext): QuickItem[] {
     action('open', '打开文件…', 'open', 'open file'),
     action('recent-files', '最近文件…', 'history', 'recent'),
   ];
-  if (context.daily) {
-    items.push(action('daily:today', '打开今日日程', 'calendar', 'daily today journal 日记 今天'));
-    if (context.dailyOpen)
-      items.push(
-        action('daily:previous', '前一天日程', 'chevronLeft', 'daily previous yesterday'),
-        action('daily:next', '后一天日程', 'chevronRight', 'daily next tomorrow'),
-      );
-  }
   if (hasDocument) {
     items.push(
       action('close-document', '回到首页', 'home', 'close document home start'),
@@ -121,8 +110,16 @@ export function quickItems(context: QuickContext): QuickItem[] {
     ...(hasDocument
       ? [action('view:outline', '显示/隐藏文档目录', 'menu', 'outline toc', 'workspace')]
       : []),
-    ...(context.daily
-      ? [action('view:calendar', '显示/收起日历', 'calendar', 'calendar daily 日程', 'workspace')]
+    ...(context.calendar
+      ? [
+          action(
+            'view:calendar',
+            '显示/收起日历',
+            'calendar',
+            'calendar 日历 due 到期',
+            'workspace',
+          ),
+        ]
       : []),
     action('view:ai', 'AI 助手', 'ai', 'ai assistant agent', 'workspace'),
     action('preferences', '偏好设置…', 'settings', 'preferences settings options', 'setting'),

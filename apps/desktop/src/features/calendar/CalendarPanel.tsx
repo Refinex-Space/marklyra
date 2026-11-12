@@ -1,21 +1,11 @@
 import { LogicalPosition } from '@tauri-apps/api/dpi';
 import { Menu } from '@tauri-apps/api/menu';
-import {
-  type KeyboardEvent,
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
-import type { DailyLocation } from '../../services/daily.js';
 import { desktopAvailable } from '../../services/documents.js';
-import type { EntryAction } from '../../services/entry-actions.js';
-import { type FileSidebarPlatform, revealLabel } from '../file-explorer/file-preferences.js';
+import type { TaskMeta } from '../../services/tasks.js';
+import type { FileSidebarPlatform } from '../file-explorer/file-preferences.js';
 import { WorkspaceEntryMenu } from '../file-explorer/WorkspaceEntryMenu.js';
-import { type Agenda, orderedAgenda, parseAgenda } from './daily-agenda.js';
 import {
   addDays,
   addMonths,
@@ -35,29 +25,28 @@ import {
   weekKey,
   weekLabel,
   weekRow,
-} from './daily-dates.js';
+} from './calendar-dates.js';
 import {
+  type CalendarPreferences,
   type CalendarView,
-  type DailyPreferences,
   effectiveWeekStart,
-} from './daily-preferences.js';
-import { type DayNote, useDailyNotes } from './useDailyNotes.js';
+} from './calendar-preferences.js';
+import type { TaskAgenda } from './useTaskAgenda.js';
 import './calendar.css';
 
 export interface CalendarPanelProps {
-  location: DailyLocation;
-  preferences: DailyPreferences;
-  onPreferencesChange(next: DailyPreferences): void;
+  agenda: TaskAgenda;
+  preferences: CalendarPreferences;
+  onPreferencesChange(next: CalendarPreferences): void;
   today: string;
-  /** The day or week whose note (or unsaved draft) is open in the editor. */
-  activeKey: string | null;
-  /** Editor text of the open note, so its marks follow typing before it is saved. */
-  liveText?: { key: string; text: string } | null | undefined;
-  refresh: number;
+  /** The day whose due tasks the workbench is showing. */
+  activeDay: string | null;
   platform: FileSidebarPlatform;
   disabled: boolean;
-  onOpen(key: string): void;
-  onEntryAction(relativePath: string, action: EntryAction): void;
+  /** Shows the tasks due that day in the workbench. */
+  onOpenDay(day: string): void;
+  /** Starts a new task due that day. */
+  onNewTask(day: string): void;
 }
 interface MenuItem {
   id: string;
@@ -81,30 +70,30 @@ function shiftMonth(key: string, months: number): string {
   const next = addMonths(parts.year, parts.month, months);
   return formatDayKey({ ...next, day: Math.min(parts.day, daysInMonth(next.year, next.month)) });
 }
-function agendaSummary(agenda: Agenda | null): string {
-  if (!agenda) return '已记录';
-  if (!agenda.open && !agenda.done) return '已记录';
-  return agenda.open
-    ? `${agenda.open} 项待办，已完成 ${agenda.done}`
-    : `${agenda.done} 项已全部完成`;
+interface DayTasks {
+  tasks: readonly TaskMeta[];
+  open: readonly TaskMeta[];
+  done: number;
+}
+function daySummary({ open, done }: DayTasks): string {
+  if (!open.length) return `${done} 项到期任务已全部完成`;
+  return done ? `${open.length} 项未完成，已完成 ${done}` : `${open.length} 项未完成`;
 }
 
 export function CalendarPanel({
-  location,
+  agenda,
   preferences,
   onPreferencesChange,
   today,
-  activeKey,
-  liveText,
-  refresh,
+  activeDay,
   platform,
   disabled,
-  onOpen,
-  onEntryAction,
+  onOpenDay,
+  onNewTask,
 }: CalendarPanelProps) {
   const weekStart = effectiveWeekStart(preferences.weekStart);
   const view = preferences.calendarView;
-  const activeDay = activeKey && parseDayKey(activeKey) ? activeKey : null;
+  const { catalog, status, error, retry } = agenda;
   const [cursor, setCursor] = useState(activeDay ?? today);
   const [picker, setPicker] = useState<number | null>(null);
   const [menu, setMenu] = useState<MenuRequest | null>(null);
@@ -137,24 +126,10 @@ export function CalendarPanel({
         : [weekRow(rowStart, weekStart)],
     [view, cursorParts.year, cursorParts.month, rowStart, weekStart],
   );
-  const keys = useMemo(() => {
-    if (view === 'collapsed') return [today];
-    const days = weeks.flatMap((week) => week.days.map((day) => day.key));
-    return preferences.weekly ? [...days, ...weeks.map((week) => week.week)] : days;
-  }, [view, weeks, today, preferences.weekly]);
-  const { notes, status, error, retry } = useDailyNotes(
-    preferences.enabled ? location : null,
-    keys,
-    refresh,
-  );
-  const liveAgenda = useMemo(
-    () => (liveText ? { key: liveText.key, agenda: parseAgenda(liveText.text) } : null),
-    [liveText?.key, liveText?.text, liveText],
-  );
-  const lookup = (key: string): { note: DayNote | undefined; agenda: Agenda | null } => {
-    const note = notes.get(key);
-    if (note && liveAgenda?.key === key) return { note, agenda: liveAgenda.agenda };
-    return { note, agenda: note?.agenda ?? null };
+  const lookup = (key: string): DayTasks => {
+    const due = agenda.byDay.get(key) ?? [];
+    const open = catalog ? due.filter((task) => catalog.isOpen(task)) : [];
+    return { tasks: due, open, done: due.length - open.length };
   };
 
   const changeView = (next: CalendarView) =>
@@ -172,7 +147,7 @@ export function CalendarPanel({
     (view === 'month' ? sameMonth(cursor, today) : rowStart === startOfWeek(today, weekStart));
   const title =
     view === 'collapsed'
-      ? '日程'
+      ? '日历'
       : view === 'month'
         ? monthLabel(cursorParts.year, cursorParts.month)
         : rowStart === startOfWeek(today, weekStart)
@@ -183,67 +158,38 @@ export function CalendarPanel({
     const lines = [`${dayLabel(key, true)} · ${relativeDayLabel(key, today)}`];
     const lunar = preferences.lunar === 'off' ? '' : lunarLabel(key);
     if (lunar) lines.push(lunar);
-    const { note, agenda } = lookup(key);
-    if (!note)
-      lines.push(key === activeKey ? '正在编辑，输入内容后保存' : '尚无日程，点击开始记录');
+    const day = lookup(key);
+    if (!day.tasks.length) lines.push('没有到期的任务');
     else {
-      lines.push(agendaSummary(agenda));
-      for (const item of orderedAgenda(agenda?.items ?? [])
-        .filter((value) => value.checked !== true)
-        .slice(0, 5))
-        lines.push(
-          `${item.start ? `${item.start}${item.end ? `–${item.end}` : ''}` : '·'} ${item.text}`,
-        );
+      lines.push(daySummary(day));
+      for (const task of day.open.slice(0, 5))
+        lines.push(`${catalog?.humanId(task) ?? ''} ${task.title}`.trim());
+      if (day.open.length > 5) lines.push(`…另有 ${day.open.length - 5} 项`);
     }
     return lines.join('\n');
   };
   const accessibleLabel = (key: string) => {
-    const { note, agenda } = lookup(key);
+    const day = lookup(key);
     return [
       dayLabel(key, true),
       key === today ? '今天' : '',
-      note ? `有日程，${agendaSummary(agenda)}` : '无日程',
+      day.tasks.length ? daySummary(day) : '没有到期的任务',
     ]
       .filter(Boolean)
       .join('，');
   };
 
-  const open = (key: string, event?: MouseEvent) => {
+  const open = (key: string) => {
     if (disabled) return;
-    const note = notes.get(key);
-    if (note && event && (event.ctrlKey || event.metaKey)) {
-      onEntryAction(note.relativePath, 'open-new');
-      return;
-    }
-    setCursor(parseDayKey(key) ? key : cursor);
-    onOpen(key);
+    setCursor(key);
+    onOpenDay(key);
   };
   const showMenu = async (key: string, x: number, y: number) => {
     if (disabled) return;
-    const note = notes.get(key);
     const ticket = ++menuVersion.current;
     const items: (MenuItem | 'separator')[] = [
-      { id: 'open', label: note ? '打开' : '开始记录', run: () => open(key) },
-      ...(note
-        ? [
-            {
-              id: 'open-new',
-              label: '在新窗口中打开',
-              run: () => onEntryAction(note.relativePath, 'open-new'),
-            },
-            'separator' as const,
-            {
-              id: 'copy-path',
-              label: '复制文件路径',
-              run: () => onEntryAction(note.relativePath, 'copy-path'),
-            },
-            {
-              id: 'reveal',
-              label: revealLabel(platform),
-              run: () => onEntryAction(note.relativePath, 'reveal'),
-            },
-          ]
-        : []),
+      { id: 'open', label: '查看当天任务', run: () => open(key) },
+      { id: 'new', label: '新建当天到期的任务', run: () => onNewTask(key) },
     ];
     setMenu(null);
     if (desktopAvailable && platform === 'macos') {
@@ -287,19 +233,19 @@ export function CalendarPanel({
   const pickerYear = picker ?? cursorParts.year;
   const order = weekdayOrder(weekStart);
   const weekNumbers = preferences.showWeekNumbers;
-  const errorText = `无法读取日程目录：${error}`;
-  const todayAgenda = lookup(today);
+  const errorText = `无法读取任务：${error}`;
+  const todayTasks = lookup(today);
 
   return (
     <section
       className="daily-calendar"
       data-view={view}
       data-week-numbers={weekNumbers || undefined}
-      aria-label="日程日历"
+      aria-label="日历"
     >
       <header className="daily-calendar-header">
         {view === 'collapsed' ? (
-          <span className="daily-calendar-title">日程</span>
+          <span className="daily-calendar-title">日历</span>
         ) : (
           <button
             type="button"
@@ -382,14 +328,14 @@ export function CalendarPanel({
         <button
           type="button"
           className="daily-calendar-summary"
-          data-selected={activeKey === today || undefined}
+          data-selected={activeDay === today || undefined}
           title={tooltip(today)}
           disabled={disabled}
           onClick={() => open(today)}
         >
           <span>今天 · {dayLabel(today)}</span>
-          {todayAgenda.note && todayAgenda.agenda?.open ? (
-            <span className="daily-calendar-summary-count">{todayAgenda.agenda.open} 项待办</span>
+          {todayTasks.open.length ? (
+            <span className="daily-calendar-summary-count">{todayTasks.open.length} 项到期</span>
           ) : null}
         </button>
       )}
@@ -453,30 +399,19 @@ export function CalendarPanel({
               <tr className="daily-calendar-row" key={week.week}>
                 {weekNumbers && (
                   <th scope="row" className="daily-calendar-week" title={weekLabel(week.week)}>
-                    {preferences.weekly ? (
-                      <button
-                        type="button"
-                        data-note={notes.has(week.week) || undefined}
-                        data-selected={activeKey === week.week || undefined}
-                        aria-label={`${weekLabel(week.week)}，打开周记`}
-                        title={`${weekLabel(week.week)}，打开周记`}
-                        tabIndex={-1}
-                        onClick={() => open(week.week)}
-                      >
-                        {week.number}
-                      </button>
-                    ) : (
-                      week.number
-                    )}
+                    {week.number}
                   </th>
                 )}
                 {week.days.map((day) => {
-                  const { note, agenda } = lookup(day.key);
-                  const mark =
-                    preferences.markOpenTasks && agenda?.open
-                      ? 'open'
-                      : preferences.markNotes && note
-                        ? 'note'
+                  const due = lookup(day.key);
+                  const mark = !preferences.markTasks
+                    ? undefined
+                    : due.open.length
+                      ? day.key < today
+                        ? 'overdue'
+                        : 'open'
+                      : due.tasks.length
+                        ? 'done'
                         : undefined;
                   return (
                     <td key={day.key}>
@@ -485,17 +420,17 @@ export function CalendarPanel({
                         className="daily-day"
                         data-key={day.key}
                         data-today={day.key === today || undefined}
-                        data-selected={day.key === activeKey || undefined}
+                        data-selected={day.key === activeDay || undefined}
                         data-outside={(view === 'month' && !day.inMonth) || undefined}
                         data-weekend={[0, 6].includes(weekday(day.key)) || undefined}
                         aria-current={day.key === today ? 'date' : undefined}
-                        aria-pressed={day.key === activeKey}
+                        aria-pressed={day.key === activeDay}
                         aria-label={accessibleLabel(day.key)}
                         aria-disabled={disabled || undefined}
                         title={tooltip(day.key)}
                         tabIndex={day.key === cursor ? 0 : -1}
                         onFocus={() => setCursor(day.key)}
-                        onClick={(event) => open(day.key, event)}
+                        onClick={() => open(day.key)}
                         onContextMenu={(event) => {
                           event.preventDefault();
                           void showMenu(day.key, event.clientX, event.clientY);

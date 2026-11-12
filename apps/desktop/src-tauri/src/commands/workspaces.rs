@@ -12,8 +12,6 @@ use std::{
 use tauri::WebviewWindow;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
-mod daily;
-pub use daily::*;
 mod duplicate;
 pub use duplicate::*;
 mod entry_actions;

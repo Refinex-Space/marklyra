@@ -1162,8 +1162,12 @@ button[aria-pressed="true"] {
 }
 /* Task mode: the sidebar shows the task navigation; the file tree, tabs and calendar stay
    mounted underneath so their state survives. */
-.sidebar[data-tasks] > :not(.task-nav-host) {
+.sidebar[data-tasks] > :not(.task-nav-host, .task-calendar-host) {
   display: none;
+}
+/* While tasks are open the calendar stays under their navigation, so days stay one click away. */
+.task-calendar-host {
+  flex: none;
 }
 .task-nav-host {
   flex: 1;

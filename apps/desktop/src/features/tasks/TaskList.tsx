@@ -72,7 +72,7 @@ const VALUE_HINTS: Record<QueryKey, string> = {
   project: '项目 key',
   is: 'open, closed, overdue, blocked, parent, subtask, archived',
   has: 'due, labels, description, comments…',
-  due: 'overdue, today, week, <7d, none',
+  due: 'overdue, today, week, <7d, 2026-12-01, none',
   created: '<7d, >30d',
   completed: '<7d',
 };

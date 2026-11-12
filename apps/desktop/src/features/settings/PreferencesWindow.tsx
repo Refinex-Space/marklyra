@@ -17,7 +17,7 @@ import { type StartupPreferences, startupPreferences } from '../../services/star
 import { themeFiles } from '../../services/themes.js';
 import { editorChrome } from '../../services/ui-chrome.js';
 import { AgentSettings } from '../ai/AgentSettings.js';
-import { DailySettings } from '../daily/DailySettings.js';
+import { CalendarSettings } from '../calendar/CalendarSettings.js';
 import { ExportSettings } from '../export/settings/ExportSettings.js';
 import { GitSettings } from '../git/GitSettings.js';
 import { resolveThemeId, storedTheme, type ThemeCatalog } from '../themes/model.js';
@@ -465,9 +465,9 @@ export function PreferencesWindow({
           <AgentSettings />
         </div>
       )}
-      {nativePage === 'daily' && (
+      {nativePage === 'calendar' && (
         <div className="preferences-native-overlay" data-settings-dark={dark}>
-          <DailySettings dark={dark} />
+          <CalendarSettings dark={dark} />
         </div>
       )}
       {nativePage === 'git' && (

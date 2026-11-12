@@ -61,7 +61,14 @@ export function AgentSkillsPage() {
         { agentId: agent.agentId },
       );
       setSkills(next);
-      notify(install ? `已为 ${agent.name} 安装` : `已从 ${agent.name} 卸载`, 'success');
+      notify(
+        !install
+          ? `已从 ${agent.name} 卸载`
+          : agent.installed
+            ? `${agent.name} 的技能已更新到当前版本`
+            : `已为 ${agent.name} 安装`,
+        'success',
+      );
     } catch (e) {
       notify(String(e), 'error');
     } finally {
@@ -71,7 +78,9 @@ export function AgentSkillsPage() {
   const changeCli = async (install: boolean) => {
     setBusy('cli');
     try {
+      const was = cli?.installed;
       setCli(await invoke<CliStatus>(install ? 'cli_install' : 'cli_uninstall'));
+      if (install) notify(was ? '命令行已更新到当前版本' : '已安装命令行', 'success');
     } catch (e) {
       notify(String(e), 'error');
     } finally {
@@ -114,17 +123,16 @@ export function AgentSkillsPage() {
                     卸载
                   </button>
                 )}
-                {!(cli.installed && cli.current) && (
-                  <button
-                    type="button"
-                    className="task-btn primary"
-                    disabled={busy !== null}
-                    onClick={() => void changeCli(true)}
-                    aria-label={cli.installed ? '更新命令行' : '安装命令行'}
-                  >
-                    {cli.installed ? '更新' : '安装'}
-                  </button>
-                )}
+                {/* Installed copies can always be rewritten from this version; outdated ones stand out. */}
+                <button
+                  type="button"
+                  className={cli.installed && cli.current ? 'task-btn' : 'task-btn primary'}
+                  disabled={busy !== null}
+                  onClick={() => void changeCli(true)}
+                  aria-label={cli.installed ? '更新命令行' : '安装命令行'}
+                >
+                  {cli.installed ? '更新' : '安装'}
+                </button>
               </span>
             )}
           </div>
@@ -178,17 +186,17 @@ export function AgentSkillsPage() {
                           卸载
                         </button>
                       )}
-                      {!(skill.installed && skill.current) && (
-                        <button
-                          type="button"
-                          className="task-btn primary"
-                          disabled={busy !== null}
-                          aria-label={`${skill.installed ? '更新' : '安装到'} ${skill.name}`}
-                          onClick={() => void change(skill, true)}
-                        >
-                          {skill.installed ? '更新' : '安装'}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className={
+                          skill.installed && skill.current ? 'task-btn' : 'task-btn primary'
+                        }
+                        disabled={busy !== null}
+                        aria-label={`${skill.installed ? '更新' : '安装到'} ${skill.name}`}
+                        onClick={() => void change(skill, true)}
+                      >
+                        {skill.installed ? '更新' : '安装'}
+                      </button>
                     </span>
                   )}
                 </li>

@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
-import type { TestWindow } from './desktop.helpers.js';
+import { installCreationMock } from './creation-test-util.js';
+import { installMock, type TestWindow } from './desktop.helpers.js';
 import {
   emitLayoutMenu,
   installLayout,
@@ -7,6 +8,8 @@ import {
   openLayoutDocument,
   readyLayout,
 } from './layout.helpers.js';
+import { installRecentMock } from './recent.helpers.js';
+import { installRecoveryMock } from './recovery-test-util.js';
 
 /** In-memory stand-in for the Rust task store: same snapshot shape and revision checks. */
 function installTasksMock(options: { delay?: number; seed?: boolean }) {
@@ -570,6 +573,9 @@ function installTasksMock(options: { delay?: number; seed?: boolean }) {
     }
     state.generation++;
     result.generation = state.generation;
+    // Like the host, every write is announced to all views of the workspace.
+    const generation = state.generation;
+    setTimeout(() => host.__desktopMock.emitEvent('marklyra:tasks-changed', { generation }));
     return result;
   };
 }
@@ -1629,12 +1635,19 @@ test('agent skills install and uninstall per agent, with shared folders and fore
   // GLM reads the same folder, so it follows.
   await expect(row('GLM')).toContainText('已安装');
   await expect(row('Codex')).not.toContainText('已安装');
+  // An up-to-date install can still be rewritten from this version.
+  await page.getByRole('button', { name: '更新 Claude' }).click();
+  await expect(
+    page.locator('.notice-text', { hasText: 'Claude 的技能已更新到当前版本' }),
+  ).toBeVisible();
   await page.getByRole('button', { name: '从 GLM 卸载' }).click();
   await expect(row('Claude').getByRole('button', { name: '安装到 Claude' })).toBeVisible();
 
   await page.getByRole('button', { name: '安装命令行' }).click();
   await expect(page.locator('.task-skills')).toContainText('~/.local/bin/marklyra');
   await expect(page.getByRole('button', { name: '卸载命令行' })).toBeVisible();
+  await page.getByRole('button', { name: '更新命令行' }).click();
+  await expect(page.locator('.notice-text', { hasText: '命令行已更新到当前版本' })).toBeVisible();
   if (process.env.SKILL_SHOTS) {
     await page.getByRole('button', { name: '安装到 Codex' }).click();
     await page
@@ -1656,7 +1669,137 @@ test('agent skills install and uninstall per agent, with shared folders and fore
     ),
   ).toEqual([
     ['agent_skill_install', 'claude-acp'],
+    ['agent_skill_install', 'claude-acp'],
     ['agent_skill_uninstall', 'glm-acp-agent'],
     ...(process.env.SKILL_SHOTS ? [['agent_skill_install', 'codex-acp']] : []),
   ]);
+});
+
+/** Due dates around Wednesday 21 October 2026: one overdue, one today, two done. */
+function installDueDates() {
+  if (window !== window.top) return;
+  const m = Reflect.get(window, '__tasksMock') as {
+    tasks: { title: string; due: string | null; status: string }[];
+  };
+  const set = (title: string, due: string, status?: string) => {
+    const task = m.tasks.find((t) => t.title === title);
+    if (!task) return;
+    task.due = due;
+    if (status) task.status = status;
+  };
+  set('编写发布公告', '2026-10-19');
+  set('输出三套方案', '2026-10-20');
+  set('修复移动端导航栏错位', '2026-10-21');
+  set('接入访问统计', '2026-10-23', 'done');
+}
+// While tasks are open the file sidebar (with its calendar) stays mounted but hidden.
+const calendar = (page: Page) => page.locator('.daily-calendar:visible');
+const calendarDay = (page: Page, key: string) =>
+  page.locator(`.daily-calendar:visible [data-key="${key}"]`);
+
+test('the sidebar calendar marks due dates and opens a day’s tasks or a new one', async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date(2026, 9, 21, 10, 0, 0));
+  await installLayout(page, undefined, 'web');
+  await page.addInitScript(installTasksMock, { seed: true });
+  await page.addInitScript(installDueDates);
+  await readyLayout(page, 'marklyra-light');
+  await openLayoutDocument(page);
+  await emitLayoutMenu(page, 'open-folder');
+  await emitLayoutMenu(page, 'view:files');
+  await expect(calendar(page)).toBeVisible();
+  await expect(calendar(page)).toHaveAttribute('aria-label', '日历');
+  const mark = (key: string) => calendarDay(page, key).locator('.daily-day-mark');
+  await expect(mark('2026-10-21')).toHaveAttribute('data-mark', 'open');
+  await expect(mark('2026-10-19')).toHaveAttribute('data-mark', 'overdue');
+  await expect(mark('2026-10-20')).toHaveAttribute('data-mark', 'done');
+  await expect(mark('2026-10-23')).toHaveAttribute('data-mark', 'done');
+  await expect(mark('2026-10-22')).not.toHaveAttribute('data-mark', /.+/);
+  await expect(calendarDay(page, '2026-10-21')).toHaveAttribute(
+    'title',
+    /1 项未完成\nWEB-\d+ 修复移动端导航栏错位/,
+  );
+  await expect(calendarDay(page, '2026-10-22')).toHaveAttribute('title', /没有到期的任务/);
+
+  // A day opens the workbench on that day's due tasks.
+  await calendarDay(page, '2026-10-21').click();
+  await expect(workbench(page)).toBeVisible();
+  await expect(page.locator('.task-row:not(.ghost)')).toHaveCount(1);
+  await expect(row(page, '修复移动端导航栏错位')).toBeVisible();
+  await expect(calendarDay(page, '2026-10-21')).toHaveAttribute('aria-pressed', 'true');
+
+  // The context menu starts a task due that day; creating it marks the day.
+  await calendarDay(page, '2026-10-22').click({ button: 'right' });
+  await page.getByRole('menuitem', { name: '新建当天到期的任务' }).click();
+  const dialog = page.getByRole('dialog', { name: '新建任务' });
+  await expect(dialog.locator('[data-picker="due"]')).toContainText('22');
+  await dialog.getByLabel('任务标题').fill('准备周四评审');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(mark('2026-10-22')).toHaveAttribute('data-mark', 'open');
+
+  // The retired 日程 commands are gone; the calendar toggle stays.
+  await emitLayoutMenu(page, 'view:calendar');
+  await expect(calendar(page)).toHaveAttribute('data-view', 'collapsed');
+  await expect(calendar(page).locator('.daily-calendar-summary')).toContainText('1 项到期');
+});
+
+test('the home view lists overdue and due-today tasks; each opens its page', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 9, 21, 8, 0, 0));
+  await page.addInitScript(installMock, {
+    nativeChrome: true,
+    titlebar: 'web' as const,
+    home: true,
+  });
+  await page.addInitScript(installRecoveryMock);
+  await page.addInitScript(installCreationMock, {
+    runtimeUrl: process.env.CREATION_RUNTIME_URL ?? 'http://127.0.0.1:4174/index.html',
+  });
+  await page.addInitScript(installRecentMock);
+  await page.addInitScript(installTasksMock, { seed: true });
+  await page.addInitScript(installDueDates);
+  await page.goto('/');
+  const today = page.getByRole('region', { name: '开始' }).locator('.home-today');
+  await expect(today).toContainText('今天');
+  await expect(today).toContainText('10月21日 周三');
+  await expect(today.locator('li')).toHaveText([
+    /编写发布公告.*逾期 2 天/,
+    /修复移动端导航栏错位.*今天/,
+  ]);
+  await expect(today).not.toContainText('日程');
+  await today.getByRole('button', { name: /修复移动端导航栏错位/ }).click();
+  await expect(page.locator('.task-title-edit')).toHaveText('修复移动端导航栏错位');
+});
+
+test('the home view says when nothing is due and starts a new task', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 9, 21, 8, 0, 0));
+  await page.addInitScript(installMock, {
+    nativeChrome: true,
+    titlebar: 'web' as const,
+    home: true,
+  });
+  await page.addInitScript(installRecoveryMock);
+  await page.addInitScript(installCreationMock, {
+    runtimeUrl: process.env.CREATION_RUNTIME_URL ?? 'http://127.0.0.1:4174/index.html',
+  });
+  await page.addInitScript(installRecentMock);
+  await page.addInitScript(installTasksMock, { seed: true });
+  await page.goto('/');
+  const today = page.getByRole('region', { name: '开始' }).locator('.home-today');
+  await expect(today).toContainText('今天没有到期的任务');
+  await today.getByRole('button', { name: /新建任务/ }).click();
+  await expect(page.getByRole('dialog', { name: '新建任务' })).toBeVisible();
+});
+
+test('the 日历 settings page replaces 日程 and keeps only display choices', async ({ page }) => {
+  await setup(page);
+  await emitLayoutMenu(page, 'preferences');
+  const settings = page.frameLocator('.runtime-preferences-frame');
+  await settings.getByRole('button', { name: '日历', exact: true }).click();
+  const page_ = page.getByRole('region', { name: '日历设置' });
+  await expect(page_.getByRole('heading', { name: '日历' })).toBeVisible();
+  await expect(page_.getByRole('switch', { name: '标记有任务到期的日期' })).toBeChecked();
+  await expect(page_).not.toContainText('日程目录');
+  await expect(page_).not.toContainText('模板');
+  await expect(settings.getByRole('button', { name: '日程', exact: true })).toHaveCount(0);
 });

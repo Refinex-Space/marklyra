@@ -98,7 +98,7 @@ export interface WorkspaceSidebarProps {
   searchTargetId?: string;
   filePreferences?: FileSidebarPreferences;
   onFilePreferencesChange?: (value: FileSidebarPreferences) => void;
-  /** Docked below the file list (日程日历); hidden while searching. */
+  /** Docked below the file list (the task calendar); hidden while searching. */
   renderCalendar?: ((context: SidebarCalendarContext) => ReactNode) | undefined;
   /** Shown beside the folder name, e.g. the Git branch button. */
   headerAccessory?: ReactNode;

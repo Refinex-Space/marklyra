@@ -18,7 +18,7 @@ import { ProgressPie, StatusGlyph, TaskIcon } from './glyphs.js';
 import type { Catalog } from './model/catalog.js';
 import { cycleTiming, cycleTitle, timingText } from './model/cycle.js';
 import { rememberTaskProject } from './model/last-project.js';
-import type { LinkTarget } from './model/links.js';
+import type { OpenTarget } from './model/links.js';
 import { parseQuery, serializeQuery } from './model/query.js';
 import { DEFAULT_DISPLAY, type Display, type GroupBy, type OrderBy } from './model/view.js';
 import { ProjectOverview } from './ProjectOverview.js';
@@ -81,7 +81,7 @@ interface Props {
   /** Increments when the native "new task" command arrives. */
   newTaskRequest: number;
   /** A clicked note link; `seq` changes for every click. */
-  openRequest: { seq: number; target: LinkTarget } | null;
+  openRequest: { seq: number; target: OpenTarget } | null;
   /** Leaves the workbench and opens a workspace note at a mention. */
   openNote(relativePath: string, match?: WorkspaceMatchPosition): void;
   /** The window sidebar's slot for the task navigation; without it the navigation stays
@@ -247,7 +247,15 @@ export default function TasksWorkbench({
     if (!openRequest || !catalog || handledLink.current === openRequest.seq) return;
     handledLink.current = openRequest.seq;
     const { kind, id } = openRequest.target;
-    if (kind === 'task') {
+    if (kind === 'day') {
+      lists.current.set('all:all', {
+        ...newListState(),
+        query: { chips: [{ key: 'due', negated: false, values: id.split(',') }], text: '' },
+      });
+      setRoute({ view: 'list', scope: { kind: 'all' }, tab: 'all' });
+      if (openRequest.target.create)
+        setNewTask(defaultsFor(catalog, /^\d{4}-\d{2}-\d{2}$/.test(id) ? { due: id } : {}));
+    } else if (kind === 'task') {
       if (!catalog.task(id)) return notify('链接的任务已不存在', 'info');
       setTaskOrder([id]);
       setActive(id, false);
@@ -258,7 +266,9 @@ export default function TasksWorkbench({
     }
     focusRoot();
   });
-  const lastRequest = useRef(newTaskRequest);
+  // The window counts requests from zero each time the workbench opens, so one that opened it
+  // (menu, home view) is still answered once the snapshot is in.
+  const lastRequest = useRef(0);
   useEffect(() => {
     if (newTaskRequest !== lastRequest.current && catalog) {
       lastRequest.current = newTaskRequest;

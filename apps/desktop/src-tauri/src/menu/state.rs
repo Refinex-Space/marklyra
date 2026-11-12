@@ -59,12 +59,9 @@ pub struct Snapshot {
     home: bool,
     #[serde(default)]
     text_input_focused: bool,
-    /// 日程 is enabled and a folder is open, so a day can be opened.
+    /// The sidebar calendar is enabled and a folder is open.
     #[serde(default)]
-    daily_available: bool,
-    /// The open document (or unsaved draft) is a day or week note.
-    #[serde(default)]
-    daily_open: bool,
+    calendar_available: bool,
     /// The calendar is expanded below the file list.
     #[serde(default)]
     calendar: bool,
@@ -163,7 +160,6 @@ fn home_action(action: &str) -> bool {
             | "recent-files"
             | "marklyra-drafts"
             | "open-folder"
-            | "daily:today"
             | "view:calendar"
             | "preferences"
             | "cli:install"
@@ -236,11 +232,8 @@ impl Snapshot {
         if action == "import-document" {
             return self.can_import;
         }
-        if matches!(action, "daily:today" | "view:calendar") {
-            return self.daily_available;
-        }
-        if matches!(action, "daily:previous" | "daily:next") {
-            return self.daily_available && self.daily_open;
+        if action == "view:calendar" {
+            return self.calendar_available;
         }
         if action == "close-document" {
             // Back to the home view; there is nothing to close while it is already showing.
@@ -635,32 +628,19 @@ mod tests {
         assert!(!state.sidebar);
     }
     #[test]
-    fn daily_actions_follow_availability_open_note_and_home() {
+    fn the_calendar_toggle_follows_availability_and_works_from_home() {
         let mut state = ready();
-        for action in [
-            "daily:today",
-            "view:calendar",
-            "daily:previous",
-            "daily:next",
-        ] {
-            assert!(!state.enabled(action), "{action}");
-        }
-        state.daily_available = true;
-        assert!(state.enabled("daily:today"));
+        assert!(!state.enabled("view:calendar"));
+        state.calendar_available = true;
         assert!(state.enabled("view:calendar"));
-        assert!(!state.enabled("daily:previous"));
-        state.daily_open = true;
-        assert!(state.enabled("daily:previous"));
-        assert!(state.enabled("daily:next"));
         state.home = true;
-        assert!(state.enabled("daily:today"));
         assert!(state.enabled("view:calendar"));
-        assert!(!state.enabled("daily:next"));
         assert!(!state.checked("view:calendar"));
         state.calendar = true;
         assert!(state.checked("view:calendar"));
         assert!(checkable("view:calendar"));
-        assert!(!checkable("daily:today"));
+        // The retired 日程 commands are gone from the menu.
+        assert!(!state.enabled("daily:today"));
     }
     #[test]
     fn git_actions_need_a_repository_and_the_git_view_covers_document_commands() {

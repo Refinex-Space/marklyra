@@ -37,7 +37,7 @@ export interface HomeScreenProps {
   onOpenRecent(id: string): void;
   /** The complete recent-files list. */
   onViewAll(): void;
-  /** Today's 日程, when it is enabled and a folder is open. */
+  /** 今天: tasks due today or overdue, when a folder is open. */
   today?: ReactNode;
 }
 
