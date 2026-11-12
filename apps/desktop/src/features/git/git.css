@@ -28,7 +28,7 @@
   --git-graph-5: #d6336c;
   --git-graph-6: #a16207;
   --git-graph-7: #64748b;
-  --git-shadow: 0 12px 40px #0002, 0 2px 8px #0001;
+  --git-primary-bg: var(--lg-accent-fill);
 }
 :root[data-theme="dark"] {
   --git-added: #6cc785;
@@ -52,7 +52,6 @@
   --git-graph-5: #f472b6;
   --git-graph-6: #e0b341;
   --git-graph-7: #9aa7b8;
-  --git-shadow: 0 12px 40px #0008, 0 2px 8px #0004;
 }
 
 /* ---- Common controls ---- */
@@ -75,29 +74,46 @@
   gap: 6px;
   height: 28px;
   padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
+  /* Secondary actions are capsule-shaped Liquid Glass controls (docs/DESIGN.md §6). */
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-control);
   color: var(--text);
+  box-shadow: var(--lg-shadow-control);
   white-space: nowrap;
+  transition:
+    background-color var(--lg-duration-fast) ease,
+    scale var(--lg-duration) var(--lg-ease-spring);
+}
+.git-button:hover:not(:disabled) {
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-control);
+}
+.git-button:active:not(:disabled) {
+  background: linear-gradient(var(--lg-pressed), var(--lg-pressed)), var(--lg-surface-control);
+  scale: var(--lg-press-scale);
 }
 .git-button-primary {
-  background: var(--focus);
-  border-color: var(--focus);
-  color: #fff;
+  background: var(--git-primary-bg);
+  border-color: transparent;
+  color: var(--lg-accent-ink);
 }
 .git-button-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--focus) 88%, #000);
+  background: color-mix(in srgb, var(--git-primary-bg) 88%, #000);
 }
-:root[data-theme="dark"] .git-button-primary {
-  color: #0d1117;
+.git-button-primary:active:not(:disabled) {
+  background: color-mix(in srgb, var(--git-primary-bg) 78%, #000);
 }
 .git-button-danger {
   color: var(--git-conflicted);
   border-color: color-mix(in srgb, var(--git-conflicted) 45%, var(--border));
 }
 .git-button-danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--git-conflicted) 10%, transparent);
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--git-conflicted) 10%, transparent),
+      color-mix(in srgb, var(--git-conflicted) 10%, transparent)
+    ),
+    var(--lg-surface-control);
 }
 .git-icon-button {
   display: inline-grid;
@@ -164,12 +180,15 @@
 .git-input {
   height: 30px;
   padding: 0 9px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-control);
+  background: var(--lg-surface-control);
   color: var(--text);
   font: inherit;
   min-width: 0;
+  transition:
+    border-color var(--lg-duration-fast) ease,
+    box-shadow var(--lg-duration-fast) ease;
 }
 textarea.git-input {
   height: auto;
@@ -178,8 +197,9 @@ textarea.git-input {
   line-height: 1.5;
 }
 .git-input:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -1px;
+  outline: none;
+  border-color: color-mix(in srgb, var(--lg-accent) 55%, var(--lg-edge));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
 }
 .git-input[aria-invalid="true"] {
   border-color: var(--git-conflicted);
@@ -533,13 +553,28 @@ textarea.git-input {
   max-width: 380px;
   max-height: calc(100vh - 16px);
   overflow: auto;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  padding: var(--lg-popover-padding);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
   color: var(--text);
-  box-shadow: var(--git-shadow);
+  box-shadow: var(--lg-shadow-popover);
   font-size: 13px;
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
+}
+/* Regular Liquid Glass. Submenus (and the branch popup's menu) are fixed-position DOM children:
+   backdrop-filter on the surface itself would become their containing block and clip them, so
+   the blur sits on a pseudo-element behind the content instead. */
+.git-menu::before,
+.git-branch-popup::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: calc(var(--lg-radius-popover) - 1px);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  pointer-events: none;
 }
 .git-menu-item {
   display: flex;
@@ -549,12 +584,15 @@ textarea.git-input {
   height: 28px;
   padding: 0 8px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--lg-radius-item);
   text-align: left;
+}
+.git-menu-item:hover:not(:disabled) {
+  background: var(--lg-hover);
 }
 .git-menu-item:focus-visible,
 .git-menu-item[data-open="true"] {
-  background: var(--selected);
+  background: var(--lg-selected);
   outline: none;
 }
 .git-menu-item[data-danger="true"] {
@@ -592,7 +630,7 @@ textarea.git-input {
 .git-menu-separator {
   margin: 4px 6px;
   border: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--lg-separator);
 }
 .git-menu-heading {
   padding: 6px 8px 2px;
@@ -608,19 +646,20 @@ textarea.git-input {
   flex-direction: column;
   width: min(360px, calc(100vw - 16px));
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
   color: var(--text);
-  box-shadow: var(--git-shadow);
+  box-shadow: var(--lg-shadow-popover);
   overflow: hidden;
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 .git-popup-search {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--lg-separator);
   color: var(--muted);
 }
 .git-popup-search input {
@@ -642,13 +681,13 @@ textarea.git-input {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding: 4px;
-  scrollbar-width: thin;
+  padding: var(--lg-popover-padding);
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .git-popup-section + .git-popup-section {
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--lg-separator);
 }
 .git-popup-heading {
   display: flex;
@@ -666,12 +705,15 @@ textarea.git-input {
   height: 28px;
   padding: 0 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--lg-radius-item);
   text-align: left;
+}
+.git-popup-row:hover:not(:disabled) {
+  background: var(--lg-hover);
 }
 .git-popup-row:focus-visible,
 .git-popup-row[data-open="true"] {
-  background: var(--selected);
+  background: var(--lg-selected);
   outline: none;
 }
 .git-popup-icon {
@@ -771,7 +813,7 @@ textarea.git-input {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--lg-separator);
   color: var(--muted);
   font-size: 11px;
 }
@@ -845,7 +887,8 @@ textarea.git-input {
   gap: 8px 10px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--git-conflicted) 8%, var(--surface));
+  /* A tint, not a fill: the banner also sits inside the glass branch popup. */
+  background: color-mix(in srgb, var(--git-conflicted) 8%, transparent);
   color: var(--text);
 }
 .git-operation > .git-glyph {
@@ -877,7 +920,8 @@ textarea.git-input {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: #0005;
+  background: var(--lg-scrim);
+  animation: lg-scrim-in var(--lg-duration) ease-out;
 }
 /* Native chrome keeps the titlebar (caption buttons) usable above the dialog. */
 .shell[data-native-chrome="true"]:not([data-fullscreen="true"]) .git-dialog-backdrop {
@@ -892,12 +936,16 @@ textarea.git-input {
   max-width: 100%;
   max-height: 100%;
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
+  /* Thick Liquid Glass sheet (docs/DESIGN.md §6). */
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-dialog);
+  background: var(--lg-surface-thick);
+  -webkit-backdrop-filter: var(--lg-filter-thick);
+  backdrop-filter: var(--lg-filter-thick);
   color: var(--text);
-  box-shadow: var(--git-shadow);
+  box-shadow: var(--lg-shadow-dialog);
   overflow: hidden;
+  animation: lg-sheet-in var(--lg-duration-slow) var(--lg-ease-spring);
 }
 .git-dialog-small {
   width: 460px;
@@ -919,7 +967,7 @@ textarea.git-input {
   gap: 10px;
   min-height: 46px;
   padding: 6px 8px 6px 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--lg-separator);
 }
 .git-dialog-header h2 {
   margin: 0;
@@ -957,13 +1005,17 @@ textarea.git-input {
 .git-dialog-medium .git-dialog-body {
   padding: 18px;
 }
+/* Diff and merge views are content: they sit on an opaque page, not on the glass. */
+.git-dialog-full .git-dialog-body {
+  background: var(--marklyra-body-bg, var(--surface));
+}
 .git-dialog-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
   padding: 10px 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--lg-separator);
 }
 .git-file-nav {
   display: inline-flex;
@@ -1156,7 +1208,7 @@ textarea.git-input {
   font-family: var(--git-mono);
   font-size: 12.5px;
   line-height: 20px;
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .git-diff-block {
   content-visibility: auto;
@@ -1341,7 +1393,7 @@ textarea.git-input {
   font-family: var(--git-mono);
   font-size: 12.5px;
   line-height: 20px;
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .git-merge-grid {
   display: grid;
@@ -1807,7 +1859,7 @@ textarea.git-input {
   overflow: auto;
   padding: 0 4px 12px;
   border-right: 1px solid var(--border);
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .git-log-branch {
   display: flex;
@@ -1883,7 +1935,7 @@ textarea.git-input {
   min-height: 0;
   overflow: auto;
   outline: none;
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .git-log-canvas {
   position: relative;

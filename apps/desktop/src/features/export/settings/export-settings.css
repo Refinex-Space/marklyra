@@ -95,7 +95,7 @@
   padding: 7px 10px;
   overflow: hidden;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--lg-radius-item);
   background: transparent;
   color: var(--settings-text);
   font: inherit;
@@ -107,10 +107,10 @@
   cursor: pointer;
 }
 .es-tab:hover {
-  background: var(--settings-hover);
+  background: var(--lg-hover);
 }
 .es-tab[aria-selected="true"] {
-  background: var(--settings-hover);
+  background: var(--lg-selected);
   font-weight: 600;
 }
 .es-tab-add {
@@ -257,7 +257,7 @@
   height: 30px;
   padding: 0 10px;
   border: 1px solid var(--settings-line);
-  border-radius: 7px;
+  border-radius: var(--lg-radius-control);
   background: var(--settings-input);
   color: var(--settings-text);
   font: inherit;
@@ -291,7 +291,7 @@
   padding: 0 28px 0 10px;
   appearance: none;
   border: 1px solid var(--settings-line);
-  border-radius: 7px;
+  border-radius: var(--lg-radius-control);
   background: var(--settings-input);
   color: var(--settings-text);
   font: inherit;
@@ -309,6 +309,13 @@
   content: "";
   pointer-events: none;
   transform: translateY(-70%) rotate(45deg);
+}
+/* Focus: a soft accent halo outside the field; the border keeps its width (docs/DESIGN.md §6). */
+.es-input:focus,
+.es-select select:focus {
+  outline: none;
+  border-color: var(--settings-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
 }
 .es-select select:disabled,
 .es-input:disabled {
@@ -349,7 +356,7 @@
   display: inline-flex;
   padding: 2px;
   border: 1px solid var(--settings-line);
-  border-radius: 8px;
+  border-radius: var(--lg-radius-control);
   background: var(--settings-input);
 }
 .es-segmented label {
@@ -365,17 +372,15 @@
 .es-segmented span {
   display: block;
   padding: 4px 12px;
-  border-radius: 6px;
+  border-radius: calc(var(--lg-radius-control) - 2px);
   color: var(--settings-muted);
   font-size: 12px;
   line-height: 1.5;
   white-space: nowrap;
 }
 .es-segmented label.checked span {
-  background: var(--settings-bg);
-  box-shadow:
-    0 0 0 1px var(--settings-line),
-    0 1px 2px rgba(0, 0, 0, 0.08);
+  background: var(--lg-surface-control);
+  box-shadow: var(--lg-shadow-control);
   color: var(--settings-text);
   font-weight: 500;
 }
@@ -411,10 +416,12 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  /* Control glass over a white base, so the knob stays legible on the grey and accent tracks. */
+  background:
+    var(--lg-sheen), linear-gradient(var(--lg-fill-control), var(--lg-fill-control)), #fff;
+  box-shadow: var(--lg-shadow-control);
   content: "";
-  transition: transform 120ms;
+  transition: transform var(--lg-duration) var(--lg-ease-spring);
 }
 .es-switch input:checked + span {
   background: var(--settings-accent);
@@ -436,7 +443,7 @@
   min-height: 30px;
   padding: 5px 11px;
   border: 1px solid var(--settings-line);
-  border-radius: 7px;
+  border-radius: var(--lg-radius-control);
   background: var(--settings-input);
   color: var(--settings-text);
   font: inherit;
@@ -452,12 +459,13 @@
   cursor: default;
 }
 .es-primary {
-  border-color: var(--settings-accent);
-  background: var(--settings-accent);
-  color: #fff;
+  border-color: transparent;
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-accent-fill);
+  color: var(--lg-accent-ink);
 }
 .es-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--settings-accent) 88%, #000);
+  background: linear-gradient(var(--lg-pressed), var(--lg-pressed)), var(--lg-accent-fill);
 }
 .es-danger {
   color: var(--es-danger);
@@ -500,7 +508,7 @@
   max-width: 100%;
   padding: 4px 9px;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: var(--lg-radius-xs);
   background: var(--settings-input);
   color: var(--settings-text);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Cascadia Mono", monospace;
@@ -660,12 +668,13 @@
   justify-content: center;
   margin: 0 auto;
 }
+/* The paper is content, never glass: opaque, outlined and lifted by token depth. */
 .es-page {
   position: relative;
   background: var(--es-paper);
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.14),
-    0 3px 10px rgba(0, 0, 0, 0.14);
+    0 0 0 1px var(--lg-edge),
+    var(--lg-depth-control);
 }
 .es-page-body {
   position: absolute;

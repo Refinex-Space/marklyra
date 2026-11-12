@@ -24,7 +24,7 @@
 }
 .workspace-navigation-single .workspace-folder-trigger:hover:not(:disabled),
 .workspace-navigation-single .workspace-folder-trigger[aria-expanded="true"] {
-  background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-hover));
 }
 .workspace-navigation-single .workspace-folder-trigger > .workspace-root-name {
   flex: 1;
@@ -64,14 +64,19 @@
   max-width: calc(100vw - 16px);
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 5px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--marklyra-sidebar-bg, var(--sidebar));
+  padding: var(--lg-popover-padding);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
   color: var(--marklyra-sidebar-text, var(--text));
-  box-shadow: 0 6px 24px #0002;
+  box-shadow: var(--lg-shadow-popover);
   font-size: 12px;
   line-height: 1.5;
+  /* Placement measures this box (and its submenu beside it) while it opens, so it only fades in:
+     the scale/translate of lg-materialize would be baked into the computed left/top. */
+  animation: lg-scrim-in var(--lg-duration) ease-out;
 }
 .workspace-navigation-popup button {
   display: flex;
@@ -81,14 +86,16 @@
   min-height: 30px;
   padding: 5px 8px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--lg-radius-item);
   font: inherit;
   text-align: left;
   color: inherit;
 }
-.workspace-navigation-popup button:hover:not(:disabled),
+.workspace-navigation-popup button:hover:not(:disabled) {
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-hover));
+}
 .workspace-navigation-popup button:focus-visible {
-  background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-selected));
 }
 .workspace-navigation-popup button > .ui-icon,
 .workspace-navigation-popup button > .workspace-glyph {
@@ -104,7 +111,7 @@
 .workspace-navigation-popup hr {
   margin: 4px 0;
   border: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--lg-separator);
 }
 .workspace-navigation-popup .workspace-menu-caption,
 .workspace-navigation-popup .directory-menu-heading {
@@ -192,7 +199,7 @@
 .workspace-navigation-popup .directory-menu-items > li.directory-menu-custom > button {
   min-height: 30px;
   padding: 5px 8px;
-  border-radius: 4px;
+  border-radius: var(--lg-radius-item);
 }
 .workspace-navigation-popup .directory-location-open {
   gap: 8px;
@@ -202,7 +209,7 @@
   z-index: 45;
 }
 .workspace-navigation-popup .workspace-submenu-trigger[aria-expanded="true"] {
-  background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-hover));
 }
 .workspace-submenu-trigger[data-submenu-side="left"] > .ui-icon:last-child {
   transform: rotate(180deg);

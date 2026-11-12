@@ -29,7 +29,8 @@
 }
 /* The panes below are cards on the shell canvas; the band above them is that same canvas. */
 .shell[data-native-chrome="true"] .titlebar:not([data-settings]) {
-  background: var(--shell-canvas);
+  background: var(--shell-canvas-paint, var(--shell-canvas));
+  background-attachment: fixed;
 }
 .titlebar[data-settings] {
   /* The settings page paints its own sidebar/page band underneath. */
@@ -42,7 +43,7 @@
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--lg-radius-xs);
   background: transparent;
   color: var(--titlebar-control);
   font: inherit;

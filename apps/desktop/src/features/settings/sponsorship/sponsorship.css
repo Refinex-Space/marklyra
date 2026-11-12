@@ -33,7 +33,7 @@
   align-items: center;
   padding: 36px 32px 24px;
   border: 1px solid var(--settings-line);
-  border-radius: 8px;
+  border-radius: var(--lg-radius-pane);
   background: var(--settings-bg);
 }
 .sponsorship-mark {
@@ -76,7 +76,7 @@
 .sponsorship-qr-surface {
   padding: 16px;
   border: 1px solid var(--settings-line);
-  border-radius: 8px;
+  border-radius: var(--lg-radius-control);
   background: #fff;
   color-scheme: light;
 }

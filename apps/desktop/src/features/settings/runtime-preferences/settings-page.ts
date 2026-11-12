@@ -1,3 +1,4 @@
+import glassCss from '@marklyra/editor-themes/liquid-glass.css?inline';
 import { setupBoundedSelect } from './bounded-select.js';
 import { type FileTypePageControls, renderFileTypes } from './file-types-page.js';
 import { renderSavePreferences, type SavePageControls } from './save-preferences-page.js';
@@ -25,6 +26,8 @@ export function presentSettingsPage(value: unknown) {
   const input = value as Record<string, unknown>;
   const root = document.documentElement;
   root.dataset.settingsDark = String(input.dark === true);
+  // Liquid Glass tokens (@marklyra/editor-themes/liquid-glass.css) switch on the same attribute as the shell.
+  root.dataset.theme = input.dark === true ? 'dark' : 'light';
   if (typeof input.sidebarWidth === 'number' && Number.isFinite(input.sidebarWidth))
     root.style.setProperty(
       '--settings-sidebar-width',
@@ -41,7 +44,7 @@ export function setupSettingsPage(
   if (new URL(location.href).searchParams.get('layout') !== 'page') return;
   document.documentElement.dataset.settingsPage = 'true';
   const style = document.createElement('style');
-  style.textContent = themeCss + css;
+  style.textContent = glassCss + themeCss + css;
   document.head.append(style);
   positionHelpTooltips();
   const refreshBoundedSelect = setupBoundedSelect(

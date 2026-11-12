@@ -151,7 +151,21 @@ for (const fallback of [false, true]) {
     const dialog = page.getByRole('dialog', { name: '软件更新' });
     await expect(dialog).toBeVisible();
     await expect(dialog).toBeFocused();
-    await expect(dialog).toHaveCSS('background-color', 'rgb(13, 17, 23)');
+    // A dark thick-glass sheet (docs/DESIGN.md): translucent, blurred, and dark under a dark theme.
+    expect(
+      await dialog.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const [r = 255, g = 255, b = 255, a = 1] = (
+          style.backgroundColor.match(/[\d.]+/g) ?? []
+        ).map(Number);
+        return {
+          dark: Math.max(r, g, b) < 64,
+          translucent: a < 1,
+          blurred:
+            (style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter')) !== 'none',
+        };
+      }),
+    ).toEqual({ dark: true, translucent: true, blurred: true });
     await page.screenshot({ path: info.outputPath('update-dark.png') });
     await page.keyboard.press('Shift+Tab');
     await expect(dialog.getByRole('button', { name: '下载更新' })).toBeFocused();

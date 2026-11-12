@@ -29,7 +29,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await search.click();
     expect(await search.evaluate(styles)).toEqual({
       animation: 'none',
-      shadow: 'none',
+      // Liquid Glass focus ring (docs/DESIGN.md): a 3px accent halo, no outline, no motion.
+      shadow: expect.stringMatching(/0px 0px 0px 3px$/),
       outline: 'none',
       transition: '0s',
     });
@@ -38,7 +39,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await select.focus();
     expect(await select.evaluate(styles)).toEqual({
       animation: 'none',
-      shadow: 'none',
+      // Liquid Glass focus ring (docs/DESIGN.md): a 3px accent halo, no outline, no motion.
+      shadow: expect.stringMatching(/0px 0px 0px 3px$/),
       outline: 'none',
       transition: '0s',
     });
@@ -125,6 +127,10 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await page.screenshot({ path: info.outputPath('appearance.png') });
     await ui.locator('[data-marklyra-reading-speed="toggle"]').click();
     await expect(ui.locator('.btn-split-group .dropdown-menu')).toBeVisible();
+    // Measure the resting position, not a frame of the materialize animation.
+    await ui
+      .locator('.btn-split-group .dropdown-menu')
+      .evaluate((el) => Promise.all(el.getAnimations().map((animation) => animation.finished)));
     const popupBox = await ui.locator('.btn-split-group .dropdown-menu').boundingBox();
     const triggerBox = await ui.locator('[data-marklyra-reading-speed="toggle"]').boundingBox();
     if (!popupBox || !triggerBox) throw new Error('Missing reading speed popup');

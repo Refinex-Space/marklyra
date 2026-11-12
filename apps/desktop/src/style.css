@@ -47,12 +47,21 @@ select {
 button {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--lg-radius-xs);
   cursor: pointer;
   padding: 6px 10px;
 }
 button:hover:not(:disabled) {
   background: var(--hover);
+}
+/* Liquid Glass controls answer a press with a slight give (docs/DESIGN.md, motion). */
+:is(.icon-button, .tool-button):active:not(:disabled) {
+  scale: var(--lg-press-scale);
+}
+:is(.icon-button, .tool-button) {
+  transition:
+    background-color var(--lg-duration-fast) ease,
+    scale var(--lg-duration) var(--lg-ease-spring);
 }
 button:disabled {
   opacity: 0.45;
@@ -106,20 +115,28 @@ button[aria-pressed="true"] {
   --muted: var(--marklyra-control-text, #8b949e);
   --border: #30363d;
 }
-/* Three panes (files, document, outline / AI) share one card language on macOS and Windows:
-   the same gap to the window, the same hairline border and radius, on a tinted canvas. */
+/* Three panes (files, document, outline / AI) share one geometry on macOS and Windows: the same
+   gap to the window and the same concentric radius on the canvas. Materials differ by layer
+   (docs/DESIGN.md): the side panes are navigation glass, the document is the opaque content layer. */
 .shell[data-native-chrome="true"] {
   --pane-gap: 8px;
-  --pane-divider-gap: 2px;
-  --pane-radius: 8px;
+  --pane-divider-gap: 4px;
+  --pane-radius: var(--lg-radius-pane);
   --pane-top: calc(var(--titlebar-height) + 4px);
   --pane-border: color-mix(
     in srgb,
     var(--marklyra-body-text, var(--text)) 13%,
     var(--marklyra-body-bg, var(--surface))
   );
-  --shell-canvas: color-mix(in srgb, var(--surface) 95%, var(--text));
-  background: var(--shell-canvas);
+  --shell-canvas: color-mix(in srgb, var(--text) var(--lg-canvas-ink, 6%), var(--surface));
+  /* The canvas is a quiet light field, so the glass panes have light to catch. */
+  --shell-canvas-paint:
+    radial-gradient(120% 90% at 0% 0%, var(--lg-ambient-a), transparent 58%),
+    radial-gradient(110% 80% at 100% 100%, var(--lg-ambient-b), transparent 62%),
+    var(--shell-canvas);
+  background: var(--shell-canvas-paint);
+  /* Fixed: the titlebar band and the settings page paint the same field without a seam. */
+  background-attachment: fixed;
 }
 .shell[data-native-chrome="true"][data-native-overlay="false"] {
   --pane-top: 4px;
@@ -138,14 +155,26 @@ button[aria-pressed="true"] {
   padding-top: 0;
   box-sizing: border-box;
   overflow: hidden;
-  border: 1px solid var(--pane-border);
+  /* Navigation glass. The canvas beneath is static, so the pane needs no backdrop-filter: the
+     translucent fill, the rim light and the depth carry the material at no compositing cost. */
+  border: 1px solid var(--lg-edge);
   border-radius: var(--pane-radius);
+  background: var(--lg-surface-pane);
+  box-shadow: var(--lg-shadow-pane);
 }
+/* Inside a glass pane, the pane colour is the glass itself: header, list and footer stay clear
+   so the material reads as one sheet. Popups that used it get their own glass. */
+.shell[data-native-chrome="true"] :is(.sidebar, .document-details-body) {
+  --sidebar: transparent;
+  --marklyra-sidebar-bg: transparent;
+}
+/* Content layer: opaque, never glass. A sheet lifted off the canvas by depth alone. */
 .shell[data-native-chrome="true"] .document-area {
   box-sizing: border-box;
-  border: 1px solid var(--pane-border);
+  border: 1px solid var(--lg-edge);
   border-radius: var(--pane-radius);
   background: var(--marklyra-body-bg, var(--surface));
+  box-shadow: var(--lg-depth-pane);
 }
 .shell[data-native-chrome="true"] .marklyra-editor-frame {
   --marklyra-frame-radius: calc(var(--pane-radius) - 1px);
@@ -186,10 +215,13 @@ button[aria-pressed="true"] {
   width: 3px;
   height: 36px;
   margin: -18px 0 0 -1.5px;
-  border-radius: 1.5px;
+  border-radius: var(--lg-radius-capsule);
   background: var(--muted);
   opacity: 0;
-  transition: opacity 120ms ease;
+  scale: 1 0.7;
+  transition:
+    opacity var(--lg-duration-fast) ease,
+    scale var(--lg-duration) var(--lg-ease-spring);
 }
 .shell[data-native-chrome="true"] .sidebar-resize::after,
 .shell[data-native-chrome="true"] .document-details-resize::after {
@@ -197,7 +229,7 @@ button[aria-pressed="true"] {
   position: absolute;
   inset: 0 calc(var(--sash-reach) * -1);
 }
-/* Keep a 14px drag target around the 2px seam. Reach mainly into the sidebars,
+/* Keep a 16px drag target around the 4px seam. Reach mainly into the sidebars,
    limiting the reach beside the document scrollbar to 3px. */
 .shell[data-native-chrome="true"] .workspace > .pane-resize-handle {
   /* The browser's default hr overflow would clip the extended hit target. */
@@ -213,6 +245,14 @@ button[aria-pressed="true"] {
 .shell[data-native-chrome="true"] .document-details-resize:hover::before {
   opacity: 0.5;
   transition-delay: 160ms;
+}
+.shell[data-native-chrome="true"] .sidebar-resize:hover::before,
+.shell[data-native-chrome="true"] .document-details-resize:hover::before,
+.shell[data-native-chrome="true"] .sidebar-resize[data-resizing]::before,
+.shell[data-native-chrome="true"] .document-details-resize[data-resizing]::before,
+.shell[data-native-chrome="true"] .sidebar-resize:focus-visible::before,
+.shell[data-native-chrome="true"] .document-details-resize:focus-visible::before {
+  scale: 1;
 }
 .shell[data-native-chrome="true"] .sidebar-resize[data-resizing]::before,
 .shell[data-native-chrome="true"] .document-details-resize[data-resizing]::before,
@@ -503,15 +543,25 @@ button[aria-pressed="true"] {
   width: 36px;
   height: 36px;
   padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  /* Clear glass floating over the document: it must let the text beneath show through. */
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
   color: var(--muted);
-  background: var(--bg);
-  box-shadow: 0 2px 6px #00000014;
+  background: var(--lg-surface-clear);
+  -webkit-backdrop-filter: var(--lg-filter-clear);
+  backdrop-filter: var(--lg-filter-clear);
+  box-shadow: var(--lg-shadow-control);
+  animation: lg-materialize-up var(--lg-duration) var(--lg-ease-spring);
+  transition:
+    color var(--lg-duration-fast) ease,
+    scale var(--lg-duration) var(--lg-ease-spring);
 }
 .document-scroll-top:hover:not(:disabled) {
   color: var(--text);
-  background: var(--hover);
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-clear);
+}
+.document-scroll-top:active:not(:disabled) {
+  scale: var(--lg-press-scale);
 }
 .runtime-area {
   display: flex;
@@ -628,20 +678,25 @@ button[aria-pressed="true"] {
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: #0004;
+  background: var(--lg-scrim);
   display: grid;
   place-items: center;
+  animation: lg-scrim-in var(--lg-duration) ease-out;
 }
+/* Dialogs are thick glass sheets: the most opaque glass, because they carry the most text. */
 .modal-backdrop > section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--lg-surface-thick);
+  -webkit-backdrop-filter: var(--lg-filter-thick);
+  backdrop-filter: var(--lg-filter-thick);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-dialog);
   padding: 24px;
   min-width: min(350px, calc(100vw - 24px));
   max-width: calc(100vw - 24px);
   max-height: calc(100vh - 32px);
   overflow: auto;
-  box-shadow: 0 12px 40px #0003;
+  box-shadow: var(--lg-shadow-dialog);
+  animation: lg-sheet-in var(--lg-duration-slow) var(--lg-ease-spring);
 }
 .modal-backdrop h2 {
   font-size: 17px;
@@ -654,7 +709,8 @@ button[aria-pressed="true"] {
   margin-top: 25px;
 }
 .modal-backdrop button {
-  border-color: var(--border);
+  border-color: var(--lg-edge);
+  border-radius: var(--lg-radius-control);
 }
 .modal-backdrop .panel-heading {
   display: flex;
@@ -1028,11 +1084,14 @@ button[aria-pressed="true"] {
   display: flex;
   width: 540px;
   max-width: calc(100vw - 24px);
-  padding: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 8px 25px #0002;
+  padding: var(--lg-popover-padding);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  box-shadow: var(--lg-shadow-popover);
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 .command-menu-panel section {
   min-width: 0;
@@ -1085,7 +1144,8 @@ button[aria-pressed="true"] {
    continues behind the traffic lights / caption buttons. The existing native drag band stays
    above the paint layer and retains window dragging. */
 .shell[data-native-chrome="true"] > .preferences-page {
-  background: var(--shell-canvas);
+  background: var(--shell-canvas-paint);
+  background-attachment: fixed;
 }
 .shell[data-native-chrome="true"][data-native-overlay="true"]:not([data-fullscreen="true"])
   > .preferences-page::before {
@@ -1093,7 +1153,8 @@ button[aria-pressed="true"] {
   position: fixed;
   inset: 0 0 auto;
   height: var(--titlebar-height);
-  background: var(--shell-canvas);
+  background: var(--shell-canvas-paint);
+  background-attachment: fixed;
   pointer-events: none;
 }
 .shell[data-settings-page] .native-titlebar-drag {
@@ -1110,7 +1171,13 @@ button[aria-pressed="true"] {
 .settings-resize-track > .sidebar-resize {
   pointer-events: auto;
   margin: 0;
-  flex: 0 0 var(--pane-gap, 8px);
+  /* The settings cards sit as close as the main window's panes. */
+  flex: 0 0 var(--pane-divider-gap, 4px);
+  overflow: visible;
+}
+/* The same 16px drag target as the main window's sidebar seam, reaching into the navigation. */
+.shell[data-native-chrome="true"] .settings-resize-track > .sidebar-resize::after {
+  inset: 0 -3px 0 -9px;
 }
 .settings-resize-track > .resize-shield {
   pointer-events: auto;
@@ -1126,11 +1193,14 @@ button[aria-pressed="true"] {
   gap: 12px;
   max-width: calc(100vw - 40px);
   padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
   color: var(--text);
-  box-shadow: 0 2px 8px #00000014;
+  box-shadow: var(--lg-shadow-popover);
+  animation: lg-materialize-up var(--lg-duration) var(--lg-ease-spring);
 }
 .settings-effect-notice strong {
   font-size: 13px;

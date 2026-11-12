@@ -6,8 +6,10 @@ import {
   readyLayout,
 } from './layout.helpers.js';
 
-// Files, document and outline (and the two settings panes) are one card language on the shell
-// canvas: same fill, hairline and radius, with the whole gap between cards acting as the handle.
+// Files, document and outline (and the two settings panes) share one geometry on the shell
+// canvas: same hairline and concentric radius, with the whole gap between cards acting as the
+// handle. Materials follow the Liquid Glass layers (docs/DESIGN.md): the side panes are
+// navigation glass, the document is the opaque content layer.
 
 async function openPanes(page: Page, theme: string) {
   await installLayout(page, undefined, 'web');
@@ -23,7 +25,7 @@ async function openPanes(page: Page, theme: string) {
 }
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
-  test(`${theme}: the three panes share one fill, border and radius on the canvas`, async ({
+  test(`${theme}: side panes are glass, the document is opaque content, all on one geometry`, async ({
     page,
   }) => {
     await openPanes(page, theme);
@@ -45,9 +47,19 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
           .backgroundColor,
       };
     });
-    for (const pane of cards.panes) expect(pane).toEqual(cards.panes[0]);
-    expect(cards.panes[0]?.radius).toBe('8px');
-    expect(cards.panes[0]?.background).not.toBe(cards.canvas);
+    const [files, content, details] = cards.panes;
+    // Navigation glass: the two side panes share one translucent fill.
+    expect(details).toEqual(files);
+    expect(files?.background).toMatch(/^rgba\(.+, 0\.\d+\)$/);
+    // Content layer: the document is opaque and differs from the glass and the canvas.
+    expect(content?.background).toMatch(/^rgb\(/);
+    expect(content?.background).not.toBe(files?.background);
+    expect(content?.background).not.toBe(cards.canvas);
+    for (const pane of cards.panes)
+      expect({ radius: pane.radius, border: pane.border }).toEqual({
+        radius: '12px',
+        border: files?.border,
+      });
     // A square fill under the editor would hide the document pane's rounded corners.
     expect(cards.mount).toBe('rgba(0, 0, 0, 0)');
   });
@@ -192,7 +204,7 @@ test('a short hairline separates the document actions from the system caption bu
 });
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
-  test(`${theme}: settings are two cards with the same fill as the main panes`, async ({
+  test(`${theme}: settings are a glass navigation card and an opaque content card`, async ({
     page,
   }) => {
     await installLayout(page);
@@ -222,16 +234,76 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
         canvas: getComputedStyle(document.documentElement).backgroundColor,
       };
     });
-    expect(cards.navigation.background).toBe(cards.content.background);
-    expect(cards.navigation.background).not.toBe(cards.canvas);
-    expect(cards.navigation.radius).toBe('8px');
-    expect(cards.content.radius).toBe('8px');
-    expect(cards.navigation.border).toBe(cards.content.border);
-    // The same 8px window gap and 8px between the cards as the main window.
+    // Same layers as the main window: glass navigation, opaque content, one concentric radius.
+    expect(cards.navigation.background).toMatch(/^rgba\(.+, 0\.\d+\)$/);
+    expect(cards.content.background).toMatch(/^rgb\(/);
+    expect(cards.content.background).not.toBe(cards.canvas);
+    expect(cards.navigation.radius).toBe('12px');
+    expect(cards.content.radius).toBe('12px');
+    // The same 8px window gap and 4px seam between the cards as the main window.
     expect(cards.navigation.left).toBe(8);
-    expect(cards.content.left - cards.navigation.right).toBe(8);
+    expect(cards.content.left - cards.navigation.right).toBe(4);
     expect(cards.navigation.bottom).toBe(8);
     expect(cards.content.bottom).toBe(8);
     expect(cards.navigation.top).toBe(4);
   });
 }
+
+// Some categories are React pages laid over the frame (export, agents, Git, calendar…). Every
+// category's content card must sit exactly where the frame's own card does, with the same seam.
+test('every settings category shows its content card in the same place and material', async ({
+  page,
+}) => {
+  await installLayout(page);
+  await page.setViewportSize({ width: 1280, height: 760 });
+  await readyLayout(page, 'marklyra-dark');
+  await emitLayoutMenu(page, 'preferences');
+  const ui = page.frameLocator('.runtime-preferences-frame');
+  await expect(ui.getByRole('button', { name: '返回应用', exact: true })).toBeVisible();
+  const measure = (element: Element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return {
+      left: Math.round(rect.left),
+      right: Math.round(rect.right),
+      top: Math.round(rect.top),
+      bottom: Math.round(rect.bottom),
+      radius: style.borderTopLeftRadius,
+      border: style.borderTopColor,
+    };
+  };
+  const card = async () => {
+    const overlay = page.locator('.preferences-native-overlay');
+    if (await overlay.count()) return { kind: 'overlay', ...(await overlay.evaluate(measure)) };
+    // The frame is cross-origin: measure inside it, then add the frame's own offset.
+    const frame = await page.locator('.runtime-preferences-frame').evaluate(measure);
+    const inner = await ui.locator('.pane-group > .pane').evaluate(measure);
+    return {
+      kind: 'frame',
+      ...inner,
+      left: inner.left + frame.left,
+      right: inner.right + frame.left,
+      top: inner.top + frame.top,
+      bottom: inner.bottom + frame.top,
+    };
+  };
+  const { kind: referenceKind, ...reference } = await card();
+  expect(referenceKind).toBe('frame');
+  const kinds = new Set<string>();
+  for (const name of ['导出', '外观', '智能体', 'Git 同步', '日历', '赞助', '文件']) {
+    await ui.getByRole('button', { name, exact: true }).click();
+    await expect(ui.getByRole('button', { name, exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect
+      .poll(async () => {
+        const { kind, ...geometry } = await card();
+        kinds.add(kind);
+        return geometry;
+      }, name)
+      .toEqual(reference);
+  }
+  // Both kinds of page were measured.
+  expect([...kinds].sort()).toEqual(['frame', 'overlay']);
+});

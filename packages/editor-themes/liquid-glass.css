@@ -1,0 +1,337 @@
+/* MarkLyra Liquid Glass: the one material system for macOS (WKWebView) and Windows (WebView2).
+   Spec: docs/DESIGN.md. Only tokens, keyframes, accessibility fallbacks and the WebKit scrollbar
+   style live here; surfaces adopt the tokens in their own stylesheets. Everything is plain CSS that renders the same in WebKit and
+   Chromium: no SVG displacement refraction (Chromium-only), no native window vibrancy. */
+:root {
+  /* Geometry: radii are concentric. An inner radius equals the outer radius minus the padding
+     between them (popover 14 = item 8 + padding 6; dialog 20 = control 8 + padding 12). */
+  --lg-radius-xs: 6px;
+  --lg-radius-control: 8px;
+  --lg-radius-item: 8px;
+  --lg-radius-pane: 12px;
+  --lg-radius-popover: 14px;
+  --lg-radius-dialog: 20px;
+  --lg-radius-capsule: 999px;
+  --lg-popover-padding: 6px;
+
+  /* Accent: the only hue the chrome may add. Prominent actions tint their glass with it. */
+  --lg-accent: #2f74d0;
+  /* Background of prominent (tinted) actions; white ink on it stays at or above 4.5:1. */
+  --lg-accent-fill: var(--lg-accent);
+  --lg-accent-ink: #ffffff;
+  --lg-danger: #d1383d;
+
+  /* Neutral overlays for interaction. Neutral, so they read on every document theme. */
+  --lg-hover: rgb(0 0 0 / 0.05);
+  --lg-pressed: rgb(0 0 0 / 0.09);
+  --lg-selected: color-mix(in srgb, var(--lg-accent) 14%, transparent);
+  --lg-selected-strong: color-mix(in srgb, var(--lg-accent) 22%, transparent);
+  --lg-hairline: rgb(0 0 0 / 0.08);
+  --lg-separator: rgb(0 0 0 / 0.07);
+
+  /* Glass fills. Liquid Glass has no colour of its own: neutral fills, the colour comes from what
+     the backdrop blur and saturation pick up underneath. */
+  --lg-fill-clear: rgb(255 255 255 / 0.42);
+  --lg-fill-regular: rgb(252 252 253 / 0.74);
+  --lg-fill-thick: rgb(250 250 251 / 0.86);
+  --lg-fill-pane: rgb(255 255 255 / 0.42);
+  --lg-fill-control: rgb(255 255 255 / 0.62);
+  /* A card resting on a glass pane (the sidebar calendar): a faint lift, a specular line along
+     its top edge and a soft short shadow, with no drawn border, so it is felt more than seen. */
+  --lg-card-fill: linear-gradient(180deg, rgb(255 255 255 / 0.56), rgb(255 255 255 / 0.3));
+  --lg-card-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 0 0 1px rgb(255 255 255 / 0.32),
+    0 0 0 0.5px rgb(24 34 64 / 0.09), 0 1px 2px rgb(24 34 64 / 0.06),
+    0 6px 16px -8px rgb(24 34 64 / 0.2);
+  /* A bead of glass raised on a surface: the active item in a well or a list (today in the
+     calendar). Light glass with its specular rim and a short drop, instead of a coloured frame. */
+  --lg-bead-fill: linear-gradient(180deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.72));
+  --lg-bead-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 1), inset 0 0 0 1px rgb(255 255 255 / 0.5),
+    0 0 0 0.5px rgb(24 34 64 / 0.12), 0 1px 2px rgb(24 34 64 / 0.12),
+    0 3px 8px -2px rgb(24 34 64 / 0.16);
+  /* Specular sheen: light falls from the top edge. */
+  --lg-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 50%);
+  /* A pane is a large sheet of glass: a specular bloom where the light enters at the top-left
+     corner, and a sheen that fades down its height. This is what gives light glass its depth. */
+  --lg-pane-sheen:
+    radial-gradient(120% 42% at 0% 0%, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0) 62%),
+    linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.34),
+      rgb(255 255 255 / 0.08) 36%,
+      rgb(255 255 255 / 0)
+    );
+
+  /* Backdrop filters. Saturation keeps colour under the glass alive instead of greying it. */
+  --lg-filter-clear: blur(14px) saturate(1.7);
+  --lg-filter-regular: blur(28px) saturate(1.8);
+  --lg-filter-thick: blur(36px) saturate(1.6);
+
+  /* Edges: a hairline contour plus a bright rim drawn inside it. */
+  --lg-edge: rgb(20 30 60 / 0.11);
+  /* Top specular line, a softer bottom caustic, a bright inner contour, and the Fresnel glow:
+     real glass is brighter at its edges than in its middle. */
+  --lg-rim:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 0 rgb(255 255 255 / 0.45),
+    inset 0 0 0 1px rgb(255 255 255 / 0.55), inset 0 0 20px -6px rgb(255 255 255 / 0.85);
+
+  /* Depth. Shadows are layered: a tight contact shadow and a wide ambient one. On light glass the
+     shadow ink is a cool slate, not black: black shadows read as dirt on a bright canvas. */
+  --lg-depth-pane: 0 1px 2px rgb(24 34 64 / 0.06), 0 14px 36px -18px rgb(24 34 64 / 0.26);
+  --lg-depth-control: 0 1px 2px rgb(24 34 64 / 0.08), 0 4px 12px -4px rgb(24 34 64 / 0.16);
+  --lg-depth-popover: 0 2px 8px rgb(24 34 64 / 0.08), 0 18px 44px -12px rgb(24 34 64 / 0.3);
+  --lg-depth-dialog: 0 4px 14px rgb(24 34 64 / 0.1), 0 36px 84px -22px rgb(24 34 64 / 0.42);
+
+  /* Composite tokens surfaces use directly. */
+  --lg-surface-clear: var(--lg-sheen), var(--lg-fill-clear);
+  --lg-surface-regular: var(--lg-sheen), var(--lg-fill-regular);
+  --lg-surface-thick: var(--lg-sheen), var(--lg-fill-thick);
+  --lg-surface-control: var(--lg-sheen), var(--lg-fill-control);
+  --lg-surface-pane: var(--lg-pane-sheen), var(--lg-fill-pane);
+  --lg-shadow-pane: var(--lg-rim), var(--lg-depth-pane);
+  --lg-shadow-control: var(--lg-rim), var(--lg-depth-control);
+  --lg-shadow-popover: var(--lg-rim), var(--lg-depth-popover);
+  --lg-shadow-dialog: var(--lg-rim), var(--lg-depth-dialog);
+
+  /* The window canvas under the panes: an ambient light field, so the glass has light to catch.
+     Light glass needs a canvas a step darker than the glass and a little colour to refract;
+     it stays under 14% colour so documents remain the most saturated thing on screen. */
+  --lg-canvas-ink: 9%;
+  --lg-ambient-a: color-mix(in srgb, var(--lg-accent) 24%, transparent);
+  --lg-ambient-b: color-mix(in srgb, #8a63d2 18%, transparent);
+  --lg-scrim: rgb(0 0 0 / 0.16);
+  /* Thin scrollbars where the engine draws them (WebView2's Fluent bars). Components write
+     scrollbar-width: var(--lg-scrollbar-width), never `thin`: in WebKit it is auto, because any
+     other value there switches off the clear-track scrollbar below. */
+  --lg-scrollbar-width: thin;
+  /* WKWebView scrollbars: a clear track and a capsule thumb (see the scrollbar rules below). */
+  --lg-scroll-thumb: rgb(0 0 0 / 0.2);
+  --lg-scroll-thumb-hover: rgb(0 0 0 / 0.36);
+
+  /* Motion: materials materialise with a soft spring and dissolve quickly. */
+  --lg-ease-spring: cubic-bezier(0.34, 1.32, 0.64, 1);
+  --lg-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --lg-duration-fast: 120ms;
+  --lg-duration: 200ms;
+  --lg-duration-slow: 320ms;
+  --lg-press-scale: 0.97;
+}
+:root[data-theme="dark"] {
+  --lg-accent: #4d97ff;
+  /* The bright dark-mode accent reads well as text and tint, but white on it is ~2.9:1. */
+  --lg-accent-fill: color-mix(in srgb, var(--lg-accent) 70%, #000);
+  --lg-accent-ink: #ffffff;
+  --lg-danger: #ff6b6b;
+  --lg-hover: rgb(255 255 255 / 0.07);
+  --lg-pressed: rgb(255 255 255 / 0.11);
+  --lg-selected: color-mix(in srgb, var(--lg-accent) 20%, transparent);
+  --lg-selected-strong: color-mix(in srgb, var(--lg-accent) 30%, transparent);
+  --lg-hairline: rgb(255 255 255 / 0.09);
+  --lg-separator: rgb(255 255 255 / 0.08);
+  --lg-fill-clear: rgb(40 42 48 / 0.42);
+  --lg-fill-regular: rgb(34 36 42 / 0.72);
+  --lg-fill-thick: rgb(30 32 38 / 0.86);
+  --lg-fill-pane: rgb(255 255 255 / 0.035);
+  --lg-fill-control: rgb(255 255 255 / 0.08);
+  --lg-card-fill: linear-gradient(180deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.022));
+  --lg-card-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.075), inset 0 0 0 1px rgb(255 255 255 / 0.03),
+    0 0 0 0.5px rgb(0 0 0 / 0.4), 0 1px 2px rgb(0 0 0 / 0.25), 0 8px 18px -10px rgb(0 0 0 / 0.55);
+  --lg-bead-fill: linear-gradient(180deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.07));
+  --lg-bead-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 0 0 1px rgb(255 255 255 / 0.05),
+    0 0 0 0.5px rgb(0 0 0 / 0.4), 0 1px 2px rgb(0 0 0 / 0.35), 0 4px 10px -3px rgb(0 0 0 / 0.5);
+  --lg-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0) 46%);
+  --lg-pane-sheen:
+    radial-gradient(120% 42% at 0% 0%, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0) 62%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.03), rgb(255 255 255 / 0) 40%);
+  --lg-edge: rgb(255 255 255 / 0.1);
+  --lg-rim:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.13), inset 0 -1px 0 0 rgb(255 255 255 / 0.03),
+    inset 0 0 0 1px rgb(255 255 255 / 0.04), inset 0 0 20px -6px rgb(255 255 255 / 0.05);
+  --lg-depth-pane: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -18px rgb(0 0 0 / 0.6);
+  --lg-depth-control: 0 1px 2px rgb(0 0 0 / 0.35), 0 4px 12px -4px rgb(0 0 0 / 0.45);
+  --lg-depth-popover: 0 2px 8px rgb(0 0 0 / 0.3), 0 18px 48px -10px rgb(0 0 0 / 0.6);
+  --lg-depth-dialog: 0 4px 16px rgb(0 0 0 / 0.35), 0 36px 90px -20px rgb(0 0 0 / 0.7);
+  --lg-canvas-ink: 6%;
+  --lg-ambient-a: color-mix(in srgb, var(--lg-accent) 9%, transparent);
+  --lg-ambient-b: color-mix(in srgb, #8a63d2 7%, transparent);
+  --lg-scrim: rgb(0 0 0 / 0.4);
+  --lg-scroll-thumb: rgb(255 255 255 / 0.2);
+  --lg-scroll-thumb-hover: rgb(255 255 255 / 0.36);
+}
+
+/* Accessibility. A glass that cannot be read is not glass. Reduced transparency makes every
+   material opaque; WebView2 reports the Windows setting through the media query, WKWebView does
+   not implement it, so the host may set data-transparency="reduced" on the root instead. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --lg-fill-clear: rgb(246 246 247);
+    --lg-fill-regular: rgb(250 250 251);
+    --lg-fill-thick: rgb(250 250 251);
+    --lg-fill-pane: rgb(255 255 255 / 0.9);
+    --lg-filter-clear: none;
+    --lg-filter-regular: none;
+    --lg-filter-thick: none;
+    --lg-sheen: linear-gradient(transparent, transparent);
+    --lg-pane-sheen: linear-gradient(transparent, transparent);
+  }
+  :root[data-theme="dark"] {
+    --lg-fill-clear: rgb(44 46 52);
+    --lg-fill-regular: rgb(38 40 46);
+    --lg-fill-thick: rgb(34 36 42);
+    --lg-fill-pane: rgb(255 255 255 / 0.05);
+  }
+}
+:root[data-transparency="reduced"] {
+  --lg-fill-clear: rgb(246 246 247);
+  --lg-fill-regular: rgb(250 250 251);
+  --lg-fill-thick: rgb(250 250 251);
+  --lg-fill-pane: rgb(255 255 255 / 0.9);
+  --lg-filter-clear: none;
+  --lg-filter-regular: none;
+  --lg-filter-thick: none;
+  --lg-sheen: linear-gradient(transparent, transparent);
+  --lg-pane-sheen: linear-gradient(transparent, transparent);
+}
+:root[data-transparency="reduced"][data-theme="dark"] {
+  --lg-fill-clear: rgb(44 46 52);
+  --lg-fill-regular: rgb(38 40 46);
+  --lg-fill-thick: rgb(34 36 42);
+  --lg-fill-pane: rgb(255 255 255 / 0.05);
+}
+/* An engine without backdrop-filter gets the opaque fills rather than unreadable translucency. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --lg-fill-clear: rgb(246 246 247);
+    --lg-fill-regular: rgb(250 250 251);
+    --lg-fill-thick: rgb(250 250 251);
+  }
+  :root[data-theme="dark"] {
+    --lg-fill-clear: rgb(44 46 52);
+    --lg-fill-regular: rgb(38 40 46);
+    --lg-fill-thick: rgb(34 36 42);
+  }
+}
+/* Increased contrast: solid edges, no sheen, near-opaque fills (WebKit and Chromium both report
+   prefers-contrast). */
+@media (prefers-contrast: more) {
+  :root {
+    --lg-edge: rgb(0 0 0 / 0.45);
+    --lg-hairline: rgb(0 0 0 / 0.35);
+    --lg-separator: rgb(0 0 0 / 0.3);
+    --lg-fill-regular: rgb(252 252 253 / 0.97);
+    --lg-fill-thick: rgb(252 252 253);
+    --lg-fill-clear: rgb(248 248 249 / 0.95);
+    --lg-sheen: linear-gradient(transparent, transparent);
+    --lg-pane-sheen: linear-gradient(transparent, transparent);
+    --lg-ambient-a: transparent;
+    --lg-ambient-b: transparent;
+  }
+  :root[data-theme="dark"] {
+    --lg-edge: rgb(255 255 255 / 0.5);
+    --lg-hairline: rgb(255 255 255 / 0.4);
+    --lg-separator: rgb(255 255 255 / 0.32);
+    --lg-fill-regular: rgb(30 32 38 / 0.97);
+    --lg-fill-thick: rgb(28 30 36);
+    --lg-fill-clear: rgb(40 42 48 / 0.95);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --lg-ease-spring: linear;
+    --lg-duration-fast: 0ms;
+    --lg-duration: 0ms;
+    --lg-duration-slow: 0ms;
+    --lg-press-scale: 1;
+  }
+}
+
+/* Scrollbars in WKWebView (macOS). The system's always-visible scrollbar paints a track of its
+   own colour down every pane, and its look depends on hardware and timing (a mouse attached, the
+   window shown) in ways a page cannot follow reliably. So WebKit always draws the same scrollbar:
+   a clear track and a capsule thumb inset from the pane edge, from the first frame. Gated to
+   WebKit (only it knows -webkit-backdrop-filter): WebView2 keeps its Fluent overlay bars. Plain
+   ::-webkit-scrollbar has the lowest specificity, so a component that hides or styles its own
+   scrollbar still wins. WebKit drops these rules for any scroller with scrollbar-color or a
+   scrollbar-width other than auto/none, so components use var(--lg-scrollbar-width) for `thin`. */
+@supports (-webkit-backdrop-filter: none) {
+  :root {
+    --lg-scrollbar-width: auto;
+  }
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    min-height: 32px;
+    border: 3px solid transparent;
+    border-radius: var(--lg-radius-capsule);
+    background: var(--lg-scroll-thumb) padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--lg-scroll-thumb-hover);
+  }
+}
+@media (prefers-contrast: more) {
+  :root {
+    --lg-scroll-thumb: rgb(0 0 0 / 0.45);
+    --lg-scroll-thumb-hover: rgb(0 0 0 / 0.6);
+  }
+  :root[data-theme="dark"] {
+    --lg-scroll-thumb: rgb(255 255 255 / 0.45);
+    --lg-scroll-thumb-hover: rgb(255 255 255 / 0.6);
+  }
+}
+
+/* Materialise: popovers, menus and dialogs grow out of their anchor with a soft spring. Uses the
+   individual `scale` / `translate` properties so a surface's own `transform` is never clobbered. */
+@keyframes lg-materialize {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 -4px;
+  }
+}
+@keyframes lg-materialize-up {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 4px;
+  }
+}
+@keyframes lg-sheet-in {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+@keyframes lg-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes lg-materialize {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes lg-materialize-up {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes lg-sheet-in {
+    from {
+      opacity: 0;
+    }
+  }
+}

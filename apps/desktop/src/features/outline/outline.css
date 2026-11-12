@@ -11,11 +11,12 @@
   align-items: center;
   min-height: 26px;
   padding-block: 3px;
+  border-radius: var(--lg-radius-item);
   cursor: pointer;
   outline-offset: -2px;
 }
 .outline-row:hover {
-  background: var(--marklyra-outline-hover-bg, var(--hover));
+  background: var(--marklyra-outline-hover-bg, var(--lg-hover));
   color: var(--marklyra-outline-hover-text, inherit);
 }
 .outline-item[aria-selected="true"] > .outline-row > .outline-label {
@@ -102,19 +103,22 @@
   position: fixed;
   z-index: 40;
   min-width: 180px;
-  padding: 4px 0;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--sidebar);
-  box-shadow: 0 5px 10px #0003;
+  padding: var(--lg-popover-padding);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  box-shadow: var(--lg-shadow-popover);
   color: var(--text);
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 .outline-context-menu button {
   display: block;
   width: 100%;
   padding: 3px 20px;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--lg-radius-item);
   font-size: 13px;
   line-height: 1.8;
   text-align: left;
@@ -122,15 +126,19 @@
 .outline-context-menu button[aria-checked="true"]::before {
   content: "✓";
   position: absolute;
-  left: 5px;
+  /* Positioned against the menu, so it sits inside the menu's padding, 5px into the item. */
+  left: calc(var(--lg-popover-padding) + 5px);
 }
-.outline-context-menu button:hover,
+.outline-context-menu button:hover {
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-hover));
+  color: var(--marklyra-sidebar-item-hover-text, inherit);
+}
 .outline-context-menu button:focus-visible {
-  background: var(--marklyra-sidebar-item-hover-bg, var(--selected));
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-selected));
   color: var(--marklyra-sidebar-item-hover-text, inherit);
 }
 .outline-context-menu hr {
   border: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--lg-separator);
   margin: 4px 0;
 }

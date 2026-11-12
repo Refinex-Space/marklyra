@@ -12,6 +12,47 @@
   line-height: 1.2;
   user-select: none;
 }
+/* In the glass sidebar the calendar is a card resting on the pane: inset from its sides and
+   bottom, rounded concentrically with it (pane radius − inset) on all four corners, lifted by a
+   faint fill, a specular top edge and a soft shadow rather than a drawn border. The active day is
+   a glass bead on it (docs/DESIGN.md). No blur: glass does not nest. */
+.shell[data-native-chrome="true"] .daily-calendar {
+  --daily-inset: 6px;
+  margin: 0 var(--daily-inset) var(--daily-inset);
+  border: 0;
+  border-radius: max(4px, calc(var(--pane-radius, 12px) - var(--daily-inset)));
+  background: var(--lg-card-fill);
+  box-shadow: var(--lg-card-shadow);
+}
+.shell[data-native-chrome="true"] .daily-calendar button {
+  transition:
+    background-color var(--lg-duration-fast) ease,
+    scale var(--lg-duration) var(--lg-ease-spring);
+}
+.shell[data-native-chrome="true"] .daily-calendar button:hover {
+  background: var(--lg-hover);
+}
+.shell[data-native-chrome="true"] .daily-day:active:not([aria-disabled="true"]) {
+  scale: var(--lg-press-scale);
+}
+/* Today and the picked day are beads of glass on the card: depth instead of a
+   coloured frame. Today keeps the accent only in its numeral; the picked day tints its bead. */
+.shell[data-native-chrome="true"] .daily-day[data-today],
+.shell[data-native-chrome="true"] .daily-day[data-selected] {
+  background: var(--lg-bead-fill);
+  box-shadow: var(--lg-bead-shadow);
+}
+.shell[data-native-chrome="true"] .daily-day[data-selected] {
+  background: linear-gradient(var(--lg-selected), var(--lg-selected)), var(--lg-bead-fill);
+}
+.shell[data-native-chrome="true"] .daily-day[data-today]:hover,
+.shell[data-native-chrome="true"] .daily-day[data-selected]:hover {
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-bead-fill);
+}
+.shell[data-native-chrome="true"] .daily-calendar-summary[data-selected] {
+  background: var(--lg-bead-fill);
+  box-shadow: var(--lg-bead-shadow);
+}
 .daily-calendar[data-view="collapsed"] {
   padding-bottom: 6px;
 }
@@ -20,7 +61,7 @@
   font: inherit;
   background: transparent;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--lg-radius-control);
   cursor: pointer;
 }
 .daily-calendar button:hover {

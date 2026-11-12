@@ -28,7 +28,7 @@
 }
 .document-statistics-button:hover,
 .document-statistics-button[aria-expanded="true"] {
-  background: var(--hover);
+  background: var(--lg-hover);
   color: var(--text);
 }
 .document-statistics-button:focus-visible {
@@ -42,11 +42,15 @@
   display: flex;
   flex-direction: column;
   min-width: 128px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 8px 24px #00000026;
+  padding: var(--lg-popover-padding);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  box-shadow: var(--lg-shadow-popover);
+  /* It opens upward from the corner, so it rises out of its anchor. */
+  animation: lg-materialize-up var(--lg-duration) var(--lg-ease-spring);
 }
 .document-statistics-menu button {
   display: flex;
@@ -56,7 +60,7 @@
   margin: 0;
   padding: 0 12px 0 6px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--lg-radius-item);
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -64,9 +68,11 @@
   white-space: nowrap;
   cursor: default;
 }
-.document-statistics-menu button:hover,
+.document-statistics-menu button:hover {
+  background: var(--lg-hover);
+}
 .document-statistics-menu button:focus-visible {
-  background: var(--hover);
+  background: var(--lg-selected);
   outline: none;
 }
 .document-statistics-check {

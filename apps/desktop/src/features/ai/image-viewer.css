@@ -10,18 +10,23 @@
   white-space: nowrap;
   border: 0;
 }
+/* The viewer is one regular-glass layer (the only backdrop-filter here); its controls are clear
+   glass fills without their own filter, so glass never nests. It stays flat: no shadow, and an
+   opacity-only entrance so it opens exactly in place. */
 .ai-settings-dialog.ai-image-viewer {
   inset: 8px;
   width: calc(100vw - 16px);
   height: calc(100dvh - 16px);
   max-height: none;
   margin: 0;
-  border: 1px solid var(--ai-line);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--ai-bg) 60%, transparent);
-  backdrop-filter: blur(3px);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-pane);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
   box-shadow: none;
   font-family: inherit;
+  animation: lg-scrim-in var(--lg-duration) ease-out;
 }
 .ai-settings-dialog.ai-image-viewer::backdrop {
   background: color-mix(in srgb, var(--ai-bg, #fff) 25%, transparent);
@@ -78,13 +83,16 @@
   gap: 5px;
   min-height: 30px;
   padding: 5px 10px;
-  border: 1px solid var(--ai-line);
-  border-radius: 16px;
-  background: var(--ai-bg);
-  box-shadow: none;
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-clear);
+  box-shadow: var(--lg-shadow-control);
   font-size: 12px;
   line-height: 1.2;
   white-space: nowrap;
+  transition:
+    background-color var(--lg-duration-fast) ease,
+    scale var(--lg-duration) var(--lg-ease-spring);
 }
 .ai-settings-dialog.ai-image-viewer .ai-viewer-icon-button {
   width: 30px;
@@ -93,7 +101,10 @@
   padding: 5px;
 }
 .ai-settings-dialog.ai-image-viewer button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--ai-text) 7%, var(--ai-bg));
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-clear);
+}
+.ai-settings-dialog.ai-image-viewer button:active:not(:disabled) {
+  scale: var(--lg-press-scale);
 }
 .ai-viewer-zoom {
   position: relative;
@@ -107,7 +118,7 @@
   appearance: none;
   background: transparent;
   border: 0;
-  border-radius: 16px;
+  border-radius: var(--lg-radius-capsule);
   font-size: 12px;
   cursor: pointer;
 }
@@ -162,23 +173,27 @@
   display: flex;
   gap: 2px;
   padding: 3px;
-  border: 1px solid #ffffff26;
-  border-radius: 10px;
-  background: #29292b;
-  color: #f1f1f2;
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-clear);
+  box-shadow: var(--lg-shadow-control);
+  color: inherit;
 }
 .ai-settings-dialog.ai-image-viewer .ai-viewer-tools button {
   background: transparent;
   color: inherit;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--lg-radius-capsule);
+  box-shadow: none;
   min-height: 24px;
-  padding: 3px 6px;
+  padding: 3px 8px;
   gap: 4px;
 }
-.ai-settings-dialog.ai-image-viewer .ai-viewer-tools button:hover:not(:disabled),
+.ai-settings-dialog.ai-image-viewer .ai-viewer-tools button:hover:not(:disabled) {
+  background: var(--lg-hover);
+}
 .ai-settings-dialog.ai-image-viewer .ai-viewer-tools button[aria-pressed="true"] {
-  background: #ffffff1f;
+  background: var(--lg-selected);
 }
 .ai-viewer-notice {
   position: absolute;
@@ -188,11 +203,14 @@
   max-width: min(600px, calc(100% - 48px));
   margin: 0;
   padding: 6px 12px;
-  background: var(--ai-bg);
-  border: 1px solid var(--ai-line);
-  border-radius: 6px;
+  /* Regular glass fill without a filter of its own: it already sits inside the viewer's glass. */
+  background: var(--lg-surface-regular);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  box-shadow: var(--lg-shadow-popover);
   font-size: 12px;
   text-align: center;
+  animation: lg-materialize-up var(--lg-duration) var(--lg-ease-spring);
 }
 .ai-viewer-tool-options {
   display: flex;
@@ -201,8 +219,8 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 6px 12px;
-  background: var(--ai-bg);
-  border-top: 1px solid var(--ai-line);
+  background: transparent;
+  border-top: 1px solid var(--lg-separator);
   font-size: 12px;
 }
 .ai-viewer-tool-options form,
@@ -215,7 +233,7 @@
   min-width: 0;
   max-width: 240px;
   padding: 5px 8px;
-  border-radius: 6px;
+  border-radius: var(--lg-radius-control);
 }
 .ai-viewer-resize input[type="number"] {
   width: 80px;
@@ -245,22 +263,28 @@
 .ai-viewer-open-combo {
   display: flex;
   align-items: center;
-  border: 1px solid var(--ai-line);
-  border-radius: 16px;
-  background: var(--ai-bg);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-clear);
+  box-shadow: var(--lg-shadow-control);
 }
 .ai-settings-dialog.ai-image-viewer .ai-viewer-open-combo > button {
   border: 0;
-  border-radius: 16px 0 0 16px;
+  border-radius: var(--lg-radius-capsule) 0 0 var(--lg-radius-capsule);
+  background: transparent;
+  box-shadow: none;
   min-height: 28px;
   padding: 5px 6px;
   gap: 4px;
+}
+.ai-settings-dialog.ai-image-viewer .ai-viewer-open-combo > button:hover:not(:disabled) {
+  background: var(--lg-hover);
 }
 .ai-viewer-open-combo label {
   position: relative;
   display: flex;
   height: 20px;
-  border-left: 1px solid var(--ai-line);
+  border-left: 1px solid var(--lg-separator);
   width: 18px;
 }
 .ai-panel .ai-viewer-open-combo select {
@@ -306,6 +330,7 @@
   flex-basis: 14px;
 }
 
+/* The viewer keeps a light wash of the page colour rather than the dark dialog scrim. */
 .ai-dialog-fallback-backdrop.ai-viewer-fallback-backdrop {
   background: color-mix(in srgb, var(--ai-bg, #fff) 25%, transparent);
 }

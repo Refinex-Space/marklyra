@@ -16,12 +16,20 @@ export function browserContextMenu(owner: Document): ContextMenuAdapter {
       const view = owner.defaultView;
       if (!view) throw new Error('Menu document has no window');
       const previous = owner.activeElement;
+      // A host that loads @marklyra/editor-themes/liquid-glass.css gets its regular popover
+      // (docs/DESIGN.md §6); any other host keeps the system colours.
+      const glass =
+        view
+          .getComputedStyle(owner.documentElement)
+          .getPropertyValue('--lg-surface-regular')
+          .trim() !== '';
       const layer = owner.createElement('div');
       layer.className = 'marklyra-context-menu-layer';
       layer.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none;';
       const lifecycle = new AbortController();
       const panels: HTMLElement[] = [];
       let finished = false;
+      let pointing = false;
       const remove = () => {
         finished = true;
         lifecycle.abort();
@@ -55,13 +63,19 @@ export function browserContextMenu(owner: Document): ContextMenuAdapter {
         menu.setAttribute('role', 'menu');
         menu.setAttribute('aria-label', parent?.textContent ?? '编辑菜单');
         menu.style.cssText =
-          'position:absolute;pointer-events:auto;min-width:190px;max-width:340px;max-height:calc(100vh - 16px);overflow:auto;padding:5px;background:Canvas;color:CanvasText;border:1px solid GrayText;border-radius:7px;box-shadow:0 5px 24px #0003;font:13px system-ui;';
+          'position:absolute;pointer-events:auto;min-width:190px;max-width:340px;max-height:calc(100vh - 16px);overflow:auto;font:13px system-ui;' +
+          (glass
+            ? // Panels measure themselves to flip, so they only fade in (docs/DESIGN.md §5).
+              'padding:var(--lg-popover-padding);background:var(--lg-surface-regular);-webkit-backdrop-filter:var(--lg-filter-regular);backdrop-filter:var(--lg-filter-regular);color:inherit;border:1px solid var(--lg-edge);border-radius:var(--lg-radius-popover);box-shadow:var(--lg-shadow-popover);animation:lg-scrim-in var(--lg-duration) var(--lg-ease-out);'
+            : 'padding:5px;background:Canvas;color:CanvasText;border:1px solid GrayText;border-radius:7px;box-shadow:0 5px 24px #0003;');
         panels.push(menu);
         for (const item of items) {
           if (item.type === 'separator') {
             const separator = owner.createElement('div');
             separator.setAttribute('role', 'separator');
-            separator.style.cssText = 'height:1px;background:GrayText;opacity:.25;margin:4px 5px;';
+            separator.style.cssText = glass
+              ? 'height:1px;background:var(--lg-separator);margin:4px 6px;'
+              : 'height:1px;background:GrayText;opacity:.25;margin:4px 5px;';
             menu.append(separator);
             continue;
           }
@@ -69,8 +83,7 @@ export function browserContextMenu(owner: Document): ContextMenuAdapter {
           button.type = 'button';
           button.setAttribute('role', 'menuitem');
           button.textContent = item.label;
-          button.style.cssText =
-            'display:block;width:100%;border:0;border-radius:3px;padding:5px 12px;text-align:left;font:inherit;white-space:nowrap;background:transparent;color:inherit;';
+          button.style.cssText = `display:block;width:100%;border:0;border-radius:${glass ? 'var(--lg-radius-item)' : '3px'};padding:5px 12px;text-align:left;font:inherit;white-space:nowrap;background:transparent;color:inherit;`;
           if (item.type === 'item' && item.checked !== undefined) {
             button.setAttribute('role', 'menuitemcheckbox');
             button.setAttribute('aria-checked', String(item.checked));
@@ -83,7 +96,8 @@ export function browserContextMenu(owner: Document): ContextMenuAdapter {
             if (item.type !== 'submenu') return;
             button.setAttribute('aria-expanded', 'true');
             const rect = button.getBoundingClientRect();
-            panel(item.items, rect.right + 4, rect.top - 5, depth + 1, button);
+            // Align the submenu's first item with this one (padding plus border).
+            panel(item.items, rect.right + 4, rect.top - (glass ? 7 : 5), depth + 1, button);
           };
           if (item.type === 'submenu') {
             button.textContent += '  ›';
@@ -91,6 +105,11 @@ export function browserContextMenu(owner: Document): ContextMenuAdapter {
             button.setAttribute('aria-expanded', 'false');
           }
           button.addEventListener('focus', () => {
+            if (glass) {
+              // Pointer hover is neutral; keyboard focus is the current item.
+              button.style.background = pointing ? 'var(--lg-hover)' : 'var(--lg-selected)';
+              return;
+            }
             button.style.background = 'Highlight';
             button.style.color = 'HighlightText';
           });
@@ -100,7 +119,9 @@ export function browserContextMenu(owner: Document): ContextMenuAdapter {
           });
           button.addEventListener('pointerenter', () => {
             if (button.disabled) return;
+            pointing = true;
             button.focus();
+            pointing = false;
             open();
           });
           button.addEventListener('click', () => {

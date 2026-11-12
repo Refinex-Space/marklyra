@@ -9,7 +9,7 @@
   background: var(--marklyra-body-bg, var(--surface));
   color: var(--text);
   outline: none;
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .home-column {
   box-sizing: border-box;
@@ -54,7 +54,7 @@
   padding: 0 10px 0 12px;
   height: 32px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--lg-radius-control);
   background: color-mix(in srgb, var(--surface) 93%, var(--text) 7%);
   color: var(--text);
   font: inherit;
@@ -63,10 +63,14 @@
   cursor: default;
 }
 .home-action:hover {
-  background: color-mix(in srgb, var(--surface) 88%, var(--text) 12%);
+  background:
+    linear-gradient(var(--lg-hover), var(--lg-hover)),
+    color-mix(in srgb, var(--surface) 93%, var(--text) 7%);
 }
 .home-action:active {
-  background: color-mix(in srgb, var(--surface) 84%, var(--text) 16%);
+  background:
+    linear-gradient(var(--lg-pressed), var(--lg-pressed)),
+    color-mix(in srgb, var(--surface) 93%, var(--text) 7%);
 }
 .home-action kbd {
   color: var(--muted);
@@ -93,7 +97,7 @@
   margin: 0;
   padding: 2px 4px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--lg-radius-xs);
   background: transparent;
   color: var(--focus);
   font: inherit;
@@ -146,7 +150,7 @@
   cursor: default;
 }
 .home-recent button:hover {
-  background: var(--hover);
+  background: var(--lg-hover);
 }
 .home-recent-icon {
   display: grid;

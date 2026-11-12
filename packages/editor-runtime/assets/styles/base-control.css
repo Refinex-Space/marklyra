@@ -1459,19 +1459,27 @@ p.rawedit:after {
   visibility: visible;
 }
 
-/* Find and replace panel. */
+/* Find and replace panel: Liquid Glass regular material (docs/DESIGN.md §4), docked edge to edge
+   under the titlebar. The host exposes the frame over the sidebars as the panel's rectangle and
+   projects its shadow there (marklyra-find-panel-shadow), so the panel keeps square corners:
+   rounded ones would uncover the document background at the window edges. The panel is measured
+   as it opens (find-panel.ts), so it only fades in (§5). */
 
 #md-searchpanel {
   display: none;
   position: fixed;
   cursor: default;
   width: 100%;
-  background: inherit;
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  border-bottom: 1px solid var(--lg-edge);
   z-index: 1001;
   top: 0;
   left: 0;
   right: 0;
-  box-shadow: rgba(0,0,0,.6) 0 0 .5em;
+  box-shadow: var(--lg-shadow-popover);
+  animation: lg-scrim-in var(--lg-duration) var(--lg-ease-out);
   padding: 5px 8px 0 16px;
   -webkit-transform: translate3d(0,0,0);
   transform: translate3d(0,0,0);
@@ -1549,11 +1557,18 @@ p.rawedit:after {
   visibility: hidden;
 }
 
-#md-searchpanel .btn:not(.close-btn):hover {
+#md-searchpanel .btn:not(.close-btn) {
+  border-radius: var(--lg-radius-xs);
+  transition: background-color var(--lg-duration-fast) ease-out;
+}
+
+#md-searchpanel .btn:not(.close-btn):hover,
+#md-searchpanel .btn:not(.close-btn):active {
   outline: 0;
   background-image: none;
-  -webkit-box-shadow: inset 0 3px 5px rgba(0,0,0,.125);
-  box-shadow: inset 0 3px 5px rgba(0,0,0,.125);
+  background-color: var(--lg-hover);
+  -webkit-box-shadow: none;
+  box-shadow: none;
 }
 
 #md-searchpanel svg.icon {
@@ -1567,6 +1582,21 @@ p.rawedit:after {
   background-color: #ddd;
   background-color: var(--active-toggle-btn-color);
   color: #000;
+}
+
+#md-searchpanel .searchpanel-search-option-btn {
+  border-color: transparent;
+  border-radius: var(--lg-radius-xs);
+  transition: background-color var(--lg-duration-fast) ease-out;
+}
+
+#md-searchpanel .searchpanel-search-option-btn:hover {
+  background-color: var(--lg-hover);
+}
+
+#md-searchpanel .searchpanel-search-option-btn.active {
+  background-color: var(--lg-selected-strong);
+  color: var(--lg-accent);
 }
 
 #md-searchpanel .input-group-addon {
@@ -1596,11 +1626,24 @@ p.rawedit:after {
 
 #md-searchpanel input {
   height: 26px;
-  background: inherit;
+  background: var(--lg-surface-control);
   color: inherit;
-  border-radius: 0;
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-control);
+  -webkit-box-shadow: none;
+  box-shadow: none;
   width: 100%;
   font-size: 12px;
+  transition:
+    border-color var(--lg-duration-fast) ease-out,
+    box-shadow var(--lg-duration-fast) ease-out;
+}
+
+#md-searchpanel input:focus {
+  outline: 0;
+  border-color: color-mix(in srgb, var(--lg-accent) 60%, transparent);
+  -webkit-box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
 }
 
 .on-search-panel-open content {

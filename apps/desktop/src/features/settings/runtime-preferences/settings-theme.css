@@ -10,9 +10,10 @@ html[data-settings-page],
   --settings-accent: #387ff0;
   --settings-focus: #a5a9b1;
   --settings-gap: 8px;
-  --settings-radius: 8px;
-  /* The same canvas and hairline as the main window's cards (style.css --shell-canvas). */
-  --settings-canvas: color-mix(in srgb, var(--settings-bg) 95%, var(--settings-text));
+  /* Between the two cards, as between the main window's panes (--pane-divider-gap). */
+  --settings-divider-gap: 4px;
+  --settings-radius: var(--lg-radius-pane, 12px);
+  /* No canvas of its own: the page is transparent over the shell's light field (docs/DESIGN.md L0). */
   --settings-pane-border: color-mix(in srgb, var(--settings-text) 13%, var(--settings-bg));
   --settings-content-width: 760px;
   --settings-content-padding: 48px 40px 64px;
@@ -31,6 +32,10 @@ html[data-settings-dark="true"],
   --settings-accent: #58a6ff;
   --settings-focus: #858b94;
   color-scheme: dark;
+}
+/* A React settings page stands in for the content card: the same opaque layer, lifted by depth. */
+.preferences-native-overlay {
+  box-shadow: var(--lg-depth-pane);
 }
 
 @media (max-width: 900px) {

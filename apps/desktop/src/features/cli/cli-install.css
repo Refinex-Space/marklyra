@@ -8,21 +8,22 @@
 .cli-scrim {
   position: absolute;
   inset: 0;
-  background: rgb(0 0 0 / 18%);
+  background: var(--lg-scrim);
+  animation: lg-scrim-in var(--lg-duration) ease-out;
 }
 .cli-dialog {
   position: relative;
   width: min(460px, calc(100vw - 32px));
   padding: 18px 20px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-dialog);
+  background: var(--lg-surface-thick);
+  -webkit-backdrop-filter: var(--lg-filter-thick);
+  backdrop-filter: var(--lg-filter-thick);
   color: var(--text);
-  box-shadow:
-    0 16px 40px -10px rgb(0 0 0 / 30%),
-    0 2px 8px rgb(0 0 0 / 10%);
+  box-shadow: var(--lg-shadow-dialog);
   font-size: 13px;
-  animation: cli-in 0.14s ease-out;
+  animation: lg-sheet-in var(--lg-duration-slow) var(--lg-ease-spring);
 }
 .cli-dialog h2 {
   margin: 0 0 8px;
@@ -57,15 +58,15 @@
   align-items: center;
   margin-bottom: 12px;
   padding: 10px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--text) 5%, var(--surface));
+  border-radius: var(--lg-radius-control);
+  background: var(--lg-hover);
 }
 .cli-path span {
   grid-column: 1 / -1;
   color: var(--muted);
 }
 .cli-error {
-  color: #c34747;
+  color: var(--lg-danger);
 }
 .cli-actions {
   display: flex;
@@ -78,15 +79,20 @@
 .cli-dialog button {
   height: 28px;
   padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-control);
+  box-shadow: var(--lg-shadow-control);
   color: inherit;
   font: inherit;
   cursor: pointer;
+  transition: scale var(--lg-duration) var(--lg-ease-spring);
 }
 .cli-dialog button:hover:not(:disabled) {
-  background: var(--hover);
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-control);
+}
+.cli-dialog button:active:not(:disabled) {
+  scale: var(--lg-press-scale);
 }
 .cli-dialog button:disabled {
   opacity: 0.55;
@@ -94,20 +100,9 @@
 }
 .cli-dialog button.cli-primary {
   border-color: transparent;
-  background: var(--focus);
-  color: #fff;
+  background: var(--lg-accent-fill);
+  color: var(--lg-accent-ink);
 }
 .cli-dialog button.cli-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--focus) 85%, #000);
-}
-@keyframes cli-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cli-dialog {
-    animation: none;
-  }
+  background: color-mix(in srgb, var(--lg-accent-fill) 88%, #000);
 }

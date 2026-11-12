@@ -46,7 +46,7 @@ html[data-settings-page] {
   margin: 0;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--lg-radius-xs);
   background: transparent;
   color: var(--settings-text);
   cursor: pointer;
@@ -56,8 +56,7 @@ html[data-settings-page] {
   color: currentColor;
 }
 .settings-about-tagline .settings-about-github:hover:not(:disabled) {
-  background: var(--settings-hover);
-  border-color: var(--settings-line);
+  background: var(--lg-hover);
 }
 .settings-about-tagline .settings-about-github:focus-visible {
   outline: 2px solid var(--settings-focus);
@@ -96,8 +95,11 @@ html[data-settings-page] {
     gap: 10px;
   }
 }
+/* L0 canvas: the page is clear, so the shell's own light field (.preferences-page, fixed to the
+   window like the titlebar band) shows through and the two are one surface with no seam. The
+   frame stays transparent because its color-scheme always matches the shell's. */
 html[data-settings-page] {
-  background: var(--settings-canvas);
+  background: transparent;
 }
 [data-settings-page] body,
 [data-settings-page] #root,
@@ -110,7 +112,7 @@ html[data-settings-page] {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: var(--settings-canvas);
+  background: transparent;
   color: var(--settings-text);
   font: var(--settings-font);
   text-align: left;
@@ -119,7 +121,7 @@ html[data-settings-page] {
 [data-settings-page] .pane-group {
   display: flex;
   box-sizing: border-box;
-  gap: var(--settings-gap);
+  gap: var(--settings-divider-gap);
   padding: 4px var(--settings-gap) var(--settings-gap);
   overflow: hidden;
 }
@@ -131,9 +133,13 @@ html[data-settings-page] {
   min-width: 200px;
   height: 100%;
   padding: 14px 12px;
-  border: 1px solid var(--settings-pane-border);
+  /* L2 navigation glass, like the file sidebar. The canvas beneath is static, so no
+     backdrop-filter: fill, rim and depth carry the material (docs/DESIGN.md §4). */
+  border: 1px solid var(--lg-edge);
   border-radius: var(--settings-radius);
-  background: var(--settings-bg);
+  background: var(--lg-surface-pane);
+  box-shadow: var(--lg-shadow-pane);
+  color: var(--settings-text);
   overflow-y: auto;
 }
 [data-settings-page] .list-group {
@@ -158,7 +164,7 @@ html[data-settings-page] {
   margin: 0 0 14px;
   padding: 6px 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--lg-radius-item);
   background: transparent;
   color: var(--settings-muted);
   font: inherit;
@@ -176,7 +182,7 @@ html[data-settings-page] {
   stroke-linejoin: round;
 }
 [data-settings-page] .settings-back:hover {
-  background: var(--settings-hover);
+  background: var(--lg-hover);
 }
 [data-settings-page] .sidebar .search-input {
   appearance: none;
@@ -184,9 +190,9 @@ html[data-settings-page] {
   height: 34px;
   min-height: 34px;
   padding: 6px 28px 6px 12px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: var(--settings-hover);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-control);
+  background: var(--lg-surface-control);
   color: var(--settings-text);
   font-size: 13px;
   box-shadow: none;
@@ -212,7 +218,7 @@ html[data-settings-page] {
   width: 100%;
   margin: 3px 0;
   padding: 7px 12px;
-  border-radius: 7px;
+  border-radius: var(--lg-radius-item);
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -239,12 +245,13 @@ html[data-settings-page] {
   background: transparent;
   font-weight: 400;
 }
-[data-settings-page] .nav-group-item[aria-current="page"] {
-  background: var(--settings-hover);
-  font-weight: 600;
-}
 [data-settings-page] .nav-group-item:hover {
-  background: var(--settings-hover);
+  background: var(--lg-hover);
+}
+[data-settings-page] .nav-group-item[aria-current="page"] {
+  background: var(--lg-selected);
+  color: var(--settings-text);
+  font-weight: 600;
 }
 [data-settings-page] .pane-group > .pane {
   flex: 1;
@@ -252,9 +259,11 @@ html[data-settings-page] {
   margin: 0;
   box-sizing: border-box;
   padding: var(--settings-content-padding);
-  border: 1px solid var(--settings-pane-border);
+  /* L1 content: opaque, never glass, lifted off the canvas by depth alone. */
+  border: 1px solid var(--lg-edge);
   border-radius: var(--settings-radius);
   background: var(--settings-bg);
+  box-shadow: var(--lg-depth-pane);
   overflow-y: auto;
   scrollbar-gutter: stable both-edges;
 }
@@ -387,9 +396,11 @@ html[data-settings-page] {
   left: 2px;
   top: 2px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px #0002;
-  transition: transform 120ms ease;
+  /* Control glass over a white base, so the knob stays legible on the grey and accent tracks. */
+  background:
+    var(--lg-sheen), linear-gradient(var(--lg-fill-control), var(--lg-fill-control)), #fff;
+  box-shadow: var(--lg-shadow-control);
+  transition: transform var(--lg-duration) var(--lg-ease-spring);
 }
 [data-settings-page] .checkbox input[type="checkbox"]:checked {
   background: var(--settings-accent);
@@ -411,7 +422,7 @@ html[data-settings-page] {
   max-width: 100%;
   padding: 5px 9px;
   border: 1px solid var(--settings-line);
-  border-radius: 7px;
+  border-radius: var(--lg-radius-control);
   background-color: var(--settings-bg);
   color: var(--settings-text);
   font: inherit;
@@ -463,7 +474,7 @@ html[data-settings-page] {
   min-height: 30px;
   padding: 5px 11px;
   border: 1px solid var(--settings-line);
-  border-radius: 7px;
+  border-radius: var(--lg-radius-control);
   background: var(--settings-input);
   color: var(--settings-text);
   box-shadow: none;
@@ -471,6 +482,16 @@ html[data-settings-page] {
 }
 [data-settings-page] .btn:hover:not(:disabled) {
   background: var(--settings-hover);
+}
+/* The one prominent action of a dialog: an accent capsule (docs/DESIGN.md §6). */
+[data-settings-page] .btn.btn-primary {
+  border-color: transparent;
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-accent-fill);
+  color: var(--lg-accent-ink);
+}
+[data-settings-page] .btn.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(var(--lg-pressed), var(--lg-pressed)), var(--lg-accent-fill);
 }
 [data-settings-page] .label-input-group {
   width: 100%;
@@ -515,12 +536,17 @@ html[data-settings-page] {
 [data-settings-page] a {
   color: var(--settings-accent);
 }
+/* L3 regular glass: every floating menu and list popup over the settings page. */
 [data-settings-page] .dropdown-menu {
-  background: var(--settings-bg);
-  border-color: var(--settings-line);
+  padding: var(--lg-popover-padding);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
   color: var(--settings-text);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px #0002;
+  box-shadow: var(--lg-shadow-popover);
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 [data-settings-page] button:focus-visible,
 [data-settings-page] input:focus-visible,
@@ -532,10 +558,15 @@ html[data-settings-page] {
 [data-settings-page] .sidebar .search-input:focus {
   outline: none;
   border-color: var(--settings-muted);
-  box-shadow: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
 }
 [data-settings-page] #marklyra-preferences-status {
-  left: calc(var(--settings-sidebar-width) + var(--settings-gap) * 2 + 1px) !important;
+  left: calc(
+    var(--settings-sidebar-width) +
+    var(--settings-gap) +
+    var(--settings-divider-gap) +
+    1px
+  ) !important;
   right: calc(var(--settings-gap) + 1px) !important;
   bottom: calc(var(--settings-gap) + 1px) !important;
   background: var(--settings-bg) !important;
@@ -558,7 +589,7 @@ html[data-settings-page] {
    platform defaults; the page shares one control scale across both themes. */
 [data-settings-page] .sidebar input.search-input {
   -webkit-appearance: none !important;
-  border-radius: 9px !important;
+  border-radius: var(--lg-radius-control) !important;
   outline: none;
 }
 [data-settings-page] .input-group {
@@ -818,13 +849,16 @@ html[data-settings-page] {
   display: block;
   max-width: 300px;
   padding: 10px 12px;
-  border: 1px solid var(--settings-line);
-  border-radius: 7px;
-  background: var(--settings-bg);
+  /* Regular glass. It already fades with its own opacity transition, so no materialise. */
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-control);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
   color: var(--settings-text);
   filter: none;
   -webkit-filter: none;
-  box-shadow: 0 2px 6px #00000014;
+  box-shadow: var(--lg-shadow-popover);
   font-size: 12px;
   line-height: 1.6;
   white-space: pre-line;
@@ -879,7 +913,7 @@ html[data-settings-page] {
   background-color: var(--settings-input);
 }
 [data-settings-page] .icon-button {
-  border-radius: 5px;
+  border-radius: var(--lg-radius-xs);
 }
 
 [data-settings-page] .settings-table-toggle .checkbox.row {
@@ -918,7 +952,7 @@ html[data-settings-page] {
 [data-settings-page] textarea:focus {
   outline: none;
   border-color: var(--settings-focus) !important;
-  box-shadow: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
 }
 [data-settings-page] .input-group-header-hint:has(a) {
   flex: 0 0 auto;
@@ -988,7 +1022,7 @@ html[data-settings-page] {
 }
 [data-settings-page] .btn-split-group > .btn {
   margin: 0;
-  border-radius: 7px;
+  border-radius: var(--lg-radius-control);
 }
 [data-settings-page] .btn-split-group > .btn-split-right {
   width: 30px;
@@ -1007,15 +1041,13 @@ html[data-settings-page] {
   top: calc(100% + 6px);
   right: 0;
   margin: 0;
-  padding: 5px;
-  box-shadow: 0 2px 8px #00000014;
 }
 [data-settings-page] .dropdown-menu li {
   padding: 5px 10px;
-  border-radius: 4px;
+  border-radius: var(--lg-radius-item);
 }
 [data-settings-page] .dropdown-menu li:hover {
-  background: var(--settings-hover);
+  background: var(--lg-hover);
   color: var(--settings-text);
 }
 [data-settings-page] .settings-select-popup {
@@ -1024,13 +1056,13 @@ html[data-settings-page] {
   z-index: 100;
   right: auto;
   margin: 0;
-  padding: 5px;
-  border: 1px solid var(--settings-line);
   max-height: 252px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  box-shadow: 0 2px 8px #00000014;
   font-size: 13px;
+  /* It stands in for a native select, whose bounds the script computes: the spring's overshoot
+     would scale it past them, so it appears in place like the native list. */
+  animation: none;
 }
 [data-settings-page] .settings-select-popup li {
   display: flex;
@@ -1039,7 +1071,7 @@ html[data-settings-page] {
   cursor: pointer;
 }
 [data-settings-page] .settings-select-popup li.active {
-  background: var(--settings-hover);
+  background: var(--lg-selected);
   color: var(--settings-text);
 }
 [data-settings-page] .settings-select-popup li[aria-selected="true"]::after {
@@ -1164,7 +1196,7 @@ html[data-settings-page] {
   margin: 0;
   padding: 5px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--lg-radius-xs);
   background: transparent;
   color: var(--settings-muted);
 }
@@ -1178,7 +1210,7 @@ html[data-settings-page] {
   stroke-linejoin: round;
 }
 [data-settings-page] .settings-file-type-remove:hover:not(:disabled) {
-  background: var(--settings-hover);
+  background: var(--lg-hover);
   color: #c25149;
 }
 
@@ -1211,4 +1243,32 @@ html[data-settings-page] {
 
 [data-settings-page] .settings-platform-hidden {
   display: none !important;
+}
+
+/* Dialogs raised by the settings page are thick glass sheets on a plain scrim. The scrim carries
+   no backdrop-filter, so the sheet's own blur is never nested inside another. */
+[data-settings-page] .modal-backdrop {
+  background: var(--lg-scrim);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  animation: lg-scrim-in var(--lg-duration) ease-out;
+}
+[data-settings-page] .modal-backdrop .modal-content {
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-dialog);
+  background: var(--lg-surface-thick);
+  -webkit-backdrop-filter: var(--lg-filter-thick);
+  backdrop-filter: var(--lg-filter-thick);
+  color: var(--settings-text);
+  box-shadow: var(--lg-shadow-dialog);
+  animation: lg-sheet-in var(--lg-duration-slow) var(--lg-ease-spring);
+}
+[data-settings-page] .modal-backdrop .modal-footer .btn:not(.btn-primary) {
+  border-color: transparent;
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-control);
+  box-shadow: var(--lg-shadow-control);
+}
+[data-settings-page] .modal-backdrop .modal-footer .btn:not(.btn-primary):hover:not(:disabled) {
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-control);
 }

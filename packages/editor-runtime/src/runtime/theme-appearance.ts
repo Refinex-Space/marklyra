@@ -127,6 +127,28 @@ function hoverRules(element: HTMLElement): string {
   return rules.join('\n');
 }
 
+/** WebKit keeps the computed styles of a display:none subtree after a theme swap, and fresh
+ * probes inherit the old theme's custom properties from those stale ancestors (a dark theme then
+ * reported the light theme's selected-file colours). An inline style change invalidates only the
+ * element itself, so every hidden ancestor of a probe parent is refreshed, outermost first, and
+ * its original style attribute is put back exactly. */
+function refreshHiddenStyles(boundary: HTMLElement, parents: (HTMLElement | null)[]) {
+  const chain = new Set<HTMLElement>();
+  for (const parent of parents)
+    for (let node = parent; node; node = node.parentElement) {
+      chain.add(node);
+      if (node === boundary) break;
+    }
+  for (const node of [...chain].reverse()) {
+    const original = node.getAttribute('style');
+    node.style.setProperty('--marklyra-theme-probe-refresh', '1');
+    void getComputedStyle(node).getPropertyValue('--marklyra-theme-probe-refresh');
+    if (original === null) node.removeAttribute('style');
+    else node.setAttribute('style', original);
+    void getComputedStyle(node).getPropertyValue('color');
+  }
+}
+
 /** Read the hidden UI's computed presentation without touching its
  * model, view state, selection or history. Every temporary node is synchronously
  * removed, and marked before insertion so host observers can ignore the probe. */
@@ -134,6 +156,13 @@ export function readThemeAppearance(): ThemeAppearance {
   const body = document.body;
   const sidebar = document.getElementById('marklyra-sidebar');
   if (!body || !sidebar) return {};
+  refreshHiddenStyles(sidebar, [
+    sidebar,
+    document.getElementById('file-library-list-children'),
+    document.getElementById('file-library-tree'),
+    document.getElementById('outline-content'),
+    document.getElementById('marklyra-sidebar-footer'),
+  ]);
   const owned: HTMLElement[] = [];
   const sample = (parent: HTMLElement, className: string, name: string) => {
     const node = document.createElement('div');

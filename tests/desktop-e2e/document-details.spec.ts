@@ -264,7 +264,7 @@ test('both side panels resize live within their limits and keep thin dividers wi
   const handle = page.getByRole('separator', { name: '调整目录宽度' });
   const box = await handle.boundingBox();
   if (!box) throw Error('Missing outline resize handle');
-  expect(box.width).toBe(2);
+  expect(box.width).toBe(4);
   // Grab beyond the visible seam: narrowing the gap must retain the drag target.
   const grabX = box.x + box.width + 7;
   await page.mouse.move(grabX, box.y + 100);
@@ -293,7 +293,7 @@ test('both side panels resize live within their limits and keep thin dividers wi
   const leftHandle = page.getByRole('separator', { name: '调整侧栏宽度' });
   const leftBox = await leftHandle.boundingBox();
   if (!leftBox) throw Error('Missing sidebar resize handle');
-  expect(leftBox.width).toBe(2);
+  expect(leftBox.width).toBe(4);
   await page.mouse.move(leftBox.x - 7, leftBox.y + 100);
   await page.mouse.down();
   await page.mouse.move(leftBox.x + 53, leftBox.y + 100, { steps: 6 });
@@ -414,7 +414,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     expect(Number.parseFloat(idle.left[0] ?? '0')).toBeLessThanOrEqual(1);
     expect(idle.right[0]).toBe('1px');
     expect(idle.lineStyle).toBe('solid');
-    expect(idle.radius).toBe('8px');
+    expect(idle.radius).toBe('12px');
     // Files, document and outline are one card language: same radius, hairline and top edge.
     const cards = await page.evaluate(() =>
       ['.sidebar', 'main.document-area', '.document-details-body'].map((selector) => {
@@ -434,7 +434,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       cards.map(() => ({ ...cards[0], color: undefined })),
     );
     expect(new Set(cards.map((card) => card.color)).size).toBe(1);
-    expect(cards[0]).toMatchObject({ radius: '8px', width: '1px', bottom: 8 });
+    expect(cards[0]).toMatchObject({ radius: '12px', width: '1px', bottom: 8 });
     expect(idle.top).toBeGreaterThanOrEqual(32);
     expect(idle.bottomGap).toBeGreaterThanOrEqual(6);
     await page
@@ -719,6 +719,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     const history = await layoutHistory(page);
     await emitLayoutMenu(page, 'view:outline');
     await expectAligned(page);
+    // The outline pane is navigation glass over the canvas, not a second copy of the document.
     await expect
       .poll(async () => {
         const panel = await details(page)
@@ -727,7 +728,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
         const body = await frame
           .locator('body')
           .evaluate((element) => getComputedStyle(element).backgroundColor);
-        return panel === body;
+        return /^rgba\(.+, 0\.\d+\)$/.test(panel) && panel !== body;
       })
       .toBe(true);
     const outlineScroll = details(page).locator('.document-details-content');

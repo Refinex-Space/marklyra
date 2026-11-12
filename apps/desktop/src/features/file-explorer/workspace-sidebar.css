@@ -87,7 +87,7 @@
   flex: 1;
   overflow: auto;
   min-height: 0;
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .workspace-panel[hidden],
 .workspace-search[hidden] {
@@ -424,31 +424,37 @@
   display: flex;
   flex-direction: column;
   min-width: 150px;
-  padding: 4px 0;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--sidebar);
+  padding: var(--lg-popover-padding);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
   color: var(--text);
-  box-shadow: 0 5px 10px #0003;
+  box-shadow: var(--lg-shadow-popover);
   font-size: 12px;
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 .sidebar-popup-menu button {
   display: flex;
   align-items: center;
   width: 100%;
   padding: 3px 16px;
-  border-radius: 0;
+  border-radius: var(--lg-radius-item);
   line-height: 1.8;
   text-align: left;
 }
-.sidebar-popup-menu button:hover,
+.sidebar-popup-menu button:hover {
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-hover));
+  color: var(--marklyra-sidebar-item-hover-text, inherit);
+}
 .sidebar-popup-menu button:focus-visible {
-  background: var(--marklyra-sidebar-item-hover-bg, var(--selected));
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-selected));
   color: var(--marklyra-sidebar-item-hover-text, inherit);
 }
 .sidebar-popup-menu hr {
   border: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--lg-separator);
   width: 100%;
   margin: 4px 0;
 }
@@ -648,7 +654,7 @@
   color: var(--marklyra-control-text, var(--muted));
 }
 .workspace-navigation-header .sidebar-header-action:hover:not(:disabled) {
-  background: var(--marklyra-sidebar-item-hover-bg, var(--hover));
+  background: var(--marklyra-sidebar-item-hover-bg, var(--lg-hover));
   color: var(--marklyra-control-hover-text, var(--text));
 }
 .workspace-sidebar-compact .workspace-tree-row-editing {
@@ -766,6 +772,8 @@
   max-height: calc(100vh - 16px);
   overflow-y: auto;
   font-family: var(--marklyra-sidebar-font-family, inherit);
+  /* Clamped to the viewport by measuring its own box, so it fades in without scaling. */
+  animation-name: lg-scrim-in;
 }
 .workspace-footer .workspace-location-menu:focus,
 .workspace-location-popup:focus {
@@ -1030,13 +1038,13 @@
   width: auto;
   font-size: 13px;
 }
+/* The glass comes from .sidebar-popup-menu; it rises out of the footer bar below it. */
 .directory-footer-popup {
   display: block;
-  padding: 4px 0 0;
   color: var(--marklyra-sidebar-text, var(--text));
-  background: var(--marklyra-sidebar-bg, var(--sidebar));
   font-size: 12px;
   line-height: 24px;
+  animation-name: lg-materialize-up;
 }
 .directory-menu-items {
   list-style: none;
@@ -1053,7 +1061,7 @@
   width: 100%;
   padding: 3px 20px;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--lg-radius-item);
   font: inherit;
   line-height: 1.42857143;
   text-align: left;
@@ -1068,7 +1076,7 @@
 }
 .directory-menu-items > li.directory-recent-heading,
 .directory-menu-items > li.directory-location-heading {
-  border-top: var(--marklyra-sidebar-border, 1px solid var(--border));
+  border-top: var(--marklyra-sidebar-border, 1px solid var(--lg-separator));
 }
 .directory-menu-items > li.directory-menu-heading:first-child {
   border-top: 0;
@@ -1097,7 +1105,7 @@
   height: 22px;
   padding: 0;
   margin: 4px 8px 4px -8px;
-  border-radius: 2px;
+  border-radius: var(--lg-radius-xs);
   opacity: 0.4;
 }
 .directory-sort-row .workspace-sort-controls button[aria-checked="true"],
@@ -1142,7 +1150,7 @@
   height: 18px;
   padding: 1px;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--lg-radius-xs);
   opacity: 0;
 }
 .directory-location-pin {
@@ -1196,11 +1204,6 @@
   padding: 0 4px;
   font: inherit;
   text-decoration: underline;
-}
-.shell[data-theme-name="marklyra-dark"] .directory-footer-popup {
-  background: var(--marklyra-body-bg, var(--sidebar));
-  border: 1px solid currentColor;
-  box-shadow: 0 2px 8px #0007;
 }
 .shell[data-theme-name="marklyra-dark"] .directory-current-dot {
   background: white;
@@ -1291,8 +1294,12 @@
   padding: 3px 6px;
   max-width: 230px;
   color: var(--text);
-  background: var(--marklyra-body-bg, var(--bg));
-  box-shadow: 0 1px 5px #0003;
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-xs);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  box-shadow: var(--lg-shadow-popover);
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -1301,14 +1308,14 @@
   z-index: 100;
   width: 224px;
   font-size: 13px;
-  padding: 4px 0;
+  padding: var(--lg-popover-padding);
 }
 .workspace-entry-menu > button {
   display: block;
   width: 100%;
   padding: 3px 20px;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--lg-radius-item);
   font: inherit;
   line-height: 18px;
   text-align: left;

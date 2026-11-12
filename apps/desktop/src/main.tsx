@@ -4,6 +4,7 @@ import { App } from './app/App.js';
 import { PreferencesWindow } from './features/settings/PreferencesWindow.js';
 import { AppUpdates } from './features/updates/AppUpdates.js';
 import '@marklyra/editor-themes/paper.css';
+import '@marklyra/editor-themes/liquid-glass.css';
 import './style.css';
 
 const root = document.querySelector('#root');

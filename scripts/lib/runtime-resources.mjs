@@ -44,6 +44,8 @@ export const runtimeInputRoots = [
   ['packages/editor-runtime/vendor', 'lib'],
   ['packages/editor-themes/assets', 'style/themes'],
   ['packages/editor-themes/base.css', null],
+  // The Liquid Glass tokens the desktop shell imports; the page loads this same file.
+  ['packages/editor-themes/liquid-glass.css', 'style/liquid-glass.css'],
   ['apps/desktop/src/features/settings/runtime-preferences/page', 'preferences'],
 ];
 

@@ -21,6 +21,11 @@ test('current inputs are discovered without source fingerprints', async () => {
   const inputs = await collectRuntimeInputs();
   assert.ok(inputs.some((input) => input.path.endsWith('/src/engine/main.js')));
   assert.ok(inputs.some((input) => input.runtimePath === 'index.html'));
+  // The page shares the shell's Liquid Glass token file instead of a copy.
+  assert.deepEqual(
+    inputs.find((input) => input.runtimePath === 'style/liquid-glass.css'),
+    { path: 'packages/editor-themes/liquid-glass.css', runtimePath: 'style/liquid-glass.css' },
+  );
   assert.ok(inputs.every((input) => !('sha256' in input) && !('size' in input)));
   assert.equal(new Set(inputs.map((input) => input.path.toLowerCase())).size, inputs.length);
 });

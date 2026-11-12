@@ -113,7 +113,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       .poll(() => close.evaluate((element) => getComputedStyle(element).backgroundColor))
       .not.toBe(background);
     await expect(close).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    await expect(close).toHaveCSS('border-radius', '4px');
+    // --lg-radius-xs (docs/DESIGN.md §5).
+    await expect(close).toHaveCSS('border-radius', '6px');
     await expect(close).toHaveCSS('opacity', '1');
     await expectCentered();
     expect(await close.boundingBox()).toEqual(bounds);
@@ -126,7 +127,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       expect(await close.evaluate((element) => element.matches(':active'))).toBe(true);
       await expect(close).toHaveCSS('box-shadow', 'none');
       await expect(close).toHaveCSS('background-color', hoverBackground);
-      await expect(close).toHaveCSS('border-radius', '4px');
+      await expect(close).toHaveCSS('border-radius', '6px');
       await expectCentered();
       expect(await close.boundingBox()).toEqual(bounds);
       await panel.screenshot({ path: testInfo.outputPath('find-close-pressed.png') });
@@ -165,8 +166,7 @@ async function presentation(page: Page) {
         fontSize: inputStyle.fontSize,
         padding: style.padding,
         shadow: style.boxShadow,
-        background: style.backgroundColor,
-        bodyBackground: getComputedStyle(document.body).backgroundColor,
+        backdrop: style.backdropFilter || style.getPropertyValue('-webkit-backdrop-filter'),
         contentTop: content.getBoundingClientRect().top,
         originalContentTop: Number.parseFloat(getComputedStyle(content).top),
       };
@@ -251,7 +251,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       });
       // Night's row line-height and browser subpixel rounding differ.
       expect(Math.abs(state.inputTop - 7)).toBeLessThan(2);
-      expect(state.background).toBe(state.bodyBackground);
+      // Liquid Glass regular material over the document (docs/DESIGN.md §4).
+      expect(state.backdrop).toContain('blur(');
       expect(Math.abs(state.contentTop - state.originalContentTop)).toBeLessThan(1);
       await expect(page.locator('.marklyra-find-panel-shadow').first()).toHaveCSS(
         'box-shadow',

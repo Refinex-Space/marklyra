@@ -1,19 +1,21 @@
 /* The settings page's two cards (sections, content) on the shell canvas, without their content.
-   Same insets as the real cards: 4px under the titlebar band and 8px to the window. */
+   Same insets as the real cards: 4px under the titlebar band, 8px to the window, 4px between. */
 .settings-skeleton {
   position: absolute;
   inset: 4px 8px 8px;
   z-index: 1;
   display: flex;
-  gap: var(--pane-gap, 8px);
+  gap: var(--pane-divider-gap, 4px);
   --skeleton-ink: var(--text);
 }
 .settings-skeleton-sidebar,
 .settings-skeleton-content {
   box-sizing: border-box;
   border: 1px solid var(--pane-border, var(--border));
-  border-radius: var(--pane-radius, 8px);
+  /* The real cards' radius (--settings-radius = --lg-radius-pane), with or without native chrome. */
+  border-radius: var(--pane-radius, var(--lg-radius-pane));
   background: var(--marklyra-body-bg, var(--surface));
+  box-shadow: var(--lg-depth-pane);
 }
 .settings-skeleton-sidebar {
   display: flex;
@@ -21,7 +23,10 @@
   flex-direction: column;
   gap: 4px;
   padding: 12px 10px;
-  background: var(--settings-sidebar-bg, var(--sidebar));
+  /* The loaded navigation card is glass; its outline loads as the same material. */
+  border-color: var(--lg-edge);
+  background: var(--lg-surface-pane);
+  box-shadow: var(--lg-shadow-pane);
 }
 /* Room for the real "返回应用" button, which sits above the skeleton while it loads. */
 .settings-skeleton-back {

@@ -742,9 +742,10 @@ export class MarkLyraEditor {
       return;
     }
     const rect = this.element.getBoundingClientRect();
+    // Room for the panel's --lg-depth-popover, whose dark variant fades out about 56px below it.
     for (const [key, width, clip] of [
-      ['findPanelShadow', left, `inset(0 ${Math.max(0, rect.width - left)}px -32px 0)`],
-      ['findPanelTrailingShadow', right, `inset(0 0 -32px ${Math.max(0, rect.width - right)}px)`],
+      ['findPanelShadow', left, `inset(0 ${Math.max(0, rect.width - left)}px -64px 0)`],
+      ['findPanelTrailingShadow', right, `inset(0 0 -64px ${Math.max(0, rect.width - right)}px)`],
     ] as const) {
       if (!width) {
         this[key]?.remove();

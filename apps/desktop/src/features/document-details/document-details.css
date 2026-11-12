@@ -60,9 +60,11 @@
   background: transparent;
 }
 .shell[data-native-chrome="true"] .document-details-body {
-  border-color: var(--pane-border);
+  /* Inspector: the same navigation glass as the files pane (docs/DESIGN.md). */
+  border-color: var(--lg-edge);
   border-radius: var(--pane-radius);
-  background: var(--marklyra-body-bg, var(--surface));
+  background: var(--lg-surface-pane);
+  box-shadow: var(--lg-shadow-pane);
 }
 .document-details-header {
   display: flex;

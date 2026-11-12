@@ -29,6 +29,7 @@ import { RuntimeExport } from './export.js';
 import { RuntimeFindPanel } from './find-panel.js';
 import { installFindReplaceGuard } from './find-replace-guard.js';
 import { RuntimeFocus } from './focus.js';
+import { syncGlassScheme } from './glass-scheme.js';
 import { guardHTMLCallback } from './html-callbacks.js';
 import { validHTMLMessage } from './html-messages.js';
 import { RuntimeImageLayout } from './image-layout.js';
@@ -375,7 +376,10 @@ const outlinePopover = new RuntimeOutlinePopover({
   onPin: () => send('outline-pin'),
   onError: (error) => send('runtime-error', error.message),
 });
-const themes = new RuntimeThemes((appearance) => send('theme-appearance', appearance));
+const themes = new RuntimeThemes((appearance) => {
+  syncGlassScheme(appearance);
+  send('theme-appearance', appearance);
+});
 const selection = () => ({
   bookmark: focus.bookmark() ?? runtime.editor?.selection.buildUndo() ?? null,
   text: readSelectionText(getSelection()),
@@ -1445,9 +1449,9 @@ async function ready() {
   style.textContent =
     'content,#marklyra-source{transition-property:top!important}' +
     ':root{--sidebar-width:var(--marklyra-content-inset,0px)!important}#marklyra-sidebar,#footer-word-count,#top-titlebar{display:none!important}body{padding:0!important}content{left:var(--marklyra-content-inset,0px)!important;right:var(--marklyra-content-trailing,0px)!important;margin-top:var(--marklyra-content-top,0px)!important;bottom:0!important}#write{--sidebar-width:var(--marklyra-content-inset,0px);min-height:calc(100vh - var(--marklyra-content-top,0px))}#marklyra-source{left:var(--marklyra-content-inset,0px)!important;right:var(--marklyra-content-trailing,0px)!important;top:var(--marklyra-content-top,0px)!important}#md-searchpanel{top:var(--marklyra-content-top,0px)!important}' +
-    '#md-searchpanel .input-group-addon.close-btn{display:table-cell;width:26px;min-width:26px;height:26px;padding:0;text-align:center;vertical-align:middle;line-height:0;border-radius:4px;box-shadow:none;-webkit-tap-highlight-color:transparent}' +
+    '#md-searchpanel .input-group-addon.close-btn{display:table-cell;width:26px;min-width:26px;height:26px;padding:0;text-align:center;vertical-align:middle;line-height:0;border-radius:var(--lg-radius-xs);box-shadow:none;-webkit-tap-highlight-color:transparent}' +
     '#md-searchpanel .input-group-addon.close-btn .ion-close-round{padding:0;line-height:1;vertical-align:middle}' +
-    '#md-searchpanel .input-group-addon.close-btn:hover{background:color-mix(in srgb,var(--bg-color,#fff) 80%,var(--text-color,#333));opacity:1}';
+    '#md-searchpanel .input-group-addon.close-btn:hover{background:var(--lg-hover);opacity:1}';
   // The scrollport ends where the host's pane ends, so its scrollbar sits on the pane's own edge.
   style.textContent += '#marklyra-source .CodeMirror-scroll{overflow-y:auto!important}';
   // A field inside the host's own layout: its margins and width come from the host.

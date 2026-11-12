@@ -97,17 +97,21 @@
   margin: 0;
   min-width: 0;
   display: flex;
-  background: var(--hover);
+  background: var(--lg-hover);
   padding: 2px;
-  border-radius: 6px;
+  border-radius: var(--lg-radius-capsule);
   flex: none;
 }
 .knowledge-scope button {
   padding: 2px 9px;
+  border-radius: var(--lg-radius-capsule);
+  transition:
+    background-color var(--lg-duration-fast) ease,
+    box-shadow var(--lg-duration) var(--lg-ease-spring);
 }
 .knowledge-scope button[aria-pressed="true"] {
-  background: var(--surface);
-  box-shadow: 0 1px 3px #00000012;
+  background: var(--lg-surface-control);
+  box-shadow: var(--lg-shadow-control);
 }
 .knowledge-filter-button[aria-expanded="true"] {
   background: var(--selected);
@@ -630,17 +634,21 @@
   background: var(--muted);
   margin-bottom: 6px;
 }
+/* Small toolbars over the canvas: clear glass, so the graph stays visible beneath them. */
 .knowledge-canvas-tools,
 .knowledge-pan-tools {
   position: absolute;
   display: flex;
   align-items: center;
   gap: 2px;
-  border: 0;
-  border-radius: 6px;
-  background: var(--surface);
-  box-shadow: 0 1px 6px #0000000c;
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-clear);
+  -webkit-backdrop-filter: var(--lg-filter-clear);
+  backdrop-filter: var(--lg-filter-clear);
+  box-shadow: var(--lg-shadow-control);
   padding: 2px;
+  animation: lg-materialize-up var(--lg-duration) var(--lg-ease-spring);
 }
 .knowledge-canvas-tools {
   bottom: 36px;
@@ -656,6 +664,11 @@
   height: 28px;
   padding: 0;
   font-size: 17px;
+  border-radius: var(--lg-radius-capsule);
+}
+.knowledge-canvas-tools button:hover:not(:disabled),
+.knowledge-pan-tools button:hover:not(:disabled) {
+  background: var(--lg-hover);
 }
 .knowledge-keys {
   position: absolute;
@@ -668,17 +681,22 @@
 .knowledge-canvas:focus-visible ~ .knowledge-keys {
   color: var(--text);
 }
+/* Carries text, so regular rather than clear glass. */
 .knowledge-move-prompt {
   position: absolute;
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--surface);
-  border-radius: 6px;
-  box-shadow: 0 2px 12px #0001;
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  box-shadow: var(--lg-shadow-popover);
   padding: 5px 10px;
   font-size: 12px;
   white-space: nowrap;
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 .knowledge-move-prompt button {
   margin-left: 12px;
@@ -800,15 +818,26 @@
   display: flex;
   flex-direction: column;
   min-width: 160px;
-  padding: 5px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 8px 28px #0002;
+  padding: var(--lg-popover-padding);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  box-shadow: var(--lg-shadow-popover);
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 .knowledge-context button {
   text-align: left;
   padding: 7px 10px;
+  border-radius: var(--lg-radius-item);
+}
+.knowledge-context button:hover:not(:disabled) {
+  background: var(--lg-hover);
+}
+.knowledge-context button:focus-visible {
+  background: var(--lg-selected);
+  box-shadow: none;
 }
 .knowledge-workbench[data-narrow] .knowledge-heading > span {
   display: none;

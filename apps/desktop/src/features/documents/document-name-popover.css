@@ -1,21 +1,24 @@
 /* Rename the open document's file from its title. Both looks share one structure; the platform
    attribute only changes the native idiom: macOS hangs a popover from an arrow with the label in
-   front of the field, Windows opens a Fluent flyout with the label above it. */
+   front of the field, Windows opens a flyout with the label above it. The material is the same
+   regular Liquid Glass on both. */
 .document-name-popover {
-  --rename-accent: var(--focus);
-  --rename-danger: #c4373d;
+  --rename-danger: var(--lg-danger);
   position: fixed;
   z-index: 60;
   box-sizing: border-box;
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  box-shadow: var(--lg-shadow-popover);
   color: var(--text);
   font-size: 13px;
   line-height: 1.4;
   -webkit-user-select: none;
   user-select: none;
-  animation: document-name-in 100ms ease-out;
-}
-:root[data-theme="dark"] .document-name-popover {
-  --rename-danger: #ff8085;
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 .document-name-row {
   display: flex;
@@ -27,11 +30,25 @@
   margin: 0;
   color: var(--text);
   font: inherit;
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-control);
+  background: var(--lg-surface-control);
   -webkit-user-select: text;
   user-select: text;
   outline: none;
+  transition:
+    border-color var(--lg-duration-fast) ease-out,
+    box-shadow var(--lg-duration-fast) ease-out;
 }
-/* The global focus ring would stack on each platform's own focus treatment below. */
+.document-name-input:focus {
+  border-color: color-mix(in srgb, var(--lg-accent) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
+}
+.document-name-input[aria-invalid="true"] {
+  border-color: var(--rename-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rename-danger) 18%, transparent);
+}
+/* The global focus ring would stack on the field's own focus ring above. */
 .document-name-popover .document-name-input:focus-visible {
   outline: none;
 }
@@ -47,17 +64,13 @@
   user-select: text;
 }
 
-/* macOS: grey popover, "名称：" in front of a rounded field, soft blue focus ring. */
+/* macOS: popover hung from an arrow, "名称：" in front of the field. */
 .document-name-popover[data-platform="mac"] {
-  --rename-accent: #78a7f2;
   padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--text) 24%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--surface) 89%, var(--text) 11%);
-  box-shadow:
-    0 3px 10px #0000001a,
-    0 1px 2px #00000014;
 }
+/* The arrow carries the glass fill without its own backdrop-filter (glass never nests). It is
+   clipped to the half outside the popover plus a sliver that hides the contour beneath it, so the
+   translucent fill is not stacked over the popover body. */
 .document-name-popover[data-platform="mac"]::before {
   content: "";
   position: absolute;
@@ -65,10 +78,11 @@
   left: calc(var(--arrow-x) - 7px);
   width: 13px;
   height: 13px;
-  border-top: 1px solid color-mix(in srgb, var(--text) 24%, transparent);
-  border-left: 1px solid color-mix(in srgb, var(--text) 24%, transparent);
+  border-top: 1px solid var(--lg-edge);
+  border-left: 1px solid var(--lg-edge);
   border-top-left-radius: 4px;
-  background: color-mix(in srgb, var(--surface) 89%, var(--text) 11%);
+  background: var(--lg-fill-regular);
+  clip-path: polygon(0 0, 100% 0, 100% 2px, 2px 100%, 0 100%);
   transform: rotate(45deg);
 }
 .document-name-popover[data-platform="mac"] .document-name-row {
@@ -83,33 +97,15 @@
   flex: 1 1 auto;
   height: 26px;
   padding: 0 8px;
-  border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
-  border-radius: 4px;
-  background: var(--surface);
   font-size: 14px;
-  transition: box-shadow 120ms ease-out;
-}
-.document-name-popover[data-platform="mac"] .document-name-input:focus {
-  border-color: color-mix(in srgb, var(--rename-accent) 70%, var(--surface));
-  box-shadow: 0 0 0 2px var(--rename-accent);
-}
-.document-name-popover[data-platform="mac"] .document-name-input[aria-invalid="true"] {
-  border-color: var(--rename-danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rename-danger) 35%, transparent);
 }
 .document-name-popover[data-platform="mac"] .document-name-error {
   margin: 8px 0 0 52px;
 }
 
-/* Windows: Fluent flyout, label above a 32px field whose focus shows as an accent underline. */
+/* Windows: flyout with the label above a 32px field. */
 .document-name-popover[data-platform="windows"] {
   padding: 14px 16px 14px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  box-shadow:
-    0 3px 10px #00000014,
-    0 1px 2px #0000000d;
 }
 .document-name-popover[data-platform="windows"] .document-name-row {
   flex-direction: column;
@@ -123,36 +119,8 @@
   width: 100%;
   height: 32px;
   padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
-  border-bottom-color: color-mix(in srgb, var(--text) 45%, transparent);
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--surface) 94%, var(--text) 6%);
   font-size: 14px;
-}
-.document-name-popover[data-platform="windows"] .document-name-input:focus {
-  background: var(--surface);
-  border-color: color-mix(in srgb, var(--text) 18%, transparent);
-  border-bottom: 2px solid var(--rename-accent);
-  padding-bottom: 1px;
-}
-.document-name-popover[data-platform="windows"] .document-name-input[aria-invalid="true"] {
-  border-bottom: 2px solid var(--rename-danger);
-  padding-bottom: 1px;
 }
 .document-name-popover[data-platform="windows"] .document-name-error {
   margin-top: 8px;
-}
-
-@keyframes document-name-in {
-  from {
-    opacity: 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .document-name-popover {
-    animation: none;
-  }
-  .document-name-popover[data-platform="mac"] .document-name-input {
-    transition: none;
-  }
 }

@@ -597,7 +597,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       await expect(actions.getByRole('button')).toHaveCount(3);
       const paneFrame = panel.locator('.document-details-body');
       await expect(paneFrame).toHaveCSS('border-top-style', 'solid');
-      await expect(paneFrame).toHaveCSS('border-top-left-radius', '8px');
+      await expect(paneFrame).toHaveCSS('border-top-left-radius', '12px');
       for (const name of ['AI 历史会话', '智能体设置']) {
         await expect(actions.getByRole('button', { name, exact: true })).toHaveCSS(
           'border-top-width',

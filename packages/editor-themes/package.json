@@ -4,9 +4,11 @@
   "private": true,
   "license": "Apache-2.0",
   "files": [
+    "liquid-glass.css",
     "paper.css"
   ],
   "exports": {
-    "./paper.css": "./paper.css"
+    "./paper.css": "./paper.css",
+    "./liquid-glass.css": "./liquid-glass.css"
   }
 }

@@ -26,6 +26,10 @@ cargo test -p marklyra-desktop --lib <filter>                             # Rust
 - **原生菜单与壳状态镜像**：TS 的 `features/menus/native-menu-state.ts` 与 Rust 的 `src-tauri/src/menu.rs`、`menu/state.rs` 描述同一套启用规则，改一边必须改另一边，菜单 ID 数量有测试断言。
 - **"关闭文档"** 就是 `doc.request({ kind: 'new' })`（替换为空白未命名文档，复用未保存确认），首页由 `doc.file`、脏状态、`doc.snapshot` 推导，不是单独的路由。
 
+## UI 材质（Liquid Glass）
+
+界面视觉以 [docs/DESIGN.md](docs/DESIGN.md) 为准：玻璃只用于功能层（窗格、浮层、对话框），内容层不透明；颜色、圆角、阴影、模糊、动效只引用 `packages/editor-themes/liquid-glass.css` 的 `--lg-*` token，不在组件里写原始 `rgba` 阴影或 `blur()`。macOS 与 Windows 共用一套实现，不做平台材质分支。
+
 ## 骨架屏（Skeleton）加载规范
 
 异步读取内容的区域，在内容到达前显示内容轮廓的骨架，不留空白，也不用“加载中…”“正在读取…”这类文字。

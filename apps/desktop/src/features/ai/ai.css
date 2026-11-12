@@ -5,8 +5,8 @@
   --ai-muted: color-mix(in srgb, var(--ai-text) 55%, var(--ai-bg));
   --ai-line: color-mix(in srgb, var(--ai-text) 13%, var(--ai-bg));
   --ai-soft: color-mix(in srgb, var(--ai-text) 4%, var(--ai-bg));
-  --ai-accent: var(--accent, #387ff0);
-  --ai-primary-bg: color-mix(in srgb, var(--ai-accent) 85%, #000);
+  --ai-accent: var(--accent, var(--lg-accent));
+  --ai-primary-bg: var(--lg-accent-fill);
   color: var(--ai-text);
   font-size: 13px;
   line-height: 1.55;
@@ -31,7 +31,9 @@
   cursor: pointer;
   line-height: 1.4;
 }
-.ai-panel button:hover:not(:disabled),
+.ai-panel button:hover:not(:disabled) {
+  background: var(--lg-hover);
+}
 .ai-settings button:hover:not(:disabled) {
   background: var(--ai-soft);
 }
@@ -57,21 +59,21 @@
   outline: none;
 }
 .ai-panel :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select):focus {
-  border-color: color-mix(in srgb, var(--ai-accent) 55%, var(--ai-line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ai-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--lg-accent) 55%, var(--lg-edge));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lg-accent) 18%, transparent);
 }
 .ai-panel input,
 .ai-panel select,
 .ai-panel textarea,
 .ai-settings input {
   transition:
-    border-color 0.14s ease,
-    box-shadow 0.14s ease;
+    border-color var(--lg-duration-fast) ease,
+    box-shadow var(--lg-duration-fast) ease;
   font: inherit;
   color: inherit;
-  background: var(--ai-bg);
-  border: 1px solid var(--ai-line);
-  border-radius: 6px;
+  background: var(--lg-surface-control);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-control);
   padding: 7px 9px;
   min-width: 0;
   max-width: 100%;
@@ -112,8 +114,21 @@
   padding: 0;
   color: var(--ai-muted);
 }
-.ai-heading-actions > button {
-  border-color: var(--ai-line);
+/* Bordered heading actions are secondary controls: capsule-shaped Liquid Glass. */
+.ai-heading-actions > button,
+.ai-heading-actions .ai-new-session-trigger {
+  border-color: var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-control);
+  box-shadow: var(--lg-shadow-control);
+}
+.ai-heading-actions > button:hover:not(:disabled),
+.ai-heading-actions .ai-new-session-trigger:hover:not(:disabled) {
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-control);
+}
+.ai-heading-actions > button[aria-pressed="true"],
+.ai-heading-actions .ai-new-session-trigger[aria-expanded="true"] {
+  background: linear-gradient(var(--lg-selected), var(--lg-selected)), var(--lg-surface-control);
 }
 .ai-heading-actions button:hover,
 .ai-heading-actions button[aria-pressed="true"] {
@@ -145,8 +160,7 @@
   width: 100%;
   box-sizing: border-box;
   gap: 6px;
-  padding: 0 7px;
-  border-color: var(--ai-line);
+  padding: 0 7px 0 10px;
   color: var(--ai-text);
   font-size: 12px;
 }
@@ -162,7 +176,7 @@
   height: 16px;
   flex-shrink: 0;
   margin-left: 2px;
-  border-left: 1px solid var(--ai-line);
+  border-left: 1px solid var(--lg-separator);
 }
 .ai-menu-chevron .ui-icon {
   width: 12px;
@@ -177,11 +191,14 @@
   box-sizing: border-box;
   max-height: min(420px, 65vh);
   overflow: auto;
-  padding: 3px;
-  border: 1px solid var(--ai-line);
-  border-radius: 7px;
-  background: var(--ai-bg);
-  box-shadow: 0 2px 6px #00000014;
+  padding: var(--lg-popover-padding);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  box-shadow: var(--lg-shadow-popover);
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
 }
 .ai-heading-actions .ai-new-session-menu button {
   display: flex;
@@ -190,6 +207,7 @@
   min-height: 28px;
   gap: 6px;
   padding: 3px 6px;
+  border-radius: var(--lg-radius-item);
   text-align: left;
   color: var(--ai-text);
 }
@@ -202,7 +220,7 @@
 }
 .ai-new-session-menu button[aria-checked="true"],
 .ai-new-session-menu button:focus-visible {
-  background: color-mix(in srgb, var(--ai-accent) 14%, var(--ai-bg));
+  background: var(--lg-selected);
   outline-offset: -2px;
 }
 .ai-new-session-menu small,
@@ -215,8 +233,8 @@
 }
 .ai-new-session-divider {
   border: 0;
-  border-top: 1px solid var(--ai-line);
-  margin: 3px 4px;
+  border-top: 1px solid var(--lg-separator);
+  margin: 4px;
 }
 .ai-workspace-name {
   min-width: 0;
@@ -247,7 +265,7 @@
   overflow: auto;
   overscroll-behavior: contain;
   padding: 4px 16px 20px;
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .ai-empty-area,
 .ai-messages-empty {
@@ -258,7 +276,7 @@
   overflow: auto;
   padding: 24px 20px;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .ai-empty {
   display: flex;
@@ -437,11 +455,14 @@
 .ai-context-chip button {
   padding: 1px 5px;
 }
+/* A functional control floating at the foot of the glass pane. It stays flat (no
+   --lg-shadow-control): the shell's composer focus tests assert box-shadow: none. */
 .ai-composer {
-  border: 1px solid var(--ai-line);
-  border-radius: 10px;
-  background: var(--ai-bg);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  background: var(--lg-surface-control);
   position: relative;
+  transition: border-color var(--lg-duration-fast) ease;
 }
 .ai-composer:focus-within {
   border-color: color-mix(in srgb, var(--ai-text) 26%, var(--ai-bg));
@@ -491,7 +512,7 @@
 .ai-session-option {
   position: relative;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: var(--lg-radius-control);
   min-width: 0;
   max-width: 100%;
   font-size: 11px;
@@ -538,14 +559,17 @@
   left: -1px;
   right: -1px;
   margin-bottom: 6px;
-  background: var(--ai-bg);
-  border: 1px solid var(--ai-line);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px #0002;
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-popover);
+  box-shadow: var(--lg-shadow-popover);
   max-height: 250px;
   overflow: auto;
-  padding: 4px;
+  padding: var(--lg-popover-padding);
   z-index: 10;
+  animation: lg-materialize-up var(--lg-duration) var(--lg-ease-spring);
 }
 .ai-mentions button {
   display: flex;
@@ -553,11 +577,12 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
+  border-radius: var(--lg-radius-item);
   font-size: 12px;
   text-align: left;
 }
 .ai-mentions button[aria-selected="true"] {
-  background: var(--ai-soft);
+  background: var(--lg-selected);
 }
 .ai-mentions small {
   color: var(--ai-muted);
@@ -604,18 +629,20 @@
 }
 .ai-panel button.ai-primary,
 .ai-settings button.ai-primary {
+  border-color: transparent;
+  border-radius: var(--lg-radius-capsule);
   background: var(--ai-primary-bg);
-  color: #fff;
+  color: var(--lg-accent-ink);
 }
 .ai-panel button.ai-primary:hover:not(:disabled),
 .ai-settings button.ai-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--ai-accent) 76%, #000);
-  color: #fff;
+  background: color-mix(in srgb, var(--ai-primary-bg) 88%, #000);
+  color: var(--lg-accent-ink);
 }
 .ai-panel button.ai-primary:active:not(:disabled),
 .ai-settings button.ai-primary:active:not(:disabled) {
-  background: color-mix(in srgb, var(--ai-accent) 68%, #000);
-  color: #fff;
+  background: color-mix(in srgb, var(--ai-primary-bg) 78%, #000);
+  color: var(--lg-accent-ink);
 }
 .ai-panel .ai-danger,
 .ai-settings .ai-danger {
@@ -642,7 +669,7 @@
 }
 .ai-error {
   padding: 10px 12px;
-  background: color-mix(in srgb, #c34747 7%, var(--ai-bg));
+  background: color-mix(in srgb, #c34747 7%, transparent);
   color: #b54949;
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -657,10 +684,15 @@
 }
 .ai-panel .ai-jump {
   align-self: center;
-  border: 1px solid var(--ai-line);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
   margin: 3px;
-  background: var(--ai-bg);
+  background: var(--lg-surface-control);
+  box-shadow: var(--lg-shadow-control);
   font-size: 11px;
+}
+.ai-panel .ai-jump:hover:not(:disabled) {
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-control);
 }
 .ai-history {
   padding: 12px;
@@ -676,7 +708,7 @@
   font-size: 12px;
 }
 .ai-history-tabs button[aria-pressed="true"] {
-  background: var(--ai-soft);
+  background: var(--lg-selected);
   font-weight: 600;
 }
 .ai-history-tabs button:last-child {
@@ -695,7 +727,7 @@
   border-radius: 5px;
 }
 .ai-history-list article[data-selected] {
-  background: var(--ai-soft);
+  background: var(--lg-selected);
 }
 .ai-panel .ai-history-open {
   display: flex;
@@ -811,11 +843,14 @@
   left: 12px;
   right: 12px;
   padding: 16px;
-  background: var(--ai-bg);
-  border: 1px solid var(--ai-line);
-  border-radius: 10px;
-  box-shadow: 0 8px 40px #0003;
+  background: var(--lg-surface-thick);
+  -webkit-backdrop-filter: var(--lg-filter-thick);
+  backdrop-filter: var(--lg-filter-thick);
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-dialog);
+  box-shadow: var(--lg-shadow-dialog);
   z-index: 25;
+  animation: lg-sheet-in var(--lg-duration-slow) var(--lg-ease-spring);
 }
 .ai-confirm label {
   display: block;
@@ -1048,11 +1083,17 @@
 }
 .preferences-native-overlay {
   position: absolute;
+  /* Exactly where the page's own content card sits: window gap, navigation card, then the same
+     4px seam as between the main window's panes. */
   inset: 4px var(--settings-gap, 8px) var(--settings-gap, 8px)
-    calc(var(--settings-sidebar-width, 200px) + var(--settings-gap, 8px) * 2);
+    calc(
+      var(--settings-sidebar-width, 200px) +
+      var(--settings-gap, 8px) +
+      var(--settings-divider-gap, 4px)
+    );
   z-index: 10;
   overflow: hidden;
-  border: 1px solid var(--settings-pane-border, var(--settings-line));
+  border: 1px solid var(--lg-edge, var(--settings-line));
   border-radius: var(--settings-radius, 8px);
   background: var(--settings-bg);
 }
@@ -1152,13 +1193,17 @@ fieldset.ai-context {
   max-height: calc(100dvh - 64px);
   margin: auto;
   padding: 0;
-  border: 1px solid var(--ai-line);
-  border-radius: 12px;
-  background: var(--ai-bg);
+  /* Thick Liquid Glass sheet (docs/DESIGN.md §6). */
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-dialog);
+  background: var(--lg-surface-thick);
+  -webkit-backdrop-filter: var(--lg-filter-thick);
+  backdrop-filter: var(--lg-filter-thick);
   color: var(--ai-text);
-  box-shadow: 0 16px 56px #0003;
+  box-shadow: var(--lg-shadow-dialog);
   font: var(--settings-font);
   overflow: hidden;
+  animation: lg-sheet-in var(--lg-duration-slow) var(--lg-ease-spring);
 }
 .ai-settings-dialog[open] {
   display: flex;
@@ -1167,14 +1212,17 @@ fieldset.ai-context {
 .ai-settings-dialog:not([open]) {
   display: none;
 }
+/* Older WebKit does not let ::backdrop inherit custom properties, hence the fallback. */
 .ai-settings-dialog::backdrop {
-  background: #0005;
+  background: var(--lg-scrim, #0004);
+  animation: lg-scrim-in var(--lg-duration, 200ms) ease-out;
 }
 .ai-dialog-fallback-backdrop {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: #0005;
+  background: var(--lg-scrim);
+  animation: lg-scrim-in var(--lg-duration) ease-out;
 }
 .ai-settings-dialog[data-fallback] {
   z-index: 41;
@@ -1185,7 +1233,7 @@ fieldset.ai-context {
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
-  border-bottom: 1px solid var(--ai-line);
+  border-bottom: 1px solid var(--lg-separator);
   flex-shrink: 0;
 }
 .ai-dialog-heading h2 {
@@ -1212,8 +1260,27 @@ fieldset.ai-context {
   justify-content: flex-end;
   gap: 8px;
   padding: 14px 20px;
-  border-top: 1px solid var(--ai-line);
+  border-top: 1px solid var(--lg-separator);
   flex-shrink: 0;
+}
+/* Dialog actions: secondary buttons are capsule-shaped glass controls; .ai-primary stays filled. */
+.ai-settings-dialog:not(.ai-image-viewer)
+  :is(.ai-dialog-heading, .ai-dialog-footer)
+  button:not(.ai-primary) {
+  border-color: var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-control);
+  box-shadow: var(--lg-shadow-control);
+}
+.ai-settings-dialog:not(.ai-image-viewer)
+  :is(.ai-dialog-heading, .ai-dialog-footer)
+  button:not(.ai-primary):hover:not(:disabled) {
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-control);
+}
+.ai-settings-dialog:not(.ai-image-viewer)
+  :is(.ai-dialog-heading, .ai-dialog-footer)
+  button:not(.ai-primary):active:not(:disabled) {
+  background: linear-gradient(var(--lg-pressed), var(--lg-pressed)), var(--lg-surface-control);
 }
 .ai-credential-description {
   color: var(--ai-muted);
@@ -1567,7 +1634,7 @@ fieldset.ai-context {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   padding: 10px 10px 6px;
-  scrollbar-width: thin;
+  scrollbar-width: var(--lg-scrollbar-width, thin);
 }
 .ai-attachment-drafts .ai-attachment-item {
   flex: 0 0 auto;
@@ -1626,17 +1693,25 @@ fieldset.ai-context {
   right: 12px;
   z-index: 7;
 }
+/* A small text badge floating over the document: regular Liquid Glass (clear never carries text). */
 .ai-attention-indicator button {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--sidebar);
+  padding: 4px 10px;
+  border: 1px solid var(--lg-edge);
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-surface-regular);
+  -webkit-backdrop-filter: var(--lg-filter-regular);
+  backdrop-filter: var(--lg-filter-regular);
   color: var(--text);
+  box-shadow: var(--lg-shadow-control);
   font-size: 12px;
   cursor: pointer;
+  animation: lg-materialize var(--lg-duration) var(--lg-ease-spring);
+}
+.ai-attention-indicator button:hover:not(:disabled) {
+  background: linear-gradient(var(--lg-hover), var(--lg-hover)), var(--lg-surface-regular);
 }
 .ai-attention-setting {
   display: flex;
