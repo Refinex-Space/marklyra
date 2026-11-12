@@ -113,8 +113,8 @@ test('the whole gap between panes is the drag handle and shows a short centred g
         ).every(Boolean),
       };
     });
-    // The current seam is narrow, but the supported pointer target remains 14px wide.
-    expect(hitArea).toEqual({ spansGap: true, width: 14, allPixelsHit: true });
+    // The seam is 4px, but the supported pointer target is 16px wide.
+    expect(hitArea).toEqual({ spansGap: true, width: 16, allPixelsHit: true });
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await expect
       .poll(() => handle.evaluate((element) => getComputedStyle(element, '::before').opacity))
