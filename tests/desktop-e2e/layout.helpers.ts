@@ -115,8 +115,10 @@ export async function installLayout(
   page: Page,
   workspaceName?: string,
   titlebar: 'appkit' | 'web' = 'appkit',
+  /** A secondary window (`label`), or one that keeps its home view (`home`). */
+  window: { label?: string; home?: boolean } = {},
 ) {
-  await page.addInitScript(installMock, { nativeChrome: true, titlebar });
+  await page.addInitScript(installMock, { nativeChrome: true, titlebar, ...window });
   await page.addInitScript(installRecoveryMock);
   await page.addInitScript(installLayoutMock);
   if (workspaceName)

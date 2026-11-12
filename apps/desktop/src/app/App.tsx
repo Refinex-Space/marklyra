@@ -2799,8 +2799,23 @@ export function App() {
               activeDocumentId={doc.file?.id}
               headerAccessory={desktopAvailable ? <BranchWidget /> : undefined}
               onWorkspaceChange={(workspace) => {
+                const previous = workspaceIdentity.current?.id ?? null;
                 workspaceIdentity.current = workspace;
                 setSessionWorkspace(workspace?.id ?? null);
+                // Opening another folder with nothing written yet lands on its home view, not a
+                // blank page; a document or unsaved text keeps the editor where it is.
+                if (
+                  startupSettled &&
+                  workspace &&
+                  workspace.id !== previous &&
+                  !doc.file &&
+                  !doc.dirty &&
+                  !doc.pending &&
+                  doc.snapshot === ''
+                ) {
+                  setHomeAllowed(true);
+                  setHomeDismissed(false);
+                }
               }}
               chooseRequest={chooseRequest}
               disabled={doc.working || !ready}
@@ -2984,6 +2999,8 @@ export function App() {
                         }
                         if (editor.current !== instance) return;
                         if (boot.workspace) setInitialWorkspace(boot.workspace);
+                        // A window opened for a folder starts where the first window does.
+                        if (boot.home) setHomeAllowed(true);
                         if (boot.warnings.length)
                           actions.current.doc.setMessage(boot.warnings.join('\n'));
                       } catch (error) {

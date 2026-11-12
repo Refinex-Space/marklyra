@@ -137,6 +137,9 @@ pub struct WindowStartup {
     pub warnings: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub draft: Option<StartupDraft>,
+    /// The window was opened for a folder (Finder, Explorer, `open`) and has no document: it
+    /// starts on the home view, like the first window, instead of an empty editor.
+    pub home: bool,
 }
 
 #[tauri::command]
@@ -380,6 +383,10 @@ pub(super) fn restore_target(
     before_commit: impl FnOnce(),
 ) -> Result<WindowStartup, String> {
     let (token, serial, mut target) = claim;
+    let folder_open = target
+        .os_open_receipt
+        .as_ref()
+        .is_some_and(|receipt| receipt.directory);
     if let Some(receipt) = &target.os_open_receipt {
         if let Err(error) = receipt.verify() {
             target
@@ -482,10 +489,12 @@ pub(super) fn restore_target(
     slot.current_document_id = document.as_ref().map(|document| document.id.clone());
     accepted.native_tab = slot.session.native_tab;
     slot.session = accepted;
+    let home = folder_open && document.is_none() && workspace.is_some();
     Ok(WindowStartup {
         document,
         workspace,
         warnings,
         draft,
+        home,
     })
 }

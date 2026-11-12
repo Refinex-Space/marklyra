@@ -42,6 +42,7 @@ export function useTaskAgenda(workspaceId: string | null, today = todayKey()): T
     try {
       const next = await tasks.snapshot(workspaceId);
       if (ticket !== serial.current) return;
+      if (!next || !Array.isArray(next.tasks)) throw new Error('任务数据格式无效');
       generation.current = next.generation;
       setSnapshot(next);
       setStatus('ready');

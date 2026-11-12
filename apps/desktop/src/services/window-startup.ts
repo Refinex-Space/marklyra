@@ -7,6 +7,8 @@ export interface WindowStartup {
   workspace: WorkspaceFolder | null;
   warnings: string[];
   draft?: { text: string; savedText: string };
+  /** Opened for a folder with no document: start on the home view. */
+  home: boolean;
 }
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
@@ -52,7 +54,14 @@ export function windowStartupSnapshot(value: unknown): WindowStartup {
     input.warnings.some((warning) => typeof warning !== 'string' || warning.length > 8192)
   )
     throw new Error('窗口恢复响应无效。');
-  const result: WindowStartup = { document, workspace, warnings: [...input.warnings] as string[] };
+  if (input.home !== undefined && typeof input.home !== 'boolean')
+    throw new Error('窗口恢复响应无效。');
+  const result: WindowStartup = {
+    document,
+    workspace,
+    warnings: [...input.warnings] as string[],
+    home: input.home === true && !document,
+  };
   if (input.draft !== undefined) {
     const draft = record(input.draft);
     const text = string(draft, 'text', 32 * 1024 * 1024);

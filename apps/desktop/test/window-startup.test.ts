@@ -16,6 +16,7 @@ describe('native window startup payload', () => {
       document,
       workspace,
       warnings: ['One file was unavailable'],
+      home: false,
     });
   });
   it('accepts an explicitly empty boot', () => {
@@ -23,7 +24,16 @@ describe('native window startup payload', () => {
       document: null,
       workspace: null,
       warnings: [],
+      home: false,
     });
+  });
+  it('starts a window opened for a folder on the home view, never one with a document', () => {
+    expect(
+      windowStartupSnapshot({ document: null, workspace, warnings: [], home: true }).home,
+    ).toBe(true);
+    expect(windowStartupSnapshot({ document, workspace, warnings: [], home: true }).home).toBe(
+      false,
+    );
   });
   for (const value of [
     null,
@@ -34,6 +44,7 @@ describe('native window startup payload', () => {
     { document: null, workspace: { ...workspace, path: '' }, warnings: [] },
     { document: null, workspace: null, warnings: [false] },
     { document: null, workspace: null, warnings: new Array(65).fill('warning') },
+    { document: null, workspace, warnings: [], home: 'yes' },
   ])
     it(`rejects malformed native shape ${JSON.stringify(value)}`, () => {
       expect(() => windowStartupSnapshot(value)).toThrow('窗口恢复响应无效');
@@ -47,6 +58,7 @@ it('accepts a transient dirty handoff only over its exact saved baseline', () =>
     workspace,
     warnings: [],
     draft,
+    home: false,
   });
   expect(() =>
     windowStartupSnapshot({
