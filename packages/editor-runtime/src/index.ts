@@ -210,6 +210,11 @@ interface Pending {
   reject: (error: Error) => void;
   timer: ReturnType<typeof setTimeout>;
 }
+const COMPOSING = '请先完成输入法候选';
+/** An IME commit (Windows candidates confirmed with Enter, Space or a click outside the frame)
+ * ends the composition a task after the keystroke or click that also issues the save or command.
+ * Such a request waits this long for the composition to end instead of being refused. */
+const COMPOSITION_SETTLE_MS = 1000;
 /** Independent browser SDK. The runtime URL is provided by a host, never a filesystem path. */
 export class MarkLyraEditor {
   readonly element: HTMLIFrameElement;
@@ -775,8 +780,7 @@ export class MarkLyraEditor {
   };
   async flush(): Promise<string> {
     await this.ready;
-    this.assertAvailable();
-    const state = (await this.request('flush')) as RuntimeState;
+    const state = (await this.afterComposition(() => this.request('flush'))) as RuntimeState;
     this.accept(state);
     if (this.fault) throw this.fault;
     return this.source;
@@ -1355,8 +1359,8 @@ export class MarkLyraEditor {
     await this.ready;
     if (this.isImagePreviewOpen) throw new Error('请先关闭图片预览');
     guard();
-    this.assertAvailable();
     if (command.type === 'sourcePosition') {
+      this.assertAvailable();
       await this.flush();
       guard();
       if (this.source !== positionSource || this.documentRevision !== positionRevision)
@@ -1376,9 +1380,47 @@ export class MarkLyraEditor {
       if (this.fault) throw this.fault;
       return;
     }
-    const state = (await this.request('execute', command)) as RuntimeState;
+    const state = (await this.afterComposition(() => {
+      guard();
+      return this.request('execute', command);
+    })) as RuntimeState;
     this.accept(state);
     if (this.fault) throw this.fault;
+  }
+  /** Runs a frame request once the composition has ended, waiting at most COMPOSITION_SETTLE_MS.
+   * The frame refuses a request before any effect while it is composing; a composition that began
+   * while the request was in flight is waited for once more and the request repeated. */
+  private async afterComposition<T>(work: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      await this.compositionSettled();
+      this.assertAvailable();
+      try {
+        return await work();
+      } catch (error) {
+        if (attempt > 0 || !(error instanceof Error) || error.message !== COMPOSING) throw error;
+      }
+    }
+  }
+  private compositionSettled(): Promise<void> {
+    if (!this.composing) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const waiter = {
+        resolve: () => {
+          clearTimeout(timer);
+          resolve();
+        },
+        reject: (error: Error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
+      };
+      // Still composing afterwards: assertAvailable reports it.
+      const timer = setTimeout(() => {
+        this.compositionWaiters.delete(waiter);
+        resolve();
+      }, COMPOSITION_SETTLE_MS);
+      this.compositionWaiters.add(waiter);
+    });
   }
   async focus(): Promise<void> {
     if (this.imagePreview) {
@@ -1448,7 +1490,7 @@ export class MarkLyraEditor {
     if (this.disposed) throw new Error('Editor has been destroyed');
     if (this.unconfirmedMarkdownToken !== undefined)
       throw new Error('Markdown策略结果尚未确认，请重试同步');
-    if (this.composing) throw new Error('请先完成输入法候选');
+    if (this.composing) throw new Error(COMPOSING);
     if (this.loading) throw new Error('编辑器正在切换文档');
   }
   private fail(error: Error) {

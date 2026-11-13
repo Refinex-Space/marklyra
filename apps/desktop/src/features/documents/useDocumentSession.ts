@@ -343,7 +343,11 @@ export function useDocumentSession(
       // document must regain a recovery record, including newly arrived input.
       protect();
       closeCancelled?.();
-      const text = String(error);
+      // An unfinished IME candidate is a hint to finish it, not an error.
+      const text =
+        error instanceof Error && error.message === '请先完成输入法候选'
+          ? error.message
+          : String(error);
       if (!text.includes('取消')) setMessage(text);
       return false;
     } finally {

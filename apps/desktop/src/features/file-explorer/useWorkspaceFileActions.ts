@@ -28,9 +28,13 @@ interface Operation {
   kind?: 'file' | 'directory';
   phase: 'working' | 'resolving';
   error: string;
+  /** What the failed native call reported; the journal lookup alone cannot say why. */
+  failure?: string;
   next?: string | undefined;
   currentPath?: string | undefined;
 }
+const failureText = (reason: unknown) =>
+  reason instanceof Error ? reason.message : String(reason);
 /** Acknowledgements are journal results, never permission to replay uncertain IO. */
 export function useWorkspaceFileActions(options: Options) {
   const [state, setState] = useState<Operation | null>(null),
@@ -138,18 +142,28 @@ export function useWorkspaceFileActions(options: Options) {
         await done(operation, result.receipt);
         return;
       }
-      if (result?.status === 'rejected') {
+      if (result?.status === 'rejected' || result?.status === 'mutationUncertain') {
+        // Both are final journal entries: checking again returns the same answer, so report it
+        // and show the tree as it now is instead of keeping a check that cannot change.
         await release(operation);
         if (!current(operation)) return;
-        setMessage(result.message);
+        setMessage(
+          result.status === 'rejected'
+            ? result.message
+            : operation.failure ||
+                (operation.type === 'trash'
+                  ? '删除已尝试，但结果无法确认；请核对系统回收站，未自动重试或永久删除。'
+                  : '文件撤销已尝试，但结果无法确认；请核对磁盘，未自动重试。'),
+        );
         active.current = null;
         setState(null);
+        if (result.status === 'mutationUncertain') latest.current.refresh();
         return;
       }
       operation.error =
         result?.status === 'prepared'
           ? '操作仍在处理中，请核对结果；不会重复打开确认或执行文件操作。'
-          : '文件状态尚未确认，请核对结果；不会重复执行文件操作。';
+          : `文件状态尚未确认${operation.failure ? `（${operation.failure}）` : ''}，请核对结果；不会重复执行文件操作。`;
       publish(operation);
     } catch (reason) {
       if (current(operation)) {
@@ -191,8 +205,11 @@ export function useWorkspaceFileActions(options: Options) {
           operation,
           await workspaces.trashEntry(workspace.id, entry.entryToken, operation.operationId),
         );
-      } catch {
-        if (current(operation)) await resolve(operation);
+      } catch (reason) {
+        if (current(operation)) {
+          operation.failure = failureText(reason);
+          await resolve(operation);
+        }
       }
     } catch (reason) {
       if (current(operation)) {
@@ -221,8 +238,11 @@ export function useWorkspaceFileActions(options: Options) {
         operation,
         await workspaces.performFileUndo(workspace.id, catalog.token, operation.operationId),
       );
-    } catch {
-      if (current(operation)) await resolve(operation);
+    } catch (reason) {
+      if (current(operation)) {
+        operation.failure = failureText(reason);
+        await resolve(operation);
+      }
     }
   };
   return {

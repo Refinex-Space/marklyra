@@ -120,11 +120,46 @@ describe('ordered serializer insertion composition', () => {
     expect(patches.map((patch) => patch.insert)).toEqual(['X', 'Y']);
   });
 
+  it('joins insertions ahead of a replacement at the same boundary into that replacement', () => {
+    const value = normalizeTrackedPatches(
+      'AB',
+      'XYzB',
+      [
+        { from: 0, to: 0, insert: 'X' },
+        { from: 0, to: 0, insert: 'Y' },
+        { from: 0, to: 1, insert: 'z' },
+      ],
+      [
+        { from: 0, to: 0 },
+        { from: 0, to: 0 },
+        { from: 0, to: 1 },
+      ],
+    );
+    expect(value.patches).toEqual([{ from: 0, to: 1, insert: 'XYz' }]);
+    // Fragment proofs describe one joined insertion; a replacement is proved as a whole.
+    expect(value.placementChecks).toBeUndefined();
+    expect(() =>
+      normalizeTrackedPatches(
+        'AB',
+        'XzB',
+        [
+          { from: 0, to: 0, insert: '' },
+          { from: 0, to: 1, insert: 'Xz' },
+        ],
+        [
+          { from: 0, to: 0 },
+          { from: 0, to: 1 },
+        ],
+      ),
+    ).toThrow('Empty coincident serializer insertion');
+  });
+
   it.each(
     [
       [
         { from: 0, to: 0, insert: 'X' },
         { from: 0, to: 1, insert: 'Y' },
+        { from: 0, to: 0, insert: 'Z' },
       ],
       [
         { from: 0, to: 2, insert: '' },

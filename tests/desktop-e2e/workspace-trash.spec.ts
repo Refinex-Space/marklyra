@@ -246,6 +246,38 @@ for (const behavior of ['lostCommitted', 'prepared', 'unknown'] as const)
     expect(await page.evaluate(() => (window as TrashWindow).__trashMock.trashMutations)).toBe(1);
   });
 
+// A final uncertain journal entry cannot change on a re-check: report Native's explanation once
+// instead of a permanent "核对结果" prompt, and never repeat the mutation.
+test('Trash with an uncertain final result reports why and leaves no endless check', async ({
+  page,
+}) => {
+  await boot(page);
+  await page.evaluate(() => {
+    (window as TrashWindow).__trashMock.trashBehavior = 'uncertain';
+  });
+  await trash(page);
+  await expect(page.locator('.notice-host')).toContainText('删除已尝试，但位置交接无法确认');
+  await expect(page.getByRole('button', { name: '核对结果', exact: true })).toHaveCount(0);
+  await expect(page.locator('.workspace-error')).toHaveCount(0);
+  expect(await calls(page, 'trash_workspace_entry')).toHaveLength(1);
+  expect(await calls(page, 'resolve_workspace_entry_trash')).toHaveLength(1);
+});
+
+test('an unjournaled Trash failure keeps the check and says what Native reported', async ({
+  page,
+}) => {
+  await boot(page);
+  await page.evaluate(() => {
+    (window as TrashWindow).__trashMock.trashBehavior = 'refused';
+  });
+  await trash(page);
+  await expect(page.locator('.workspace-error')).toContainText(
+    '文件状态尚未确认（编辑窗口已关闭或更换），请核对结果',
+  );
+  await expect(page.getByRole('button', { name: '核对结果', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as TrashWindow).__trashMock.trashMutations)).toBe(0);
+});
+
 test('Undo lost acknowledgement resolves the original opaque slot once', async ({ page }) => {
   await boot(page);
   await page.evaluate(() => {

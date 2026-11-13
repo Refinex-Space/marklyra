@@ -474,9 +474,10 @@ export function App() {
       try {
         await active.execute(value);
       } catch (error) {
-        // Candidate input can begin while an issued command awaits this queue.
-        // Its ordinary refusal is not an unknown Native delivery failure.
-        if (!strict || !active.isComposing) throw error;
+        // Candidate input can begin while an issued command awaits this queue, or outlast the
+        // editor's short wait for it to end. That ordinary refusal is a hint, not a failure.
+        const refused = error instanceof Error && error.message === '请先完成输入法候选';
+        if (!refused && !(strict && active.isComposing)) throw error;
         doc.setMessage('请先完成输入法候选');
       }
     });

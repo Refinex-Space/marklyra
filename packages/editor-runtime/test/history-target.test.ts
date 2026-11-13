@@ -46,11 +46,36 @@ describe('proven original history targets bypass only fresh placement inference'
     [true, false],
     [false, false],
   ])(
-    'keeps the original ambiguity guard without both actual history invocation and identity (%s,%s)',
+    'without both history invocation and identity, places the recreated block by its own domains (%s,%s)',
     (history, known) => {
-      expect(() => fixture(history, known).capture(original)).toThrow(
-        'Only coincident serializer insertions',
-      );
+      // An Undo to an entry that was never journaled (e.g. made mid-IME) once failed here with
+      // "Only coincident serializer insertions can be combined" and left the document unsaved.
+      const change = fixture(history, known).capture(original).changes.at(-1);
+      expect(change?.historyTarget).toBeUndefined();
+      expect(change?.patches).toEqual([{ from: 0, to: 1, insert: 'Alpha first\n\nGamma delta' }]);
+      if (!change?.placementRanges) throw Error('Missing placement domains');
+      for (const before of ['Q\r\n', 'Q\n', '\uFEFFQ\r\n']) {
+        const mirror = new SourceMirror(before, 'Q\n'),
+          initial = mirror.stateId;
+        const edited = mirror.update(original, {
+          kind: 'edit',
+          baseStateId: initial,
+          baseCanonical: 'Q\n',
+          patches: change.patches,
+          placementRanges: change.placementRanges,
+        }).source;
+        const ending = before.endsWith('\r\n') ? '\r\n' : '\n';
+        expect(edited).toBe(
+          `${before.startsWith('\uFEFF') ? '\uFEFF' : ''}Alpha first${ending}${ending}Gamma delta${ending}`,
+        );
+        expect(
+          mirror.update('Q\n', {
+            kind: 'history',
+            baseStateId: mirror.stateId,
+            targetStateId: initial,
+          }).source,
+        ).toBe(before);
+      }
     },
   );
   it('retains complete target-journal canonical validation and exact raw EOL restoration', () => {

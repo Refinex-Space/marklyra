@@ -16,6 +16,8 @@ type Behavior =
   | 'prepared'
   | 'unknown'
   | 'rejected'
+  | 'uncertain'
+  | 'refused'
   | 'foreign';
 interface Slot extends WorkspaceFileUndo {
   entries: WorkspaceEntry[];
@@ -211,6 +213,12 @@ export function installTrashMock() {
         trashOps.set(id, { status: 'rejected', message: '未能移入废纸篓' });
         throw Error('Trash denied');
       }
+      if (behavior === 'uncertain') {
+        trashOps.set(id, { status: 'mutationUncertain' });
+        throw '删除已尝试，但位置交接无法确认。当前稿已保留，请核对系统回收站；未自动重试或永久删除';
+      }
+      // Native refused before journaling the request (e.g. the window registration changed).
+      if (behavior === 'refused') throw '编辑窗口已关闭或更换';
       const receipt = commitTrash(args, behavior === 'interactiveConfirmed');
       if (behavior === 'foreign') {
         const invalid = { ...receipt, entryToken: 'foreign' };
