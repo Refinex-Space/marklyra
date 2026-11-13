@@ -6,7 +6,9 @@ import { AppUpdates } from './features/updates/AppUpdates.js';
 import '@marklyra/editor-themes/paper.css';
 import '@marklyra/editor-themes/liquid-glass.css';
 import './style.css';
+import { trackScrollbarStyle } from './services/scrollbar-style.js';
 
+trackScrollbarStyle();
 const root = document.querySelector('#root');
 if (!root) throw new Error('Missing root');
 createRoot(root).render(

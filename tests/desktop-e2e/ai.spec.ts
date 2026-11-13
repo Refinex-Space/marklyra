@@ -5,6 +5,7 @@ import {
   installLayout,
   openLayoutDocument,
   readyLayout,
+  settleAnimations,
 } from './layout.helpers.js';
 
 test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } });
@@ -1126,6 +1127,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
         { width: 700, height: 500 },
       ]) {
         await page.setViewportSize(viewport);
+        // The sheet springs in (docs/DESIGN.md): measure where it comes to rest.
+        await settleAnimations(page);
         const box = await dialog.boundingBox();
         if (!box) throw Error('Missing credentials dialog');
         expect(box.width).toBeLessThanOrEqual(480);
@@ -1472,6 +1475,9 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await trigger.focus();
     await trigger.press('ArrowDown');
     const menu = page.getByRole('menu', { name: '选择新会话智能体' });
+    // The menu materialises with a slight scale: measure where it comes to rest.
+    await expect(menu).toBeVisible();
+    await settleAnimations(page);
     const geometry = await trigger.evaluate((element) => {
       const button = element.getBoundingClientRect();
       const popup = element.parentElement?.querySelector('[role="menu"]')?.getBoundingClientRect();
@@ -1540,6 +1546,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
     await expect(menu).toHaveCount(0);
     await page.setViewportSize({ width: 700, height: 500 });
     await trigger.click();
+    await expect(menu).toBeVisible();
+    await settleAnimations(page);
     const bounds = await menu.boundingBox();
     const panel = await page.locator('.ai-panel').boundingBox();
     if (!bounds || !panel) throw Error('Missing menu geometry');

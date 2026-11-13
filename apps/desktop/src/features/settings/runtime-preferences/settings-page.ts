@@ -1,4 +1,5 @@
 import glassCss from '@marklyra/editor-themes/liquid-glass.css?inline';
+import { trackScrollbarStyle } from '../../../services/scrollbar-style.js';
 import { setupBoundedSelect } from './bounded-select.js';
 import { type FileTypePageControls, renderFileTypes } from './file-types-page.js';
 import { renderSavePreferences, type SavePageControls } from './save-preferences-page.js';
@@ -46,6 +47,7 @@ export function setupSettingsPage(
   const style = document.createElement('style');
   style.textContent = glassCss + themeCss + css;
   document.head.append(style);
+  trackScrollbarStyle();
   positionHelpTooltips();
   const refreshBoundedSelect = setupBoundedSelect(
     'select[data-marklyra-preference="defaultCodeLang"]',

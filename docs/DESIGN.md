@@ -121,7 +121,14 @@ L0 画布     窗口底、标题栏带、设置页底               环境光场
 
 **设置页**：与主窗口同一套几何和材质：导航卡是 L2 玻璃，内容卡是 L1。有些分区（导出、智能体、Git、日历等）是壳层盖在 iframe 内容卡上的 React 页面（`.preferences-native-overlay`），它的位置必须与 iframe 内容卡完全重合，按“窗口边距 + 侧栏宽 + 卡片缝”计算，不能另写公式；`pane-cards.spec.ts` 逐个分区校验这一点。
 
-**滚动条**：系统的常显式滚动条（macOS“始终显示”或接了鼠标）自带一层轨道底色，会在每块面板上画出一条竖带。页面无法可靠地跟随系统在叠加式和常显式之间切换（接鼠标、窗口显示的时机、WebKit 对已创建滚动条的缓存都会干扰），所以 WKWebView 上一律画同一种滚动条：透明轨道，缩进 3px 的胶囊滑块（`--lg-scroll-thumb`，悬停和拖动时加深），宽 11px，从首帧生效，不做探测。规则只对 WebKit 生效（`@supports (-webkit-backdrop-filter: none)`），WebView2 的 Fluent 叠加滚动条保持系统原样。规则写成最低特异性的 `::-webkit-scrollbar`，组件自己隐藏或定制的滚动条优先。**组件里不要写 `scrollbar-color`，也不要直接写 `scrollbar-width: thin`**：WebKit 一旦在某个滚动容器上采用这两个标准属性（`none` 除外），就会忽略它的 `::-webkit-scrollbar`，改画系统滚动条和它的轨道底色。文件树就曾因为一句 `scrollbar-width: thin` 一直露出系统轨道。需要细滚动条时写 `scrollbar-width: var(--lg-scrollbar-width)`：它在 WebView2 上是 `thin`，在 WebKit 上是 `auto`。真机 WKWebView 对 `scrollbar-color` 的绘制也不可靠（试过，轨道反而变成暗色宽带）。`scrollbars.spec.ts` 在真实的文件树滚动容器上校验这一点。
+**滚动条**：叠加式滚动条（触控板、WebView2 的 Fluent）保持系统原样：它们不占宽度，本来就融在所在的面板里，布局也不受影响。常显式滚动条（macOS“始终显示”或接了鼠标）的系统轨道自带底色，会在每块面板上画出一条竖带，所以由我们绘制：透明轨道，缩进 3px 的胶囊滑块（`--lg-scroll-thumb`，悬停和拖动时加深），宽 11px。壳、设置页、运行页各有一个常驻的隐藏探针（`services/scrollbar-style.ts`、`runtime/scrollbar-style.ts`），在系统滚动条占宽度时给根元素打 `data-scrollbars="classic"`；探针本身不吃自定义样式，并用 `ResizeObserver` 跟踪中途接上或拔掉鼠标。规则用 `:where()` 写成零特异性，组件自己隐藏或定制的滚动条优先。
+
+不要做的事（都试过，都是错的）：
+- 组件里直接写 `scrollbar-width: thin` 或 `scrollbar-color`。WebKit 一旦在某个滚动容器上采用这两个标准属性（`none` 除外），就会忽略它的 `::-webkit-scrollbar`，改画系统滚动条和轨道底色；文件树曾因此一直露出系统轨道。需要细滚动条时写 `scrollbar-width: var(--lg-scrollbar-width)`：叠加式下是 `thin`，常显式下是 `auto`。
+- 在根元素上设 `scrollbar-color` 让系统自己画透明轨道。真机 WKWebView 画成了暗色宽带。
+- 不做探测、在 WebKit 上一律自绘滚动条。叠加式用户会凭空多出 11px 宽度，富文本与源码模式的文本列、可编辑区宽度都会变。
+
+`scrollbars.spec.ts` 在真实的文件树滚动容器上校验这些规则。
 
 **表格菜单**：表格手柄的 `…` 菜单和对齐子菜单按菜单规则做成 regular 玻璃；“行 / 列”切换是分段控件（`--lg-hover` 轨道 + control 滑块）。菜单打开时会测量自身位置，只淡入。
 

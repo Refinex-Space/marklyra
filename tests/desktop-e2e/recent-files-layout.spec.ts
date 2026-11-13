@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { emitLayoutMenu, installLayout, readyLayout } from './layout.helpers.js';
+import { emitLayoutMenu, installLayout, readyLayout, settleAnimations } from './layout.helpers.js';
 import { installRecentMock, type RecentMockWindow } from './recent.helpers.js';
 
 for (const theme of ['marklyra-light', 'marklyra-dark']) {
@@ -22,6 +22,8 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       const heading = panel.locator('.recent-files-heading');
       await emitLayoutMenu(page, 'recent-files');
       await expect(panel.locator('.recent-files-list li')).toHaveCount(2);
+      // The sheet springs in (docs/DESIGN.md): measure where it comes to rest.
+      await settleAnimations(page);
       const cardHeights = await panel
         .locator('.recent-file-open')
         .evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
@@ -63,6 +65,7 @@ for (const theme of ['marklyra-light', 'marklyra-dark']) {
       });
       await emitLayoutMenu(page, 'recent-files');
       await expect(panel.locator('.recent-files-list li')).toHaveCount(32);
+      await settleAnimations(page);
       for (const viewport of [
         { width: 1280, height: 900 },
         { width: 700, height: 500 },

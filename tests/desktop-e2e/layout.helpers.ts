@@ -501,3 +501,17 @@ export async function captureLayout(page: Page, testInfo: TestInfo, label: strin
   if (!label.includes('long-document')) expect(editor.write?.height).toBe(editor.content?.height);
   return evidence;
 }
+
+/** Waits for the shell's finite animations (Liquid Glass entry springs, fades) to finish, so a
+ * geometry check measures where a surface comes to rest rather than a frame of its entrance.
+ * Endless animations (skeleton shimmer, spinners) are skipped. */
+export async function settleAnimations(page: Page) {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => Number.isFinite(animation.effect?.getComputedTiming().endTime))
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
+}

@@ -1,5 +1,5 @@
 /* MarkLyra Liquid Glass: the one material system for macOS (WKWebView) and Windows (WebView2).
-   Spec: docs/DESIGN.md. Only tokens, keyframes, accessibility fallbacks and the WebKit scrollbar
+   Spec: docs/DESIGN.md. Only tokens, keyframes, accessibility fallbacks and the classic-scrollbar
    style live here; surfaces adopt the tokens in their own stylesheets. Everything is plain CSS that renders the same in WebKit and
    Chromium: no SVG displacement refraction (Chromium-only), no native window vibrancy. */
 :root {
@@ -102,10 +102,10 @@
   --lg-ambient-b: color-mix(in srgb, #8a63d2 18%, transparent);
   --lg-scrim: rgb(0 0 0 / 0.16);
   /* Thin scrollbars where the engine draws them (WebView2's Fluent bars). Components write
-     scrollbar-width: var(--lg-scrollbar-width), never `thin`: in WebKit it is auto, because any
-     other value there switches off the clear-track scrollbar below. */
+     scrollbar-width: var(--lg-scrollbar-width), never `thin`: with classic scrollbars it is auto,
+     because any other value switches off the clear-track scrollbar below in WebKit. */
   --lg-scrollbar-width: thin;
-  /* WKWebView scrollbars: a clear track and a capsule thumb (see the scrollbar rules below). */
+  /* Classic scrollbars: a clear track and a capsule thumb (see the scrollbar rules below). */
   --lg-scroll-thumb: rgb(0 0 0 / 0.2);
   --lg-scroll-thumb-hover: rgb(0 0 0 / 0.36);
 
@@ -248,37 +248,40 @@
   }
 }
 
-/* Scrollbars in WKWebView (macOS). The system's always-visible scrollbar paints a track of its
-   own colour down every pane, and its look depends on hardware and timing (a mouse attached, the
-   window shown) in ways a page cannot follow reliably. So WebKit always draws the same scrollbar:
-   a clear track and a capsule thumb inset from the pane edge, from the first frame. Gated to
-   WebKit (only it knows -webkit-backdrop-filter): WebView2 keeps its Fluent overlay bars. Plain
-   ::-webkit-scrollbar has the lowest specificity, so a component that hides or styles its own
-   scrollbar still wins. WebKit drops these rules for any scroller with scrollbar-color or a
-   scrollbar-width other than auto/none, so components use var(--lg-scrollbar-width) for `thin`. */
-@supports (-webkit-backdrop-filter: none) {
-  :root {
-    --lg-scrollbar-width: auto;
-  }
-  ::-webkit-scrollbar {
-    width: 11px;
-    height: 11px;
-    background: transparent;
-  }
-  ::-webkit-scrollbar-track,
-  ::-webkit-scrollbar-corner {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    min-height: 32px;
-    border: 3px solid transparent;
-    border-radius: var(--lg-radius-capsule);
-    background: var(--lg-scroll-thumb) padding-box;
-  }
-  ::-webkit-scrollbar-thumb:hover,
-  ::-webkit-scrollbar-thumb:active {
-    background-color: var(--lg-scroll-thumb-hover);
-  }
+/* Always-visible (classic) scrollbars: macOS "Show scroll bars: Always", or a mouse attached.
+   Their system track paints its own colour down every pane, so while a probe reports them
+   (data-scrollbars="classic"; shell: services/scrollbar-style.ts, runtime:
+   runtime/scrollbar-style.ts) they are drawn here: a clear track and a capsule thumb inset from the
+   pane edge. Overlay scrollbars (trackpads, WebView2's Fluent bars) take no width and stay the
+   system's own, so layouts are untouched for them. :where() keeps specificity at zero: a component
+   that hides or styles its own scrollbar wins. WebKit drops these rules for a scroller with
+   scrollbar-color or a scrollbar-width other than auto/none, so components write
+   scrollbar-width: var(--lg-scrollbar-width), which turns `thin` into auto here. */
+:root[data-scrollbars="classic"] {
+  --lg-scrollbar-width: auto;
+}
+:where(:root[data-scrollbars="classic"] :not([data-lg-scrollbar-probe]))::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+  background: transparent;
+}
+:where(:root[data-scrollbars="classic"] :not([data-lg-scrollbar-probe]))::-webkit-scrollbar-track,
+:where(:root[data-scrollbars="classic"] :not([data-lg-scrollbar-probe]))::-webkit-scrollbar-corner {
+  background: transparent;
+}
+:where(:root[data-scrollbars="classic"] :not([data-lg-scrollbar-probe]))::-webkit-scrollbar-thumb {
+  min-height: 32px;
+  border: 3px solid transparent;
+  border-radius: var(--lg-radius-capsule);
+  background: var(--lg-scroll-thumb) padding-box;
+}
+:where(
+  :root[data-scrollbars="classic"] :not([data-lg-scrollbar-probe])
+)::-webkit-scrollbar-thumb:hover,
+:where(
+  :root[data-scrollbars="classic"] :not([data-lg-scrollbar-probe])
+)::-webkit-scrollbar-thumb:active {
+  background-color: var(--lg-scroll-thumb-hover);
 }
 @media (prefers-contrast: more) {
   :root {

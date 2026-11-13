@@ -49,6 +49,7 @@ import { RuntimePreferences } from './preferences.js';
 import { type RuntimeDocumentSnapshot, RuntimeReload } from './reload.js';
 import { RuntimeRenderTickets } from './render-tickets.js';
 import { RuntimeScrollNavigation } from './scroll-navigation.js';
+import { trackScrollbarStyle } from './scrollbar-style.js';
 import { readSelectionText } from './selection-text.js';
 import { RuntimeSlashMenu } from './slash-menu.js';
 import { parserSource } from './source-prefix.js';
@@ -376,6 +377,7 @@ const outlinePopover = new RuntimeOutlinePopover({
   onPin: () => send('outline-pin'),
   onError: (error) => send('runtime-error', error.message),
 });
+trackScrollbarStyle();
 const themes = new RuntimeThemes((appearance) => {
   syncGlassScheme(appearance);
   send('theme-appearance', appearance);

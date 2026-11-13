@@ -8,6 +8,7 @@ import {
   openLayoutDocument,
   readyLayout,
   saveLayoutSource,
+  settleAnimations,
 } from './layout.helpers.js';
 
 const source =
@@ -69,7 +70,9 @@ for (const theme of layoutThemes) {
       element.scrollTop = 1000;
     });
     await expect(button).toBeVisible();
-    await expect(button).toHaveCSS('border-radius', '6px');
+    // A floating clear-glass control: a capsule that rises in (docs/DESIGN.md).
+    await expect(button).toHaveCSS('border-radius', '999px');
+    await settleAnimations(page);
     await expectButtonInsideDocument(page);
     const closed = await button.boundingBox();
     await emitLayoutMenu(page, 'view:outline');
