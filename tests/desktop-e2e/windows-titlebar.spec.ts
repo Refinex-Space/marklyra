@@ -119,6 +119,17 @@ test('the word count menu follows the AppKit unit menu and persists the choice',
   await expect(page.getByRole('menuitemradio')).toHaveCount(0);
 });
 
+test('the sites control uses the Windows shortcut and sits with the other views', async ({
+  page,
+}) => {
+  await ready(page);
+  const sites = page.getByRole('button', { name: '站点导航', exact: true });
+  await expect(sites).toBeVisible();
+  await expect(sites).toHaveAttribute('title', /Ctrl\+Alt\+L|先打开文件夹/);
+  const tasks = page.getByRole('button', { name: '任务', exact: true });
+  await expect(tasks).toHaveAttribute('title', /Ctrl\+Alt\+T|先打开文件夹/);
+});
+
 test('outline, sidebar and AI controls mirror the native titlebar toggles', async ({ page }) => {
   await ready(page);
   const outline = page.getByRole('button', { name: '显示/隐藏文档目录' });

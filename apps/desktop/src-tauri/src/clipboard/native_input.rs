@@ -298,7 +298,7 @@ impl Drop for CapturePermit {
 impl NativeInputHost {
     fn begin_capture(&self) -> Result<CapturePermit, String> {
         self.captures
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |count| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |count| {
                 (count < MAX_CAPTURES).then_some(count + 1)
             })
             .map_err(|_| "同时读取的原生输入过多，请稍后重试")?;

@@ -134,6 +134,7 @@ const VIEW: &[MenuEntry] = &[
     Action("view:files", "文件树", Some("CmdOrCtrl+Ctrl+3")),
     Action("view:workspace-search", "搜索", Some("CmdOrCtrl+Shift+F")),
     Action("view:graph", "知识图谱", Some("CmdOrCtrl+Alt+G")),
+    Action("view:sites", "站点导航", Some("CmdOrCtrl+Alt+L")),
     Action("view:tasks", "任务", Some("CmdOrCtrl+Alt+T")),
     Separator,
     Action("view:statistics", "字数统计", None),
@@ -712,8 +713,8 @@ mod tests {
         }
         assert_eq!(
             ids.len(),
-            // 93 after the three retired 日程 items (打开今日日程, 前一天, 后一天).
-            93 + if cfg!(target_os = "macos") { 6 } else { 0 }
+            // 94 after 站点导航; 93 was the count after the three retired 日程 items.
+            94 + if cfg!(target_os = "macos") { 6 } else { 0 }
         );
         #[cfg(target_os = "macos")]
         {
@@ -741,8 +742,27 @@ mod tests {
         assert!(shortcuts.contains(&"CmdOrCtrl+Shift+K"));
         assert!(ids.contains(&"view:graph"));
         assert!(shortcuts.contains(&"CmdOrCtrl+Alt+G"));
+        assert!(ids.contains(&"view:sites"));
+        assert!(shortcuts.contains(&"CmdOrCtrl+Alt+L"));
         assert!(ids.contains(&"view:tasks") && ids.contains(&"task:new"));
         assert!(ids.contains(&"task:convert"));
         assert!(shortcuts.contains(&"CmdOrCtrl+Alt+T") && shortcuts.contains(&"CmdOrCtrl+Alt+N"));
+    }
+
+    #[test]
+    fn windows_accelerator_for_sites_is_ctrl_alt_l() {
+        let chord = super::chords()
+            .into_iter()
+            .find(|(_, id)| *id == "view:sites")
+            .map(|(chord, _)| chord);
+        assert_eq!(
+            chord,
+            Some(crate::menu::accelerator::Chord {
+                ctrl: true,
+                shift: false,
+                alt: true,
+                key: u32::from(b'L'),
+            })
+        );
     }
 }

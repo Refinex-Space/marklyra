@@ -556,7 +556,7 @@ impl StartupHost {
                 archivable,
                 order: self
                     .next_order
-                    .fetch_update(
+                    .try_update(
                         std::sync::atomic::Ordering::AcqRel,
                         std::sync::atomic::Ordering::Acquire,
                         |value| value.checked_add(1),

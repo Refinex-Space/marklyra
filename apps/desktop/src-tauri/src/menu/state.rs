@@ -1,4 +1,8 @@
 use serde::Deserialize;
+
+fn default_enabled() -> bool {
+    true
+}
 use std::{collections::HashMap, sync::Mutex};
 use tauri::{menu::MenuItemKind, AppHandle, Manager, Runtime, WebviewWindow};
 
@@ -75,6 +79,12 @@ pub struct Snapshot {
     /// The task workbench covers the document; document commands do nothing.
     #[serde(default)]
     tasks_view: bool,
+    /// The site navigation page covers the document.
+    #[serde(default)]
+    sites_view: bool,
+    /// The titlebar entry is enabled in preferences. Missing snapshots keep the default, on.
+    #[serde(default = "default_enabled")]
+    sites_enabled: bool,
     /// In the workbench, a task description editor has focus and `editor` describes it: text
     /// editing and saving reach the description; view and document commands stay off.
     #[serde(default)]
@@ -206,6 +216,11 @@ impl Snapshot {
         if matches!(action, "view:graph" | "view:tasks" | "task:new") {
             return self.graph_available;
         }
+        // Same reach as the graph and tasks: a folder is open, and the preference has not
+        // hidden the entry. Windows accelerators consult this before the page sees the keys.
+        if action == "view:sites" {
+            return self.graph_available && self.sites_enabled;
+        }
         if self.graph_view && action == "find" {
             return true;
         }
@@ -307,6 +322,7 @@ impl Snapshot {
             "view:fullscreen" => self.fullscreen,
             "git:panel" => self.git_view,
             "view:graph" => self.graph_view,
+            "view:sites" => self.sites_view,
             "view:tasks" => self.tasks_view,
             _ => {
                 if let Some(style) = action.strip_prefix("format:") {

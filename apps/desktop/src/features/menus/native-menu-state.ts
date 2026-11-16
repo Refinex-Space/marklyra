@@ -28,6 +28,10 @@ export interface NativeMenuPresentation {
   graphAvailable?: boolean;
   /** The task workbench covers the document. */
   tasksView?: boolean;
+  /** The site navigation page covers the document. */
+  sitesView?: boolean;
+  /** The titlebar entry is enabled in preferences. */
+  sitesEnabled?: boolean;
   /** In the workbench, a task description editor has focus; `editor` describes it. */
   taskDescription?: boolean;
   /** The open folder is a usable Git repository. */
@@ -99,6 +103,8 @@ export class NativeMenuPublisher {
       graphView: value.graphView === true,
       graphAvailable: value.graphAvailable === true,
       tasksView: value.tasksView === true,
+      sitesView: value.sitesView === true,
+      sitesEnabled: value.sitesEnabled !== false,
       taskDescription: value.tasksView === true && value.taskDescription === true,
       gitRepository: value.gitRepository === true,
       editor: value.editor

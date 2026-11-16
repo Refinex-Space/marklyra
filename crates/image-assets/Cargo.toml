@@ -14,7 +14,7 @@ same-file = "1.0.6"
 thiserror.workspace = true
 uuid.workspace = true
 base64 = "0.22.1"
-image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp", "tiff", "bmp"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp", "tiff", "bmp", "ico"] }
 quick-xml = "0.42.0"
 
 [dev-dependencies]

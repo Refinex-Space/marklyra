@@ -106,6 +106,8 @@ export const editorChrome = {
     graphAvailable = false,
     sidebarOpen = true,
     tasksOpen = false,
+    sitesOpen = false,
+    sitesVisible = true,
   ) {
     const values = statistics ?? { words: 0, characters: 0, lines: 0, readingMinutes: 0 };
     const labels = { words: '词', characters: '字符', lines: '行', readingMinutes: '分钟' };
@@ -120,6 +122,8 @@ export const editorChrome = {
       graphOpen,
       graphAvailable,
       tasksOpen,
+      sitesOpen,
+      sitesVisible,
       canCloseDocument,
       imagePreviewOpen,
       ...(untitledName ? { untitledName } : {}),

@@ -1,17 +1,32 @@
-//! Capability for the workspace task store: only `.marklyra/tasks` below the bound root.
+//! Capabilities for the workspace-local stores: only `.marklyra/tasks` and `.marklyra/sites`
+//! below the bound root.
 use crate::{IndexError, Workspace};
 use cap_std::fs::Dir;
 use std::io::ErrorKind;
 
-const SEGMENTS: [&str; 2] = [".marklyra", "tasks"];
+const TASK_SEGMENTS: [&str; 2] = [".marklyra", "tasks"];
+const SITE_SEGMENTS: [&str; 2] = [".marklyra", "sites"];
 
 impl Workspace {
     /// Opens the task directory without following symlinks. `create` makes missing segments;
     /// otherwise a missing store is `None`, so reading never writes to the user's folder.
     pub fn task_directory(&self, create: bool) -> Result<Option<Dir>, IndexError> {
+        self.marklyra_directory(&TASK_SEGMENTS, create)
+    }
+
+    /// The site navigation store, opened with the same rules as [`Self::task_directory`].
+    pub fn site_directory(&self, create: bool) -> Result<Option<Dir>, IndexError> {
+        self.marklyra_directory(&SITE_SEGMENTS, create)
+    }
+
+    fn marklyra_directory(
+        &self,
+        segments: &[&str],
+        create: bool,
+    ) -> Result<Option<Dir>, IndexError> {
         let binding = self.display_root_binding()?;
         let mut directory = self.root.try_clone()?;
-        for name in SEGMENTS {
+        for name in segments {
             match directory.symlink_metadata(name) {
                 Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {}
                 Ok(_) => return Err(IndexError::InvalidPath),
@@ -58,6 +73,29 @@ mod tests {
             std::fs::remove_dir_all(root.join(".marklyra")).unwrap();
             std::os::unix::fs::symlink(other.path(), root.join(".marklyra")).unwrap();
             assert!(workspace.task_directory(true).is_err());
+        }
+    }
+
+    #[test]
+    fn site_directory_is_separate_from_tasks_and_rejects_symlinks() {
+        let notes = tempfile::tempdir().unwrap();
+        let root = notes.path().canonicalize().unwrap();
+        let mut registry = WorkspaceRegistry::default();
+        let selected = registry.select_authorized(&root).unwrap();
+        let workspace = registry.get(&selected.id).unwrap();
+        assert!(workspace.site_directory(false).unwrap().is_none());
+        assert!(!root.join(".marklyra").exists());
+        let dir = workspace.site_directory(true).unwrap().unwrap();
+        dir.write("probe.md", "x").unwrap();
+        assert!(root.join(".marklyra/sites/probe.md").exists());
+        assert!(!root.join(".marklyra/tasks").exists());
+        #[cfg(unix)]
+        {
+            let other = tempfile::tempdir().unwrap();
+            std::fs::remove_dir_all(root.join(".marklyra/sites")).unwrap();
+            std::os::unix::fs::symlink(other.path(), root.join(".marklyra/sites")).unwrap();
+            assert!(workspace.site_directory(true).is_err());
+            assert!(workspace.site_directory(false).is_err());
         }
     }
 }

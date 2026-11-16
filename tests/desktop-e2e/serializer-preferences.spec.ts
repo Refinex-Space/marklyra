@@ -122,7 +122,7 @@ for (const sourcePrefix of ['\uFEFF', '']) {
       await preferences.addInitScript(nativeMarkdownDouble);
       await preferences.goto('/?view=preferences');
       const ui = preferences.frameLocator('.runtime-preferences-frame');
-      await expect(ui.locator('.nav-group-item')).toHaveCount(11);
+      await expect(ui.locator('.nav-group-item')).toHaveCount(12);
       await ui.locator('.nav-group-item').nth(3).click();
       for (const [key, value] of [
         ['heading_style', '3'],
@@ -146,7 +146,7 @@ for (const sourcePrefix of ['\uFEFF', '']) {
         )
         .toBe(raw);
       await preferences.reload();
-      await expect(ui.locator('.nav-group-item')).toHaveCount(11);
+      await expect(ui.locator('.nav-group-item')).toHaveCount(12);
       await ui.locator('.nav-group-item').nth(3).click();
       for (const [key, value] of [
         ['heading_style', '3'],

@@ -34,6 +34,10 @@ export interface TitlebarProps {
   graphOpen?: boolean;
   graphAvailable?: boolean;
   onGraph?: () => void;
+  /** The site navigation entry is enabled in settings. */
+  sitesVisible?: boolean;
+  sitesOpen?: boolean;
+  onSites?: () => void;
   tasksOpen?: boolean;
   onTasks?: () => void;
   onSidebar: () => void;
@@ -310,10 +314,25 @@ export function Titlebar(props: TitlebarProps) {
                 >
                   <Icon name="graph" />
                 </button>
+                {props.sitesVisible && (
+                  <button
+                    type="button"
+                    className="titlebar-action"
+                    title={
+                      props.graphAvailable ? '站点导航 Ctrl+Alt+L' : '站点导航（先打开文件夹）'
+                    }
+                    aria-label="站点导航"
+                    aria-pressed={props.sitesOpen}
+                    disabled={props.disabled || !props.graphAvailable}
+                    onClick={props.onSites}
+                  >
+                    <Icon name="globe" />
+                  </button>
+                )}
                 <button
                   type="button"
                   className="titlebar-action"
-                  title="任务 ⌘⌥T"
+                  title={props.graphAvailable ? '任务 Ctrl+Alt+T' : '任务（先打开文件夹）'}
                   aria-label="任务"
                   aria-pressed={props.tasksOpen}
                   disabled={props.disabled || !props.graphAvailable}

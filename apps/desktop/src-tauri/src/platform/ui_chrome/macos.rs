@@ -39,6 +39,8 @@ struct ChromeIvars {
     content_layout: Cell<Option<TitlebarLayout>>,
     preferences_page: Cell<bool>,
     image_preview_open: Cell<bool>,
+    /// The sites column is offered. When it is off the other columns keep their old offsets.
+    sites_visible: Cell<bool>,
 }
 
 define_class!(
@@ -78,6 +80,9 @@ define_class!(
         #[unsafe(method(toggleTasks:))]
         fn toggle_tasks(&self, _sender: &AnyObject) { self.emit("view:tasks"); }
 
+        #[unsafe(method(toggleSites:))]
+        fn toggle_sites(&self, _sender: &AnyObject) { self.emit("view:sites"); }
+
         #[unsafe(method(toggleSource:))]
         fn toggle_source(&self, _sender: &AnyObject) { self.emit("view:source"); }
 
@@ -115,6 +120,7 @@ impl MarkLyraTitlebarView {
             content_layout: Cell::new(None),
             preferences_page: Cell::new(false),
             image_preview_open: Cell::new(false),
+            sites_visible: Cell::new(true),
         });
         // SAFETY: NSView's designated initializer receives the allocated subclass and an NSRect.
         unsafe { msg_send![super(object), initWithFrame: rect(0.0, 0.0, 120.0, 22.0)] }
@@ -172,8 +178,10 @@ impl MarkLyraTitlebarView {
             button.setHidden(!self.home_offered());
         }
         if let Some(buttons) = self.ivars().actions.get() {
-            for button in buttons {
-                button.setHidden(source_mode || settings);
+            let sites = self.ivars().sites_visible.get();
+            for (index, button) in buttons.iter().enumerate() {
+                let hidden = source_mode || settings || (index == 2 && !sites);
+                button.setHidden(hidden);
             }
         }
         if let Some(button) = self.ivars().source_button.get() {
@@ -231,6 +239,7 @@ struct EditorChrome {
     ai: Retained<NSButton>,
     graph: Retained<NSButton>,
     tasks: Retained<NSButton>,
+    sites: Retained<NSButton>,
     images: TitlebarImages,
     fullscreen_constraints: Option<Retained<NSArray<NSLayoutConstraint>>>,
     dark: Option<bool>,
@@ -289,8 +298,10 @@ impl EditorChrome {
         // Match ai.css: 28px buttons, 4px gaps, 8px padding and a 20px
         // scrollbar gutter put the centers 106 / 74 / 42px from the edge.
         // Source mode keeps its existing label placement; these icons are hidden there.
-        // The task column sits left of the graph, so the graph and AI keep their right offsets.
-        let trailing = if source_mode { 70.0 } else { 174.0 };
+        // The sites column sits left of the tasks. Graph and AI keep 74 / 42 from the edge.
+        let sites_column = self.view.ivars().sites_visible.get() && !source_mode;
+        let shift = if sites_column { 32.0 } else { 0.0 };
+        let trailing = if source_mode { 70.0 } else { 174.0 + shift };
         // The Home button takes a column to the left of the word count while it is offered.
         let home = home_slot(self.view.home_offered());
         self.view
@@ -305,26 +316,14 @@ impl EditorChrome {
             );
         }
         if let Some(actions) = self.view.ivars().actions.get() {
-            native_hover::set_frame(
-                &actions[4],
-                titlebar_icon_rect(leading + home + width + 60.0, 14.0),
-            );
-            native_hover::set_frame(
-                &actions[3],
-                titlebar_icon_rect(leading + home + width + 92.0, 16.0),
-            );
-            native_hover::set_frame(
-                &actions[2],
-                titlebar_icon_rect(leading + home + width + 124.0, 13.0),
-            );
-            native_hover::set_frame(
-                &actions[0],
-                titlebar_icon_rect(leading + home + width - 4.0, 14.0),
-            );
-            native_hover::set_frame(
-                &actions[1],
-                titlebar_icon_rect(leading + home + width + 28.0, 14.0),
-            );
+            // Geometric order: outline, sidebar, sites, tasks, graph, AI.
+            let base = leading + home + width;
+            native_hover::set_frame(&actions[0], titlebar_icon_rect(base - 4.0, 14.0));
+            native_hover::set_frame(&actions[1], titlebar_icon_rect(base + 28.0, 14.0));
+            native_hover::set_frame(&actions[2], titlebar_icon_rect(base + 60.0, 14.0));
+            native_hover::set_frame(&actions[3], titlebar_icon_rect(base + 60.0 + shift, 14.0));
+            native_hover::set_frame(&actions[4], titlebar_icon_rect(base + 92.0 + shift, 16.0));
+            native_hover::set_frame(&actions[5], titlebar_icon_rect(base + 124.0 + shift, 13.0));
         }
         if let Some(source) = self.view.ivars().source_button.get() {
             source.setFrame(rect(leading + width - 55.0, 4.0, 96.0, 18.0));
@@ -508,6 +507,26 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         tasks.setButtonType(NSButtonType::Toggle);
         tasks.setEnabled(false);
         tasks.setToolTip(Some(&NSString::from_str("任务（先打开文件夹）")));
+        let sites_button = button(
+            &view,
+            "站点导航",
+            sel!(toggleSites:),
+            titlebar_icon_rect(0.0, 14.0),
+            true,
+        );
+        if let Some(image) =
+            objc2_app_kit::NSImage::imageWithSystemSymbolName_accessibilityDescription(
+                &NSString::from_str("globe"),
+                Some(&NSString::from_str("站点导航")),
+            )
+        {
+            image.setSize(NSSize::new(14.0, 14.0));
+            sites_button.setImage(Some(&image));
+            sites_button.setTitle(&NSString::from_str(""));
+        }
+        sites_button.setButtonType(NSButtonType::Toggle);
+        sites_button.setEnabled(false);
+        sites_button.setToolTip(Some(&NSString::from_str("站点导航（先打开文件夹）")));
         let source = button(
             &view,
             "Source Mode ×",
@@ -525,9 +544,10 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
         let _ = view.ivars().actions.set(vec![
             outline.clone(),
             sidebar,
-            ai.clone(),
-            graph.clone(),
+            sites_button.clone(),
             tasks.clone(),
+            graph.clone(),
+            ai.clone(),
         ]);
         view.update_visibility();
         let controller = NSTitlebarAccessoryViewController::new(mtm);
@@ -544,6 +564,7 @@ pub(super) fn initialise(window: &WebviewWindow) -> Result<bool, String> {
             ai,
             graph,
             tasks,
+            sites: sites_button,
             images,
             fullscreen_constraints: None,
             dark: None,
@@ -614,6 +635,20 @@ pub(super) fn update(label: &str, update: DocumentChrome) -> Result<(), String> 
                 "任务 ⌘⌥T"
             } else {
                 "任务（先打开文件夹）"
+            })));
+        chrome.view.ivars().sites_visible.set(update.sites_visible);
+        chrome.sites.setState(if update.sites_open { 1 } else { 0 });
+        chrome
+            .sites
+            .setEnabled(update.graph_available && update.sites_visible);
+        chrome
+            .sites
+            .setToolTip(Some(&NSString::from_str(if !update.sites_visible {
+                "站点导航"
+            } else if update.graph_available {
+                "站点导航 ⌘⌥L"
+            } else {
+                "站点导航（先打开文件夹）"
             })));
         chrome
             .graph

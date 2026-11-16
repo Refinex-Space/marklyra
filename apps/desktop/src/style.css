@@ -1235,6 +1235,16 @@ button[aria-pressed="true"] {
 .sidebar[data-tasks] > :not(.task-nav-host, .task-calendar-host) {
   display: none;
 }
+/* Site mode: the sidebar shows the site groups; the file tree stays mounted underneath. */
+.sidebar[data-sites] > :not(.site-nav-host) {
+  display: none;
+}
+.site-nav-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 /* While tasks are open the calendar stays under their navigation, so days stay one click away. */
 .task-calendar-host {
   flex: none;

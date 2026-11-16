@@ -290,7 +290,7 @@ test('every settings category shows its content card in the same place and mater
   const { kind: referenceKind, ...reference } = await card();
   expect(referenceKind).toBe('frame');
   const kinds = new Set<string>();
-  for (const name of ['导出', '外观', '智能体', 'Git 同步', '日历', '赞助', '文件']) {
+  for (const name of ['导出', '外观', '智能体', 'Git 同步', '日历', '站点导航', '赞助', '文件']) {
     await ui.getByRole('button', { name, exact: true }).click();
     await expect(ui.getByRole('button', { name, exact: true })).toHaveAttribute(
       'aria-current',

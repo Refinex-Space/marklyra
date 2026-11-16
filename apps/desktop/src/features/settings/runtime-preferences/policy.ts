@@ -170,7 +170,9 @@ export function initialPreferencesOptions(
     marklyraUpdateActions: input.marklyraUpdateActions === true,
     marklyraRepositoryAction: input.marklyraRepositoryAction === true,
     marklyraNativePage:
-      input.marklyraNativePage === 'ai' || input.marklyraNativePage === 'git'
+      input.marklyraNativePage === 'ai' ||
+      input.marklyraNativePage === 'git' ||
+      input.marklyraNativePage === 'sites'
         ? input.marklyraNativePage
         : '',
     marklyraReadingSpeedActions: input.marklyraReadingSpeedActions === true,

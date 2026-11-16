@@ -844,7 +844,9 @@ async function initialize(options: Record<string, unknown>, presentation?: unkno
   document.addEventListener('submit', (event) => event.preventDefault(), true);
   const updateNativePages = setupNativePages(
     (page) => send('native-page', page),
-    runtime._options.marklyraNativePage === 'ai' || runtime._options.marklyraNativePage === 'git'
+    runtime._options.marklyraNativePage === 'ai' ||
+      runtime._options.marklyraNativePage === 'git' ||
+      runtime._options.marklyraNativePage === 'sites'
       ? runtime._options.marklyraNativePage
       : null,
   );

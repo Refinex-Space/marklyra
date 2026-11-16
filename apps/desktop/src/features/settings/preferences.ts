@@ -18,6 +18,11 @@ import {
   type GitPreferences,
   normalizeGitPreferences,
 } from '../git/git-preferences.js';
+import {
+  defaultSitesPreferences,
+  normalizeSitesPreferences,
+  type SitesPreferences,
+} from '../sites/sites-preferences.js';
 import { defaultImageStorageFolder, normalizeImageStorageFolder } from './image-storage.js';
 
 export type StatisticsUnit = 'words' | 'characters' | 'lines' | 'readingMinutes';
@@ -37,6 +42,7 @@ export interface Preferences {
   editorPreferences: MarkLyraEditorPreferences;
   fileSidebar: FileSidebarPreferences;
   calendar: CalendarPreferences;
+  sites: SitesPreferences;
   git: GitPreferences;
 }
 export const defaultPreferences: Preferences = {
@@ -55,6 +61,10 @@ export const defaultPreferences: Preferences = {
   editorPreferences: { ...defaultMarkLyraEditorPreferences },
   fileSidebar: { ...defaultFileSidebarPreferences },
   calendar: { ...defaultCalendarPreferences },
+  sites: {
+    ...defaultSitesPreferences,
+    engines: defaultSitesPreferences.engines.map((e) => ({ ...e })),
+  },
   git: { ...defaultGitPreferences },
 };
 export const preferencesKey = 'marklyra-preferences-v1';
@@ -70,6 +80,7 @@ export function normalizePreferences(value: unknown): Preferences {
     fileSidebar: normalizeFileSidebarPreferences(input.fileSidebar),
     // The calendar used to live in the retired 日程 settings; its display choices carry over.
     calendar: normalizeCalendarPreferences(input.calendar ?? input.daily),
+    sites: normalizeSitesPreferences(input.sites),
     git: normalizeGitPreferences(input.git),
     editorPreferences,
     imageStorageFolder: normalizeImageStorageFolder(input.imageStorageFolder),

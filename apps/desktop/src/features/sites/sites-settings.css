@@ -1,0 +1,17 @@
+/* 站点导航 settings: only what the shared settings controls do not already cover. */
+/* A keyword is one to eight characters; a full-width field made it look like a sentence. */
+.sites-keyword .es-input {
+  width: 96px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.sites-engine-add {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--lg-separator);
+}
+.sites-engine-add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 0 2px;
+}

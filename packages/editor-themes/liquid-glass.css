@@ -116,6 +116,23 @@
   --lg-duration: 200ms;
   --lg-duration-slow: 320ms;
   --lg-press-scale: 0.97;
+
+  /* Group label colours (site navigation). A label tints a dot, a bar or a letter mark, never
+     a whole surface; the dark set is lighter so the dot keeps its contrast. */
+  --lg-label-red: #d9483b;
+  --lg-label-orange: #e07a1f;
+  --lg-label-amber: #c99400;
+  --lg-label-green: #2f9e57;
+  --lg-label-teal: #129c8f;
+  --lg-label-cyan: #1793c4;
+  --lg-label-blue: #2f74d0;
+  --lg-label-indigo: #5560d6;
+  --lg-label-purple: #8a55c9;
+  --lg-label-pink: #cf4b8a;
+  --lg-label-gray: #7a828c;
+  /* A card that lifts on hover. */
+  --lg-depth-lift: 0 1px 2px rgb(24 34 64 / 0.08), 0 10px 24px -10px rgb(24 34 64 / 0.28);
+  --lg-site-card-hover-depth: 0 1px 2px rgb(24 34 64 / 0.1), 0 8px 18px -8px rgb(24 34 64 / 0.22);
 }
 :root[data-theme="dark"] {
   --lg-accent: #4d97ff;
@@ -160,6 +177,19 @@
   --lg-scrim: rgb(0 0 0 / 0.4);
   --lg-scroll-thumb: rgb(255 255 255 / 0.2);
   --lg-scroll-thumb-hover: rgb(255 255 255 / 0.36);
+  --lg-label-red: #f07467;
+  --lg-label-orange: #f29a4a;
+  --lg-label-amber: #e3b437;
+  --lg-label-green: #5cc47f;
+  --lg-label-teal: #44c2b4;
+  --lg-label-cyan: #4fb8e3;
+  --lg-label-blue: #5d9df5;
+  --lg-label-indigo: #8089f0;
+  --lg-label-purple: #b085e6;
+  --lg-label-pink: #ee7fb2;
+  --lg-label-gray: #9aa2ac;
+  --lg-depth-lift: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 24px -10px rgb(0 0 0 / 0.7);
+  --lg-site-card-hover-depth: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 18px -8px rgb(0 0 0 / 0.55);
 }
 
 /* Accessibility. A glass that cannot be read is not glass. Reduced transparency makes every

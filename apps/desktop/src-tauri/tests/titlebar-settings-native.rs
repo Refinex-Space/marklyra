@@ -90,6 +90,8 @@ struct DocumentChrome {
     ai_panel_open: bool,
     graph_open: bool,
     tasks_open: bool,
+    sites_open: bool,
+    sites_visible: bool,
     graph_available: bool,
     source_mode: Option<bool>,
     can_close_document: bool,

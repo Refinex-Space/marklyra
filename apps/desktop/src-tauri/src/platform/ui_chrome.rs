@@ -121,6 +121,10 @@ pub struct ChromeCapabilities {
     preferences_window: bool,
 }
 
+fn default_shown() -> bool {
+    true
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ChromeUpdate {
@@ -143,6 +147,11 @@ pub struct ChromeUpdate {
     graph_available: bool,
     #[serde(default)]
     tasks_open: bool,
+    #[serde(default)]
+    sites_open: bool,
+    /// The sites button is shown. Absent payloads keep it, matching the preference default.
+    #[serde(default = "default_shown")]
+    sites_visible: bool,
     #[serde(default)]
     source_mode: Option<bool>,
     /// A document is open, so the titlebar offers a way back to the home view.
@@ -207,6 +216,8 @@ pub(super) struct DocumentChrome {
     graph_open: bool,
     graph_available: bool,
     tasks_open: bool,
+    sites_open: bool,
+    sites_visible: bool,
     source_mode: Option<bool>,
     can_close_document: bool,
     image_preview_open: bool,
@@ -295,6 +306,8 @@ fn document_chrome(
         graph_open: update.graph_open,
         graph_available: update.graph_available,
         tasks_open: update.tasks_open,
+        sites_open: update.sites_open,
+        sites_visible: update.sites_visible,
         source_mode: if update.graph_open {
             Some(false)
         } else {
@@ -470,6 +483,8 @@ pub async fn update_editor_chrome(
             update.graph_open,
             update.graph_available,
             update.tasks_open,
+            update.sites_open,
+            update.sites_visible,
             update.source_mode,
             update.can_close_document,
         );
@@ -795,6 +810,8 @@ mod tests {
             graph_open: false,
             graph_available: false,
             tasks_open: false,
+            sites_open: false,
+            sites_visible: true,
             source_mode: None,
             can_close_document: false,
             image_preview_open: false,
@@ -873,6 +890,8 @@ mod tests {
                     graph_open: false,
                     graph_available: false,
                     tasks_open: false,
+                    sites_open: false,
+                    sites_visible: true,
                     source_mode: None,
                     can_close_document: false,
                     image_preview_open: false,
@@ -894,6 +913,8 @@ mod tests {
             graph_open: false,
             graph_available: false,
             tasks_open: false,
+            sites_open: false,
+            sites_visible: true,
             source_mode: None,
             can_close_document: false,
             image_preview_open: false,
@@ -968,6 +989,8 @@ mod tests {
             graph_open: false,
             graph_available: false,
             tasks_open: false,
+            sites_open: false,
+            sites_visible: true,
             source_mode: Some(false),
             can_close_document: false,
             image_preview_open: false,

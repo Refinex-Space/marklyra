@@ -20,6 +20,7 @@ import { AgentSettings } from '../ai/AgentSettings.js';
 import { CalendarSettings } from '../calendar/CalendarSettings.js';
 import { ExportSettings } from '../export/settings/ExportSettings.js';
 import { GitSettings } from '../git/GitSettings.js';
+import { SitesSettings } from '../sites/SitesSettings.js';
 import { resolveThemeId, storedTheme, type ThemeCatalog } from '../themes/model.js';
 import { readAutoSavePreference } from './auto-save-preference.js';
 import { filenameImageStorageFolder } from './image-storage.js';
@@ -80,7 +81,9 @@ function options(
         ? 'ai'
         : sessionStorage.getItem('marklyra.settings.page') === 'git'
           ? 'git'
-          : '',
+          : sessionStorage.getItem('marklyra.settings.page') === 'sites'
+            ? 'sites'
+            : '',
     allThemes: catalog.themes.map((entry) => `${entry.id}.css`),
     marklyraThemeActions: true,
     marklyraUpdateActions: true,
@@ -468,6 +471,11 @@ export function PreferencesWindow({
       {nativePage === 'calendar' && (
         <div className="preferences-native-overlay" data-settings-dark={dark}>
           <CalendarSettings dark={dark} />
+        </div>
+      )}
+      {nativePage === 'sites' && (
+        <div className="preferences-native-overlay" data-settings-dark={dark}>
+          <SitesSettings dark={dark} />
         </div>
       )}
       {nativePage === 'git' && (

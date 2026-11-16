@@ -131,6 +131,7 @@ import { NativeEditorCommands, nativeEditorCommand } from './native-editor-comma
 
 const KnowledgeGraph = lazy(() => import('../features/knowledge-graph/KnowledgeGraph.js'));
 const TasksWorkbench = lazy(() => import('../features/tasks/TasksWorkbench.js'));
+const SitesWorkbench = lazy(() => import('../features/sites/SitesWorkbench.js'));
 
 function filename(path: string) {
   return path.split(/[\\/]/).at(-1) ?? '未命名';
@@ -197,6 +198,9 @@ export function App() {
   const [gitViewOpen, setGitViewOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
+  /** Site navigation covers the document card like the graph and tasks. */
+  const [sitesOpen, setSitesOpen] = useState(false);
+  const [siteNavHost, setSiteNavHost] = useState<HTMLDivElement | null>(null);
   /** The task description editor while its frame has focus; menus then describe it. */
   const [descriptionEditor, setDescriptionEditor] = useState<MarkLyraEditor | null>(null);
   useEffect(() => {
@@ -305,6 +309,7 @@ export function App() {
     if (previousGraphOwner.current !== graphDocumentOwner) {
       previousGraphOwner.current = graphDocumentOwner;
       setGraphOpen(false);
+      setSitesOpen(false);
     }
   }, [graphDocumentOwner]);
   const documentName = doc.file ? filename(doc.file.path) : '未命名';
@@ -677,6 +682,7 @@ export function App() {
     if (!graphOpen) {
       gitApi.current?.closeView();
       setTasksOpen(false);
+      setSitesOpen(false);
       documentAreaElement.current
         ?.querySelector('.runtime-editor-mount')
         ?.setAttribute('inert', '');
@@ -687,12 +693,14 @@ export function App() {
     if (gitViewOpen) {
       setGraphOpen(false);
       setTasksOpen(false);
+      setSitesOpen(false);
     }
   }, [gitViewOpen]);
   useEffect(() => {
     if (!sessionWorkspace) {
       setGraphOpen(false);
       setTasksOpen(false);
+      setSitesOpen(false);
     }
   }, [sessionWorkspace]);
   /** Tasks cover the document card like the graph; `create` also opens the new-task dialog. */
@@ -712,6 +720,7 @@ export function App() {
       }
       gitApi.current?.closeView();
       setGraphOpen(false);
+      setSitesOpen(false);
       documentAreaElement.current
         ?.querySelector('.runtime-editor-mount')
         ?.setAttribute('inert', '');
@@ -719,6 +728,31 @@ export function App() {
     if (create) setNewTaskRequest((n) => n + 1);
     flushSync(() => setTasksOpen(true));
   };
+  /** Site navigation covers the document card like the graph; the editor is inert under it. */
+  const toggleSites = () => {
+    if (sitesOpen) {
+      flushSync(() => setSitesOpen(false));
+      return;
+    }
+    if (!preferences.sites.enabled) return;
+    if (!ready || doc.working || doc.pending || editor.current?.isComposing) {
+      doc.setMessage('请先完成当前输入或文档操作');
+      return;
+    }
+    if (!workspaceIdentity.current) {
+      doc.setMessage('请先打开文件夹，再使用站点导航');
+      return;
+    }
+    gitApi.current?.closeView();
+    setGraphOpen(false);
+    setTasksOpen(false);
+    documentAreaElement.current?.querySelector('.runtime-editor-mount')?.setAttribute('inert', '');
+    flushSync(() => setSitesOpen(true));
+  };
+  // Turning the entry off in settings also leaves the page.
+  useEffect(() => {
+    if (!preferences.sites.enabled) setSitesOpen(false);
+  }, [preferences.sites.enabled]);
   // Task changes an agent made in this window: say so, and offer to take the whole turn back.
   useEffect(() => {
     const stop = listen<AiChange>('marklyra:tasks-ai', (event) => {
@@ -934,11 +968,11 @@ export function App() {
   useEffect(() => {
     documentAreaElement.current
       ?.querySelector('.runtime-editor-mount')
-      ?.toggleAttribute('inert', homeVisible || gitViewOpen || graphOpen || tasksOpen);
-    if (wasHome.current && !homeVisible && !gitViewOpen && !graphOpen && !tasksOpen)
+      ?.toggleAttribute('inert', homeVisible || gitViewOpen || graphOpen || tasksOpen || sitesOpen);
+    if (wasHome.current && !homeVisible && !gitViewOpen && !graphOpen && !tasksOpen && !sitesOpen)
       void editor.current?.focus().catch(() => {});
-    wasHome.current = homeVisible || gitViewOpen || graphOpen || tasksOpen;
-  }, [homeVisible, gitViewOpen, graphOpen, tasksOpen]);
+    wasHome.current = homeVisible || gitViewOpen || graphOpen || tasksOpen || sitesOpen;
+  }, [homeVisible, gitViewOpen, graphOpen, tasksOpen, sitesOpen]);
   const rename = useDocumentRename({
     file:
       doc.file && doc.file.locationState !== 'trashed'
@@ -1075,6 +1109,8 @@ export function App() {
     openTaskLink,
     convertSelectionToTask,
     tasksOpen,
+    toggleSites,
+    sitesOpen,
     command,
     doc,
     exporter,
@@ -1105,7 +1141,8 @@ export function App() {
       quickOpen !== null ||
       gitViewOpen ||
       graphOpen ||
-      tasksOpen,
+      tasksOpen ||
+      sitesOpen,
     blockedEditorCommand:
       imagePreviewOpen ||
       !ready ||
@@ -1133,6 +1170,8 @@ export function App() {
     openTaskLink,
     convertSelectionToTask,
     tasksOpen,
+    toggleSites,
+    sitesOpen,
     command,
     doc,
     exporter,
@@ -1163,7 +1202,8 @@ export function App() {
       quickOpen !== null ||
       gitViewOpen ||
       graphOpen ||
-      tasksOpen,
+      tasksOpen ||
+      sitesOpen,
     blockedEditorCommand:
       imagePreviewOpen ||
       !ready ||
@@ -1541,6 +1581,8 @@ export function App() {
       graphView: graphOpen,
       graphAvailable: !!sessionWorkspace,
       tasksView: tasksOpen,
+      sitesView: sitesOpen,
+      sitesEnabled: preferences.sites.enabled,
       taskDescription: tasksOpen && descriptionEditor !== null,
       gitRepository,
       calendarAvailable,
@@ -1724,8 +1766,16 @@ export function App() {
         actions.current.toggleTasks(value === 'task:new');
         return;
       }
+      if (value === 'view:sites') {
+        actions.current.toggleSites();
+        return;
+      }
       if (actions.current.tasksOpen && (value === 'close' || value === 'close-document')) {
         setTasksOpen(false);
+        return;
+      }
+      if (actions.current.sitesOpen && (value === 'close' || value === 'close-document')) {
+        setSitesOpen(false);
         return;
       }
       if (actions.current.graphOpen && (value === 'close' || value === 'close-document')) {
@@ -2122,6 +2172,8 @@ export function App() {
         !!sessionWorkspace,
         sidebar,
         tasksOpen,
+        sitesOpen,
+        preferences.sites.enabled,
       )
       .catch((error: unknown) => {
         if (
@@ -2153,6 +2205,8 @@ export function App() {
     sessionWorkspace,
     sidebar,
     tasksOpen,
+    sitesOpen,
+    preferences.sites.enabled,
   ]);
   useEffect(() => {
     if (!ready || !editor.current) return;
@@ -2388,6 +2442,9 @@ export function App() {
           graphOpen={graphOpen}
           graphAvailable={!!sessionWorkspace}
           onGraph={toggleGraph}
+          sitesVisible={preferences.sites.enabled}
+          sitesOpen={sitesOpen}
+          onSites={toggleSites}
           tasksOpen={tasksOpen}
           onTasks={() => toggleTasks()}
           onSidebar={() => setSidebar((visible) => !visible)}
@@ -2529,6 +2586,23 @@ export function App() {
           >
             <Icon name="graph" />
           </button>
+          {preferences.sites.enabled && (
+            <button
+              type="button"
+              className="icon-button"
+              title={
+                sessionWorkspace
+                  ? `站点导航 ${runtime?.platform === 'windows' ? 'Ctrl+Alt+L' : '⌘⌥L'}`
+                  : '站点导航（先打开文件夹）'
+              }
+              aria-label="站点导航"
+              aria-pressed={sitesOpen}
+              disabled={!sessionWorkspace || !ready}
+              onClick={toggleSites}
+            >
+              <Icon name="globe" />
+            </button>
+          )}
           <button
             type="button"
             className="icon-button"
@@ -2600,12 +2674,17 @@ export function App() {
           className="sidebar"
           hidden={!sidebar}
           data-tasks={(tasksOpen && workspaceIdentity.current !== null) || undefined}
+          data-sites={(sitesOpen && workspaceIdentity.current !== null) || undefined}
           style={{ width: sidebarWidth }}
         >
           {/* Task mode reuses the sidebar for its navigation; the file tree stays mounted
               (expanded folders, search) and returns unchanged when tasks close. */}
           {tasksOpen && workspaceIdentity.current && (
             <div className="task-nav-host" ref={setTaskNavHost} />
+          )}
+          {/* Site mode reuses the sidebar the same way: the file tree stays mounted underneath. */}
+          {sitesOpen && workspaceIdentity.current && (
+            <div className="site-nav-host" ref={setSiteNavHost} />
           )}
           {tasksOpen && workspaceIdentity.current && preferences.calendar.enabled && (
             <div className="task-calendar-host">{calendarPanel(!ready || !!doc.pending)}</div>
@@ -3255,9 +3334,56 @@ export function App() {
               </Suspense>
             </GraphBoundary>
           )}
+          {sitesOpen && workspaceIdentity.current && (
+            <GraphBoundary title="站点导航暂时无法显示" close={() => setSitesOpen(false)}>
+              <Suspense
+                fallback={
+                  <div
+                    className="knowledge-surface"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      zIndex: 15,
+                      display: 'flex',
+                      gap: 24,
+                      padding: '12px 16px',
+                      background: 'var(--marklyra-body-bg, var(--surface))',
+                    }}
+                  >
+                    {sidebar && siteNavHost
+                      ? createPortal(
+                          <div style={{ padding: '12px 10px' }}>
+                            <SkeletonRows rows={4} icon height={30} />
+                          </div>,
+                          siteNavHost,
+                        )
+                      : null}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <SkeletonRows rows={8} icon height={34} />
+                    </div>
+                  </div>
+                }
+              >
+                <SitesWorkbench
+                  key={workspaceIdentity.current.id}
+                  workspace={workspaceIdentity.current}
+                  navHost={sidebar ? siteNavHost : null}
+                  preferences={preferences.sites}
+                  onView={(view) =>
+                    setPreferences((value) => ({ ...value, sites: { ...value.sites, view } }))
+                  }
+                  onManageEngines={() => {
+                    sessionStorage.setItem('marklyra.settings.page', 'sites');
+                    openPreferences(false);
+                  }}
+                  onClose={() => setSitesOpen(false)}
+                />
+              </Suspense>
+            </GraphBoundary>
+          )}
         </main>
         <DocumentDetailsPanel
-          open={(outlinePanelOpen && !graphOpen && !tasksOpen) || aiPanelOpen}
+          open={(outlinePanelOpen && !graphOpen && !tasksOpen && !sitesOpen) || aiPanelOpen}
           mode={detailsMode}
           elementRef={detailsElement}
           width={detailsLayout.width}

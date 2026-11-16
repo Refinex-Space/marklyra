@@ -21,7 +21,11 @@ serde_json = "1.0.154"
 cap-std.workspace = true
 same-file = "1.0.6"
 sha2 = "0.10"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking", "socks", "macos-system-configuration"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking", "socks", "gzip", "charset", "macos-system-configuration"] }
+encoding_rs = "0.8"
+dom_query = { version = "0.28.0", default-features = false }
+url = "2"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico"] }
 zip = { version = "=2.4.2", default-features = false, features = ["deflate"] }
 flate2 = "1"
 tar = "0.4"
@@ -34,6 +38,7 @@ base64 = "0.22.1"
 file-index = { path = "../../../crates/file-index" }
 knowledge-index = { path = "../../../crates/knowledge-index" }
 task-store = { path = "../../../crates/task-store" }
+site-store = { path = "../../../crates/site-store" }
 notify = "8.2.0"
 document-service = { path = "../../../crates/document-service" }
 export-service = { path = "../../../crates/export-service" }
@@ -57,7 +62,7 @@ objc2-foundation = { version = "=0.3.2", default-features = false, features = ["
 clipboard-win = { version = "=5.4.1", features = ["std"] }
 webview2-com = "=0.39.1"
 windows-core = "=0.62.2"
-windows = { version = "=0.62.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Registry", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_Controls", "Win32_UI_Shell_Common", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_System_Threading", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_Security", "Win32_System_Console"] }
+windows = { version = "=0.62.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Registry", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_Controls", "Win32_UI_Shell_Common", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_System_Threading", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_Security", "Win32_System_Console", "Win32_Globalization"] }
 
 [dev-dependencies]
 tauri = { version = "2.11.2", features = ["test"] }

@@ -24,6 +24,7 @@ mod platform;
 mod preferences_store;
 mod rename_metadata;
 mod runtime_assets;
+mod sites;
 mod startup;
 mod tasks;
 mod tasks_import;
@@ -91,6 +92,7 @@ pub fn run() {
         .manage(agents::AgentHostState::default())
         .manage(git::GitHost::default())
         .manage(knowledge::KnowledgeHost::default())
+        .manage(sites::SitesHost::default())
         .manage(tasks::TasksHost::default())
         .manage(tasks_import::ImportHost::default())
         .invoke_handler(tauri::generate_handler![
@@ -105,6 +107,16 @@ pub fn run() {
             knowledge::knowledge_anchor,
             knowledge::knowledge_import_view,
             knowledge::knowledge_export_view,
+            sites::sites_snapshot,
+            sites::sites_mutate,
+            sites::sites_preview,
+            sites::sites_enrich,
+            sites::sites_refetch,
+            sites::sites_set_icon,
+            sites::sites_icon,
+            sites::sites_recent,
+            sites::sites_record_open,
+            sites::sites_engine_icon,
             tasks::tasks_snapshot,
             tasks::tasks_mutate,
             tasks::tasks_detail,
