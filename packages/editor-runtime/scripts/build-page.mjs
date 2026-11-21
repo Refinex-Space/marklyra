@@ -12,6 +12,8 @@ import { assembleSourceBundles, bundleManifests } from '../../../scripts/lib/sou
 import { buildEngine } from './build-engine.mjs';
 
 const repository = resolve(import.meta.dirname, '../../..');
+const diagramEntry = 'packages/editor-runtime/src/runtime/ai-diagram-frame.ts';
+const diagramPath = 'html/ai-diagram.js';
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 /** Refuse redirected inputs and output ancestors before any generated files are removed. */
@@ -38,10 +40,32 @@ export async function verifyRuntimeBuildLayout(root) {
   await regular('LICENSE', 'file');
   await regular('package.json', 'file');
   await regular('packages/editor-runtime/src/page/index.html', 'file');
+  await regular(diagramEntry, 'file');
   await regular('apps/desktop/src/features/settings/runtime-preferences/page/setting.html', 'file');
   for (const manifest of bundleManifests) await regular(manifest, 'file');
   for (const entry of runtimeEngineEntries) await regular(entry.source, 'file');
   await regular('packages/editor-runtime/dist/frame-host.js', 'file');
+}
+
+async function bundlePageScript(entry, name) {
+  const bundled = await build({
+    configFile: false,
+    logLevel: 'error',
+    build: {
+      write: false,
+      minify: true,
+      lib: {
+        entry,
+        formats: ['iife'],
+        name,
+      },
+      rollupOptions: { output: { inlineDynamicImports: true } },
+    },
+  });
+  const chunks = (Array.isArray(bundled) ? bundled : [bundled]).flatMap((result) => result.output);
+  if (chunks.length !== 1 || chunks[0].type !== 'chunk')
+    throw new Error('Unexpected isolated page script output');
+  return chunks[0].code;
 }
 
 /** Build the isolated editor page from the source owned by workspace packages. */
@@ -77,6 +101,8 @@ export async function buildRuntimePage({ root = repository } = {}) {
   }
   for (const path of compiledScripts.keys())
     if (!destinations.has(path)) throw new Error(`Missing compiled script output: ${path}`);
+  if (destinations.has(diagramPath)) throw new Error('Duplicate diagram adapter output');
+  const diagramCode = await bundlePageScript(resolve(root, diagramEntry), 'MarkLyraDiagram');
   // All inputs and destinations are checked before replacing generated output.
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
@@ -104,33 +130,20 @@ export async function buildRuntimePage({ root = repository } = {}) {
       else resources.push(record);
     }
   }
+  await mkdir(resolve(output, dirname(diagramPath)), { recursive: true });
+  await writeFile(resolve(output, diagramPath), diagramCode);
+  resources.push({ path: diagramPath, runtimeSha256: digest(diagramCode) });
   resources.push(...(await prepareBuiltinThemes(root, output)));
   await copyFile(
     resolve(root, 'packages/editor-runtime/dist/frame-host.js'),
     resolve(output, 'frame-host.js'),
   );
   await writeFile(resolve(output, 'empty.css'), '/* No user CSS has been configured. */\n');
-  const bundled = await build({
-    configFile: false,
-    logLevel: 'error',
-    build: {
-      write: false,
-      minify: true,
-      lib: {
-        entry: resolve(
-          root,
-          'apps/desktop/src/features/settings/runtime-preferences/child-host.ts',
-        ),
-        formats: ['iife'],
-        name: 'MarkLyraPreferencesHost',
-      },
-      rollupOptions: { output: { inlineDynamicImports: true } },
-    },
-  });
-  const chunks = (Array.isArray(bundled) ? bundled : [bundled]).flatMap((result) => result.output);
-  if (chunks.length !== 1 || chunks[0].type !== 'chunk')
-    throw new Error('Unexpected Preferences adapter output');
-  await writeFile(resolve(output, 'preferences/child-host.js'), chunks[0].code);
+  const preferencesCode = await bundlePageScript(
+    resolve(root, 'apps/desktop/src/features/settings/runtime-preferences/child-host.ts'),
+    'MarkLyraPreferencesHost',
+  );
+  await writeFile(resolve(output, 'preferences/child-host.js'), preferencesCode);
   await writeFile(
     resolve(output, 'preferences/empty.css'),
     '/* Preferences use the runtime shell styles. */\n',
@@ -139,7 +152,7 @@ export async function buildRuntimePage({ root = repository } = {}) {
   const preferencesManifest = {
     kind: 'runtime-preferences',
     sourceVersion: `MarkLyra ${product.version}`,
-    adapterSha256: digest(chunks[0].code),
+    adapterSha256: digest(preferencesCode),
     resources: preferences,
   };
   await writeFile(

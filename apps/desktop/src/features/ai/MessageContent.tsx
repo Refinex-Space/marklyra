@@ -1,19 +1,54 @@
-import { type Inline, parseMarkdown } from '@marklyra/editor-markdown';
+import type { Inline } from '@marklyra/editor-markdown';
 import { Fragment, memo, type ReactNode } from 'react';
+import { MarkdownBlocks } from '../../components/MarkdownBlocks.js';
+import { AnswerCode } from './AnswerCode.js';
+import { answerSections } from './answer-sections.js';
 import { agentApi } from './api.js';
 import { documentLink } from './model.js';
 
-export const MessageContent = memo(function MessageContent({
+interface ContentProps {
+  source: string;
+  answer?: boolean;
+  runtimeUrl?: string | undefined;
+  dark?: boolean;
+  root: string;
+  open: (path: string) => void;
+  report: (error: string) => void;
+}
+
+export const MessageContent = memo(function MessageContent(props: ContentProps) {
+  // History may contain multi-megabyte responses. Keep every character selectable without
+  // constructing an unbounded Markdown tree or thousands of interactive components.
+  if (
+    props.source.length > 96_000 ||
+    props.source.split(/\r\n?|\n/, 2001).length > 2000 ||
+    (props.source.match(/[|`_*[]/g)?.length ?? 0) > 8000
+  )
+    return (
+      <div className="ai-markdown">
+        <pre className="ai-plain-output">{props.source}</pre>
+      </div>
+    );
+  return (
+    <div className="ai-markdown">
+      {(props.answer ? answerSections(props.source) : [{ from: 0, text: props.source }]).map(
+        (part) => (
+          <MessageSection {...props} key={part.from} source={part.text} />
+        ),
+      )}
+    </div>
+  );
+});
+
+const MessageSection = memo(function MessageSection({
   source,
   root,
   open,
   report,
-}: {
-  source: string;
-  root: string;
-  open: (path: string) => void;
-  report: (error: string) => void;
-}) {
+  answer,
+  runtimeUrl,
+  dark = false,
+}: ContentProps) {
   const link = (href: string, label: ReactNode, key: string | number) => {
     const path = documentLink(href, root);
     const external = /^https?:\/\//i.test(href);
@@ -63,15 +98,16 @@ export const MessageContent = memo(function MessageContent({
     result.push(<Fragment key={`text:${cursor}`}>{value.slice(cursor)}</Fragment>);
     return result;
   };
-  const inline = (nodes: readonly Inline[], autoLinks = true): ReactNode[] => {
+  const inline = (nodes: readonly Inline[], tableCell = false, autoLinks = true): ReactNode[] => {
     let consumed = -1;
     const maximum = nodes.at(-1)?.to ?? source.length;
     return nodes.map((node) => {
       if (node.to <= consumed) return null;
-      const value = source.slice(Math.max(node.contentFrom, consumed), node.contentTo);
-      const nestedLinks = autoLinks && node.kind !== 'link';
+      const raw = source.slice(Math.max(node.contentFrom, consumed), node.contentTo);
+      const value = tableCell ? raw.replace(/\\\|/g, '|') : raw;
+      const nestedLinks = autoLinks && node.kind !== 'link' && node.kind !== 'code';
       const children = node.children.length
-        ? inline(node.children, nestedLinks)
+        ? inline(node.children, tableCell, nestedLinks)
         : nestedLinks
           ? plain(value)
           : value;
@@ -107,39 +143,34 @@ export const MessageContent = memo(function MessageContent({
     });
   };
   return (
-    <div className="ai-markdown">
-      {parseMarkdown(source).blocks.map((block) => {
-        const content = inline(block.inlines);
-        switch (block.kind) {
-          case 'blank':
-            return null;
-          case 'rule':
-            return <hr key={block.from} />;
-          case 'code':
-            return (
-              <pre key={block.from}>
-                <code>{source.slice(block.contentFrom, block.contentTo)}</code>
-              </pre>
-            );
-          case 'heading':
-            return (
-              <p className="ai-message-heading" key={block.from}>
-                {content}
-              </p>
-            );
-          case 'quote':
-            return <blockquote key={block.from}>{content}</blockquote>;
-          case 'list-item':
-            return (
-              <div className="ai-list-item" key={block.from}>
-                <span aria-hidden="true">•</span>
-                <div>{content}</div>
-              </div>
-            );
-          default:
-            return <p key={block.from}>{content}</p>;
-        }
-      })}
-    </div>
+    <MarkdownBlocks
+      source={source}
+      inline={inline}
+      prefix="ai-md"
+      codeBlock={(block) => {
+        const isYaml = block.kind === 'frontmatter';
+        const language = isYaml
+          ? 'yaml'
+          : (/^ {0,3}(?:`{3,}|~{3,})[ \t]*([^\s`~]+)/
+              .exec(block.raw)?.[1]
+              ?.toLowerCase()
+              .slice(0, 48) ?? '');
+        const code = source.slice(block.contentFrom, block.contentTo);
+        return answer ? (
+          <AnswerCode
+            language={language}
+            source={code}
+            closed={isYaml || block.contentTo < block.to}
+            runtimeUrl={runtimeUrl}
+            dark={dark}
+            report={report}
+          />
+        ) : (
+          <pre>
+            <code>{code}</code>
+          </pre>
+        );
+      }}
+    />
   );
 });

@@ -3463,6 +3463,8 @@ export function App() {
         >
           <div hidden={detailsMode !== 'ai'} style={{ height: '100%', minHeight: 0 }}>
             <AiPanel
+              runtimeUrl={runtime?.url}
+              dark={themeSystem.dark}
               open={aiPanelOpen}
               pendingChanged={setAiPending}
               revealRequest={aiRevealRequest}

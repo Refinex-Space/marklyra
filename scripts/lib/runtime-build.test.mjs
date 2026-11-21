@@ -62,6 +62,10 @@ import first from './modules/first.js';
       ],
     }),
   );
+  await write(
+    'packages/editor-runtime/src/runtime/ai-diagram-frame.ts',
+    'globalThis.diagram = true;',
+  );
   await write(preferences + '/child-host.ts', 'globalThis.fixtureSettings = true;');
   for (const name of ['marklyra.css', 'marklyra-light.css', 'marklyra-dark.css'])
     await write('packages/editor-themes/' + name, 'body{color:inherit}');
@@ -83,6 +87,8 @@ test('build uses current source imports, discovers assets and preserves executio
   await buildRuntimePage({ root });
   const context = {};
   runInNewContext(await readFile(resolve(output, 'appsrc/main.js'), 'utf8'), context);
+  runInNewContext(await readFile(resolve(output, 'html/ai-diagram.js'), 'utf8'), context);
+  assert.equal(context.diagram, true);
   assert.equal(context.order.length, 3);
   assert.deepEqual(Object.keys(context.order), ['0', '2']);
   assert.deepEqual(Array.from(context.order), ['second', undefined, 'first']);

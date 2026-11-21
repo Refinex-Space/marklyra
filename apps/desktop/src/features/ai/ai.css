@@ -384,14 +384,217 @@
   padding-left: 10px;
   color: var(--ai-muted);
 }
-.ai-message-heading {
-  font-weight: 600;
-  font-size: 14px;
+.ai-markdown {
+  min-width: 0;
+  line-height: 1.65;
 }
-.ai-list-item {
+.ai-markdown > :first-child {
+  margin-top: 0;
+}
+.ai-markdown > :last-child {
+  margin-bottom: 0;
+}
+.ai-md-heading {
+  margin: 1em 0 0.4em;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.ai-markdown h2 {
+  font-size: 1.27em;
+}
+.ai-markdown h3 {
+  font-size: 1.14em;
+}
+.ai-markdown :is(h4, h5, h6) {
+  font-size: 1em;
+}
+.ai-markdown :is(ul, ol) {
+  margin: 0.45em 0;
+  padding-inline-start: 1.7em;
+}
+.ai-markdown li {
+  margin: 0.2em 0;
+}
+.ai-markdown li > :is(ul, ol) {
+  margin: 0.2em 0;
+}
+.ai-md-check {
+  list-style: none;
+  position: relative;
+}
+.ai-md-check input {
+  position: absolute;
+  inset-inline-end: calc(100% + 0.35em);
+  top: 0.37em;
+  margin: 0;
+  width: 1em;
+  height: 1em;
+}
+.ai-md-check.done > .ai-md-item {
+  color: var(--ai-muted);
+}
+.ai-markdown hr {
+  margin: 1em 0;
+  border: 0;
+  border-top: 1px solid var(--ai-line);
+}
+.ai-md-table {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0.7em 0;
+  border: 1px solid var(--ai-line);
+  border-radius: 6px;
+}
+.ai-md-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.ai-md-table :is(th, td) {
+  padding: 6px 10px;
+  min-width: 4em;
+  max-width: 26em;
+  text-align: start;
+  vertical-align: top;
+}
+.ai-md-table th {
+  background: var(--ai-soft);
+  font-weight: 600;
+}
+.ai-md-table td {
+  border-top: 1px solid var(--ai-line);
+}
+.ai-code-card {
+  min-width: 0;
+  margin: 0.7em 0;
+  border: 1px solid var(--ai-line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.ai-code-bar {
   display: flex;
-  gap: 9px;
-  margin: 4px 0;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px 3px 10px;
+  min-height: 26px;
+  background: var(--ai-soft);
+  border-bottom: 1px solid var(--ai-line);
+  color: var(--ai-muted);
+}
+.ai-code-language {
+  margin-inline-end: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font:
+    11px ui-monospace,
+    monospace;
+}
+.ai-panel .ai-code-bar button {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px;
+  min-height: 24px;
+  font-size: 11px;
+}
+.ai-code-bar button[aria-pressed="true"] {
+  color: var(--ai-text);
+  background: var(--ai-line);
+}
+.ai-panel .ai-code-bar .ui-icon {
+  width: 13px;
+  height: 13px;
+}
+.ai-code-card > pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.ai-code-card > pre.wrapped,
+.ai-markdown .ai-plain-output {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ai-code-card code {
+  color: var(--ai-text);
+  tab-size: 4;
+  line-height: 1.6;
+}
+.ai-code-note {
+  padding: 7px 10px 0;
+  color: var(--ai-muted);
+  font-size: 12px;
+}
+.ai-token-keyword {
+  color: #75429c;
+}
+.ai-token-string,
+.ai-token-add {
+  color: #276749;
+}
+.ai-token-literal {
+  color: #945326;
+}
+.ai-token-remove {
+  color: #a23e42;
+}
+.ai-token-comment {
+  color: var(--ai-muted);
+}
+:root[data-theme="dark"] .ai-token-keyword {
+  color: #cda8eb;
+}
+:root[data-theme="dark"] :is(.ai-token-string, .ai-token-add) {
+  color: #97c9ab;
+}
+:root[data-theme="dark"] .ai-token-literal {
+  color: #edba86;
+}
+:root[data-theme="dark"] .ai-token-remove {
+  color: #efa3a3;
+}
+.ai-rendered-diagram {
+  height: auto;
+  display: block;
+  width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.ai-diagram-renderer {
+  position: fixed;
+  left: -1200px;
+  top: 0;
+  width: 1000px;
+  height: 600px;
+  border: 0;
+  pointer-events: none;
+}
+.ai-diagram-dialog {
+  padding: 0;
+  max-width: 94vw;
+  max-height: 90vh;
+  color: var(--ai-text);
+  background: var(--ai-bg);
+  border: 1px solid var(--ai-line);
+  border-radius: 9px;
+}
+.ai-diagram-dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+.ai-diagram-canvas {
+  overflow: auto;
+  max-height: 78vh;
+  padding: 14px;
+}
+.ai-diagram-canvas img {
+  height: auto;
+  display: block;
+  min-width: min(62vw, 620px);
+  max-width: none;
 }
 .ai-message-references {
   display: flex;

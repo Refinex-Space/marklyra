@@ -49,6 +49,8 @@ import {
 import './ai.css';
 
 interface Props {
+  runtimeUrl?: string | undefined;
+  dark?: boolean;
   open: boolean;
   workspace: WorkspaceFolder | null;
   currentPath: string | null;
@@ -463,6 +465,8 @@ export function AiPanel(props: Props) {
         ) : (
           <Conversation
             key={workspace.id}
+            runtimeUrl={props.runtimeUrl}
+            dark={props.dark ?? false}
             reset={composerReset}
             enabled={profiles.some((profile) => profile.id === session.profile.id)}
             session={session}
@@ -515,6 +519,8 @@ export function AiPanel(props: Props) {
 const noSubscribe = () => () => {};
 const emptySnapshot = () => null;
 function Conversation({
+  runtimeUrl,
+  dark,
   reset,
   enabled,
   session,
@@ -534,6 +540,8 @@ function Conversation({
   openDocument,
   report,
 }: {
+  runtimeUrl?: string | undefined;
+  dark: boolean;
   reset: number;
   enabled: boolean;
   session: AgentSession | null;
@@ -604,6 +612,16 @@ function Conversation({
   const textarea = useRef<ComposerHandle>(null);
   const scroll = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
+  const scrollPosition = useRef({ top: 0, extent: 0 });
+  const scrollToLatest = useCallback(() => {
+    const element = scroll.current;
+    if (!element?.clientHeight) return;
+    element.scrollTop = element.scrollHeight;
+    scrollPosition.current = {
+      top: element.scrollTop,
+      extent: element.scrollHeight - element.clientHeight,
+    };
+  }, []);
   const [unread, setUnread] = useState(false);
   const busy =
     sending ||
@@ -652,11 +670,21 @@ function Conversation({
   useEffect(() => {
     if (mentionOpen) refreshFiles();
   }, [mentionOpen, refreshFiles]);
+  const turns = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!turns.current) return;
+    const observer = new ResizeObserver(() => {
+      if (pinned.current) scrollToLatest();
+    });
+    observer.observe(turns.current);
+    if (scroll.current) observer.observe(scroll.current);
+    return () => observer.disconnect();
+  }, [scrollToLatest]);
   const last = state?.record.messages.at(-1);
   // biome-ignore lint/correctness/useExhaustiveDependencies: only new streamed text or an interaction changes scroll anchoring.
   useEffect(() => {
     if (pinned.current) {
-      scroll.current?.scrollTo({ top: scroll.current.scrollHeight });
+      scrollToLatest();
       setUnread(false);
     } else setUnread(true);
   }, [last?.id, last?.text, last?.attachments?.length, state?.interactions.length]);
@@ -904,6 +932,9 @@ function Conversation({
               </div>
             )}
             <MessageContent
+              answer={message.role === 'assistant'}
+              runtimeUrl={runtimeUrl}
+              dark={dark}
               source={message.text}
               root={workspace.path}
               open={openDocument}
@@ -942,7 +973,14 @@ function Conversation({
         onScroll={() => {
           const el = scroll.current;
           if (el) {
-            pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 72;
+            // A delayed scroll event can arrive after an image has grown. Only an
+            // actual move towards older messages should release bottom following.
+            const extent = el.scrollHeight - el.clientHeight;
+            const previous = scrollPosition.current;
+            if (extent - el.scrollTop < 72) pinned.current = true;
+            else if (el.scrollTop < previous.top && extent === previous.extent)
+              pinned.current = false;
+            scrollPosition.current = { top: el.scrollTop, extent };
             if (pinned.current) setUnread(false);
           }
         }}
@@ -975,26 +1013,28 @@ function Conversation({
             显示更早的消息
           </button>
         )}
-        {conversationGroups(state?.record.messages.slice(-visibleMessages) ?? []).map((group) => (
-          <div className="ai-turn" key={group.id}>
-            {group.before.map((message) => renderMessage(message))}
-            {!!group.activity.length && (
-              <TurnActivity
-                key={`${reset}:${group.id}`}
-                running={
-                  !!state &&
-                  ['running', 'cancelling'].includes(state.phase) &&
-                  group.id === state.record.messages.at(-1)?.turnId
-                }
-                startedAt={group.startedAt}
-                completedAt={group.completedAt}
-              >
-                {group.activity.map((message) => renderMessage(message, true))}
-              </TurnActivity>
-            )}
-            {group.after.map((message) => renderMessage(message))}
-          </div>
-        ))}
+        <div ref={turns}>
+          {conversationGroups(state?.record.messages.slice(-visibleMessages) ?? []).map((group) => (
+            <div className="ai-turn" key={group.id}>
+              {group.before.map((message) => renderMessage(message))}
+              {!!group.activity.length && (
+                <TurnActivity
+                  key={`${reset}:${group.id}`}
+                  running={
+                    !!state &&
+                    ['running', 'cancelling'].includes(state.phase) &&
+                    group.id === state.record.messages.at(-1)?.turnId
+                  }
+                  startedAt={group.startedAt}
+                  completedAt={group.completedAt}
+                >
+                  {group.activity.map((message) => renderMessage(message, true))}
+                </TurnActivity>
+              )}
+              {group.after.map((message) => renderMessage(message))}
+            </div>
+          ))}
+        </div>
         {state?.interactions.map((interaction) => (
           <Permission
             key={interaction.id}
@@ -1051,7 +1091,7 @@ function Conversation({
           className="ai-jump"
           onClick={() => {
             pinned.current = true;
-            scroll.current?.scrollTo({ top: scroll.current.scrollHeight });
+            scrollToLatest();
             setUnread(false);
           }}
         >

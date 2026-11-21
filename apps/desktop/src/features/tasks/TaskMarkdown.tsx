@@ -1,4 +1,4 @@
-import { type Block, type Inline, parseInline, parseMarkdown } from '@marklyra/editor-markdown';
+import type { Inline } from '@marklyra/editor-markdown';
 import { invoke } from '@tauri-apps/api/core';
 import {
   Fragment,
@@ -11,6 +11,7 @@ import {
   useLayoutEffect,
   useRef,
 } from 'react';
+import { MarkdownBlocks } from '../../components/MarkdownBlocks.js';
 import { notify } from '../notices/notices.js';
 import { StatusGlyph } from './glyphs.js';
 import type { Catalog } from './model/catalog.js';
@@ -33,7 +34,6 @@ interface RenderProps {
   onToggle?(offset: number): void;
 }
 
-const LIST = /^([ \t]*)([-+*]|(\d{1,9})[.)])[ \t]+(\[([ xX])\][ \t]+)?/;
 /** Task links, wiki names, bare URLs and task IDs inside plain text. */
 const TOKEN =
   /(\[(?:\\.|[^\]\\\n])+\]\([^)\s]+\)|\[\[[^\]\n]+\]\]|https?:\/\/[^\s<>()（）]*[^\s<>()（）.,;:!?，。；：！？、'"”’]|\b[A-Z][A-Z0-9]{1,4}-\d+\b)/g;
@@ -197,266 +197,10 @@ export const TaskMarkdown = memo(function TaskMarkdown(props: RenderProps) {
     });
   };
 
-  const blocks = parseMarkdown(source).blocks;
-  const out: ReactNode[] = [];
-  for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i] as Block;
-    switch (block.kind) {
-      case 'blank':
-        break;
-      case 'rule':
-        out.push(<hr key={block.from} />);
-        break;
-      case 'code':
-      case 'frontmatter': {
-        const lang = /^ {0,3}(?:`{3,}|~{3,})\s*([\w+#.-]+)/.exec(block.raw)?.[1];
-        out.push(
-          <pre key={block.from} data-lang={lang}>
-            <code>{source.slice(block.contentFrom, block.contentTo).replace(/\r?\n$/, '')}</code>
-          </pre>,
-        );
-        break;
-      }
-      case 'heading': {
-        const Tag = `h${Math.min(6, block.level + 1)}` as 'h2';
-        out.push(
-          <Tag key={block.from} className="task-md-heading">
-            {inline(block.inlines)}
-          </Tag>,
-        );
-        break;
-      }
-      case 'quote': {
-        const lines: Block[] = [block];
-        while (blocks[i + 1]?.kind === 'quote') lines.push(blocks[++i] as Block);
-        out.push(
-          <blockquote key={block.from}>
-            {lines.map((line, n) => (
-              <Fragment key={line.from}>
-                {n > 0 && <br />}
-                {inline(line.inlines)}
-              </Fragment>
-            ))}
-          </blockquote>,
-        );
-        break;
-      }
-      case 'list-item': {
-        const items: ListItem[] = [];
-        for (let j = i; j < blocks.length; j++) {
-          const current = blocks[j] as Block;
-          if (current.kind === 'list-item') {
-            const m = LIST.exec(current.raw);
-            items.push({
-              block: current,
-              level: current.level,
-              ordered: m?.[3] !== undefined,
-              start: Number(m?.[3] ?? 1),
-              check: m?.[4] ? current.from + (m[0].indexOf('[') + 1) : undefined,
-              checked: m?.[5] !== undefined && m[5] !== ' ',
-              more: [],
-            });
-            i = j;
-          } else if (current.kind === 'paragraph' && blocks[j - 1]?.kind === 'list-item') {
-            // A line under an item without a blank line continues that item.
-            items.at(-1)?.more.push(current);
-            i = j;
-          } else if (current.kind === 'blank' && blocks[j + 1]?.kind === 'list-item') {
-          } else break;
-        }
-        out.push(...renderList(items, 0, items.length, inline, props.onToggle));
-        break;
-      }
-      default: {
-        const table = tableOf(source, block);
-        out.push(
-          table ? (
-            <div key={block.from} className="task-md-table">
-              <table>
-                <thead>
-                  <tr>
-                    {table.head.map((cell, c) => (
-                      <th key={cell.from} style={{ textAlign: table.align[c] }}>
-                        {inline(parseInline(source, cell.from, cell.to))}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {table.rows.map((row) => (
-                    <tr key={row[0]?.from}>
-                      {table.head.map((head, c) => {
-                        const cell = row[c];
-                        return (
-                          <td
-                            key={cell?.from ?? `${head.from}-${c}`}
-                            style={{ textAlign: table.align[c] }}
-                          >
-                            {cell && inline(parseInline(source, cell.from, cell.to))}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p key={block.from}>{inline(block.inlines)}</p>
-          ),
-        );
-      }
-    }
-  }
-  return <>{out}</>;
+  return (
+    <MarkdownBlocks prefix="task-md" source={source} inline={inline} onToggle={props.onToggle} />
+  );
 });
-
-interface ListItem {
-  block: Block;
-  level: number;
-  ordered: boolean;
-  start: number;
-  check: number | undefined;
-  checked: boolean;
-  more: Block[];
-}
-
-/** Items deeper than their predecessor nest inside it; a change of list kind starts a new list. */
-function renderList(
-  items: ListItem[],
-  from: number,
-  to: number,
-  inline: (nodes: readonly Inline[]) => ReactNode[],
-  onToggle?: (offset: number) => void,
-): ReactNode[] {
-  const lists: ReactNode[] = [];
-  let i = from;
-  while (i < to) {
-    const first = items[i] as ListItem;
-    const entries: ReactNode[] = [];
-    while (i < to) {
-      const item = items[i] as ListItem;
-      if (item.ordered !== first.ordered || item.level < first.level) break;
-      let end = i + 1;
-      while (end < to && (items[end] as ListItem).level > item.level) end++;
-      entries.push(
-        <li
-          key={item.block.from}
-          className={
-            item.check !== undefined
-              ? item.checked
-                ? 'task-md-check done'
-                : 'task-md-check'
-              : undefined
-          }
-        >
-          {item.check !== undefined && (
-            <input
-              type="checkbox"
-              checked={item.checked}
-              disabled={!onToggle}
-              aria-label={item.checked ? '标为未完成' : '标为完成'}
-              onChange={() => item.check !== undefined && onToggle?.(item.check)}
-            />
-          )}
-          <span className="task-md-item">
-            {inline(item.block.inlines)}
-            {item.more.map((more) => (
-              <Fragment key={more.from}>
-                <br />
-                {inline(more.inlines)}
-              </Fragment>
-            ))}
-          </span>
-          {end > i + 1 && renderList(items, i + 1, end, inline, onToggle)}
-        </li>,
-      );
-      i = end;
-    }
-    const checklist = items
-      .slice(from, to)
-      .some((item) => item.check !== undefined && item.level === first.level);
-    lists.push(
-      first.ordered ? (
-        <ol key={first.block.from} start={first.start === 1 ? undefined : first.start}>
-          {entries}
-        </ol>
-      ) : (
-        <ul key={first.block.from} className={checklist ? 'task-md-checklist' : undefined}>
-          {entries}
-        </ul>
-      ),
-    );
-  }
-  return lists;
-}
-
-interface Cell {
-  from: number;
-  to: number;
-}
-const SEPARATOR = /^\s*\|?\s*:?-{1,}:?\s*(?:\|\s*:?-{1,}:?\s*)*\|?\s*$/;
-
-/** A GFM pipe table: header, delimiter row, then body rows. */
-function tableOf(source: string, block: Block) {
-  const rows: Cell[][] = [];
-  let at = block.from;
-  const lines = source.slice(block.from, block.contentTo).split('\n');
-  if (lines.length < 2 || !lines[0]?.includes('|') || !SEPARATOR.test(lines[1] ?? '')) return null;
-  const align = (lines[1] ?? '')
-    .trim()
-    .replace(/^\||\|$/g, '')
-    .split('|')
-    .map((cell): 'left' | 'center' | 'right' | undefined => {
-      const c = cell.trim();
-      return c.startsWith(':') && c.endsWith(':')
-        ? 'center'
-        : c.endsWith(':')
-          ? 'right'
-          : c.startsWith(':')
-            ? 'left'
-            : undefined;
-    });
-  for (const [n, raw] of lines.entries()) {
-    const line = raw.replace(/\r$/, '');
-    if (n !== 1) rows.push(cellsOf(source, at, at + line.length));
-    at += raw.length + 1;
-  }
-  const [head = [], ...body] = rows;
-  if (head.length !== align.length) return null;
-  return { head, rows: body, align };
-}
-
-function cellsOf(source: string, from: number, to: number): Cell[] {
-  const cells: Cell[] = [];
-  let start = from;
-  let code = false;
-  for (let i = from; i <= to; i++) {
-    const c = i < to ? source[i] : '|';
-    if (c === '`') code = !code;
-    if (c === '\\') {
-      i++;
-      continue;
-    }
-    if (c !== '|' || (code && i < to)) continue;
-    let a = start;
-    let b = i;
-    while (a < b && /\s/.test(source[a] ?? '')) a++;
-    while (b > a && /\s/.test(source[b - 1] ?? '')) b--;
-    cells.push({ from: a, to: b });
-    start = i + 1;
-  }
-  // Leading and trailing pipes leave empty edge cells.
-  if (cells.length > 1 && /^\s*\|/.test(source.slice(from, to)) && cells[0]?.from === cells[0]?.to)
-    cells.shift();
-  if (
-    cells.length > 1 &&
-    /\|\s*$/.test(source.slice(from, to)) &&
-    cells.at(-1)?.from === cells.at(-1)?.to
-  )
-    cells.pop();
-  return cells;
-}
 
 /** Applies an edit as one native insertion so ⌘Z undoes it like typing. */
 function apply(area: HTMLTextAreaElement, edit: TextEdit) {

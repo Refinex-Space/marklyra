@@ -17,6 +17,8 @@ function mockAgents({
   imageSupport = true,
   embeddedSupport = true,
   failInstall = false,
+  answerText = '已阅读 [其他文档](Notes/Other.md)，可以继续完善。',
+  answerSuffix = '',
 } = {}) {
   if (window !== window.top) return;
   const host = window as TestWindow & {
@@ -191,12 +193,28 @@ function mockAgents({
                 sessionUpdate: 'agent_message_chunk',
                 content: {
                   type: 'text',
-                  text: '已阅读 [其他文档](Notes/Other.md)，可以继续完善。',
+                  text: answerText,
                 },
               },
             },
           });
-          emit({ jsonrpc: '2.0', id: message.id, result: { stopReason: 'end_turn' } });
+          const finish = () => {
+            if (answerSuffix)
+              emit({
+                jsonrpc: '2.0',
+                method: 'session/update',
+                params: {
+                  sessionId: 'provider-session',
+                  update: {
+                    sessionUpdate: 'agent_message_chunk',
+                    content: { type: 'text', text: answerSuffix },
+                  },
+                },
+              });
+            emit({ jsonrpc: '2.0', id: message.id, result: { stopReason: 'end_turn' } });
+          };
+          if (answerSuffix) Reflect.set(window, '__finishAnswer', finish);
+          else finish();
         } else if (message.id) emit({ jsonrpc: '2.0', id: message.id, result });
       }, 20);
       return null;
@@ -3170,4 +3188,132 @@ test('slash commands: /marklyra-task completes from the list and attaches the ta
   });
   expect(sent.context).toMatchObject({ skill: 'marklyra-task' });
   expect(sent.prompt?.at(-1)?.text).toBe('把 WEB-12 标记完成');
+});
+
+test('rich answer preserves streamed source, code actions, diagrams and history', async ({
+  page,
+}) => {
+  const code = 'const cost = 7;\n  // 保留缩进\n';
+  const first = [
+    '## 发布检查',
+    '',
+    '| 项目 | 工时 |',
+    '| :--- | ---: |',
+    '| **验收** | 7 |',
+    '',
+    '```ts',
+    code + '```',
+    '',
+    '```mermaid',
+    'flowchart LR',
+    ' A[提交] --> B[发布]',
+  ].join('\n');
+  const suffix = '\n```\n\n```mermaid\ninvalid diagram\n```';
+  await installLayout(page);
+  await page.addInitScript(mockAgents, { answerText: first, answerSuffix: suffix });
+  await readyLayout(page, 'marklyra-light');
+  await emitLayoutMenu(page, 'open-folder');
+  await emitLayoutMenu(page, 'view:ai');
+  await startConversation(page);
+  await page.getByRole('textbox', { name: '发送给 AI 的消息' }).fill('检查发布流程');
+  await page.getByRole('button', { name: '发送 AI 消息' }).click();
+  const answer = page.locator('.ai-message-assistant');
+  await expect(answer.getByRole('heading', { name: '发布检查' })).toBeVisible();
+  await expect(answer.getByRole('cell', { name: '验收' })).toBeVisible();
+  await expect(answer.locator('iframe,img,.ai-code-note')).toHaveCount(0);
+  const example = answer.locator('figure').first();
+  await example.getByRole('button', { name: '自动换行' }).click();
+  await example.getByRole('button', { name: '复制代码' }).click();
+  await expect(example.getByRole('button', { name: '已复制代码' })).toBeVisible();
+  const clipboard = () =>
+    page.evaluate(
+      () =>
+        (
+          (window as TestWindow).__desktopMock.calls
+            .filter((c) => c.command === 'clipboard_write')
+            .at(-1)?.args.data as { text: string }
+        )?.text,
+    );
+  expect(await clipboard()).toBe(code);
+  await page.evaluate(() => Reflect.get(window, '__finishAnswer')());
+  const chart = answer.locator('figure').nth(1);
+  await chart.scrollIntoViewIfNeeded();
+  const image = chart.getByRole('img', { name: 'Mermaid 图表', exact: true });
+  await expect(image).toBeVisible({ timeout: 15000 });
+  expect(await image.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await chart.getByRole('button', { name: '源码' }).click();
+  await expect(chart.locator('pre')).toContainText('flowchart LR');
+  await chart.getByRole('button', { name: '图表', exact: true }).click();
+  await chart.getByRole('button', { name: '放大' }).click();
+  await expect(chart.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(chart.getByRole('dialog')).toBeHidden();
+  const bad = answer.locator('figure').last();
+  await bad.scrollIntoViewIfNeeded();
+  await expect(bad.locator('.ai-code-note')).toBeVisible();
+  await expect(bad.locator('code')).toContainText('invalid diagram');
+  await expect(example.getByRole('button', { name: '自动换行' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await answer.getByRole('button', { name: '复制消息' }).click();
+  expect(await clipboard()).toBe(first + suffix);
+  await startConversation(page);
+  await page.getByRole('button', { name: 'AI 历史会话' }).click();
+  await page.locator('.ai-history-open').filter({ hasText: '检查发布流程' }).click();
+  await expect(answer.getByRole('table')).toBeVisible();
+  await chart.scrollIntoViewIfNeeded();
+  await expect(image).toBeVisible({ timeout: 15000 });
+});
+
+test('dark sidebar scrolls wide tables locally and preserves reading position on append', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 680 });
+  const columns = Array.from({ length: 12 }, (_, i) => '字段' + (i + 1));
+  const rows = [columns, columns.map(() => '---'), columns.map(() => '值')].map((c) =>
+    c.join(' | '),
+  );
+  const first = [
+    ...rows,
+    '',
+    '![远程示例](https://assets.example.invalid/sample.png)',
+    '',
+    ...Array.from({ length: 45 }, (_, i) => '段落 ' + (i + 1) + '\n'),
+  ].join('\n');
+  const suffix = '\n\n```mmd\nsequenceDiagram\nAlice->>Bob: Ready\n```';
+  const external: string[] = [];
+  await page.route('https://assets.example.invalid/**', (route) => {
+    external.push(route.request().url());
+    return route.abort();
+  });
+  await installLayout(page);
+  await page.addInitScript(mockAgents, { answerText: first, answerSuffix: suffix });
+  await readyLayout(page, 'marklyra-dark');
+  await emitLayoutMenu(page, 'open-folder');
+  await emitLayoutMenu(page, 'view:ai');
+  await startConversation(page);
+  await page.getByRole('textbox', { name: '发送给 AI 的消息' }).fill('检查宽表');
+  await page.getByRole('button', { name: '发送 AI 消息' }).click();
+  const log = page.getByRole('log');
+  await expect(log).toContainText('段落 45');
+  const table = log.getByRole('region', { name: '表格' });
+  await table.focus();
+  expect(await table.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  await table.press('ArrowRight');
+  await expect.poll(() => table.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  expect(await log.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+  await log.evaluate((el) => (el.scrollTop = 0));
+  await expect.poll(() => log.evaluate((el) => el.scrollTop)).toBe(0);
+  await page.evaluate(() => Reflect.get(window, '__finishAnswer')());
+  await expect(page.getByRole('button', { name: /回到最新消息/ })).toBeVisible();
+  expect(await log.evaluate((el) => el.scrollTop)).toBe(0);
+  await page.getByRole('button', { name: /回到最新消息/ }).click();
+  await expect(log.getByRole('img', { name: 'Mermaid 图表', exact: true })).toBeVisible({
+    timeout: 15000,
+  });
+  await expect
+    .poll(() => log.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight))
+    .toBeLessThan(3);
+  expect(external).toEqual([]);
 });
