@@ -18,53 +18,62 @@ function offered(request: ContextMenuRequest, actionId: ContextAction): boolean 
     );
   return contains(request.items);
 }
+export function nativeEditorContextMenu(
+  captureConversion?: () => (() => void) | undefined,
+): NonNullable<MarkLyraHostAdapter['contextMenu']> {
+  return {
+    async show(request, onSelect, signal) {
+      signal.throwIfAborted();
+      const convert =
+        offered(request, 'edit.copyMarkdown') && offered(request, 'edit.cut')
+          ? captureConversion?.()
+          : undefined;
+      const window = getCurrentWindow();
+      let consumed = false;
+      const stop = await window.listen<{
+        requestId: string;
+        actionId: ContextAction | 'task:convert';
+      }>('editor-context-menu-action', ({ payload }) => {
+        if (consumed || signal.aborted || payload.requestId !== request.requestId) return;
+        if (payload.actionId === 'task:convert') {
+          if (!convert) return;
+          consumed = true;
+          onSelect(null);
+          convert();
+          return;
+        }
+        if (!offered(request, payload.actionId)) return;
+        consumed = true;
+        onSelect(payload.actionId);
+      });
+      const close = () => {
+        stop();
+        void invoke('close_editor_context_menu', { requestId: request.requestId }).catch(() => {});
+      };
+      if (signal.aborted) {
+        close();
+        return;
+      }
+      signal.addEventListener('abort', close, { once: true });
+      try {
+        await invoke('show_editor_context_menu', { request, offerTaskConversion: !!convert });
+      } catch (error) {
+        signal.removeEventListener('abort', close);
+        close();
+        throw error;
+      }
+      // Tauri's popup return is not an action or reliable cancellation event.
+      // A queued MenuEvent may arrive afterwards. The signal owns registration.
+    },
+  };
+}
 /** Tauri authority remains in the shell; the runtime iframe receives no IPC key. */
 export const desktopContextHost: Pick<
   MarkLyraHostAdapter,
   'contextMenu' | 'clipboard' | 'openExternal'
 > = desktopAvailable
   ? {
-      contextMenu: {
-        async show(request, onSelect, signal) {
-          signal.throwIfAborted();
-          const window = getCurrentWindow();
-          let consumed = false;
-          const stop = await window.listen<{ requestId: string; actionId: ContextAction }>(
-            'editor-context-menu-action',
-            ({ payload }) => {
-              if (
-                consumed ||
-                signal.aborted ||
-                payload.requestId !== request.requestId ||
-                !offered(request, payload.actionId)
-              )
-                return;
-              consumed = true;
-              onSelect(payload.actionId);
-            },
-          );
-          const close = () => {
-            stop();
-            void invoke('close_editor_context_menu', { requestId: request.requestId }).catch(
-              () => {},
-            );
-          };
-          if (signal.aborted) {
-            close();
-            return;
-          }
-          signal.addEventListener('abort', close, { once: true });
-          try {
-            await invoke('show_editor_context_menu', { request });
-          } catch (error) {
-            signal.removeEventListener('abort', close);
-            close();
-            throw error;
-          }
-          // Tauri's popup return is not an action or reliable cancellation event.
-          // A queued MenuEvent may arrive afterwards. The signal owns registration.
-        },
-      },
+      contextMenu: nativeEditorContextMenu(),
       clipboard: {
         readOnPaste: true,
         async read(signal) {

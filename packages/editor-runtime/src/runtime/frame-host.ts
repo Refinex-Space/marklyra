@@ -720,6 +720,17 @@ function command(value: MarkLyraCommand) {
       editor.UserOp.insertUrlWithTitle(editor, value.url, value.title);
       break;
     case 'replaceSelectionWithLink': {
+      if (value.expectedSelection) {
+        const menu = readRuntimeMenuState(runtime);
+        if (!menu.inlineAllowed || menu.locked || menu.sourceMode || menu.modalOpen)
+          throw new Error('原文当前无法编辑');
+        const current = selection();
+        if (
+          current.text !== value.expectedSelection.text ||
+          JSON.stringify(current.bookmark) !== JSON.stringify(value.expectedSelection.bookmark)
+        )
+          throw new Error('原选区已变化');
+      }
       if (!TASK_LINK.test(value.url)) throw Error('链接无效');
       const title = value.title
         .replace(/[\\[\]]/g, '\\$&')

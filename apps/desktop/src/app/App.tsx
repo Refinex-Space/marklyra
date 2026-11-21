@@ -92,9 +92,10 @@ import { DocumentStatistics } from '../features/statistics/DocumentStatistics.js
 import { StatisticsStatus } from '../features/statistics/StatisticsStatus.js';
 import { useStatistics } from '../features/statistics/useStatistics.js';
 import { type AiChange, aiChangeCount, undoAiChanges } from '../features/tasks/ai-undo.js';
+import type { TaskConversion } from '../features/tasks/ConvertSelectionDialog.js';
 import type { DescriptionEditorSetup } from '../features/tasks/DescriptionEditor.js';
 import { descriptionTarget, focusedDescription } from '../features/tasks/description-target.js';
-import { lastTaskProject } from '../features/tasks/model/last-project.js';
+import { Catalog } from '../features/tasks/model/catalog.js';
 import {
   type OpenTarget,
   parseLinkTarget,
@@ -106,7 +107,7 @@ import { builtinTheme, validThemeId } from '../features/themes/model.js';
 import { useSystemAppearance } from '../features/themes/useSystemAppearance.js';
 import { useThemes } from '../features/themes/useThemes.js';
 import { applicationPreferences } from '../services/application-preferences.js';
-import { desktopContextHost } from '../services/context-menu.js';
+import { desktopContextHost, nativeEditorContextMenu } from '../services/context-menu.js';
 import { directoryHistory } from '../services/directory-history.js';
 import { displayPath } from '../services/display-path.js';
 import { desktopAvailable, documents } from '../services/documents.js';
@@ -130,6 +131,7 @@ import { type WorkspaceFolder, workspaces } from '../services/workspaces.js';
 import { NativeEditorCommands, nativeEditorCommand } from './native-editor-commands.js';
 
 const KnowledgeGraph = lazy(() => import('../features/knowledge-graph/KnowledgeGraph.js'));
+const ConvertSelectionDialog = lazy(() => import('../features/tasks/ConvertSelectionDialog.js'));
 const TasksWorkbench = lazy(() => import('../features/tasks/TasksWorkbench.js'));
 const SitesWorkbench = lazy(() => import('../features/sites/SitesWorkbench.js'));
 
@@ -197,6 +199,7 @@ export function App() {
   /** The Git view covers the document like the home view; the editor is inert under it. */
   const [gitViewOpen, setGitViewOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
+  const [conversion, setConversion] = useState<TaskConversion | null>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
   /** Site navigation covers the document card like the graph and tasks. */
   const [sitesOpen, setSitesOpen] = useState(false);
@@ -781,56 +784,110 @@ export function App() {
     return () => void stop.then((f) => f()).catch(() => {});
   }, []);
   /** Turns the selected text into a task and puts a link to it in its place. */
-  const convertSelectionToTask = async () => {
+  const captureTaskConversion = () => {
     const workspace = workspaceIdentity.current;
     const active = editor.current;
-    if (!workspace || !active) {
-      doc.setMessage('请先打开文件夹，再把文字转为任务');
+    const menu = active?.menuState;
+    if (
+      !workspace ||
+      !active ||
+      !menu?.inlineAllowed ||
+      menu.locked ||
+      menu.sourceMode ||
+      menu.modalOpen ||
+      active.isComposing ||
+      actions.current.editorObscured ||
+      actions.current.blockedEditorCommand ||
+      actions.current.doc.working
+    )
       return;
-    }
-    const selected = active.getSelection().text;
-    const title = selected.replace(/\s+/g, ' ').trim();
-    if (!title) {
-      notify('请先选中要转为任务的文字', 'info');
-      return;
-    }
-    if (title.length > 500) {
-      notify('选中的文字过长，任务标题不超过 500 个字符', 'error');
-      return;
-    }
-    try {
-      const project = lastTaskProject(workspace.id);
-      const result = await tasksApi.mutate(workspace.id, {
-        kind: 'createTask',
-        draft: { title, project },
-      });
-      const id = result.applied[0];
-      if (!id) return;
-      const snapshot = await tasksApi.snapshot(workspace.id);
-      const task = snapshot.tasks.find((t) => t.id === id);
-      const key =
-        snapshot.projects.find((p) => p.id === task?.project)?.key ??
-        snapshot.settings.unassignedKey;
-      const humanId = `${key}-${task?.number ?? ''}`;
-      const open = { label: '打开', run: () => actions.current.openTaskLink({ kind: 'task', id }) };
-      // Only the text that was selected is replaced; a moved selection keeps the note as it is.
-      if (editor.current !== active || active.getSelection().text !== selected) {
-        await navigator.clipboard?.writeText(taskLink(humanId, title, id)).catch(() => {});
-        notify(`已创建 ${humanId}；选区已变化，链接已复制`, 'info', { actions: [open] });
+    const selected = active.getSelection();
+    const title = selected.text.replace(/\s+/g, ' ').trim();
+    if (!title || !selected.bookmark) return;
+    const revision = active.revision;
+    const owner = doc.getOwner();
+    const current = () => {
+      const now = active.getSelection();
+      const state = active.menuState;
+      return (
+        actions.current.doc.acceptsEditorCommands() &&
+        !!state?.inlineAllowed &&
+        !state.locked &&
+        !state.sourceMode &&
+        !state.modalOpen &&
+        editor.current === active &&
+        workspaceIdentity.current?.id === workspace.id &&
+        doc.getOwner() === owner &&
+        active.revision === revision &&
+        !active.isComposing &&
+        !actions.current.editorObscured &&
+        !actions.current.doc.working &&
+        !actions.current.doc.pending &&
+        now.text === selected.text &&
+        JSON.stringify(now.bookmark) === JSON.stringify(selected.bookmark)
+      );
+    };
+    return async () => {
+      if (!current()) return;
+      if (title.length > 500) {
+        notify('选中的文字过长，任务标题不超过 500 个字符', 'error');
         return;
       }
-      await command(
-        {
-          type: 'replaceSelectionWithLink',
-          url: `task:${id}`,
-          title: taskLinkText(humanId, title),
-        },
-        true,
-      );
-      notify(`已创建 ${humanId}`, 'success', { actions: [open] });
-    } catch (error) {
-      doc.setMessage(taskErrorMessage(error));
-    }
+      try {
+        const catalog = new Catalog(await tasksApi.snapshot(workspace.id));
+        if (!current() || actions.current.blockedEditorCommand) return;
+        setConversion({
+          workspaceId: workspace.id,
+          catalog,
+          title,
+          current,
+          convert: async (project) => {
+            const result = await tasksApi.mutate(workspace.id, {
+              kind: 'createTask',
+              draft: { title, project },
+            });
+            const id = result.applied[0];
+            if (!id) throw new Error('未取得新任务编号');
+            const open = {
+              label: '打开',
+              run: () => {
+                if (workspaceIdentity.current?.id === workspace.id)
+                  actions.current.openTaskLink({ kind: 'task', id });
+              },
+            };
+            let humanId = '';
+            try {
+              const updated = new Catalog(await tasksApi.snapshot(workspace.id));
+              const created = updated.task(id);
+              if (!created) throw new Error('未能读取新任务');
+              humanId = updated.humanId(created);
+              if (!current()) throw new Error('原文或选区已变化');
+              flushSync(() => setConversion(null));
+              await active.focus();
+              if (!current()) throw new Error('原文或选区已变化');
+              await active.execute({
+                type: 'replaceSelectionWithLink',
+                url: 'task:' + id,
+                title: taskLinkText(humanId, title),
+                expectedSelection: selected,
+              });
+              notify('已创建 ' + humanId, 'success', { actions: [open] });
+            } catch (failure) {
+              let message = '任务已创建，原文未替换：' + taskErrorMessage(failure);
+              try {
+                await navigator.clipboard.writeText(taskLink(humanId, title, id));
+                message += '。任务链接已复制';
+              } catch {
+                /* The open action still leads to the created task. */
+              }
+              notify(message, 'warning', { actions: [open] });
+            }
+          },
+        });
+      } catch (error) {
+        doc.setMessage(taskErrorMessage(error));
+      }
+    };
   };
   /** A ⌘-clicked task or project link in a note opens it in the task workbench. */
   const openTaskLink = (target: OpenTarget) => {
@@ -1107,7 +1164,8 @@ export function App() {
     graphOpen,
     toggleTasks,
     openTaskLink,
-    convertSelectionToTask,
+    captureTaskConversion,
+    conversionOpen: !!conversion,
     tasksOpen,
     toggleSites,
     sitesOpen,
@@ -1144,6 +1202,7 @@ export function App() {
       tasksOpen ||
       sitesOpen,
     blockedEditorCommand:
+      !!conversion ||
       imagePreviewOpen ||
       !ready ||
       !editor.current ||
@@ -1168,7 +1227,8 @@ export function App() {
     graphOpen,
     toggleTasks,
     openTaskLink,
-    convertSelectionToTask,
+    captureTaskConversion,
+    conversionOpen: !!conversion,
     tasksOpen,
     toggleSites,
     sitesOpen,
@@ -1205,6 +1265,7 @@ export function App() {
       tasksOpen ||
       sitesOpen,
     blockedEditorCommand:
+      !!conversion ||
       imagePreviewOpen ||
       !ready ||
       !editor.current ||
@@ -1683,6 +1744,7 @@ export function App() {
     const stops: (() => void)[] = [];
     const menu = (value: string) => {
       // A focused task description takes editing and save; the covered document gets nothing.
+      if (actions.current.conversionOpen) return;
       const description = actions.current.tasksOpen ? focusedDescription() : null;
       if (description) {
         if (value === 'save') {
@@ -1759,7 +1821,9 @@ export function App() {
         return;
       }
       if (value === 'task:convert') {
-        void actions.current.convertSelectionToTask();
+        const convert = actions.current.captureTaskConversion();
+        if (convert) void convert();
+        else notify('请在已打开文件夹的笔记中选中可编辑的文字', 'info');
         return;
       }
       if (value === 'view:tasks' || value === 'task:new') {
@@ -3126,6 +3190,11 @@ export function App() {
                 onError={(error) => doc.setMessage(error.message)}
                 host={{
                   ...desktopContextHost,
+                  ...(desktopAvailable && {
+                    contextMenu: nativeEditorContextMenu(() =>
+                      actions.current.captureTaskConversion(),
+                    ),
+                  }),
                   onAction: (value) => actions.current.action(value),
                   onOpenLink: (link) => {
                     const linked = parseLinkTarget(link.url);
@@ -3520,6 +3589,14 @@ export function App() {
           )}
         </DocumentDetailsPanel>
       </div>
+      {conversion && (
+        <Suspense fallback={null}>
+          <ConvertSelectionDialog
+            request={conversion}
+            close={() => setConversion((visible) => (visible === conversion ? null : visible))}
+          />
+        </Suspense>
+      )}
       {cliDialog && <CliInstallDialog close={() => setCliDialog(false)} />}
       {quickOpen && (
         <QuickOpen

@@ -454,9 +454,11 @@ export function NewTaskDialog({
 export function NewProjectDialog({
   catalog,
   submit,
+  error,
   onClose,
 }: {
   catalog: Catalog;
+  error?: string;
   submit(name: string, key: string): Promise<boolean>;
   onClose(): void;
 }) {
@@ -524,6 +526,7 @@ export function NewProjectDialog({
               </span>
             </span>
           </label>
+          {error && <p role="alert">{error}</p>}
         </div>
         <div className="task-dialog-foot">
           <span className="task-spacer" />

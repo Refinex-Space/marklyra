@@ -8,7 +8,7 @@ import {
   openLayoutDocument,
   readyLayout,
 } from './layout.helpers.js';
-import { installRecentMock } from './recent.helpers.js';
+import { installRecentMock, type RecentMockWindow } from './recent.helpers.js';
 import { installRecoveryMock } from './recovery-test-util.js';
 
 /** In-memory stand-in for the Rust task store: same snapshot shape and revision checks. */
@@ -1097,8 +1097,8 @@ test('task page: relations add and remove from either side, mentions open the no
   await expect(editorFrame(page).locator('#write')).toContainText('Other document');
 });
 
-test('selected note text turns into a task and a link in place', async ({ page }) => {
-  await setup(page, { seed: true }, '# 周会\n\n写周报给团队\n');
+async function selectNoteText(page: Page, source = '# 周会\n\n写周报给团队\n') {
+  await setup(page, { seed: true }, source);
   await editorFrame(page)
     .locator('#write > p')
     .first()
@@ -1118,9 +1118,16 @@ test('selected note text turns into a task and a link in place', async ({ page }
     )
     .toBe('写周报');
   await page.waitForTimeout(300);
+}
+
+test('selected note text turns into a task and a link in place', async ({ page }) => {
+  await selectNoteText(page);
   await emitLayoutMenu(page, 'task:convert');
+  const dialog = page.getByRole('dialog', { name: '所选文字转为任务' });
+  await dialog.getByLabel('所属项目').selectOption('web');
+  await dialog.getByRole('button', { name: '转为任务' }).click();
   const link = editorFrame(page).locator('#write a[href^="task:"]');
-  await expect(link).toHaveText('TASK-1 写周报');
+  await expect(link).toHaveText('WEB-7 写周报');
   await expect(editorFrame(page).locator('#write > p').first()).toContainText('给团队');
   const created = await page.evaluate(() => {
     const calls = (window as unknown as TestWindow).__desktopMock.calls;
@@ -1128,7 +1135,82 @@ test('selected note text turns into a task and a link in place', async ({ page }
       .filter((c) => (c.args as { mutation?: { kind: string } }).mutation?.kind === 'createTask')
       .at(-1)?.args;
   });
-  expect(created).toMatchObject({ mutation: { draft: { title: '写周报', project: null } } });
+  expect(created).toMatchObject({ mutation: { draft: { title: '写周报', project: 'web' } } });
+});
+
+test('selected note text context menu can cancel or create a project before linking', async ({
+  page,
+}) => {
+  await selectNoteText(page);
+  const paragraph = editorFrame(page).locator('#write > p').first();
+  const point = await paragraph.evaluate((p) => {
+    const box = getSelection()?.getRangeAt(0).getBoundingClientRect();
+    if (!box) throw new Error('Missing selection');
+    const row = p.getBoundingClientRect();
+    return { x: box.left - row.left + box.width / 2, y: box.top - row.top + box.height / 2 };
+  });
+  await paragraph.click({ button: 'right', position: point });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as TestWindow).__desktopMock.calls
+            .filter((c) => c.command === 'show_editor_context_menu')
+            .at(-1)?.args?.offerTaskConversion,
+      ),
+    )
+    .toBe(true);
+  await page.evaluate(() => {
+    const mock = (window as TestWindow).__desktopMock;
+    const request = mock.calls.filter((c) => c.command === 'show_editor_context_menu').at(-1)?.args
+      ?.request as { requestId: string };
+    mock.emitEvent('editor-context-menu-action', {
+      requestId: request.requestId,
+      actionId: 'task:convert',
+    });
+  });
+  const dialog = page.getByRole('dialog', { name: '所选文字转为任务' });
+  await dialog.getByRole('button', { name: '取消' }).click();
+  await expect(paragraph).toHaveText('写周报给团队');
+  expect(
+    await page.evaluate(() =>
+      (window as TestWindow).__desktopMock.calls.some(
+        (c) => (c.args?.mutation as { kind?: string })?.kind === 'createTask',
+      ),
+    ),
+  ).toBe(false);
+  await emitLayoutMenu(page, 'task:convert');
+  await dialog.getByRole('button', { name: '新建项目' }).click();
+  await page.getByLabel('项目名称').fill('写作计划');
+  await page.getByRole('button', { name: '创建项目' }).click();
+  await expect(dialog.getByLabel('所属项目').locator('option:checked')).toHaveText('写作计划');
+  await dialog.getByRole('button', { name: '转为任务' }).click();
+  await expect(paragraph.locator('a[href^="task:"]')).toHaveText('XZJH-1 写周报');
+});
+
+test('selected note text moved to identical words cannot create a task', async ({ page }) => {
+  await selectNoteText(page, '# 周会\n\n写周报给团队，写周报给客户\n');
+  await emitLayoutMenu(page, 'task:convert');
+  const dialog = page.getByRole('dialog', { name: '所选文字转为任务' });
+  await expect(dialog).toBeVisible();
+  await editorFrame(page)
+    .locator('#write > p')
+    .first()
+    .evaluate((paragraph) => {
+      const text = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT).nextNode();
+      if (!text) throw new Error('Missing note text');
+      getSelection()?.setBaseAndExtent(text, 7, text, 10);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+  await dialog.getByRole('button', { name: '转为任务' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('原文或选区已变化');
+  expect(
+    await page.evaluate(() =>
+      (window as TestWindow).__desktopMock.calls.some(
+        (c) => (c.args?.mutation as { kind?: string })?.kind === 'createTask',
+      ),
+    ),
+  ).toBe(false);
 });
 
 test('task navigation takes over the sidebar, the pane keeps rounded corners, fields focus without a ring', async ({
@@ -1759,7 +1841,8 @@ test('the home view lists overdue and due-today tasks; each opens its page', asy
   await page.addInitScript(installTasksMock, { seed: true });
   await page.addInitScript(installDueDates);
   await page.goto('/');
-  const today = page.getByRole('region', { name: '开始' }).locator('.home-today');
+  const home = page.getByRole('region', { name: '开始' });
+  const today = home.locator('.home-today');
   await expect(today).toContainText('今天');
   await expect(today).toContainText('10月21日 周三');
   await expect(today.locator('li')).toHaveText([
@@ -1767,6 +1850,14 @@ test('the home view lists overdue and due-today tasks; each opens its page', asy
     /修复移动端导航栏错位.*今天/,
   ]);
   await expect(today).not.toContainText('日程');
+  await page.evaluate(() =>
+    (window as RecentMockWindow).__recentMock.seed('/mock/布局测试.md', '# 布局测试'),
+  );
+  const recentIcon = home.getByRole('button', { name: /布局测试/ }).locator('.home-recent-icon');
+  const taskId = today.locator('.home-task-id').first();
+  await expect(recentIcon).toBeVisible();
+  await expect(taskId).toBeVisible();
+  expect((await taskId.boundingBox())?.x).toBe((await recentIcon.boundingBox())?.x);
   await today.getByRole('button', { name: /修复移动端导航栏错位/ }).click();
   await expect(page.locator('.task-title-edit')).toHaveText('修复移动端导航栏错位');
 });

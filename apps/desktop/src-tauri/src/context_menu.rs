@@ -144,6 +144,7 @@ fn menu_action(action_id: &str) -> Option<&'static str> {
 /// context menu is never installed on a window, so these register no accelerator.
 fn accelerator(action_id: &str) -> Option<&'static str> {
     match action_id {
+        "task:convert" => crate::menu::accelerator("task:convert"),
         "edit.cut" => Some("CmdOrCtrl+X"),
         "edit.copy" => Some("CmdOrCtrl+C"),
         "edit.paste" => Some("CmdOrCtrl+V"),
@@ -203,10 +204,20 @@ pub async fn show_editor_context_menu(
     app: AppHandle,
     window: WebviewWindow,
     host: State<'_, ContextMenuHost>,
-    request: Request,
+    mut request: Request,
+    offer_task_conversion: Option<bool>,
 ) -> Result<(), String> {
     main_only(&window)?;
     request.validate()?;
+    if offer_task_conversion == Some(true) {
+        request.items.push(Item::Separator);
+        request.items.push(Item::Action {
+            action_id: "task:convert".into(),
+            label: "所选文字转为任务".into(),
+            enabled: true,
+            checked: None,
+        });
+    }
     if !crate::windows::is_focused(&window).map_err(|error| error.to_string())? {
         return Err("编辑窗口当前未聚焦".to_owned());
     }

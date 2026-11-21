@@ -3,7 +3,6 @@ import type { TaskMeta } from '../../services/tasks.js';
 import { dayLabel, lunarLabel } from '../calendar/calendar-dates.js';
 import type { LunarDisplay } from '../calendar/calendar-preferences.js';
 import type { TaskAgenda } from '../calendar/useTaskAgenda.js';
-import { StatusGlyph } from '../tasks/glyphs.js';
 import { daysUntil } from '../tasks/model/query.js';
 
 const SHOWN = 6;
@@ -72,9 +71,6 @@ export function HomeTasks({
             return (
               <li key={task.id}>
                 <button type="button" onClick={() => onOpenTask(task.id)}>
-                  <span className="home-recent-icon" aria-hidden="true">
-                    <StatusGlyph status={catalog.status(task.status)} size={14} />
-                  </span>
                   <span className="home-task-id">{catalog.humanId(task)}</span>
                   <span className="home-recent-name">{task.title}</span>
                   {project && <span className="home-recent-where">{project.name}</span>}

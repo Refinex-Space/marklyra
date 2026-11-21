@@ -553,7 +553,7 @@ const chapters = (copy: (text: string) => void): ChapterData[] => [
       {
         keys: [MOD, ALT, SHIFT, 'T'],
         title: '选中文字转为任务',
-        text: '在笔记中选中一句话，转为任务后原地替换成任务链接。',
+        text: '在笔记中选中文字，右键选择「所选文字转为任务」或使用快捷键。选择已有项目或新建项目，确认后，原文会替换为任务链接。',
       },
       {
         title: '任务链接',
