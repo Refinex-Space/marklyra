@@ -34,6 +34,8 @@ export interface QuickItem {
   title: string;
   /** Muted trailing text: a note's folder, an action's context. */
   detail?: string;
+  /** Display path of a note. Opening still uses its host ID or workspace-relative path. */
+  fullPath?: string;
   /** Extra words that also match (English names, pinyin aliases). */
   keywords?: string;
   /** Display-only accelerator such as "Ctrl+Shift+S". */

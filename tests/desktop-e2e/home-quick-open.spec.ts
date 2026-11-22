@@ -137,6 +137,87 @@ test('Open Note searches the folder and recent files; Enter opens the chosen one
   await expect(home(page)).toBeHidden();
 });
 
+test('same-name notes show distinct locations and open their own files by mouse and keyboard', async ({
+  page,
+}) => {
+  await boot(page);
+  await page.setViewportSize({ width: 700, height: 480 });
+  const one = '/One/Clients/Website/Launch.md';
+  const two = '/Two/Clients/Website/Launch.md';
+  const oneId = await seed(page, one, '# Project One');
+  const twoId = await seed(page, two, '# Project Two');
+  await seed(page, '/Other/Clients/Website/Plan.md', '# Plan');
+  await menu(page, 'quick-open');
+  const dialog = search(page);
+  await dialog.getByRole('tab', { name: '笔记' }).click();
+  await expect(
+    dialog.getByRole('option', { name: /^Plan/ }).locator('.quick-open-detail'),
+  ).toHaveText('Clients › Website');
+  const field = dialog.getByRole('combobox');
+  await field.fill('Launch');
+  const options = dialog.getByRole('option');
+  await expect(options).toHaveCount(2);
+  const details = options.locator('.quick-open-detail');
+  await expect(details).toHaveText([/Two/, /One/]);
+  const second = options.nth(1);
+  await second.hover();
+  await expect(second).toHaveAttribute('title', one);
+  await second.click();
+  const editor = page.frameLocator('.marklyra-editor-frame').locator('#write');
+  await expect(editor).toHaveText('Project One');
+  await menu(page, 'quick-open');
+  await field.fill('Launch');
+  await expect(options).toHaveCount(2);
+  await field.press('Control+Home');
+  await field.press('ArrowDown');
+  const selected = dialog.getByRole('option', { selected: true });
+  await expect(selected).toHaveAttribute('title', two);
+  await expect(dialog.getByText(two, { exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(field).toBeFocused();
+  await field.press('Enter');
+  await expect(editor).toHaveText('Project Two');
+  expect((await calls(page, 'open_recent_file')).map((call) => call.args.id)).toEqual([
+    oneId,
+    twoId,
+  ]);
+});
+
+test('same-name workspace and recent notes stay distinct after expanding short locations', async ({
+  page,
+}) => {
+  await boot(page);
+  for (const root of ['/One', '/Two', '/mock/Creation/One'])
+    await seed(page, root + '/Clients/Website/Launch.md', root);
+  await menu(page, 'quick-open');
+  await search(page).getByRole('combobox').fill('Launch');
+  const labels = search(page).locator('.quick-open-detail');
+  await expect(labels).toHaveCount(3);
+  expect(new Set(await labels.allTextContents()).size).toBe(3);
+});
+
+test('keyboard users can read a long full path at the minimum window size', async ({ page }) => {
+  await boot(page);
+  await page.setViewportSize({ width: 700, height: 480 });
+  const path = '/' + 'LongDirectoryName/'.repeat(64) + 'Plan.md';
+  await seed(page, path, '# Plan');
+  await menu(page, 'quick-open');
+  const dialog = search(page);
+  const field = dialog.getByRole('combobox');
+  await field.fill('Plan');
+  const fullPath = dialog.getByText(path, { exact: true });
+  await expect(fullPath).toBeVisible();
+  expect(await fullPath.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  for (let i = 0; i < 8; i++) await field.press('PageDown');
+  expect(
+    await fullPath.evaluate((el) => el.scrollTop + el.clientHeight >= el.scrollHeight - 1),
+  ).toBe(true);
+  await field.press('PageUp');
+  expect(await fullPath.evaluate((el) => el.scrollTop + el.clientHeight < el.scrollHeight)).toBe(
+    true,
+  );
+  await expect(field).toBeFocused();
+});
+
 test('quick-open selection keeps the chosen command when delayed notes arrive', async ({
   page,
 }) => {

@@ -195,3 +195,18 @@
 .quick-open-hint {
   padding: 8px;
 }
+
+.quick-open-row[title] .quick-open-title {
+  max-width: 55%;
+}
+.quick-open-path {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 20vh;
+  overflow: auto;
+  padding: 6px 12px;
+  border-top: 1px solid var(--lg-separator);
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

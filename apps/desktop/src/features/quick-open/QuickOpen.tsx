@@ -39,6 +39,7 @@ export function QuickOpen(props: QuickOpenProps) {
   const [selectedId, setSelectedId] = useState<string | null>();
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
+  const pathView = useRef<HTMLDivElement>(null);
   const composing = useRef(false);
 
   const groups = useMemo(
@@ -97,6 +98,15 @@ export function QuickOpen(props: QuickOpenProps) {
         event.preventDefault();
         step(-1);
         break;
+      case 'PageUp':
+      case 'PageDown': {
+        const path = pathView.current;
+        if (path && path.scrollHeight > path.clientHeight) {
+          event.preventDefault();
+          path.scrollTop += event.key === 'PageUp' ? -path.clientHeight : path.clientHeight;
+        }
+        break;
+      }
       case 'Home':
       case 'End':
         // Caret movement inside the field stays with the field; the list follows only with Ctrl.
@@ -191,6 +201,8 @@ export function QuickOpen(props: QuickOpenProps) {
                     className="quick-open-row"
                     role="option"
                     tabIndex={-1}
+                    title={result.item.fullPath}
+                    aria-description={result.item.fullPath}
                     aria-selected={result.item.id === current?.id}
                     onMouseMove={() => setSelectedId(result.item.id)}
                     onMouseDown={(event) => event.preventDefault()}
@@ -234,6 +246,11 @@ export function QuickOpen(props: QuickOpenProps) {
             <div className="quick-open-hint">{notesHint}</div>
           )}
         </div>
+        {current?.fullPath && (
+          <div key={current.id} ref={pathView} className="quick-open-path" dir="auto">
+            {current.fullPath}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -27,7 +27,8 @@ export function acceleratorFor(action: string, mac: boolean): string | undefined
 const MARKDOWN_EXTENSION =
   /\.(md|markdown|mdx|mkd|mdown|mdtext|mdtxt|mdwn|mmd|qmd|rmd|rmarkdown|txt|text|apib)$/i;
 const stem = (name: string) => name.replace(MARKDOWN_EXTENSION, '');
-const normalized = (path: string) => displayPath(path).replaceAll('\\', '/').toLowerCase();
+const windowsPath = (path: string) => /^(?:[A-Za-z]:[\\/]|\\\\)/.test(path);
+const slashPath = (path: string) => (windowsPath(path) ? path.replaceAll('\\', '/') : path);
 const trail = (path: string) => path.split('/').filter(Boolean).join(' › ');
 
 export interface QuickContext {
@@ -145,6 +146,38 @@ interface Open {
   recent(id: string): void;
 }
 
+type NoteItem = QuickItem & { fullPath: string; detail: string };
+
+/** Keep the short labels unless two visible names and locations would be identical. */
+function distinguishLocations(items: NoteItem[]) {
+  const groups = new Map<string, NoteItem[]>();
+  for (const item of items) {
+    const group = groups.get(item.title);
+    if (group) group.push(item);
+    else groups.set(item.title, [item]);
+  }
+  for (const group of groups.values()) {
+    if (group.length < 2 || new Set(group.map((item) => item.detail)).size === group.length)
+      continue;
+    const paths = group.map(({ fullPath }) => slashPath(fullPath).split('/'));
+    let shared = 0;
+    while (
+      paths.every((parts) => shared < parts.length - 1 && parts[shared] === paths[0]?.[shared])
+    )
+      shared++;
+    const sameFilename = paths.every((parts) => parts.at(-1) === paths[0]?.at(-1));
+    const details = paths.map((path) => {
+      const parts = path.slice(shared);
+      if (sameFilename && parts.length > 1) parts.pop();
+      return parts.join(' › ');
+    });
+    const distinct = new Set(details).size === group.length;
+    group.forEach((item, i) => {
+      item.detail = (distinct && details[i]) || item.fullPath;
+    });
+  }
+}
+
 /** Recent files first, then the open folder's notes, newest first; each file once. */
 export async function loadQuickNotes(
   workspace: WorkspaceFolder | null,
@@ -162,21 +195,26 @@ export async function loadQuickNotes(
         )
       : Promise.resolve(null),
   ]);
-  const root = workspace ? `${normalized(workspace.path).replace(/\/$/, '')}/` : '';
+  const base = workspace ? displayPath(workspace.path) : '';
+  const root = workspace ? `${slashPath(base).replace(/\/$/, '')}/` : '';
+  const rootKey = root.toLowerCase();
+  const rootParts = root.split('/').length - 1;
   const seen = new Set<string>();
-  const items: QuickItem[] = [];
+  const items: NoteItem[] = [];
   for (const entry of [...recent].sort((a, b) => b.lastOpenedAt - a.lastOpenedAt)) {
-    const path = normalized(entry.path);
-    seen.add(path);
-    const inside = root && path.startsWith(root) ? path.slice(root.length) : '';
-    const folder = inside
-      ? inside.split('/').slice(0, -1).join('/')
-      : displayPath(entry.path).replaceAll('\\', '/').split('/').slice(-3, -1).join('/');
+    const fullPath = displayPath(entry.path);
+    const path = slashPath(fullPath);
+    const key = path.toLowerCase();
+    seen.add(key);
+    const parts = path.split('/');
+    const folder =
+      root && key.startsWith(rootKey) ? parts.slice(rootParts, -1) : parts.slice(-3, -1);
     items.push({
       id: `note:recent:${entry.id}`,
       kind: 'note',
       title: stem(entry.name),
-      detail: trail(folder),
+      fullPath,
+      detail: folder.filter(Boolean).join(' › '),
       keywords: entry.name,
       icon: 'document',
       run: () => open.recent(entry.id),
@@ -186,12 +224,14 @@ export async function loadQuickNotes(
     const documents = [...report.entries].sort(
       (a, b) => (b.modifiedAt ?? -1) - (a.modifiedAt ?? -1) || a.name.localeCompare(b.name),
     );
+    const separator = windowsPath(base) ? '\\' : '/';
     for (const entry of documents) {
       if (seen.has(`${root}${entry.relativePath}`.toLowerCase())) continue;
       items.push({
         id: `note:workspace:${entry.relativePath}`,
         kind: 'note',
         title: stem(entry.name),
+        fullPath: (root + entry.relativePath).replaceAll('/', separator),
         detail: trail(entry.folderRelativePath),
         keywords: `${entry.name} ${entry.relativePath}`,
         icon: 'document',
@@ -199,6 +239,7 @@ export async function loadQuickNotes(
       });
     }
   }
+  distinguishLocations(items);
   return {
     items,
     ...(report?.truncated ? { hint: '笔记较多，仅列出了一部分；更多可在侧栏搜索中查找。' } : {}),
