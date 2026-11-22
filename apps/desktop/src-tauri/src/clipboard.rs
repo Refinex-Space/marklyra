@@ -25,7 +25,7 @@ pub struct ClipboardHost {
 }
 fn authorize(window: &WebviewWindow) -> Result<(), String> {
     if !crate::windows::is_editor(window)
-        || !window.is_focused().map_err(|error| error.to_string())?
+        || !crate::windows::is_focused(window).map_err(|error| error.to_string())?
     {
         return Err("剪贴板操作仅允许由当前编辑窗口发起".to_owned());
     }
@@ -209,6 +209,22 @@ pub(crate) async fn read_native_input(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn clipboard_authorization_uses_platform_window_focus() {
+        // The top-level window can report false while the foreground WebView2
+        // owns keyboard focus. MockRuntime cannot reproduce that native state.
+        let (_, source) = include_str!("clipboard.rs")
+            .split_once("fn authorize(")
+            .unwrap();
+        let (authorize, _) = source.split_once("\n}").unwrap();
+        assert!(
+            authorize.contains("crate::windows::is_focused(window)")
+                && !authorize.contains("window.is_focused()"),
+            "clipboard authorization must recognize the foreground editor even when WebView2 owns keyboard focus"
+        );
+    }
+
     #[test]
     fn busy_clipboard_is_retried_with_a_bounded_backoff() {
         let (mut tries, mut waits) = (0, 0);
