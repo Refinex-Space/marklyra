@@ -58,11 +58,9 @@ export function SiteDialog({
 }) {
   const ids = useId();
   const [url, setUrl] = useState(site?.url ?? '');
-  const [title, setTitle] = useState(site?.title ?? '');
-  const [description, setDescription] = useState(site?.description ?? '');
-  // Typed in this dialog: from then on a fetch never replaces the field.
-  const [titleTouched, setTitleTouched] = useState(false);
-  const [descriptionTouched, setDescriptionTouched] = useState(false);
+  // Undefined follows the preview; an explicit edit (including clearing a field) wins.
+  const [manualTitle, setManualTitle] = useState<string>();
+  const [manualDescription, setManualDescription] = useState<string>();
   const [group, setGroup] = useState<string | null>(site ? site.group : defaultGroup);
   const [pinned, setPinned] = useState(site?.pinned ?? false);
   const [iconMode, setIconMode] = useState<IconMode>(
@@ -88,8 +86,8 @@ export function SiteDialog({
       (s) => s.id !== site?.id && hostKey(s.url) === hostKey(address) && samePath(s.url, address),
     );
 
-  const touched = useRef({ title: titleTouched, description: descriptionTouched });
-  touched.current = { title: titleTouched, description: descriptionTouched };
+  const title = manualTitle ?? preview?.title ?? site?.title ?? '';
+  const description = manualDescription ?? (preview?.description || site?.description || '');
   /** The latest preview request; an older answer never replaces a newer one. */
   const request = useRef(0);
   const runPreview = useCallback(
@@ -101,9 +99,6 @@ export function SiteDialog({
           if (mine !== request.current) return;
           setPreview(result);
           setPreviewState('ready');
-          if (!touched.current.title) setTitle(result.title);
-          if (!touched.current.description && result.description)
-            setDescription(result.description);
         },
         () => {
           if (mine === request.current) setPreviewState('failed');
@@ -112,18 +107,7 @@ export function SiteDialog({
     },
     [thirdParty, workspaceId],
   );
-  // The saved site's details are what an edit starts from. When a fetch updates them while
-  // the dialog is open, the fields that were not typed in follow.
   const editingSaved = !!site && address === site.url;
-  const savedTitle = site?.title;
-  const savedDescription = site?.description;
-  useEffect(() => {
-    if (savedTitle !== undefined && !touched.current.title) setTitle(savedTitle);
-  }, [savedTitle]);
-  useEffect(() => {
-    if (savedDescription !== undefined && !touched.current.description)
-      setDescription(savedDescription);
-  }, [savedDescription]);
   useEffect(() => {
     // Editing without changing the address has nothing new to fetch on its own.
     if (!fetchMetadata || !address || iconMode === 'letter' || editingSaved) {
@@ -131,7 +115,10 @@ export function SiteDialog({
       setPreviewState('idle');
       return;
     }
-    const handle = window.setTimeout(() => runPreview(address, false), 400);
+    const generation = request.current;
+    const handle = window.setTimeout(() => {
+      if (request.current === generation) runPreview(address, false);
+    }, 400);
     return () => window.clearTimeout(handle);
   }, [address, fetchMetadata, iconMode, editingSaved, runPreview]);
   /** 重新获取: the saved site is fetched again by the host; a new address is previewed fresh. */
@@ -166,8 +153,8 @@ export function SiteDialog({
         : { generation: 0, applied: [], conflicts: [], created: [] };
     } else {
       const manual = [
-        ...(titleTouched && title.trim() ? ['title'] : []),
-        ...(descriptionTouched && description.trim() ? ['description'] : []),
+        ...(manualTitle?.trim() ? ['title'] : []),
+        ...(manualDescription?.trim() ? ['description'] : []),
       ];
       result = await mutate({
         kind: 'addItem',
@@ -207,7 +194,14 @@ export function SiteDialog({
             autoComplete="off"
             aria-invalid={error && !address ? true : undefined}
             onChange={(event) => {
-              setUrl(event.target.value);
+              const next = event.target.value;
+              if (siteAddress(next) !== address) {
+                // Invalidate immediately, before the replacement preview's debounce.
+                request.current += 1;
+                setPreview(null);
+                setPreviewState('idle');
+              }
+              setUrl(next);
               setError(null);
             }}
           />
@@ -276,10 +270,7 @@ export function SiteDialog({
             className="site-input"
             value={title}
             placeholder={address ? '留空则使用网址的域名' : ''}
-            onChange={(event) => {
-              setTitleTouched(true);
-              setTitle(event.target.value);
-            }}
+            onChange={(event) => setManualTitle(event.target.value)}
           />
         </div>
         <div className="site-field top">
@@ -289,10 +280,7 @@ export function SiteDialog({
             className="site-input"
             rows={3}
             value={description}
-            onChange={(event) => {
-              setDescriptionTouched(true);
-              setDescription(event.target.value);
-            }}
+            onChange={(event) => setManualDescription(event.target.value)}
           />
         </div>
         <div className="site-field">

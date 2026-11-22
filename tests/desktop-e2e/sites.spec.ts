@@ -14,6 +14,7 @@ interface SitesMockOptions {
   openFails?: string;
   /** Vite's saved icon is an SVG without a namespace, which an <img> cannot decode. */
   brokenIcon?: boolean;
+  holdPreviews?: boolean;
 }
 
 /** In-memory stand-in for the Rust site store: same wire format, revision checks and rules. */
@@ -275,6 +276,19 @@ function installSitesMock(options: SitesMockOptions) {
     }
     if (command === 'sites_mutate') return mutate(args.mutation as never);
     if (command === 'sites_preview') {
+      if (options.holdPreviews) {
+        return new Promise((resolve, reject) => {
+          window.addEventListener(
+            `test-site-preview:${args.url}`,
+            (event) => {
+              const result = (event as CustomEvent).detail;
+              if (result === null) reject(new Error('Preview unavailable'));
+              else resolve(result);
+            },
+            { once: true },
+          );
+        });
+      }
       return { title: '预览标题', description: '预览描述', iconDataUrl: null };
     }
     if (command === 'sites_enrich' || command === 'sites_refetch') return;
@@ -594,6 +608,109 @@ test('adding a site: validates the address, warns about a duplicate, and lands i
   await expect(
     page.getByRole('list', { name: '常用站点' }).getByRole('button', { name: 'Linear' }),
   ).toBeVisible();
+});
+
+const alphaUrl = 'https://alpha.example/';
+const betaUrl = 'https://beta.example/';
+
+async function replyToPreview(
+  page: Page,
+  url: string,
+  result: { title: string; description: string } | null,
+) {
+  await page.evaluate(
+    ({ url, result }) => {
+      window.dispatchEvent(
+        new CustomEvent(`test-site-preview:${url}`, {
+          detail: result && { ...result, iconDataUrl: null },
+        }),
+      );
+    },
+    { url, result },
+  );
+}
+
+async function waitForPreview(page: Page, url: string) {
+  await expect
+    .poll(async () =>
+      (await mockOf(page)).calls.some(
+        (call) => call.command === 'sites_preview' && call.args.url === url,
+      ),
+    )
+    .toBe(true);
+}
+
+async function openAddWithPreview(page: Page) {
+  await setup(page, { seed: true, holdPreviews: true });
+  await entry(page).click();
+  await page.getByRole('button', { name: '添加站点' }).first().click();
+  const dialog = page.getByRole('dialog', { name: '添加站点' });
+  await dialog.getByLabel('网址').fill(alphaUrl);
+  await waitForPreview(page, alphaUrl);
+  return dialog;
+}
+
+async function savedSiteMutation(page: Page) {
+  const adds = (await mockOf(page)).calls.filter(
+    (c) => c.command === 'sites_mutate' && (c.args.mutation as { kind: string }).kind === 'addItem',
+  );
+  expect(adds).toHaveLength(1);
+  return adds[0]?.args.mutation;
+}
+
+for (const phase of ['empty', 'failed', 'pending'] as const) {
+  test(`changing the add-site address drops the old preview when the new preview is ${phase}`, async ({
+    page,
+  }) => {
+    const dialog = await openAddWithPreview(page);
+    await replyToPreview(page, alphaUrl, { title: 'Alpha', description: 'Alpha 说明' });
+    await expect(dialog.getByLabel('描述')).toHaveValue('Alpha 说明');
+    await dialog.getByLabel('网址').fill(betaUrl);
+    await waitForPreview(page, betaUrl);
+    if (phase === 'empty') {
+      await replyToPreview(page, betaUrl, { title: 'Beta', description: '' });
+      await expect(dialog.getByLabel('名称')).toHaveValue('Beta');
+    } else if (phase === 'failed') {
+      await replyToPreview(page, betaUrl, null);
+      await expect(dialog.getByText(/未能获取网站信息/)).toBeVisible();
+    }
+    expect.soft(await dialog.getByLabel('描述').inputValue()).toBe('');
+    await dialog.getByRole('button', { name: '添加' }).click();
+    await expect(dialog).toHaveCount(0);
+    const mutation = await savedSiteMutation(page);
+    expect(mutation).toMatchObject({ url: betaUrl, manual: [] });
+    expect(mutation).not.toHaveProperty('description');
+    if (phase === 'empty') expect(mutation).toHaveProperty('title', 'Beta');
+    else expect(mutation).not.toHaveProperty('title');
+  });
+}
+
+test('changing the add-site address ignores a late reply during debounce and preserves manual fields', async ({
+  page,
+}) => {
+  const dialog = await openAddWithPreview(page);
+  await dialog.getByLabel('描述').fill('我写的说明');
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await dialog.getByLabel('网址').fill(betaUrl);
+  await replyToPreview(page, alphaUrl, { title: '迟到的 Alpha', description: '旧说明' });
+  await expect(dialog.getByLabel('名称')).toHaveValue('');
+  await expect(dialog.locator('.site-preview')).toHaveCount(0);
+  await dialog.getByLabel('名称').fill('我的名称');
+  await page.clock.runFor(401);
+  await waitForPreview(page, betaUrl);
+  await replyToPreview(page, betaUrl, { title: 'Beta', description: 'Beta 说明' });
+  await expect(dialog.locator('.site-preview small')).toHaveText('Beta 说明');
+  await expect(dialog.getByLabel('描述')).toHaveValue('我写的说明');
+  await expect(dialog.getByLabel('名称')).toHaveValue('我的名称');
+  await dialog.getByRole('button', { name: '添加' }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(await savedSiteMutation(page)).toMatchObject({
+    url: betaUrl,
+    title: '我的名称',
+    description: '我写的说明',
+    manual: ['title', 'description'],
+  });
 });
 
 test('editing, pinning, moving and deleting a site (with undo)', async ({ page }) => {
