@@ -94,6 +94,61 @@ test('compact windows fold the menu titles into one menu button', async ({ page 
   await expect(page.locator('.titlebar-menu')).toHaveCount(8);
 });
 
+test('a narrow Windows titlebar keeps the dirty filename and its rename action between controls', async ({
+  page,
+}) => {
+  await installLayout(page, undefined, 'web');
+  await page.addInitScript(() => localStorage.setItem('marklyra-autosave', 'false'));
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await readyLayout(page, 'marklyra-light');
+  const filename = `Launch-${'季度发行计划-'.repeat(15)}最终版.md`;
+  await page.evaluate((name) => {
+    (window as TestWindow).__desktopMock.nextDocument.path = `/mock/${name}`;
+  }, filename);
+  await emitLayoutMenu(page, 'open');
+  const title = page.getByRole('button', { name: `重命名文稿：${filename}` });
+  await expect(title).toBeVisible();
+  await page.frameLocator('.marklyra-editor-frame').locator('#write > p').first().click();
+  await page.keyboard.type('x');
+  const dirty = title.getByRole('img', { name: '未保存' });
+  await expect(dirty).toBeVisible();
+
+  for (const width of [700, 1280]) {
+    await page.setViewportSize({ width, height: 480 });
+    await expect(page.locator('aside.sidebar')).toBeVisible();
+    await expect(title).toBeInViewport({ ratio: 1 });
+    await expect(dirty).toBeVisible();
+    await expect(page.locator('.titlebar-title')).toHaveAttribute('title', filename);
+    const name = title.locator('.titlebar-name');
+    await expect(name).toHaveText(filename);
+    await expect(name).toHaveCSS('text-overflow', 'ellipsis');
+    await expect
+      .poll(() => name.evaluate((el) => el.clientWidth > 0 && el.clientWidth < el.scrollWidth))
+      .toBe(true);
+    await expect
+      .poll(() =>
+        title.evaluate((el) => {
+          const leading = document.querySelector('.titlebar-leading')?.getBoundingClientRect();
+          const actions = document.querySelector('.titlebar-actions')?.getBoundingClientRect();
+          const caption = document.querySelector('.titlebar-caption')?.getBoundingClientRect();
+          if (!leading || !actions || !caption) return false;
+          const box = el.getBoundingClientRect();
+          return (
+            leading.right <= box.left && box.right <= actions.left && actions.right <= caption.left
+          );
+        }),
+      )
+      .toBe(true);
+    if (width === 700) {
+      await title.click();
+      const rename = page.getByRole('dialog', { name: '重命名文稿' }).getByRole('textbox');
+      await expect(rename).toHaveValue(filename);
+      await rename.press('Escape');
+      await expect(rename).toBeHidden();
+    }
+  }
+});
+
 test('the word count menu follows the AppKit unit menu and persists the choice', async ({
   page,
 }) => {

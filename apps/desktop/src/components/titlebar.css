@@ -98,8 +98,17 @@
   width: 16px;
   height: 16px;
 }
+.titlebar-title-slot {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  margin: 0 8px 0 12px;
+  pointer-events: none;
+}
 .titlebar-title {
   position: absolute;
+  width: max-content;
+  max-width: min(100%, 600px);
   top: 0;
   bottom: 0;
   display: flex;

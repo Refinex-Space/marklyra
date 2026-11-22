@@ -15,7 +15,6 @@ import './titlebar.css';
 
 /** Below this width the menu titles collapse into one menu button. */
 const COMPACT_MENU_WIDTH = 940;
-const MAX_TITLE_WIDTH = 600;
 
 export interface TitlebarProps {
   title: string;
@@ -64,13 +63,13 @@ export function Titlebar(props: TitlebarProps) {
   errorHandler.current = props.onError;
   const onError = useCallback((message: string) => errorHandler.current(message), []);
   const root = useRef<HTMLElement>(null);
-  const leading = useRef<HTMLDivElement>(null);
-  const actions = useRef<HTMLDivElement>(null);
+  const titleSlot = useRef<HTMLDivElement>(null);
+  const titleElement = useRef<HTMLDivElement>(null);
   const [titles, setTitles] = useState<string[]>([]);
   const [compact, setCompact] = useState(false);
   const [maximized, setMaximized] = useState(false);
   const [focused, setFocused] = useState(true);
-  const [titleFrame, setTitleFrame] = useState<{ left: number; width: number } | null>(null);
+  const [titleLeft, setTitleLeft] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -112,32 +111,29 @@ export function Titlebar(props: TitlebarProps) {
     };
   }, [onError]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Title text and controls change the measured safe area.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fullscreen and settings mount or remove the observed elements.
   useLayoutEffect(() => {
-    const element = root.current;
-    if (!element) return;
+    const bar = root.current;
+    if (!bar) return;
+    const slot = titleSlot.current;
+    const label = titleElement.current;
     const measure = () => {
-      const width = element.clientWidth;
-      setCompact(width < COMPACT_MENU_WIDTH);
-      const center = (contentLeft + contentRight) / 2;
-      const menuRight = leading.current?.getBoundingClientRect().right ?? 0;
-      const actionsLeft = actions.current?.getBoundingClientRect().left ?? width;
-      const safeLeft = Math.max(contentLeft + 8, menuRight + 12);
-      const safeRight = Math.min(contentRight - 8, actionsLeft - 8);
-      const available = Math.min(
-        MAX_TITLE_WIDTH,
-        Math.max(0, 2 * Math.min(center - safeLeft, safeRight - center)),
-      );
-      setTitleFrame((previous) => {
-        const next = available >= 40 ? { left: center - available / 2, width: available } : null;
-        return previous?.left === next?.left && previous?.width === next?.width ? previous : next;
-      });
+      setCompact(bar.clientWidth < COMPACT_MENU_WIDTH);
+      if (!slot || !label) return;
+      // Flex layout reserves the menus and buttons. Centre the title over the
+      // document when possible, otherwise move it to the nearest edge of its slot.
+      const space = slot.getBoundingClientRect();
+      const width = label.getBoundingClientRect().width;
+      const preferredLeft = (contentLeft + contentRight - width) / 2 - space.left;
+      setTitleLeft(Math.max(0, Math.min(preferredLeft, space.width - width)));
     };
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(element);
+    observer.observe(bar);
+    if (slot) observer.observe(slot);
+    if (label) observer.observe(label);
     return () => observer.disconnect();
-  }, [contentLeft, contentRight, titles, compact, sourceMode, settingsOpen, title]);
+  }, [contentLeft, contentRight, fullscreen, settingsOpen]);
 
   const popup = useCallback(
     (index: number | null, anchor: HTMLElement) => {
@@ -176,7 +172,7 @@ export function Titlebar(props: TitlebarProps) {
       data-settings={settingsOpen || undefined}
       style={style}
     >
-      <div className="titlebar-leading" ref={leading}>
+      <div className="titlebar-leading">
         {/* Brand only. Windows keeps settings and exit in File and About in Help, where people
             look for them, instead of behind an icon that does not look clickable. */}
         <span className="titlebar-app" data-tauri-drag-region="" aria-hidden="true">
@@ -211,53 +207,56 @@ export function Titlebar(props: TitlebarProps) {
           </div>
         )}
       </div>
-      {controls && titleFrame && (
-        <div
-          className="titlebar-title"
-          style={{ left: titleFrame.left, width: titleFrame.width }}
-          title={title}
-        >
-          {props.onRename ? (
-            <button
-              type="button"
-              className="titlebar-title-button"
-              aria-label={`重命名文稿：${title}`}
-              aria-haspopup="dialog"
-              aria-expanded={props.renaming === true}
-              data-open={props.renaming || undefined}
-              onClick={(event) => props.onRename?.(event.currentTarget)}
-            >
-              {props.hasFile && (
-                <span className="titlebar-proxy" aria-hidden="true">
-                  <Icon name="document" />
+      {controls && (
+        <div ref={titleSlot} className="titlebar-title-slot">
+          <div
+            className="titlebar-title"
+            ref={titleElement}
+            style={{ left: titleLeft }}
+            title={title}
+          >
+            {props.onRename ? (
+              <button
+                type="button"
+                className="titlebar-title-button"
+                aria-label={`重命名文稿：${title}`}
+                aria-haspopup="dialog"
+                aria-expanded={props.renaming === true}
+                data-open={props.renaming || undefined}
+                onClick={(event) => props.onRename?.(event.currentTarget)}
+              >
+                {props.hasFile && (
+                  <span className="titlebar-proxy" aria-hidden="true">
+                    <Icon name="document" />
+                  </span>
+                )}
+                <span className="titlebar-name">{title}</span>
+                {props.dirty && (
+                  <span className="titlebar-dirty" role="img" aria-label="未保存" title="未保存" />
+                )}
+                <span className="titlebar-title-chevron" aria-hidden="true">
+                  <Icon name="chevronDown" />
                 </span>
-              )}
-              <span className="titlebar-name">{title}</span>
-              {props.dirty && (
-                <span className="titlebar-dirty" role="img" aria-label="未保存" title="未保存" />
-              )}
-              <span className="titlebar-title-chevron" aria-hidden="true">
-                <Icon name="chevronDown" />
-              </span>
-            </button>
-          ) : (
-            <>
-              {props.hasFile && (
-                <span className="titlebar-proxy" aria-hidden="true">
-                  <Icon name="document" />
-                </span>
-              )}
-              <span className="titlebar-name">{title}</span>
-              {props.dirty && (
-                <span className="titlebar-dirty" role="img" aria-label="未保存" title="未保存" />
-              )}
-            </>
-          )}
+              </button>
+            ) : (
+              <>
+                {props.hasFile && (
+                  <span className="titlebar-proxy" aria-hidden="true">
+                    <Icon name="document" />
+                  </span>
+                )}
+                <span className="titlebar-name">{title}</span>
+                {props.dirty && (
+                  <span className="titlebar-dirty" role="img" aria-label="未保存" title="未保存" />
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
       <div className="titlebar-trailing">
         {controls && (
-          <div className="titlebar-actions" ref={actions}>
+          <div className="titlebar-actions">
             {sourceMode ? (
               <button
                 type="button"
