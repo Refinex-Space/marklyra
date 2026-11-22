@@ -22,7 +22,6 @@ import {
   weekday,
   weekdayName,
   weekdayOrder,
-  weekKey,
   weekLabel,
   weekRow,
 } from './calendar-dates.js';
@@ -145,14 +144,15 @@ export function CalendarPanel({
   const showsToday =
     view === 'collapsed' ||
     (view === 'month' ? sameMonth(cursor, today) : rowStart === startOfWeek(today, weekStart));
+  const displayedWeek = weeks[0];
   const title =
-    view === 'collapsed'
-      ? '日历'
-      : view === 'month'
-        ? monthLabel(cursorParts.year, cursorParts.month)
-        : rowStart === startOfWeek(today, weekStart)
-          ? `本周 · ${weekLabel(weekKey(today)).replace(/^\d+年/, '')}`
-          : weekLabel(weekKey(addDays(rowStart, 3)));
+    view === 'month'
+      ? monthLabel(cursorParts.year, cursorParts.month)
+      : view === 'week' && displayedWeek
+        ? showsToday
+          ? `本周 · 第${displayedWeek.number}周`
+          : weekLabel(displayedWeek.week)
+        : '日历';
 
   const tooltip = (key: string) => {
     const lines = [`${dayLabel(key, true)} · ${relativeDayLabel(key, today)}`];

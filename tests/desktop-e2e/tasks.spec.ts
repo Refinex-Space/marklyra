@@ -1843,6 +1843,70 @@ const calendar = (page: Page) => page.locator('.daily-calendar:visible');
 const calendarDay = (page: Page, key: string) =>
   page.locator(`.daily-calendar:visible [data-key="${key}"]`);
 
+for (const sample of [
+  {
+    today: '2026-11-22',
+    start: 'sunday',
+    first: '2026-11-22',
+    last: '2026-11-28',
+    week: 48,
+    previous: '2026年第47周',
+    next: '2026年第49周',
+  },
+  {
+    today: '2027-01-03',
+    start: 'sunday',
+    first: '2027-01-03',
+    last: '2027-01-09',
+    week: 1,
+    previous: '2026年第53周',
+    next: '2027年第2周',
+  },
+  {
+    today: '2027-01-03',
+    start: 'monday',
+    first: '2026-12-28',
+    last: '2027-01-03',
+    week: 53,
+    previous: '2026年第52周',
+    next: '2027年第1周',
+  },
+]) {
+  test(`calendar week title follows its row on ${sample.today} (${sample.start} first)`, async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(new Date(`${sample.today}T12:00:00`));
+    await page.addInitScript((weekStart) => {
+      if (window === window.top)
+        localStorage.setItem(
+          'marklyra-preferences-v1',
+          JSON.stringify({ calendar: { weekStart, calendarView: 'week', showWeekNumbers: true } }),
+        );
+    }, sample.start);
+    await setup(page);
+    const panel = calendar(page);
+    const header = panel.locator('.daily-calendar-title');
+    const number = panel.getByRole('rowheader');
+    const days = panel.locator('button[data-key]');
+    const currentTitle = `本周 · 第${sample.week}周`;
+    await expect(days).toHaveCount(7);
+    await expect(days.first()).toHaveAttribute('data-key', sample.first);
+    await expect(days.last()).toHaveAttribute('data-key', sample.last);
+    await expect(number).toHaveText(String(sample.week));
+    await expect(header).toHaveText(currentTitle);
+
+    await panel.getByRole('button', { name: '上一周' }).click();
+    await expect(header).toHaveText(sample.previous);
+    await expect(number).toHaveAttribute('title', sample.previous);
+    const next = panel.getByRole('button', { name: '下一周' });
+    await next.click();
+    await expect(header).toHaveText(currentTitle);
+    await next.click();
+    await expect(header).toHaveText(sample.next);
+    await expect(number).toHaveAttribute('title', sample.next);
+  });
+}
+
 test('the sidebar calendar marks due dates and opens a day’s tasks or a new one', async ({
   page,
 }) => {
