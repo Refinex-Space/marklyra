@@ -20,7 +20,7 @@
 - [x] **P2** [U2 Windows 设置显示暂不可用的拖放选项](U2-windows-drop-preferences.md)
 - [x] **P2** [U3 站点搜索框拦住正反向 Tab](U3-site-search-tab.md)
 - [x] **P3** [U4 Windows 窄窗口隐藏文档名和重命名入口](U4-compact-window-title.md)
-- [ ] **P3** [U5 任务清单复选框缺少可区分的名称](U5-task-checkbox-name.md)
+- [x] **P3** [U5 任务清单复选框缺少可区分的名称](U5-task-checkbox-name.md)
 
 ## 巡检验证
 

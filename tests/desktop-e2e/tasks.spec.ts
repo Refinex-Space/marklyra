@@ -1562,6 +1562,75 @@ test('checkbox toggle rejects a stale position after another edit inserts a chec
   await expect.poll(writtenBodies).toEqual([latest.replace('- [ ] 校对格式', '- [x] 校对格式')]);
 });
 
+test('checklist checkboxes have distinct item names and their links work independently', async ({
+  page,
+}) => {
+  await setup(page);
+  const taskId = 'navfix000001';
+  const source = [
+    '- [ ] **校对格式**',
+    '- [ ] [备份文件](https://example.com/backup)',
+    '  - [x] `验证备份`',
+    '- [ ] ',
+    '  **核对清单**',
+    '- [ ] ',
+    '- [ ] 审核',
+    '  项目甲',
+    '- [ ] 审核',
+    '  项目乙',
+  ].join('\n');
+  await page.evaluate(
+    ({ taskId, source }) => {
+      const mock = Reflect.get(window, '__tasksMock') as {
+        bodies: Record<string, string>;
+        comments: Record<string, { id: string; created: string; body: string }[]>;
+      };
+      mock.bodies[taskId] = source;
+      mock.comments[taskId] = [
+        { id: 'comment', created: new Date().toISOString(), body: '- [ ] 评论中的条目' },
+      ];
+    },
+    { taskId, source },
+  );
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await row(page, '修复移动端导航栏错位').click();
+  const desc = page.locator('.task-desc');
+  const boxes = desc.getByRole('checkbox');
+  await expect(boxes).toHaveCount(7);
+  await expect(boxes.nth(0)).toHaveAccessibleName('校对格式');
+  await expect(boxes.nth(1)).toHaveAccessibleName('备份文件');
+  await expect(boxes.nth(2)).toHaveAccessibleName('验证备份');
+  await expect(boxes.nth(2)).toBeChecked();
+  await expect(boxes.nth(3)).toHaveAccessibleName('核对清单');
+  await expect(boxes.nth(4)).toHaveAccessibleName('未命名清单项');
+  await expect(boxes.nth(5)).toHaveAccessibleName('审核 项目甲');
+  await expect(boxes.nth(6)).toHaveAccessibleName('审核 项目乙');
+  await expect(
+    page.locator('.task-comment-body').getByRole('checkbox', { name: '评论中的条目' }),
+  ).toBeDisabled();
+
+  const link = desc.getByRole('link', { name: '备份文件' });
+  await link.focus();
+  await page.keyboard.press('Enter');
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as TestWindow).__desktopMock.calls
+          .filter((call) => call.command === 'open_external_link')
+          .map((call) => call.args.url),
+      ),
+    )
+    .toEqual(['https://example.com/backup']);
+  await expect(boxes.nth(1)).not.toBeChecked();
+  await expect(boxes.nth(0)).not.toBeChecked();
+  await boxes.nth(0).focus();
+  await page.keyboard.press('Space');
+  await expect(desc.getByRole('checkbox', { name: '校对格式', checked: true })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate((id) => Reflect.get(window, '__tasksMock').bodies[id], taskId))
+    .toBe(source.replace('- [ ]', '- [x]'));
+});
+
 test('descriptions and comments render Markdown; ticking a checkbox changes one character', async ({
   page,
 }) => {

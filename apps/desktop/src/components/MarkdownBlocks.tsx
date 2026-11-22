@@ -1,5 +1,5 @@
 import { type Block, type Inline, parseInline, parseMarkdown } from '@marklyra/editor-markdown';
-import { Fragment, type ReactNode, useMemo } from 'react';
+import { Fragment, type ReactNode, useId, useMemo } from 'react';
 
 const LIST = /^([ \t]*)([-+*]|(\d{1,9})[.)])[ \t]+(\[([ xX])\][ \t]+)?/;
 export function MarkdownBlocks({
@@ -16,6 +16,7 @@ export function MarkdownBlocks({
   onToggle?: ((offset: number) => void) | undefined;
 }) {
   const blocks = useMemo(() => parseMarkdown(source).blocks, [source]);
+  const instanceId = useId();
   function paragraph(block: Block): ReactNode[] {
     const out: ReactNode[] = [];
     let cursor = block.contentFrom;
@@ -144,6 +145,7 @@ export function MarkdownBlocks({
               ordered: m?.[3] !== undefined,
               start: Number(m?.[3] ?? 1),
               check: m?.[4] ? current.from + (m[0].indexOf('[') + 1) : undefined,
+              labelId: m?.[4] ? `${instanceId}-item-${current.from}` : undefined,
               checked: m?.[5] !== undefined && m[5] !== ' ',
               more: [],
             });
@@ -176,6 +178,7 @@ interface ListItem {
   ordered: boolean;
   start: number;
   check: number | undefined;
+  labelId: string | undefined;
   checked: boolean;
   more: Block[];
 }
@@ -200,6 +203,10 @@ function renderList(
       if (item.ordered !== first.ordered || item.level < first.level) break;
       let end = i + 1;
       while (end < to && (items[end] as ListItem).level > item.level) end++;
+      const textId = item.block.inlines.length ? item.labelId : undefined;
+      const more = item.more.flatMap(paragraph);
+      const moreId = item.labelId && more.length ? `${item.labelId}-more` : undefined;
+      const labelledBy = [textId, moreId].filter(Boolean).join(' ') || undefined;
       entries.push(
         <li
           key={item.block.from}
@@ -216,12 +223,21 @@ function renderList(
               type="checkbox"
               checked={item.checked}
               disabled={!onToggle}
-              aria-label={item.checked ? '标为未完成' : '标为完成'}
+              aria-labelledby={labelledBy}
+              aria-label={labelledBy ? undefined : '未命名清单项'}
               onChange={() => item.check !== undefined && onToggle?.(item.check)}
             />
           )}
-          <span className={prefix + '-item'}>{inline(item.block.inlines)}</span>
-          {item.more.flatMap(paragraph)}
+          <span id={textId} className={prefix + '-item'}>
+            {inline(item.block.inlines)}
+          </span>
+          {moreId ? (
+            <div id={moreId} style={{ display: 'contents' }}>
+              {more}
+            </div>
+          ) : (
+            more
+          )}
           {end > i + 1 && renderList(items, i + 1, end, inline, paragraph, prefix, onToggle)}
         </li>,
       );
