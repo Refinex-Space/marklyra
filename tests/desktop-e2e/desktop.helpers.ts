@@ -58,6 +58,9 @@ export interface DesktopMock {
     saveFileOnSwitch: boolean;
     noRecentFiles: boolean;
     alwaysConfirmsChanges: boolean;
+    actionWhenDropFolder?: '' | 'link';
+    actionWhenDropFile?: '' | 'link';
+    actionWhenDropImport?: '' | 'link';
   };
   filePreferencesError: string | null;
   calls: MockCall[];
@@ -510,11 +513,15 @@ export function installMock(
       if (mock.filePreferencesError) throw Error(mock.filePreferencesError);
       if (args.expectedRevision !== mock.filePreferences.revision) throw Error('文件设置版本冲突');
       const change = args.change as { key: string; value: string | boolean };
-      const field = {
+      const fields: Record<string, keyof DesktopMock['filePreferences']> = {
         defaultExtension: 'defaultExtension',
         save_file_on_switch: 'saveFileOnSwitch',
         noRecentFiles: 'noRecentFiles',
-      }[change.key] as 'defaultExtension' | 'saveFileOnSwitch' | 'noRecentFiles' | undefined;
+        actionWhenDropFolder: 'actionWhenDropFolder',
+        actionWhenDropFile: 'actionWhenDropFile',
+        actionWhenDropImport: 'actionWhenDropImport',
+      };
+      const field = fields[change.key];
       if (!field) throw Error('无效文件设置');
       mock.filePreferences = {
         ...mock.filePreferences,

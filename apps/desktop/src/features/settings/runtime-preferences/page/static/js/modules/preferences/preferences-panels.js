@@ -3261,6 +3261,7 @@
   };
   function me() {
     var component = this;
+    const windowsHost = new URLSearchParams(window.location.search).get('hostOs') === 'win';
     return reactDefault.a.createElement(
       controls.o,
       { active: 0 == this.state.activeTab, 'data-index': '0' },
@@ -3362,12 +3363,20 @@
       reactDefault.a.createElement(
         controls.k,
         { title: 'When drop file / folder into MarkLyra' },
+        windowsHost
+          ? reactDefault.a.createElement(
+              'p',
+              { className: 'panel-content-hint' },
+              'Windows 暂不支持拖入文件夹、Markdown 文件或可导入的文档。请在「文件」菜单中选择「打开文件夹…」「打开…」或「导入…」。图片可直接拖入正文。',
+            )
+          : null,
         reactDefault.a.createElement(controls.v, {
           rows: [
             [
               'When drop folder',
               reactDefault.a.createElement(controls.r, {
                 keyName: 'actionWhenDropFolder',
+                disabled: windowsHost,
                 value: this.getValue('actionWhenDropFolder'),
                 onChange: function (settingKey, settingValue) {
                   component.onChange(settingKey, settingValue);
@@ -3379,6 +3388,7 @@
               'When drop markdown file',
               reactDefault.a.createElement(controls.r, {
                 keyName: 'actionWhenDropFile',
+                disabled: windowsHost,
                 value: this.getValue('actionWhenDropFile'),
                 onChange: function (settingKey, settingValue) {
                   component.onChange(settingKey, settingValue);
@@ -3390,6 +3400,7 @@
               'When drop files that can be imported',
               reactDefault.a.createElement(controls.r, {
                 keyName: 'actionWhenDropImport',
+                disabled: windowsHost,
                 value: this.getValue('actionWhenDropImport'),
                 onChange: function (settingKey, settingValue) {
                   component.onChange(settingKey, settingValue);
