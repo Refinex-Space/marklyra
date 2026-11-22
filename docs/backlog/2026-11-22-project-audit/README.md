@@ -12,7 +12,7 @@
 - [x] **P1** [B2 快速打开在加载结果时换掉选中项](B2-quick-open-selection.md)
 - [x] **P2** [B3 添加站点时把旧描述保存给新网址](B3-site-preview-description.md)
 - [x] **P3** [B4 同一周显示两个周数](B4-calendar-week-number.md)
-- [ ] **P3** [B5 站点打开失败也计入最近打开](B5-site-recent-open.md)
+- [x] **P3** [B5 站点打开失败也计入最近打开](B5-site-recent-open.md)
 
 ## 体验缺陷
 

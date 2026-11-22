@@ -260,12 +260,15 @@ export default function SitesWorkbench({
   }, []);
   const openSite = useCallback(
     async (site: Site) => {
+      const failure = await openUrl(site.url);
+      if (failure !== null) {
+        setOpenError(failure);
+        return;
+      }
       void sites.recordOpen(workspace.id, site.id).then(
         (entries) => setRecent(entries.map((entry) => entry.id).slice(0, 20)),
         () => setRecent(pushRecent(workspace.path, site.id)),
       );
-      const failure = await openUrl(site.url);
-      setOpenError(failure);
     },
     [openUrl, workspace.id, workspace.path],
   );

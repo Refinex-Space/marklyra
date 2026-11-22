@@ -12,6 +12,7 @@ interface SitesMockOptions {
   delay?: number;
   /** `open_external_link` rejects with this message. */
   openFails?: string;
+  holdOpens?: boolean;
   /** Vite's saved icon is an SVG without a namespace, which an <img> cannot decode. */
   brokenIcon?: boolean;
   holdPreviews?: boolean;
@@ -264,6 +265,19 @@ function installSitesMock(options: SitesMockOptions) {
   host.__TAURI_INTERNALS__.invoke = async (command, args = {}) => {
     if (command === 'open_external_link') {
       mock.calls.push({ command, args });
+      if (options.holdOpens) {
+        await new Promise<void>((resolve, reject) => {
+          window.addEventListener(
+            'test-site-open-result',
+            (event) => {
+              const failure = (event as CustomEvent<string | null>).detail;
+              if (failure === null) resolve();
+              else reject(new Error(failure));
+            },
+            { once: true },
+          );
+        });
+      }
       if (options.openFails) throw options.openFails;
       mock.opened.push(String(args.url));
       return;
@@ -471,6 +485,52 @@ test('a failed open is reported under the search box instead of being swallowed'
   await entry(page).click();
   await card(page, 'Vite').locator('.site-card-main').click();
   await expect(page.locator('.site-search-error')).toContainText('无法打开外部链接');
+  const mock = await mockOf(page);
+  expect(mock.opened).toEqual([]);
+  expect.soft(mock.calls.filter((c) => c.command === 'sites_record_open')).toHaveLength(0);
+  await nav(page)
+    .getByRole('button', { name: /^最近打开/ })
+    .click();
+  await expect(workbench(page).getByRole('heading', { name: /最近打开/, level: 1 })).toBeVisible();
+  await expect(page.locator('.site-card-title')).toHaveCount(0);
+});
+
+test('a rejected reopen preserves recent order until a retry is accepted', async ({ page }) => {
+  await setup(page, { seed: true, holdOpens: true });
+  await entry(page).click();
+  const open = (name: string) => card(page, name).locator('.site-card-main').click();
+  const reply = (failure: string | null) =>
+    page.evaluate((detail) => {
+      window.dispatchEvent(new CustomEvent('test-site-open-result', { detail }));
+    }, failure);
+  const records = async () =>
+    (await mockOf(page)).calls.filter((c) => c.command === 'sites_record_open');
+  await open('Vite');
+  await reply(null);
+  await expect.poll(async () => (await records()).length).toBe(1);
+  await open('Tauri');
+  await reply(null);
+  await nav(page)
+    .getByRole('button', { name: /^最近打开/ })
+    .click();
+  const titles = page.locator('.site-card-title');
+  await expect(titles).toHaveText(['Tauri', 'Vite']);
+  const historyCalls = await records();
+  expect(historyCalls).toHaveLength(2);
+
+  await open('Vite');
+  await reply('系统拒绝打开网址');
+  await expect(page.locator('.site-search-error')).toContainText('系统拒绝打开网址');
+  expect.soft(await records()).toEqual(historyCalls);
+  await expect(titles).toHaveText(['Tauri', 'Vite']);
+
+  await open('Vite');
+  expect(await records()).toEqual(historyCalls);
+  await expect(titles).toHaveText(['Tauri', 'Vite']);
+  await reply(null);
+  await expect(titles).toHaveText(['Vite', 'Tauri']);
+  expect(await records()).toEqual([...historyCalls, historyCalls[0]]);
+  await expect(page.locator('.site-search-error')).toBeEmpty();
 });
 
 test('search: Enter opens an address, searches with the default engine, and ⌘Enter forces a search', async ({
