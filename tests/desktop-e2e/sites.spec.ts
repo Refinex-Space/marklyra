@@ -557,27 +557,55 @@ test('search: Enter opens an address, searches with the default engine, and ⌘E
   await expect(search(page)).toHaveValue('');
 });
 
-test('search: Tab and the engine menu change the engine for one search; a keyword picks it inline', async ({
+test('search: Tab leaves the field for the search button without changing engines', async ({
+  page,
+}) => {
+  await setup(page);
+  await entry(page).click();
+  const field = search(page);
+  await field.fill('serde');
+  await expect(page.getByRole('listbox', { name: '建议' })).toBeVisible();
+  await field.press('Tab');
+  await expect(page.getByRole('button', { name: '搜索', exact: true })).toBeFocused();
+  await expect(field).toHaveAttribute('aria-expanded', 'false');
+  await page.keyboard.press('Shift+Tab');
+  await expect(field).toBeFocused();
+  await expect(field).toHaveValue('serde');
+  await expect(field).toHaveAttribute('placeholder', /必应/);
+  expect((await mockOf(page)).opened).toEqual([]);
+});
+
+test('search: Shift+Tab reaches the engine menu for one search; a keyword picks it inline', async ({
   page,
 }) => {
   await setup(page);
   await entry(page).click();
   await expect(search(page)).toHaveAttribute('placeholder', /必应/);
-  await search(page).press('Tab');
-  await expect(search(page)).toHaveAttribute('placeholder', /Google/);
   await search(page).fill('serde');
-  await search(page).press('Enter');
+  await search(page).press('Shift+Tab');
+  await expect(page.getByRole('button', { name: '搜索引擎：必应' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menuitem', { name: /必应/ })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('menuitem', { name: /Google/ })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(search(page)).toBeFocused();
+  await expect(search(page)).toHaveValue('serde');
+  await expect(search(page)).toHaveAttribute('placeholder', /Google/);
+  await page.keyboard.press('Enter');
   // Back on the default afterwards.
   await expect(search(page)).toHaveAttribute('placeholder', /必应/);
   await page.getByRole('button', { name: /搜索引擎：必应/ }).click();
   await page.getByRole('menuitem', { name: /Google/ }).click();
   await expect(search(page)).toHaveAttribute('placeholder', /Google/);
-  await search(page).press('Tab');
+  await search(page).fill('mouse search');
+  await search(page).press('Enter');
   await expect(search(page)).toHaveAttribute('placeholder', /必应/);
   await search(page).fill('g clap derive');
   await search(page).press('Enter');
   expect((await mockOf(page)).opened).toEqual([
     'https://www.google.com/search?q=serde',
+    'https://www.google.com/search?q=mouse%20search',
     'https://www.google.com/search?q=clap%20derive',
   ]);
 });

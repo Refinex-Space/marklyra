@@ -184,14 +184,7 @@ export function SearchBox({
 
   const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing || composing) return;
-    if (event.key === 'Tab' && !event.metaKey && !event.ctrlKey && !event.altKey) {
-      if (engines.length < 2 || !engine) return;
-      event.preventDefault();
-      const at = engines.findIndex((e) => e.id === engine.id);
-      setPicked(
-        engines[(at + (event.shiftKey ? engines.length - 1 : 1)) % engines.length]?.id ?? null,
-      );
-    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       if (!rows.length) return;
       event.preventDefault();
       setActive((value) =>
@@ -235,10 +228,11 @@ export function SearchBox({
         <button
           type="button"
           className="site-engine"
+          tabIndex={0}
           aria-haspopup="menu"
           aria-expanded={menu !== null}
           aria-label={`搜索引擎：${engine.name}`}
-          title="切换搜索引擎（Tab）"
+          title="选择本次搜索使用的引擎"
           onClick={(event) => {
             const box = event.currentTarget.getBoundingClientRect();
             setMenu({ x: box.left, y: box.bottom + 6 });
@@ -276,6 +270,7 @@ export function SearchBox({
         <button
           type="button"
           className="site-search-go"
+          tabIndex={0}
           aria-label="搜索"
           disabled={!current}
           // Keeps the field focused so the suggestions do not vanish before the click lands.
@@ -341,7 +336,7 @@ export function SearchBox({
       </p>
       <p className="site-search-hints">
         <span>
-          <kbd>Tab</kbd> 切换引擎
+          <kbd>Shift+Tab</kbd> 聚焦引擎按钮
         </span>
         {engines
           .filter((e) => e.id !== engine.id)

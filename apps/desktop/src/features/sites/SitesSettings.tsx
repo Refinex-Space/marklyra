@@ -115,7 +115,7 @@ export function SitesSettings({ dark }: { dark: boolean }) {
             title="搜索"
             description="关键词放在搜索词前（例如“g 关键词”），只在这一次搜索中使用对应的引擎。"
           >
-            <Row label="默认搜索引擎" hint="在搜索框里按 Tab 可以临时换一个，不会改变这里的选择。">
+            <Row label="默认搜索引擎" hint="搜索框左侧的引擎菜单可以为单次搜索选择其他引擎。">
               <Select
                 label="默认搜索引擎"
                 value={sites.engine}

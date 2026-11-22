@@ -91,6 +91,8 @@ export function Menu({
     });
   }, [x, y]);
   useEffect(() => {
+    // A menu still hidden for measurement cannot receive keyboard focus.
+    if (place.visibility === 'hidden') return;
     const items = () => [
       ...(root.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? []),
     ];
@@ -127,7 +129,7 @@ export function Menu({
       document.removeEventListener('keydown', key, true);
       window.removeEventListener('blur', blur);
     };
-  }, []);
+  }, [place.visibility]);
   return createPortal(
     <div className="site-layer site-layer-menu">
       <div ref={root} className="site-menu" role="menu" aria-label={label} style={place}>
