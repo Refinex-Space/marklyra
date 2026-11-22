@@ -137,6 +137,91 @@ test('Open Note searches the folder and recent files; Enter opens the chosen one
   await expect(home(page)).toBeHidden();
 });
 
+test('quick-open selection keeps the chosen command when delayed notes arrive', async ({
+  page,
+}) => {
+  await boot(page);
+  await page.setViewportSize({ width: 1180, height: 480 });
+  await page.evaluate(() => {
+    const recent = (window as RecentMockWindow).__recentMock;
+    for (let i = 0; i < 8; i++) recent.seed(`/mock/Notes/Launch-${i}.md`, '# Launch');
+  });
+  await expect(home(page).getByText('Launch-7')).toBeVisible();
+  await page.evaluate(() => {
+    (window as RecentMockWindow).__recentMock.holdNextList = true;
+  });
+  await menu(page, 'quick-open');
+  const dialog = search(page);
+  const field = dialog.getByRole('combobox');
+  const command = dialog.getByRole('option', { name: /新建窗口/ });
+  await expect(field).toBeFocused();
+  await field.press('ArrowDown');
+  await expect(command).toHaveAttribute('aria-selected', 'true');
+  const id = await command.getAttribute('id');
+  if (!id) throw new Error('Missing quick-open option ID');
+  await page.evaluate(() => (window as RecentMockWindow).__recentMock.releaseList());
+  await expect(dialog.getByRole('option', { name: /Launch-7/ })).toBeVisible();
+  await expect(command).toHaveAttribute('aria-selected', 'true');
+  await expect(field).toHaveAttribute('aria-activedescendant', id);
+  await expect(command).toBeInViewport({ ratio: 1 });
+  await field.press('Enter');
+  await expect.poll(async () => (await calls(page, 'create_editor_window')).length).toBe(1);
+  expect(await calls(page, 'open_recent_file')).toEqual([]);
+  expect(await calls(page, 'open_workspace_document')).toEqual([]);
+});
+
+test('quick-open selection keeps the first typed match when a matching note arrives', async ({
+  page,
+}) => {
+  await boot(page);
+  await seed(page, '/mock/新建窗口.md', '# 笔记');
+  await expect(home(page).getByText('新建窗口', { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    (window as RecentMockWindow).__recentMock.holdNextList = true;
+  });
+  await menu(page, 'quick-open');
+  const dialog = search(page);
+  const field = dialog.getByRole('combobox');
+  await field.fill('新建窗口');
+  const command = dialog.getByRole('option', { name: /Ctrl\+Shift\+N/ });
+  await expect(command).toHaveAttribute('aria-selected', 'true');
+  await page.evaluate(() => (window as RecentMockWindow).__recentMock.releaseList());
+  await expect(dialog.getByRole('option')).toHaveCount(2);
+  await expect(command).toHaveAttribute('aria-selected', 'true');
+  await field.press('Enter');
+  await expect.poll(async () => (await calls(page, 'create_editor_window')).length).toBe(1);
+  expect(await calls(page, 'open_recent_file')).toEqual([]);
+});
+
+test('quick-open selection cannot execute a replacement after the chosen command disappears', async ({
+  page,
+}) => {
+  await boot(page);
+  await menu(page, 'quick-open');
+  const dialog = search(page);
+  await dialog.getByRole('tab', { name: '工作区' }).click();
+  const field = dialog.getByRole('combobox');
+  const calendar = dialog.getByRole('option', { name: /收起日历/ });
+  await expect(calendar).toBeVisible();
+  await field.press('Control+End');
+  await field.press('ArrowUp');
+  await expect(calendar).toHaveAttribute('aria-selected', 'true');
+  await page.evaluate(() => {
+    const key = 'marklyra-preferences-v1';
+    const preferences = JSON.parse(localStorage.getItem(key) ?? '{}');
+    preferences.calendar = { ...preferences.calendar, enabled: false };
+    localStorage.setItem(key, JSON.stringify(preferences));
+    window.dispatchEvent(new StorageEvent('storage', { key }));
+  });
+  await expect(calendar).toHaveCount(0);
+  await field.press('Enter');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('option', { selected: true })).toHaveCount(0);
+  await expect(field).not.toHaveAttribute('aria-activedescendant', /.+/);
+  await field.press('ArrowDown');
+  await expect(dialog.getByRole('option').first()).toHaveAttribute('aria-selected', 'true');
+});
+
 test('keyboard: arrows move, Tab changes the scope, Escape closes and returns to the home view', async ({
   page,
 }) => {

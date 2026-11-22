@@ -1,6 +1,7 @@
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -35,7 +36,7 @@ export function QuickOpen(props: QuickOpenProps) {
   const tabs = quickTabs;
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<QuickTab>(initialTab);
-  const [active, setActive] = useState(0);
+  const [selectedId, setSelectedId] = useState<string | null>();
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const composing = useRef(false);
@@ -45,32 +46,45 @@ export function QuickOpen(props: QuickOpenProps) {
     [notes, items, query, tab],
   );
   const flat = useMemo(() => flatten(groups), [groups]);
+  const firstId = flat[0]?.item.id;
+  const activeId = selectedId ?? firstId;
+  const active = flat.findIndex(({ item }) => item.id === activeId);
+  const current = flat[active]?.item;
   const loadingNotes = notes === null && (tab === 'note' || tab === 'all');
 
   useEffect(() => {
     input.current?.focus();
   }, []);
-  // A new list starts at its first entry; the entry under the pointer is not remembered.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: query and tab are what reset the selection.
-  useEffect(() => setActive(0), [query, tab]);
+  // On first opening, recent notes take priority as soon as they load. A query or tab
+  // change (null) selects its first available match even while notes are pending.
+  useLayoutEffect(() => {
+    if (selectedId == null && firstId && (selectedId === null || !loadingNotes))
+      setSelectedId(firstId);
+  }, [firstId, loadingNotes, selectedId]);
   // Keep the entry the keyboard moved to in view; a new list re-renders the same rows.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the list and selection are what move the entry.
   useEffect(() => {
     list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   }, [active, groups]);
 
-  const run = (index: number) => {
-    const result = flat[index];
-    if (!result) return;
+  const run = (item: QuickItem | undefined) => {
+    if (!item) return;
     onClose();
-    result.item.run();
+    item.run();
   };
   const step = (delta: number) => {
-    if (flat.length) setActive((value) => (value + delta + flat.length) % flat.length);
+    if (!flat.length) return;
+    const from = active < 0 && delta < 0 ? 0 : active;
+    setSelectedId(flat[(from + delta + flat.length) % flat.length]?.item.id);
+  };
+  const chooseTab = (next: QuickTab) => {
+    if (tab === next) return;
+    setSelectedId(null);
+    setTab(next);
   };
   const cycleTab = (delta: number) => {
     const index = tabs.findIndex((entry) => entry.id === tab);
-    setTab(tabs[(index + delta + tabs.length) % tabs.length]?.id ?? 'all');
+    chooseTab(tabs[(index + delta + tabs.length) % tabs.length]?.id ?? 'all');
   };
   const keys = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (composing.current || event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -88,12 +102,12 @@ export function QuickOpen(props: QuickOpenProps) {
         // Caret movement inside the field stays with the field; the list follows only with Ctrl.
         if (event.ctrlKey || event.metaKey) {
           event.preventDefault();
-          setActive(event.key === 'Home' ? 0 : Math.max(0, flat.length - 1));
+          setSelectedId((event.key === 'Home' ? flat[0] : flat.at(-1))?.item.id);
         }
         break;
       case 'Enter':
         event.preventDefault();
-        run(active);
+        run(current);
         break;
       case 'Escape':
         event.preventDefault();
@@ -107,7 +121,6 @@ export function QuickOpen(props: QuickOpenProps) {
     }
   };
 
-  let index = -1;
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: a press on the scrim only dismisses; Escape is the keyboard path.
     <div
@@ -130,13 +143,16 @@ export function QuickOpen(props: QuickOpenProps) {
             role="combobox"
             aria-expanded="true"
             aria-controls="quick-open-list"
-            aria-activedescendant={flat[active] ? `quick-open-${flat[active].item.id}` : undefined}
+            aria-activedescendant={current ? `quick-open-${current.id}` : undefined}
             aria-label="输入命令或搜索"
             placeholder="输入命令或搜索笔记…"
             spellCheck={false}
             autoComplete="off"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setSelectedId(null);
+              setQuery(event.target.value);
+            }}
             onCompositionStart={() => {
               composing.current = true;
             }}
@@ -154,7 +170,7 @@ export function QuickOpen(props: QuickOpenProps) {
               tabIndex={-1}
               aria-selected={entry.id === tab}
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => setTab(entry.id)}
+              onClick={() => chooseTab(entry.id)}
             >
               {entry.label}
             </button>
@@ -167,8 +183,6 @@ export function QuickOpen(props: QuickOpenProps) {
                 {group.label}
               </div>
               {group.results.map((result) => {
-                index += 1;
-                const position = index;
                 return (
                   // biome-ignore lint/a11y/useKeyWithClickEvents: options are chosen from the combobox field with the arrow keys and Enter.
                   <div
@@ -177,10 +191,10 @@ export function QuickOpen(props: QuickOpenProps) {
                     className="quick-open-row"
                     role="option"
                     tabIndex={-1}
-                    aria-selected={position === active}
-                    onMouseMove={() => position !== active && setActive(position)}
+                    aria-selected={result.item.id === current?.id}
+                    onMouseMove={() => setSelectedId(result.item.id)}
                     onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => run(position)}
+                    onClick={() => run(result.item)}
                   >
                     <span className="quick-open-icon" aria-hidden="true">
                       <Icon name={result.item.icon} />

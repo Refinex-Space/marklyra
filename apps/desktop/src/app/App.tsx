@@ -571,7 +571,11 @@ export function App() {
     }
     return true;
   };
-  const windowOperation = async (work: () => Promise<unknown>, failure = '窗口操作未确认') => {
+  const windowOperation = async (
+    work: () => Promise<unknown>,
+    failure = '窗口操作未确认',
+    allowHome = false,
+  ) => {
     if (
       !desktopAvailable ||
       !ready ||
@@ -614,7 +618,7 @@ export function App() {
         active.revision !== revision ||
         active.hasPendingChanges ||
         actions.current.blockedEditorCommand ||
-        actions.current.editorObscured ||
+        (actions.current.editorObscured && !(allowHome && actions.current.homeUncovered)) ||
         actions.current.doc.working ||
         actions.current.exporter.working ||
         importingImageRef.current
@@ -629,7 +633,11 @@ export function App() {
     }
   };
   const newWindow = (kind: 'document' | 'window' | 'tab' | 'open' = 'window') =>
-    windowOperation(() => editorWindows.create(kind), '无法新建窗口');
+    windowOperation(
+      () => editorWindows.create(kind),
+      '无法新建窗口',
+      kind === 'window' && homeVisible,
+    );
   const tabAction = (action: 'next' | 'previous' | 'detach' | 'merge' | 'toggle') =>
     windowOperation(() => editorWindows.tab(action));
   const focusStartup = async (instance: MarkLyraEditor, initial = false) => {
@@ -1154,6 +1162,8 @@ export function App() {
         return;
     }
   };
+  const editorCoveredByPanel =
+    imagePreviewOpen || quickOpen !== null || gitViewOpen || graphOpen || tasksOpen || sitesOpen;
   const actions = useRef({
     closeDocument,
     openRename,
@@ -1193,14 +1203,8 @@ export function App() {
       recentOpen ||
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
-    editorObscured:
-      imagePreviewOpen ||
-      homeVisible ||
-      quickOpen !== null ||
-      gitViewOpen ||
-      graphOpen ||
-      tasksOpen ||
-      sitesOpen,
+    editorObscured: homeVisible || editorCoveredByPanel,
+    homeUncovered: homeVisible && !editorCoveredByPanel,
     blockedEditorCommand:
       !!conversion ||
       imagePreviewOpen ||
@@ -1256,14 +1260,8 @@ export function App() {
       recentOpen ||
       closingPanel,
     // The editor is covered (home view or search window): nothing may edit text nobody can see.
-    editorObscured:
-      imagePreviewOpen ||
-      homeVisible ||
-      quickOpen !== null ||
-      gitViewOpen ||
-      graphOpen ||
-      tasksOpen ||
-      sitesOpen,
+    editorObscured: homeVisible || editorCoveredByPanel,
+    homeUncovered: homeVisible && !editorCoveredByPanel,
     blockedEditorCommand:
       !!conversion ||
       imagePreviewOpen ||
