@@ -173,7 +173,7 @@ export function TaskPage(props: Props) {
     const latest = await taskApi.detail(props.workspaceId, task.id);
     await saveDescription(latest.revision);
   };
-  /** Ticks run one at a time against the latest file, each changing one character. */
+  /** Each queued tick applies only to the exact body its offset came from. */
   const ticking = useRef(Promise.resolve());
   const toggleCheck = (offset: number) => {
     const before = detail?.body;
@@ -183,13 +183,13 @@ export function TaskPage(props: Props) {
     ticking.current = ticking.current.then(async () => {
       try {
         const latest = await taskApi.detail(props.workspaceId, task.id);
-        const body = latest.body === before ? next : toggleCheckbox(latest.body, offset);
-        if (body === null) throw new Error('描述已在其他地方改动，请重试');
+        if (latest.body !== before)
+          throw new Error('描述已在其他地方改动，请查看刷新后的描述并重试');
         await taskApi.mutate(props.workspaceId, {
           kind: 'setDescription',
           id: task.id,
           revision: latest.revision,
-          body,
+          body: next,
         });
         await store.refresh();
       } catch (error) {

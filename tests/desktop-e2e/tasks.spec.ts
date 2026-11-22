@@ -1498,6 +1498,70 @@ test('the description grows with its text instead of scrolling inside a box', as
     .toBeGreaterThanOrEqual(0);
 });
 
+test('checkbox toggle rejects a stale position after another edit inserts a checklist item', async ({
+  page,
+}) => {
+  await setup(page);
+  const taskId = 'navfix000001';
+  const original = '- [ ] 校对格式\n- [ ] 备份文件';
+  const latest = `- [ ] 发布页面\n${original}`;
+  await page.evaluate(
+    ({ taskId, original }) => {
+      const mock = Reflect.get(window, '__tasksMock') as { bodies: Record<string, string> };
+      mock.bodies[taskId] = original;
+    },
+    { taskId, original },
+  );
+  await page.getByRole('button', { name: '任务', exact: true }).first().click();
+  await row(page, '修复移动端导航栏错位').click();
+  const description = page.locator('.task-desc');
+  const checkbox = (label: string) =>
+    description.locator('.task-md-check', { hasText: label }).getByRole('checkbox');
+  await expect(checkbox('校对格式')).toBeVisible();
+
+  await page.evaluate(
+    ({ taskId, latest }) => {
+      const mock = Reflect.get(window, '__tasksMock') as {
+        bodies: Record<string, string>;
+        tasks: { id: string; revision: string }[];
+      };
+      const internals = Reflect.get(window, '__TAURI_INTERNALS__') as {
+        invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;
+      };
+      const invoke = internals.invoke;
+      internals.invoke = (command, args = {}) => {
+        if (command === 'tasks_detail' && args.id === taskId) {
+          const task = mock.tasks.find(({ id }) => id === taskId);
+          if (!task) throw new Error('Missing checklist fixture task');
+          task.revision = 'external-edit';
+          mock.bodies[taskId] = latest;
+          internals.invoke = invoke;
+        }
+        return invoke(command, args);
+      };
+    },
+    { taskId, latest },
+  );
+  const writtenBodies = () =>
+    page.evaluate((id) => {
+      return (window as TestWindow).__desktopMock.calls.flatMap((call) => {
+        if (call.command !== 'tasks_mutate') return [];
+        const mutation = call.args.mutation as { id: string; kind: string; body: string };
+        return mutation.id === id && mutation.kind === 'setDescription' ? [mutation.body] : [];
+      });
+    }, taskId);
+
+  await checkbox('校对格式').click();
+  await expect(checkbox('发布页面')).toBeVisible();
+  expect(await writtenBodies()).toEqual([]);
+  await expect(checkbox('发布页面')).not.toBeChecked();
+  await expect(checkbox('校对格式')).not.toBeChecked();
+  await expect(page.getByText(/描述已在其他地方改动.*重试/)).toBeVisible();
+
+  await checkbox('校对格式').click();
+  await expect.poll(writtenBodies).toEqual([latest.replace('- [ ] 校对格式', '- [x] 校对格式')]);
+});
+
 test('descriptions and comments render Markdown; ticking a checkbox changes one character', async ({
   page,
 }) => {
